@@ -1,0 +1,239 @@
+<resources>
+    <string name="app_name">PDF Scanner &amp; Editor – PDFlex</string>
+    
+    <!-- Settings Screen -->
+    <string name="title_settings">Paramètres</string>
+    <string name="setting_dark_mode">Mode sombre</string>
+    <string name="setting_share_app">Partager l\'app</string>
+    <string name="setting_rate_us">Notez-nous</string>
+    <string name="setting_privacy_policy">Politique de confidentialité</string>
+    <string name="setting_terms">Conditions générales</string>
+
+    <!-- Rate Us Dialog -->
+    <string name="rate_us_title">Nous aimerions votre avis !</string>
+    <string name="rate_us_desc">Si vous aimez utiliser cette application, prenez un moment pour l\'évaluer. Merci pour votre soutien !</string>
+    <string name="rate_us_btn_later">Plus tard</string>
+    <string name="rate_us_btn_rate">Évaluer</string>
+    <string name="rate_us_poor">Médiocre</string>
+    <string name="rate_us_fair">Passable</string>
+    <string name="rate_us_good">Bon</string>
+    <string name="rate_us_very_good">Très bien</string>
+    <string name="rate_us_excellent">Excellent</string>
+    <string name="rate_us_send_feedback">Envoyer des commentaires</string>
+
+    <!-- Language Screen -->
+    <string name="title_language">Langue</string>
+    <string name="btn_done">Terminé</string>
+
+    <!-- Home Screen -->
+    <string name="title_home">Accueil</string>
+    <string name="title_files">Fichiers</string>
+    <string name="home_image_to_pdf">Image en PDF</string>
+    <string name="home_smart_scan">Scan Intelligent</string>
+    <string name="home_import_pdf">Importer PDF</string>
+    <string name="home_merge_pdf">Fusionner PDF</string>
+    <string name="home_split_pdf">Diviser PDF</string>
+    <string name="home_compress">Compresser</string>
+    <string name="home_see_all">Voir tout</string>
+
+    <!-- Image Picker & PDF Preview -->
+    <string name="picker_all_images">Toutes les images</string>
+    <string name="picker_camera">Caméra</string>
+    <string name="picker_select_image">Sélectionner une image</string>
+    <string name="picker_import">Importer</string>
+    <string name="preview_next">Suivant</string>
+    <string name="preview_crop">Recadrer</string>
+    <string name="preview_add_page">Ajouter une page</string>
+    <string name="preview_frame">Cadre</string>
+    <string name="preview_delete">Supprimer</string>
+
+    <!-- Confirmation Sheets -->
+    <string name="confirm_delete_title">Confirmer la suppression</string>
+    <string name="confirm_delete_desc">Voulez-vous vraiment supprimer\nces images de la page actuelle ?</string>
+    <string name="confirm_delete_file_desc">Voulez-vous vraiment supprimer ce fichier ?\nCette action ne peut pas être annulée.</string>
+    <string name="confirm_save_title">Enregistrer vos modifications</string>
+    <string name="confirm_save_desc">Souhaitez-vous enregistrer les modifications\nque vous avez apportées ?</string>
+    <string name="btn_discard">Ignorer</string>
+    <string name="btn_save">Enregistrer</string>
+    <string name="select_crop_title">Sélectionner l\'image à recadrer</string>
+
+    <!-- PDF Settings -->
+    <string name="pdf_settings_title">Paramètres Pdf</string>
+    <string name="pdf_settings_enter_filename">Entrez le nom du fichier</string>
+    <string name="pdf_settings_filename_required">Le nom du fichier est requis</string>
+    <string name="pdf_settings_invalid_chars">Le nom du fichier ne peut pas contenir de caractères spéciaux : / \\ : * ? \" &lt; &gt; |</string>
+    <string name="pdf_settings_filename_exists">Ce nom de fichier existe déjà.</string>
+    <string name="pdf_settings_file_exists_toast">Le fichier existe déjà</string>
+    <string name="pdf_settings_password_label">Mot de passe</string>
+    <string name="pdf_settings_edit">Modifier</string>
+    <string name="pdf_settings_set">Définir</string>
+    <string name="pdf_settings_page_margin">Marge de la page</string>
+    <string name="pdf_settings_compression_settings">Paramètres de compression</string>
+    <string name="pdf_settings_no_compression">Pas de compression</string>
+    <string name="pdf_settings_low_compression">Faible compression</string>
+    <string name="pdf_settings_medium_compression">Compression moyenne</string>
+    <string name="pdf_settings_regular_compression">Compression normale</string>
+    <string name="pdf_settings_max_compression">Compression maximale</string>
+    <string name="pdf_settings_preview">Aperçu</string>
+    <string name="pdf_settings_no_viewer">Aucun lecteur PDF trouvé</string>
+    <string name="pdf_settings_convert">Convertir</string>
+    <string name="pdf_settings_processing">Génération du PDF...</string>
+    <string name="pdf_settings_processing_desc">Veuillez patienter un instant pendant que nous traitons votre demande.</string>
+    <string name="pdf_settings_set_password">Définir le mot de passe</string>
+    <string name="pdf_settings_set_password_desc">Définir une protection par mot de passe pour le PDF</string>
+    <string name="pdf_settings_enter_password">Entrez le mot de passe</string>
+    <string name="pdf_settings_password_length_err">Le mot de passe doit comporter au moins 4 caractères.</string>
+    <string name="pdf_settings_incorrect_password">Mot de passe incorrect. Veuillez réessayer.</string>
+    <string name="pdf_settings_compression_title">Compression</string>
+    <string name="pdf_settings_original_quality">Qualité originale</string>
+    <!-- Sort By Sheet -->
+    <string name="sort_by_title">Trier par</string>
+    <string name="sort_by_file_size">Taille du fichier</string>
+    <string name="sort_by_name">Nom</string>
+    <string name="sort_by_created_date">Date de création</string>
+    <string name="sort_by_modified_date">Date de modification</string>
+    <string name="sort_by_ascending">Croissant</string>
+    <string name="sort_by_descending">Décroissant</string>
+    <string name="btn_cancel">Annuler</string>
+    <string name="btn_ok">Ok</string>
+
+    <!-- Split Screen -->
+    <string name="split_select_pdf">Sélectionner un PDF à diviser</string>
+    <string name="search_no_results">Aucun résultat trouvé</string>
+    <string name="search_no_pdfs">Aucun fichier PDF trouvé</string>
+    <string name="split_one_page">1 page</string>
+    <string name="password_unlock_title">Déverrouiller le PDF</string>
+    <string name="viewer_unlock_desc">Entrez le mot de passe pour déverrouiller le PDF</string>
+    <string name="viewer_unlock_failed">Échec du déverrouillage du PDF</string>
+    <string name="split_unlock_desc">Entrez le mot de passe pour déverrouiller le PDF pour la division</string>
+    <string name="split_splitting_pdf">Division du PDF en cours...</string>
+    <string name="split_selected_pages">Diviser %1$d pages sélectionnées</string>
+    <string name="split_pdf_title">Diviser PDF</string>
+    <string name="split_deselect_all">Tout désélectionner</string>
+    <string name="split_select_all">Tout sélectionner</string>
+    <string name="split_success_title">Divisé avec succès !</string>
+    <string name="split_success_from">De: %1$s</string>
+    <string name="split_success_generated">%1$d PDF générés</string>
+
+    <string name="btn_open">Ouvrir</string>
+    <string name="btn_view_files">Voir les fichiers</string>
+    <string name="split_mode_extract">Extraire des pages</string>
+    <string name="split_mode_range">Diviser par plage</string>
+    <string name="split_range_fixed">Plage fixe</string>
+    <string name="split_range_custom">Plage personnalisée</string>
+    <string name="split_every_n_pages">Diviser toutes les %1$d pages</string>
+    <string name="split_add_range">Ajouter une plage</string>
+    <string name="split_multiple_files_desc">Vos fichiers PDF ont été générés avec succès.</string>
+    <string name="split_range_label">Plage %1$d</string>
+    <string name="split_invalid_range">Plage invalide</string>
+    <string name="split_from">De</string>
+    <string name="split_to">À</string>
+    <string name="split_to_range">à</string>
+    <string name="split_page_exceeds">Le numéro de page dépasse le nombre total de pages (%1$d)</string>
+    <string name="split_from_less_than_to">\'De\' doit être inférieur à \'À\'</string>
+
+    <!-- Merge Screen -->
+    <string name="merge_select_pdf">Sélectionner le PDF à fusionner</string>
+    <string name="selected_items">%1$d sélectionné</string>
+    <string name="merge_button_text">Fusionner (%1$d)</string>
+    <string name="merge_error_empty">Le nom du fichier ne peut pas être vide</string>
+    <string name="merge_error_same_name">Le nom ne peut pas être identique aux fichiers sélectionnés</string>
+    <string name="merge_error_exists">Un fichier avec ce nom existe déjà</string>
+    <string name="merge_success_title">Fusionné avec succès !</string>
+
+    <!-- Compress Screen -->
+    <string name="compress_compressing">Compression du PDF en cours...</string>
+    <string name="compress_select_pdf">Sélectionner le PDF à compresser</string>
+    <string name="compress_unlock_desc">Entrez le mot de passe pour déverrouiller le PDF pour la compression</string>
+    <string name="compress_title">Compresser PDF</string>
+    <string name="compress_original_size">Taille originale: %1$s</string>
+    <string name="compress_recommended">Compression recommandée</string>
+    <string name="compress_recommended_sub">Bonne qualité, taille de fichier réduite</string>
+    <string name="compress_high">Forte compression</string>
+    <string name="compress_high_sub">Moindre qualité, taille de fichier minimale</string>
+    <string name="compress_low">Faible compression</string>
+    <string name="compress_low_sub">Haute qualité, taille de fichier légèrement réduite</string>
+    <string name="compress_success_title">Compressé avec succès !</string>
+    <string name="compress_original">Original: </string>
+    <string name="compress_compressed">Compressé: </string>
+
+    <!-- File Operations & Details -->
+    <string name="details_title">Détails</string>
+    <string name="details_name">Nom :</string>
+    <string name="details_date">Date :</string>
+    <string name="details_size">Taille :</string>
+    <string name="details_path">Chemin :</string>
+    <string name="options_rename">Renommer</string>
+    <string name="options_open_with">Ouvrir avec</string>
+    <string name="options_lock">Verrouiller</string>
+    <string name="options_unlock">Déverrouiller</string>
+    <string name="options_frame">Cadre</string>
+    <string name="frame_applying">Application du cadre...</string>
+    <string name="frame_success">Cadre appliqué avec succès</string>
+    <string name="frame_selection_title">Sélectionner le style de cadre</string>
+    <string name="title_select_frame">Sélectionner le cadre</string>
+    
+    <!-- Smart Scan -->
+    <string name="permission_camera_title">Autorisation de la caméra requise</string>
+    <string name="permission_camera_desc">Pour scanner des documents, l\'application a besoin d\'accéder à votre caméra. Veuillez l\'activer dans les Paramètres.</string>
+    <string name="btn_open_settings">Ouvrir les Paramètres</string>
+    <string name="scan_file_name">Nom du fichier</string>
+    <string name="scan_file_exists">Le nom de fichier existe déjà</string>
+
+    <!-- Share -->
+    <string name="share_title">Partager</string>
+
+    <!-- General -->
+    <string name="title_favorite">Favoris</string>
+    <string name="title_recent_file">Fichiers récents</string>
+    <string name="home_pdf_imported_success">PDF importé avec succès</string>
+    <!-- App Dialogs -->
+    <string name="maintenance_title">Maintenance de l\'application</string>
+    <string name="maintenance_desc">Nous sommes en maintenance. Veuillez réessayer plus tard.</string>
+    <string name="update_title">Mise à jour disponible</string>
+    <string name="update_desc">Une nouvelle version de PDF Scanner &amp; Editor – PDFlex est disponible. Veuillez mettre à jour pour continuer.</string>
+    <string name="search_hint">Rechercher</string>
+    <string name="no_recent_pdfs">Aucun PDF récent trouvé</string>
+    <string name="no_favorite_pdfs">Aucun PDF favori trouvé</string>
+    <string name="no_files">Aucun fichier</string>
+    <string name="tap_to_add">Appuyez sur le bouton + pour ajouter</string>
+    <string name="merge_merging">Fusion du PDF...</string>
+    <string name="merge_merging_desc">Fusion en cours...</string>
+    <string name="merge_unlock_desc">Entrez le mot de passe pour déverrouiller le PDF pour la fusion</string>
+    <string name="file_locked">Verrouillé</string>
+    <string name="file_compressed">Compressé</string>
+    <string name="success_from">De : </string>
+    <string name="title_merge">Fusionner</string>
+    <!-- New Localization Keys -->
+    <string name="permission_photo_title">Accès aux photos requis</string>
+    <string name="permission_photo_desc">Cette application a besoin d\'accéder à vos photos pour les convertir en PDF.</string>
+    <string name="permission_general_title">Autorisation requise</string>
+    <string name="permission_general_desc">Cette application a besoin d\'une autorisation pour fonctionner correctement.</string>
+    <string name="btn_allow">Autoriser</string>
+    <string name="permission_settings_title">Autorisations requises</string>
+    <string name="permission_settings_desc">Cette application a besoin d\'autorisations pour fonctionner. Veuillez ouvrir les paramètres et les accorder.</string>
+    <string name="permission_all_files_title">Accès à tous les fichiers requis</string>
+    <string name="permission_all_files_desc">Pour fournir ses fonctionnalités de base, PDFlex nécessite l\'« Accès à tous les fichiers » pour découvrir, lire et modifier les fichiers PDF sur votre appareil. Ceci est strictement nécessaire pour que vous puissiez numériser, fusionner, diviser et compresser vos documents entièrement localement sur votre appareil. Nous n\'accédons pas aux fichiers non liés au traitement PDF.</string>
+    <string name="exit_dialog_title">Êtes-vous sûr de vouloir quitter ?</string>
+    <string name="exit_dialog_btn_exit">Quitter l\'application</string>
+    <string name="ad_loading_title">Chargement de l\'annonce...</string>
+    <string name="ad_loading_desc">Veuillez patienter un instant</string>
+    <string name="picker_allow_more_photos">Pour sélectionner plus de photos, veuillez autoriser l\'accès à toutes.</string>
+    <string name="crop_processing">Traitement...</string>
+    <string name="accessibility_ad_loading">Icône de chargement de l\'annonce</string>
+    <string name="error_opening_pdf">Erreur lors de l\'ouverture du PDF</string>
+    <string name="error_invalid_pdf">Ce fichier est corrompu ou n\'est pas un document PDF valide.</string>
+    <string name="btn_go_back">Retourner</string>
+    <string name="error_creating_pdf">Erreur lors de la création du PDF : %s</string>
+    <string name="no_internet_title">Pas de connexion Internet</string>
+    <string name="no_internet_desc">Veuillez vérifier vos paramètres réseau et vous connecter à Internet pour continuer à utiliser l\'application.</string>
+    <string name="toast_favorite_added">Ajouté aux favoris</string>
+    <string name="toast_favorite_removed">Retiré des favoris</string>
+    <string name="toast_rename_success">Fichier renommé avec succès</string>
+    <string name="toast_delete_success">Fichier supprimé avec succès</string>
+    <string name="toast_password_set_success">Mot de passe défini avec succès</string>
+    <string name="toast_password_remove_success">Mot de passe supprimé avec succès</string>
+    <string name="toast_file_not_found">Fichier non trouvé</string>
+    <string name="toast_error_sharing">Erreur lors du partage du fichier</string>
+    <string name="pdf_viewer_password_des">Entrez le mot de passe pour ouvrir ce fichier PDF</string>
+</resources>

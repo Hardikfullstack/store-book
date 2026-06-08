@@ -1,0 +1,171 @@
+<resources>
+    <string name="app_name">स्टोरबुक</string>
+
+    <!-- Navigation Tabs -->
+    <string name="tab_dashboard">डैशबोर्ड</string>
+    <string name="tab_inventory">स्टॉक सूची</string>
+    <string name="tab_sales">नई बिक्री</string>
+    <string name="tab_udhaar">उधार खाता</string>
+    <string name="tab_more">अन्य विकल्प</string>
+
+    <!-- Dashboard Screen -->
+    <string name="dash_today_summary">आज का सारांश</string>
+    <string name="dash_total_items">कुल आइटम</string>
+    <string name="dash_low_stock">कम स्टॉक</string>
+    <string name="dash_today_revenue">आज की बिक्री</string>
+    <string name="dash_today_profit">आज का मुनाफा</string>
+    <string name="dash_alert_banner">चेतावनी: %1$d आइटम का स्टॉक कम हो रहा है! देखने के लिए दबाएं।</string>
+    <string name="dash_recent_sales">आज की हालिया बिक्री</string>
+    <string name="dash_no_sales_today">आज अभी तक कोई बिक्री दर्ज नहीं की गई है।</string>
+    <string name="btn_quick_sale">बिक्री दर्ज करें</string>
+    <string name="btn_add_item_quick">सामान जोड़ें</string>
+    <string name="btn_undo">वापस लें</string>
+    <string name="toast_undo_success">बिक्री रद्द की गई। स्टॉक वापस आ गया!</string>
+    <string name="toast_undo_timeout">वापस लेने की अवधि (30 सेकंड) समाप्त हो चुकी है।</string>
+
+    <!-- Inventory Screen -->
+    <string name="inv_search_hint">नाम से आइटम खोजें...</string>
+    <string name="inv_filter_all">सभी श्रेणियां</string>
+    <string name="inv_filter_low_stock">केवल कम स्टॉक</string>
+    <string name="inv_sort_name">नाम अनुसार</string>
+    <string name="inv_sort_qty">मात्रा अनुसार</string>
+    <string name="inv_sort_price">कीमत अनुसार</string>
+    <string name="inv_add_title">नया आइटम जोड़ें</string>
+    <string name="inv_edit_title">आइटम संपादित करें</string>
+    <string name="inv_name_label">आइटम का नाम</string>
+    <string name="inv_qty_label">वर्तमान स्टॉक मात्रा</string>
+    <string name="inv_unit_label">माप की इकाई (Unit)</string>
+    <string name="inv_buy_price_label">खरीद मूल्य (₹)</string>
+    <string name="inv_sell_price_label">बिक्री मूल्य (₹)</string>
+    <string name="inv_threshold_label">कम स्टॉक अलर्ट स्तर</string>
+    <string name="inv_category_label">आइटम की श्रेणी</string>
+    <string name="inv_save_success">आइटम सफलतापूर्वक सहेज लिया गया!</string>
+    <string name="inv_delete_success">आइटम कचरा पेटी में स्थानांतरित कर दिया गया।</string>
+    <string name="inv_err_empty_fields">कृपया आइटम का नाम, मात्रा और कीमतें दर्ज करें</string>
+    <string name="inv_err_duplicate_name">इस नाम का आइटम पहले से मौजूद है।</string>
+    <string name="inv_delete_confirm_title">आइटम हटाएं?</string>
+    <string name="inv_delete_confirm_desc">क्या आप वाकई इस आइटम को हटाना चाहते हैं? इसे 7 दिनों तक पुनर्प्राप्त किया जा सकता है।</string>
+    
+    <!-- Units -->
+    <string name="unit_pcs">पीस (pcs)</string>
+    <string name="unit_kg">किलोग्राम (kg)</string>
+    <string name="unit_g">ग्राम (g)</string>
+    <string name="unit_litre">लीटर (litre)</string>
+    <string name="unit_ml">मिलीलीटर (ml)</string>
+    <string name="unit_dozen">दर्जन (dozen)</string>
+    <string name="unit_box">डिब्बा (box)</string>
+    <string name="unit_packet">पैकेट (packet)</string>
+
+    <!-- Categories -->
+    <string name="cat_groceries">किराना (Groceries)</string>
+    <string name="cat_dairy">डेयरी (Dairy)</string>
+    <string name="cat_beverages">पेय पदार्थ (Beverages)</string>
+    <string name="cat_stationery">स्टेशनरी (Stationery)</string>
+    <string name="cat_household">घरेलू सामान (Household)</string>
+    <string name="cat_other">अन्य (Others)</string>
+
+    <!-- Sales & Cart Screen -->
+    <string name="sales_cart_title">चालू बिल / कार्ट</string>
+    <string name="sales_add_cart_hint">जोड़ने के लिए आइटम चुनें...</string>
+    <string name="sales_empty_cart">कार्ट खाली है। बिल में जोड़ने के लिए आइटम पर टैप करें।</string>
+    <string name="sales_checkout">कैश प्राप्त करें / चेकआउट</string>
+    <string name="sales_discount_label">छूट (Discount) (₹)</string>
+    <string name="sales_customer_label">ग्राहक का नाम (वैकल्पिक / उधार के लिए)</string>
+    <string name="sales_notes_label">बिल नोट (जैसे: उधार दिया, बकाया)</string>
+    <string name="sales_subtotal">कुल योग: ₹%1$.2f</string>
+    <string name="sales_discount_applied">छूट: -₹%1$.2f</string>
+    <string name="sales_total">कुल देय राशि: ₹%1$.2f</string>
+    <string name="sales_success_title">बिक्री दर्ज की गई!</string>
+    <string name="sales_success_desc">₹%1$.2f का बिल सफलतापूर्वक दर्ज हो गया।</string>
+    <string name="btn_share_whatsapp">व्हाट्सएप पर बिल भेजें</string>
+    <string name="btn_back_home">होम स्क्रीन पर जाएं</string>
+    <string name="sales_invoice_template">बिल सारांश - %1$s\nदुकान: स्टोरबुक\n-------------------------\n%2$s-------------------------\nकुल मूल्य: ₹%3$.2f\nछूट: ₹%4$.2f\nकुल देय राशि: ₹%5$.2f\nखरीदारी के लिए धन्यवाद!</string>
+
+    <!-- Udhaar (Credit Ledger) Screen -->
+    <string name="udh_title">ग्राहक उधार बहीखाता</string>
+    <string name="udh_search_hint">ग्राहक का नाम खोजें...</string>
+    <string name="udh_empty">कोई उधार रिकॉर्ड नहीं मिला।</string>
+    <string name="udh_total_outstanding">कुल बकाया उधार राशि</string>
+    <string name="udh_ledger_title">%1$s का उधार खाता</string>
+    <string name="udh_btn_give_credit">उधार दिया (- उधार)</string>
+    <string name="udh_btn_receive_payment">पैसे मिले (+ जमा)</string>
+    <string name="udh_dialog_title">खाता प्रविष्टि जोड़ें</string>
+    <string name="udh_amount_label">राशि (₹)</string>
+    <string name="udh_outstanding_balance">बकाया राशि: ₹%1$.2f</string>
+    <string name="udh_toast_saved">खाता प्रविष्टि सफलतापूर्वक दर्ज की गई!</string>
+    <string name="udh_reminder_whatsapp">व्हाट्सएप रिमाइंडर भेजें</string>
+    <string name="udh_reminder_template">नमस्ते %1$s, हमारी दुकान पर आपका बकाया उधार बिल ₹%2$.2f है। कृपया जल्द ही भुगतान करें। धन्यवाद! - स्टोरबुक</string>
+
+    <!-- Expenses & Restocking -->
+    <string name="exp_title">खर्च और रीस्टॉक</string>
+    <string name="exp_overhead_title">दुकान का अन्य खर्च दर्ज करें</string>
+    <string name="exp_restock_title">स्टॉक रीस्टॉक (नया माल जोड़ें)</string>
+    <string name="exp_desc_label">खर्च का विवरण / नोट</string>
+    <string name="exp_amount_label">खर्च राशि (₹)</string>
+    <string name="exp_supplier_label">आपूर्तिकर्ता (Supplier) नाम</string>
+    <string name="exp_supplier_phone">सप्लायर फोन नंबर</string>
+    <string name="exp_restock_qty">रीस्टॉक की जाने वाली मात्रा</string>
+    <string name="exp_cost_price">खरीद मूल्य प्रति यूनिट (₹)</string>
+    <string name="exp_toast_logged">खर्च दर्ज हो गया और स्टॉक अपडेट हो गया!</string>
+
+    <!-- More Screen / Reports -->
+    <string name="more_title">सेटिंग्स और टूल्स</string>
+    <string name="more_language">ऐप की भाषा (App Language)</string>
+    <string name="more_premium">स्टोरबुक प्रीमियम फीचर्स</string>
+    <string name="more_csv_export">स्टॉक सूची CSV में सेव करें</string>
+    <string name="more_csv_import">CSV फ़ाइल से स्टॉक लोड करें</string>
+    <string name="more_pnl_report">लाभ और हानि रिपोर्ट (P&amp;L)</string>
+    <string name="more_expense_track">दुकान के खर्च (Expenses)</string>
+    
+    <!-- P&L Reports -->
+    <string name="rep_title">बिजनेस रिपोर्ट</string>
+    <string name="rep_revenue">कुल बिक्री: ₹%1$.2f</string>
+    <string name="rep_profit">कुल शुद्ध लाभ: ₹%1$.2f</string>
+    <string name="rep_expenses">कुल खर्चा: ₹%1$.2f</string>
+    <string name="rep_pnl_sub">बिक्री इतिहास और दर्ज किए गए दुकान खर्चों के आधार पर लाभ-हानि रिपोर्ट</string>
+
+    <!-- Premium Plans -->
+    <string name="prem_title">स्टोरबुक प्रीमियम अनलॉक करें</string>
+    <string name="prem_free_limit">मुफ़्त प्लान: अधिकतम 50 आइटम। केवल लोकल बैकअप।</string>
+    <string name="prem_pro_features">प्रीमियम प्रो प्लान (₹199/माह)</string>
+    <string name="prem_pro_desc">असीमित आइटम, ऑटो क्लाउड बैकअप, व्हाट्सएप बिल इनवॉइस, लाभ और हानि (P&amp;L) चार्ट और पूरा ग्राहक उधार बहीखाता।</string>
+    <string name="prem_sub_btn">प्रो प्लान में अपग्रेड करें</string>
+    <string name="prem_active">प्रीमियम एक्टिव है - स्टोरबुक का समर्थन करने के लिए धन्यवाद!</string>
+
+    <!-- Onboarding Walkthrough -->
+    <string name="onb_step1_title">स्टोरबुक में आपका स्वागत है!</string>
+    <string name="onb_step1_desc">कागज़ के बहीखातों को अलविदा कहें। स्टोरबुक आपकी दुकान के स्टॉक, दैनिक बिक्री और ग्राहकों के उधार खाते को 100% सुरक्षित और बिना इंटरनेट के प्रबंधित करने का एक आसान ऐप है।</string>
+    <string name="onb_step2_title">आसान स्टॉक प्रबंधन</string>
+    <string name="onb_step2_desc">खरीद और बिक्री मूल्य के साथ अपनी स्टॉक सूची जोड़ें। जब स्टॉक कम हो जाता है, तो डैशबोर्ड पर स्वचालित अलर्ट और सूचनाएं प्राप्त करें।</string>
+    <string name="onb_step3_title">तेज़ बिलिंग और उधार लेज़र</string>
+    <string name="onb_step3_desc">5 सेकंड के भीतर बिल बनाएं और बिक्री दर्ज करें। उधार खातों का प्रबंधन करें और एक क्लिक में व्हाट्सएप पर भुगतान अनुस्मारक भेजें।</string>
+    <string name="btn_next">आगे बढ़ें</string>
+    <string name="btn_get_started">शुरू करें</string>
+
+    <!-- General / Dialogs -->
+    <string name="btn_cancel">रद्द करें</string>
+    <string name="btn_save">सहेजें</string>
+    <string name="btn_add">जोड़ें</string>
+    <string name="btn_delete">हटाएं</string>
+    <string name="btn_edit">बदलें</string>
+    <string name="btn_done">हो गया</string>
+    <string name="err_invalid_number">कृपया वैध संख्या दर्ज करें</string>
+    <string name="err_permission">इस क्रिया को पूरा करने के लिए अनुमति आवश्यक है</string>
+    <string name="toast_csv_exported">डाटा डाउनलोड फोल्डर में सफलतापूर्वक सहेज लिया गया है!</string>
+    <string name="toast_csv_imported">CSV से स्टॉक सफलतापूर्वक लोड हो गया है!</string>
+    <string name="toast_premium_simulated">सब्सक्रिप्शन एक्टिव हो गया (स्टोरबुक प्रीमियम डेमो मोड)</string>
+    <string name="search_no_results">कोई परिणाम नहीं मिला।</string>
+
+    <!-- Permission handler strings -->
+    <string name="permission_camera_title">कैमरा अनुमति आवश्यक है</string>
+    <string name="permission_photo_title">फोटो अनुमति आवश्यक है</string>
+    <string name="permission_general_title">अनुमति आवश्यक है</string>
+    <string name="permission_camera_desc">स्टॉक आइटम की फोटो लेने के लिए इस ऐप को कैमरा अनुमति की आवश्यकता है।</string>
+    <string name="permission_photo_desc">स्टॉक आइटम के लिए फोटो चुनने के लिए इस ऐप को गैलरी अनुमति की आवश्यकता है।</string>
+    <string name="permission_general_desc">इस ऐप को ठीक से काम करने के लिए अनुमति की आवश्यकता है।</string>
+    <string name="btn_allow">अनुमति दें</string>
+    <string name="title_language">ऐप की भाषा</string>
+    <string name="permission_settings_title">अनुमतियाँ अक्षम हैं</string>
+    <string name="permission_settings_desc">इस सुविधा का उपयोग करने के लिए कृपया ऐप सेटिंग्स में आवश्यक अनुमतियों को सक्षम करें।</string>
+    <string name="btn_open_settings">सेटिंग्स खोलें</string>
+</resources>

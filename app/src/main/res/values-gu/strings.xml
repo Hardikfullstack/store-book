@@ -1,0 +1,171 @@
+<resources>
+    <string name="app_name">સ્ટોરબુક</string>
+
+    <!-- Navigation Tabs -->
+    <string name="tab_dashboard">ડેશબોર્ડ</string>
+    <string name="tab_inventory">સ્ટોક લિસ્ટ</string>
+    <string name="tab_sales">નવું વેચાણ</string>
+    <string name="tab_udhaar">ઉધાર ખાતું</string>
+    <string name="tab_more">અન્ય વિકલ્પો</string>
+
+    <!-- Dashboard Screen -->
+    <string name="dash_today_summary">આજનો સારાંશ</string>
+    <string name="dash_total_items">કુલ આઇટમ</string>
+    <string name="dash_low_stock">ઓછો સ્ટોક</string>
+    <string name="dash_today_revenue">આજનું વેચાણ</string>
+    <string name="dash_today_profit">આજનો નફો</string>
+    <string name="dash_alert_banner">ચેતવણી: %1$d વસ્તુઓનો સ્ટોક ઓછો છે! જોવા માટે અહીં ક્લિક કરો.</string>
+    <string name="dash_recent_sales">આજના વેચાણની વિગત</string>
+    <string name="dash_no_sales_today">આજે હજી સુધી કોઈ વેચાણ નોંધાયું નથી.</string>
+    <string name="btn_quick_sale">વેચાણ નોંધો</string>
+    <string name="btn_add_item_quick">વસ્તુ ઉમેરો</string>
+    <string name="btn_undo">પાછું ખેંચો</string>
+    <string name="toast_undo_success">વેચાણ રદ કરવામાં આવ્યું. સ્ટોક પુનઃસ્થાપિત થયો!</string>
+    <string name="toast_undo_timeout">પાછું ખેંચવાનો સમય (30 સેકન્ડ) સમાપ્ત થઈ ગયો છે.</string>
+
+    <!-- Inventory Screen -->
+    <string name="inv_search_hint">નામ દ્વારા વસ્તુ શોધો...</string>
+    <string name="inv_filter_all">બધી કેટેગરી</string>
+    <string name="inv_filter_low_stock">માત્ર ઓછો સ્ટોક</string>
+    <string name="inv_sort_name">નામ મુજબ</string>
+    <string name="inv_sort_qty">જથ્થા મુજબ</string>
+    <string name="inv_sort_price">કિંમત મુજબ</string>
+    <string name="inv_add_title">નવી વસ્તુ ઉમેરો</string>
+    <string name="inv_edit_title">વિગતો સુધારો</string>
+    <string name="inv_name_label">વસ્તુનું નામ</string>
+    <string name="inv_qty_label">હાલનો સ્ટોક (જથ્થો)</string>
+    <string name="inv_unit_label">માપનો એકમ (Unit)</string>
+    <string name="inv_buy_price_label">ખરીદ કિંમત (₹)</string>
+    <string name="inv_sell_price_label">વેચાણ કિંમત (₹)</string>
+    <string name="inv_threshold_label">ઓછા સ્ટોકની એલર્ટ મર્યાદા</string>
+    <string name="inv_category_label">પ્રોડક્ટ કેટેગરી</string>
+    <string name="inv_save_success">વિગતો સફળતાપૂર્વક સાચવવામાં આવી!</string>
+    <string name="inv_delete_success">વસ્તુને રીસાયકલ બીનમાં મોકલવામાં આવી.</string>
+    <string name="inv_err_empty_fields">કૃપા કરીને નામ, જથ્થો અને કિંમતો દાખલ કરો</string>
+    <string name="inv_err_duplicate_name">આ નામની વસ્તુ પહેલેથી ઉપલબ્ધ છે.</string>
+    <string name="inv_delete_confirm_title">વસ્તુ કાઢી નાખવી?</string>
+    <string name="inv_delete_confirm_desc">શું તમે ખરેખર આ વસ્તુને કાઢી નાખવા માંગો છો? તેને 7 દિવસમાં પાછી મેળવી શકાશે.</string>
+    
+    <!-- Units -->
+    <string name="unit_pcs">નંગ (pcs)</string>
+    <string name="unit_kg">કિલોગ્રામ (kg)</string>
+    <string name="unit_g">ગ્રામ (g)</string>
+    <string name="unit_litre">લિટર (litre)</string>
+    <string name="unit_ml">મિલીલિટર (ml)</string>
+    <string name="unit_dozen">ડઝન (dozen)</string>
+    <string name="unit_box">બોક્સ (box)</string>
+    <string name="unit_packet">પેકેટ (packet)</string>
+
+    <!-- Categories -->
+    <string name="cat_groceries">કરિયાણું (Groceries)</string>
+    <string name="cat_dairy">ડેરી પ્રોડક્ટ્સ (Dairy)</string>
+    <string name="cat_beverages">પીણાં (Beverages)</string>
+    <string name="cat_stationery">સ્ટેશનરી (Stationery)</string>
+    <string name="cat_household">ઘરગથ્થુ વસ્તુઓ (Household)</string>
+    <string name="cat_other">અન્ય (Others)</string>
+
+    <!-- Sales & Cart Screen -->
+    <string name="sales_cart_title">ચાલુ બિલ / કાર્ટ</string>
+    <string name="sales_add_cart_hint">ઉમેરવા માટે વસ્તુ પસંદ કરો...</string>
+    <string name="sales_empty_cart">કાર્ટ ખાલી છે. બિલમાં ઉમેરવા માટે વસ્તુ પર ક્લિક કરો.</string>
+    <string name="sales_checkout">રોકડ મેળવો / ચેકઆઉટ</string>
+    <string name="sales_discount_label">ડિસ્કાઉન્ટ (વળતર) (₹)</string>
+    <string name="sales_customer_label">ગ્રાહકનું નામ (વૈકલ્પિક / ઉધાર માટે)</string>
+    <string name="sales_notes_label">બિલ નોટ (જેમ કે: ઉધાર આપ્યું, બાકી)</string>
+    <string name="sales_subtotal">કુલ રકમ: ₹%1$.2f</string>
+    <string name="sales_discount_applied">ડિસ્કાઉન્ટ: -₹%1$.2f</string>
+    <string name="sales_total">ચૂકવવાપાત્ર રકમ: ₹%1$.2f</string>
+    <string name="sales_success_title">વેચાણ નોંધાયું!</string>
+    <string name="sales_success_desc">₹%1$.2f નું બિલ સફળતાપૂર્વક નોંધાયું.</string>
+    <string name="btn_share_whatsapp">વોટ્સએપ પર બિલ મોકલો</string>
+    <string name="btn_back_home">હોમ સ્ક્રીન પર જાઓ</string>
+    <string name="sales_invoice_template">બિલ સારાંશ - %1$s\nદુકાન: સ્ટોરબુક\n-------------------------\n%2$s-------------------------\nકુલ રકમ: ₹%3$.2f\nડિસ્કાઉન્ટ: ₹%4$.2f\nચૂકવવાપાત્ર રકમ: ₹%5$.2f\nખરીદી માટે આભાર!</string>
+
+    <!-- Udhaar (Credit Ledger) Screen -->
+    <string name="udh_title">ગ્રાહક ઉધાર ખાતાવહી</string>
+    <string name="udh_search_hint">ગ્રાહકનું નામ શોધો...</string>
+    <string name="udh_empty">કોઈ ઉધાર નોંધ મળી નથી.</string>
+    <string name="udh_total_outstanding">કુલ બાકી ઉધાર રકમ</string>
+    <string name="udh_ledger_title">%1$s નું ખાતું</string>
+    <string name="udh_btn_give_credit">ઉધાર આપ્યા (- ઉધાર)</string>
+    <string name="udh_btn_receive_payment">પૈસા મળ્યા (+ જમા)</string>
+    <string name="udh_dialog_title">ખાતામાં એન્ટ્રી ઉમેરો</string>
+    <string name="udh_amount_label">રકમ (₹)</string>
+    <string name="udh_outstanding_balance">બાકી રકમ: ₹%1$.2f</string>
+    <string name="udh_toast_saved">ખાતામાં એન્ટ્રી સફળતાપૂર્વક સાચવવામાં આવી!</string>
+    <string name="udh_reminder_whatsapp">વોટ્સએપ રીમાઇન્ડર મોકલો</string>
+    <string name="udh_reminder_template">નમસ્તે %1$s, અમારી દુકાને તમારી બાકી ઉધાર રકમ ₹%2$.2f છે. કૃપા કરીને જલ્દી ચૂકવણી કરશો. આભાર! - સ્ટોરબુક</string>
+
+    <!-- Expenses & Restocking -->
+    <string name="exp_title">ખર્ચ અને નવો સ્ટોક</string>
+    <string name="exp_overhead_title">દુકાનનો અન્ય ખર્ચ નોંધો</string>
+    <string name="exp_restock_title">નવો સ્ટોક ઉમેરો (રીસ્ટોક)</string>
+    <string name="exp_desc_label">ખર્ચની વિગત / નોટ</string>
+    <string name="exp_amount_label">ખર્ચની રકમ (₹)</string>
+    <string name="exp_supplier_label">આપનારનું નામ (વૈકલ્પિક)</string>
+    <string name="exp_supplier_phone">આપનારનો ફોન નંબર</string>
+    <string name="exp_restock_qty">રીસ્ટોક કરવાની નંગ/કિલોમાં સંખ્યા</string>
+    <string name="exp_cost_price">ખરીદ કિંમત પ્રતિ એકમ (₹)</string>
+    <string name="exp_toast_logged">ખર્ચ નોંધાયો અને સ્ટોક અપડેટ થયો!</string>
+
+    <!-- More Screen / Reports -->
+    <string name="more_title">સેટિંગ્સ અને સાધનો</string>
+    <string name="more_language">એપની ભાષા (App Language)</string>
+    <string name="more_premium">સ્ટોરબુક પ્રીમિયમ સુવિધાઓ</string>
+    <string name="more_csv_export">સ્ટોક લિસ્ટ CSV માં ડાઉનલોડ કરો</string>
+    <string name="more_csv_import">CSV ફાઇલ દ્વારા સ્ટોક લોડ કરો</string>
+    <string name="more_pnl_report">નફો અને નુકસાન અહેવાલ (P&amp;L)</string>
+    <string name="more_expense_track">દુકાનના ખર્ચાઓ (Expenses)</string>
+    
+    <!-- P&L Reports -->
+    <string name="rep_title">વ્યવસાય અહેવાલ</string>
+    <string name="rep_revenue">કુલ વેચાણ: ₹%1$.2f</string>
+    <string name="rep_profit">કુલ ચોખ્ખો નફો: ₹%1$.2f</string>
+    <string name="rep_expenses">કુલ ખર્ચ: ₹%1$.2f</string>
+    <string name="rep_pnl_sub">વેચાણ ઇતિહાસ અને નોંધાયેલા ખર્ચાઓના આધારે નફા-નુકસાનનો હિસાબ</string>
+
+    <!-- Premium Plans -->
+    <string name="prem_title">સ્ટોરબુક પ્રીમિયમ ચાલુ કરો</string>
+    <string name="prem_free_limit">મફત પ્લાન: મહત્તમ 50 વસ્તુઓ. માત્ર ફોન બેકઅપ.</string>
+    <string name="prem_pro_features">પ્રીમિયમ પ્રો પ્લાન (₹199/મહિનો)</string>
+    <string name="prem_pro_desc">અમર્યાદિત આઇટમ્સ, ઓટો ક્લાઉડ બેકઅપ, વોટ્સએપ બિલ ઇનવોઇસ, નફા-નુકસાન (P&amp;L) ચાર્ટ અને ગ્રાહક ઉધાર ખાતાવહી.</string>
+    <string name="prem_sub_btn">પ્રો પ્લાન પર અપગ્રેડ કરો</string>
+    <string name="prem_active">પ્રીમિયમ સક્રિય છે - સ્ટોરબુકને સપોર્ટ કરવા બદલ આભાર!</string>
+
+    <!-- Onboarding Walkthrough -->
+    <string name="onb_step1_title">સ્ટોરબુકમાં આપનું સ્વાગત છે!</string>
+    <string name="onb_step1_desc">કાગળની ચોપડીઓને કહો અલવિદા. સ્ટોરબુક તમારી દુકાનનો સ્ટોક, વેચાણ અને ગ્રાહકોના ઉધાર ખાતાને સુરક્ષિત અને ઇન્ટરનેટ વગર મેનેજ કરવાની સરળ એપ છે.</string>
+    <string name="onb_step2_title">સરળ સ્ટોક વ્યવસ્થાપન</string>
+    <string name="onb_step2_desc">ખરીદ અને વેચાણ કિંમત સાથે તમારી આઇટમ ઉમેરો. જ્યારે જથ્થો ઓછો થશે ત્યારે ડેશબોર્ડ પર આપોઆપ ચેતવણી અને નોટિફિકેશન મળશે.</string>
+    <string name="onb_step3_title">ઝડપી બિલિંગ અને ઉધાર ખાતું</string>
+    <string name="onb_step3_desc">5 સેકન્ડમાં બિલ બનાવો અને વેચાણ નોંધો. ઉધાર ખાતા મેનેજ કરો અને ગ્રાહકોને વોટ્સએપ પર ચૂકવણીના મેસેજ એક ક્લિકમાં મોકલો.</string>
+    <string name="btn_next">આગળ વધો</string>
+    <string name="btn_get_started">શરૂ કરો</string>
+
+    <!-- General / Dialogs -->
+    <string name="btn_cancel">રદ કરો</string>
+    <string name="btn_save">સાચવો</string>
+    <string name="btn_add">ઉમેરો</string>
+    <string name="btn_delete">કાઢી નાખો</string>
+    <string name="btn_edit">સુધારો</string>
+    <string name="btn_done">થઈ ગયું</string>
+    <string name="err_invalid_number">કૃપા કરીને સાચી સંખ્યા દાખલ કરો</string>
+    <string name="err_permission">આ પ્રક્રિયા પૂર્ણ કરવા માટે પરવાનગી જરૂરી છે</string>
+    <string name="toast_csv_exported">માહિતી ડાઉનલોડ ફોલ્ડરમાં સફળતાપૂર્વક સાચવવામાં આવી છે!</string>
+    <string name="toast_csv_imported">CSV માંથી માહિતી સફળતાપૂર્વક સ્ટોર થઈ ગઈ છે!</string>
+    <string name="toast_premium_simulated">પ્રીમિયમ સક્રિય થયું (સ્ટોરબુક પ્રીમિયમ ડેમો મોડ)</string>
+    <string name="search_no_results">કોઈ પરિણામ મળ્યા નથી.</string>
+
+    <!-- Permission handler strings -->
+    <string name="permission_camera_title">કેમેરા પરવાનગી જરૂરી છે</string>
+    <string name="permission_photo_title">ફોટો પરવાનગી જરૂરી છે</string>
+    <string name="permission_general_title">પરવાનગી જરૂરી છે</string>
+    <string name="permission_camera_desc">સ્ટોક વસ્તુના ફોટા લેવા માટે આ એપ્લિકેશનને કેમેરાની પરવાનગીની જરૂર છે.</string>
+    <string name="permission_photo_desc">સ્ટોક વસ્તુઓ માટે ફોટા પસંદ કરવા માટે આ એપ્લિકેશનને ગેલેરી પરવાનગીની જરૂર છે.</string>
+    <string name="permission_general_desc">આ એપ્લિકેશનને યોગ્ય રીતે ચલાવવા માટે પરવાનગીની જરૂર છે.</string>
+    <string name="btn_allow">પરવાનગી આપો</string>
+    <string name="title_language">એપની ભાષા</string>
+    <string name="permission_settings_title">પરવાનગીઓ અક્ષમ છે</string>
+    <string name="permission_settings_desc">કૃપા કરીને આ સુવિધાનો ઉપયોગ કરવા માટે એપ્લિકેશન સેટિંગ્સમાં જરૂરી પરવાનગીઓ ચાલુ કરો.</string>
+    <string name="btn_open_settings">સેટિંગ્સ ખોલો</string>
+</resources>

@@ -1,0 +1,239 @@
+<resources>
+    <string name="app_name">PDF Scanner &amp; Editor – PDFlex</string>
+    
+    <!-- Settings Screen -->
+    <string name="title_settings">Настройки</string>
+    <string name="setting_dark_mode">Темная тема</string>
+    <string name="setting_share_app">Поделиться приложением</string>
+    <string name="setting_rate_us">Оцените нас</string>
+    <string name="setting_privacy_policy">Политика конфиденциальности</string>
+    <string name="setting_terms">Условия и положения</string>
+
+    <!-- Rate Us Dialog -->
+    <string name="rate_us_title">Нам нужен ваш отзыв!</string>
+    <string name="rate_us_desc">Если вам нравится использовать это приложение, пожалуйста, найдите минутку, чтобы оценить его. Спасибо за вашу поддержку!</string>
+    <string name="rate_us_btn_later">Позже</string>
+    <string name="rate_us_btn_rate">Оценить</string>
+    <string name="rate_us_poor">Плохо</string>
+    <string name="rate_us_fair">Сносно</string>
+    <string name="rate_us_good">Хорошо</string>
+    <string name="rate_us_very_good">Очень хорошо</string>
+    <string name="rate_us_excellent">Отлично</string>
+    <string name="rate_us_send_feedback">Отправить отзыв</string>
+
+    <!-- Language Screen -->
+    <string name="title_language">Язык</string>
+    <string name="btn_done">Готово</string>
+
+    <!-- Home Screen -->
+    <string name="title_home">Главная</string>
+    <string name="title_files">Файлы</string>
+    <string name="home_image_to_pdf">Изображение в PDF</string>
+    <string name="home_smart_scan">СМАРТ сканирование</string>
+    <string name="home_import_pdf">Импорт PDF</string>
+    <string name="home_merge_pdf">Объединить PDF</string>
+    <string name="home_split_pdf">Разделить PDF</string>
+    <string name="home_compress">Сжать</string>
+    <string name="home_see_all">Посмотреть все</string>
+
+    <!-- Image Picker & PDF Preview -->
+    <string name="picker_all_images">Все изображения</string>
+    <string name="picker_camera">Камера</string>
+    <string name="picker_select_image">Выбрать изображение</string>
+    <string name="picker_import">Импортировать</string>
+    <string name="preview_next">Далее</string>
+    <string name="preview_crop">Обрезать</string>
+    <string name="preview_add_page">Добавить страницу</string>
+    <string name="preview_frame">Рамка</string>
+    <string name="preview_delete">Удалить</string>
+
+    <!-- Confirmation Sheets -->
+    <string name="confirm_delete_title">Подтвердить удаление</string>
+    <string name="confirm_delete_desc">Вы уверены, что хотите удалить\nэти изображения с текущей страницы?</string>
+    <string name="confirm_delete_file_desc">Вы уверены, что хотите удалить этот файл?\nЭто действие нельзя отменить.</string>
+    <string name="confirm_save_title">Сохранить изменения</string>
+    <string name="confirm_save_desc">Хотите ли вы сохранить\nвнесенные изменения?</string>
+    <string name="btn_discard">Отменить</string>
+    <string name="btn_save">Сохранить</string>
+    <string name="select_crop_title">Выберите изображение для обрезки</string>
+
+    <!-- PDF Settings -->
+    <string name="pdf_settings_title">Настройки Pdf</string>
+    <string name="pdf_settings_enter_filename">Введите имя файла</string>
+    <string name="pdf_settings_filename_required">Имя файла обязательно</string>
+    <string name="pdf_settings_invalid_chars">Имя файла не может содержать специальные символы: / \\ : * ? \" &lt; &gt; |</string>
+    <string name="pdf_settings_filename_exists">Это имя файла уже существует.</string>
+    <string name="pdf_settings_file_exists_toast">Файл уже существует</string>
+    <string name="pdf_settings_password_label">Пароль</string>
+    <string name="pdf_settings_edit">Изменить</string>
+    <string name="pdf_settings_set">Установить</string>
+    <string name="pdf_settings_page_margin">Поля страницы</string>
+    <string name="pdf_settings_compression_settings">Настройки сжатия</string>
+    <string name="pdf_settings_no_compression">Без сжатия</string>
+    <string name="pdf_settings_low_compression">Низкое сжатие</string>
+    <string name="pdf_settings_medium_compression">Среднее сжатие</string>
+    <string name="pdf_settings_regular_compression">Обычное сжатие</string>
+    <string name="pdf_settings_max_compression">Максимальное сжатие</string>
+    <string name="pdf_settings_preview">Предпросмотр</string>
+    <string name="pdf_settings_no_viewer">Программа для просмотра PDF не найдена</string>
+    <string name="pdf_settings_convert">Конвертировать</string>
+    <string name="pdf_settings_processing">Создание PDF...</string>
+    <string name="pdf_settings_processing_desc">Пожалуйста, подождите немного, пока мы обрабатываем ваш запрос.</string>
+    <string name="pdf_settings_set_password">Установить пароль</string>
+    <string name="pdf_settings_set_password_desc">Установите защиту паролем для PDF</string>
+    <string name="pdf_settings_enter_password">Введите пароль</string>
+    <string name="pdf_settings_password_length_err">Пароль должен содержать не менее 4 символов.</string>
+    <string name="pdf_settings_incorrect_password">Неверный пароль. Пожалуйста, попробуйте еще раз.</string>
+    <string name="pdf_settings_compression_title">Сжатие</string>
+    <string name="pdf_settings_original_quality">Оригинальное качество</string>
+    <!-- Sort By Sheet -->
+    <string name="sort_by_title">Сортировать по</string>
+    <string name="sort_by_file_size">Размер файла</string>
+    <string name="sort_by_name">Имя</string>
+    <string name="sort_by_created_date">Дата создания</string>
+    <string name="sort_by_modified_date">Дата изменения</string>
+    <string name="sort_by_ascending">По возрастанию</string>
+    <string name="sort_by_descending">По убыванию</string>
+    <string name="btn_cancel">Отмена</string>
+    <string name="btn_ok">Ок</string>
+
+    <!-- Split Screen -->
+    <string name="split_select_pdf">Выберите PDF для разделения</string>
+    <string name="search_no_results">Результаты не найдены</string>
+    <string name="search_no_pdfs">PDF файлы не найдены</string>
+    <string name="split_one_page">1 страница</string>
+    <string name="password_unlock_title">Разблокировать PDF</string>
+    <string name="viewer_unlock_desc">Введите пароль для разблокировки PDF</string>
+    <string name="viewer_unlock_failed">Не удалось разблокировать PDF</string>
+    <string name="split_unlock_desc">Введите пароль, чтобы разблокировать PDF для разделения</string>
+    <string name="split_splitting_pdf">Разделение PDF...</string>
+    <string name="split_selected_pages">Разделить %1$d выбранных страниц</string>
+    <string name="split_pdf_title">Разделить PDF</string>
+    <string name="split_deselect_all">Снять выделение</string>
+    <string name="split_select_all">Выбрать все</string>
+    <string name="split_success_title">Успешно разделено!</string>
+    <string name="split_success_from">Из: %1$s</string>
+    <string name="split_success_generated">Создано %1$d PDF</string>
+
+    <string name="btn_open">Открыть</string>
+    <string name="btn_view_files">Показать файлы</string>
+    <string name="split_mode_extract">Извлечь страницы</string>
+    <string name="split_mode_range">Разделить по диапазону</string>
+    <string name="split_range_fixed">Фиксированный диапазон</string>
+    <string name="split_range_custom">Пользовательский диапазон</string>
+    <string name="split_every_n_pages">Разделять каждые %1$d страниц</string>
+    <string name="split_add_range">Добавить диапазон</string>
+    <string name="split_multiple_files_desc">Ваши PDF-файлы успешно созданы.</string>
+    <string name="split_range_label">Диапазон %1$d</string>
+    <string name="split_invalid_range">Недопустимый диапазон</string>
+    <string name="split_from">От</string>
+    <string name="split_to">До</string>
+    <string name="split_to_range">до</string>
+    <string name="split_page_exceeds">Номер страницы превышает общее количество страниц (%1$d)</string>
+    <string name="split_from_less_than_to">\'От\' должно быть меньше \'До\'</string>
+
+    <!-- Merge Screen -->
+    <string name="merge_select_pdf">Выберите PDF для объединения</string>
+    <string name="selected_items">Выбрано: %1$d</string>
+    <string name="merge_button_text">Объединить (%1$d)</string>
+    <string name="merge_error_empty">Имя файла не может быть пустым</string>
+    <string name="merge_error_same_name">Имя не может совпадать с выбранными файлами</string>
+    <string name="merge_error_exists">Файл с таким именем уже существует</string>
+    <string name="merge_success_title">Успешно объединено!</string>
+
+    <!-- Compress Screen -->
+    <string name="compress_compressing">Сжатие PDF...</string>
+    <string name="compress_select_pdf">Выберите PDF для сжатия</string>
+    <string name="compress_unlock_desc">Введите пароль для разблокировки PDF для сжатия</string>
+    <string name="compress_title">Сжать PDF</string>
+    <string name="compress_original_size">Исходный размер: %1$s</string>
+    <string name="compress_recommended">Рекомендуемое сжатие</string>
+    <string name="compress_recommended_sub">Хорошее качество, уменьшенный размер</string>
+    <string name="compress_high">Сильное сжатие</string>
+    <string name="compress_high_sub">Низкое качество, минимальный размер</string>
+    <string name="compress_low">Слабое сжатие</string>
+    <string name="compress_low_sub">Высокое качество, немного уменьшенный размер</string>
+    <string name="compress_success_title">Успешно сжато!</string>
+    <string name="compress_original">Оригинал: </string>
+    <string name="compress_compressed">Сжатый: </string>
+
+    <!-- File Operations & Details -->
+    <string name="details_title">Подробности</string>
+    <string name="details_name">Имя :</string>
+    <string name="details_date">Дата :</string>
+    <string name="details_size">Размер :</string>
+    <string name="details_path">Путь :</string>
+    <string name="options_rename">Переименовать</string>
+    <string name="options_open_with">Открыть с помощью</string>
+    <string name="options_lock">Заблокировать</string>
+    <string name="options_unlock">Разблокировать</string>
+    <string name="options_frame">Рамка</string>
+    <string name="frame_applying">Применение рамки...</string>
+    <string name="frame_success">Рамка успешно применена</string>
+    <string name="frame_selection_title">Выберите стиль рамки</string>
+    <string name="title_select_frame">Выбрать рамку</string>
+    
+    <!-- Smart Scan -->
+    <string name="permission_camera_title">Требуется разрешение камеры</string>
+    <string name="permission_camera_desc">Для сканирования документов приложению нужен доступ к вашей камере. Пожалуйста, включите его в Настройках.</string>
+    <string name="btn_open_settings">Открыть Настройки</string>
+    <string name="scan_file_name">Имя файла</string>
+    <string name="scan_file_exists">Файл с таким именем уже существует</string>
+
+    <!-- Share -->
+    <string name="share_title">Поделиться</string>
+
+    <!-- General -->
+    <string name="title_favorite">Избранное</string>
+    <string name="title_recent_file">Недавние файлы</string>
+    <string name="home_pdf_imported_success">PDF успешно импортирован</string>
+    <!-- App Dialogs -->
+    <string name="maintenance_title">Техническое обслуживание</string>
+    <string name="maintenance_desc">Идут технические работы. Пожалуйста, попробуйте позже.</string>
+    <string name="update_title">Доступно обновление</string>
+    <string name="update_desc">Доступна новая версия PDF Scanner &amp; Editor – PDFlex. Пожалуйста, обновите, чтобы продолжить.</string>
+    <string name="search_hint">Поиск</string>
+    <string name="no_recent_pdfs">Недавние PDF не найдены</string>
+    <string name="no_favorite_pdfs">Избранные PDF не найдены</string>
+    <string name="no_files">Нет файлов</string>
+    <string name="tap_to_add">Нажмите кнопку + для добавления</string>
+    <string name="merge_merging">Объединение PDF...</string>
+    <string name="merge_merging_desc">Объединение...</string>
+    <string name="merge_unlock_desc">Введите пароль для разблокировки PDF для объединения</string>
+    <string name="file_locked">Заблокировано</string>
+    <string name="file_compressed">Сжат</string>
+    <string name="success_from">Из: </string>
+    <string name="title_merge">Объединить</string>
+    <!-- New Localization Keys -->
+    <string name="permission_photo_title">Требуется доступ к фото</string>
+    <string name="permission_photo_desc">Этому приложению нужен доступ к вашим фотографиям, чтобы конвертировать их в PDF.</string>
+    <string name="permission_general_title">Требуется разрешение</string>
+    <string name="permission_general_desc">Этому приложению требуется разрешение для корректной работы.</string>
+    <string name="btn_allow">Разрешить</string>
+    <string name="permission_settings_title">Требуются разрешения</string>
+    <string name="permission_settings_desc">Этому приложению нужны разрешения для работы. Откройте настройки и предоставьте их.</string>
+    <string name="permission_all_files_title">Требуется доступ ко всем файлам</string>
+    <string name="permission_all_files_desc">Для обеспечения своей основной функциональности PDFlex требуется «Доступ ко всем файлам» для обнаружения, чтения и изменения PDF-файлов на вашем устройстве. Это строго необходимо для того, чтобы вы могли сканировать, объединять, разделять и сжимать свои документы полностью локально на своем устройстве. Мы не получаем доступа к файлам, не связанным с обработкой PDF.</string>
+    <string name="exit_dialog_title">Вы уверены, что хотите выйти?</string>
+    <string name="exit_dialog_btn_exit">Выйти из приложения</string>
+    <string name="ad_loading_title">Загрузка рекламы...</string>
+    <string name="ad_loading_desc">Пожалуйста, подождите немного</string>
+    <string name="picker_allow_more_photos">Чтобы выбрать больше фотографий, разрешите доступ ко всем.</string>
+    <string name="crop_processing">Обработка...</string>
+    <string name="accessibility_ad_loading">Значок загрузки рекламы</string>
+    <string name="error_opening_pdf">Ошибка открытия PDF</string>
+    <string name="error_invalid_pdf">Этот файл либо поврежден, либо не является допустимым PDF-документом.</string>
+    <string name="btn_go_back">Назад</string>
+    <string name="error_creating_pdf">Ошибка создания PDF: %s</string>
+    <string name="no_internet_title">Нет подключения к Интернету</string>
+    <string name="no_internet_desc">Проверьте настройки сети и подключитесь к Интернету, чтобы продолжить использование приложения.</string>
+    <string name="toast_favorite_added">Добавлено в избранное</string>
+    <string name="toast_favorite_removed">Удалено из избранного</string>
+    <string name="toast_rename_success">Файл успешно переименован</string>
+    <string name="toast_delete_success">Файл успешно удален</string>
+    <string name="toast_password_set_success">Пароль успешно установлен</string>
+    <string name="toast_password_remove_success">Пароль успешно удален</string>
+    <string name="toast_file_not_found">Файл не найден</string>
+    <string name="toast_error_sharing">Ошибка при совместном использовании файла</string>
+    <string name="pdf_viewer_password_des">Введите пароль, чтобы открыть этот PDF-файл</string>
+</resources>
