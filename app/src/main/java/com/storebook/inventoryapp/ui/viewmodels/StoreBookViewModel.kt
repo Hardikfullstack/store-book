@@ -89,7 +89,10 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
         private set
 
     init {
-        loadAllData()
+        viewModelScope.launch {
+            repository.standardizeCustomerNames()
+            loadAllData()
+        }
         // Observe billing state changes
         viewModelScope.launch {
             billingManager.state.collect { billingState ->
@@ -247,9 +250,15 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
 
     // --- Sales Actions ---
 
+    private fun String.formatName(): String {
+        return this.trim().split(Regex("\\s+")).joinToString(" ") { word ->
+            word.lowercase().replaceFirstChar { it.uppercase() }
+        }
+    }
+
     fun checkout(paymentMode: String = cartPaymentMode, onSuccess: (Long, Double) -> Unit) {
         if (cartItems.isEmpty()) return
-        val customerNameForSale = cartCustomerName.trim().takeIf { it.isNotBlank() }
+        val customerNameForSale = cartCustomerName.takeIf { it.isNotBlank() }?.formatName()
         val notesForSale = cartNotes.trim().takeIf { it.isNotBlank() }
 
         viewModelScope.launch {
@@ -302,7 +311,7 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
     fun recordUdhaarEntry(customerName: String, amount: Double, type: String, notes: String?) {
         viewModelScope.launch {
             val entry = UdhaarEntry(
-                customerName = customerName.trim(),
+                customerName = customerName.formatName(),
                 amount = amount,
                 type = type,
                 timestamp = System.currentTimeMillis(),

@@ -636,4 +636,47 @@ class StoreBookRepository(context: Context) {
             deletedTimestamp = c.getLong(c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_ITEM_DELETED_TIME))
         )
     }
+
+    private fun String.formatName(): String {
+        return this.trim().split(Regex("\\s+")).joinToString(" ") { word ->
+            word.lowercase().replaceFirstChar { it.uppercase() }
+        }
+    }
+
+    suspend fun standardizeCustomerNames() = withContext(Dispatchers.IO) {
+        val db = dbHelper.writableDatabase
+        db.beginTransaction()
+        try {
+            val cursor = db.rawQuery("SELECT ${StoreBookDbHelper.KEY_ID}, ${StoreBookDbHelper.KEY_UDHAAR_CUSTOMER} FROM ${StoreBookDbHelper.TABLE_UDHAAR}", null)
+            cursor.use { c ->
+                while (c.moveToNext()) {
+                    val id = c.getLong(0)
+                    val oldName = c.getString(1) ?: continue
+                    val newName = oldName.formatName()
+                    if (oldName != newName) {
+                        val values = ContentValues().apply { put(StoreBookDbHelper.KEY_UDHAAR_CUSTOMER, newName) }
+                        db.update(StoreBookDbHelper.TABLE_UDHAAR, values, "${StoreBookDbHelper.KEY_ID} = ?", arrayOf(id.toString()))
+                    }
+                }
+            }
+
+            val cursor2 = db.rawQuery("SELECT ${StoreBookDbHelper.KEY_ID}, ${StoreBookDbHelper.KEY_SALE_CUSTOMER} FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_SALE_CUSTOMER} IS NOT NULL", null)
+            cursor2.use { c ->
+                while (c.moveToNext()) {
+                    val id = c.getLong(0)
+                    val oldName = c.getString(1) ?: continue
+                    val newName = oldName.formatName()
+                    if (oldName != newName) {
+                        val values = ContentValues().apply { put(StoreBookDbHelper.KEY_SALE_CUSTOMER, newName) }
+                        db.update(StoreBookDbHelper.TABLE_SALES, values, "${StoreBookDbHelper.KEY_ID} = ?", arrayOf(id.toString()))
+                    }
+                }
+            }
+            db.setTransactionSuccessful()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            db.endTransaction()
+        }
+    }
 }

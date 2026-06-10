@@ -88,6 +88,16 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UdhaarScreen(viewModel: StoreBookViewModel) {
@@ -129,7 +139,10 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
         }
     }
 
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+
     Scaffold(
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
         topBar = {
             Column(
                 modifier = Modifier
@@ -218,13 +231,25 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (filteredBalances.isEmpty()) {
+            if (balances.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("📒", fontSize = 48.sp)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = stringResource(id = R.string.udh_empty),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else if (filteredBalances.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("🔍", fontSize = 48.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "No results found for '$searchQ'",
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                             textAlign = TextAlign.Center
                         )
@@ -239,73 +264,77 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                     items(filteredBalances, key = { it.customerName }) { bal ->
                         val owesMoney = bal.netBalance > 0
 
-                        // Swipe right = mark paid, swipe left = WhatsApp reminder
-                        val dismissState = rememberSwipeToDismissBoxState()
-
-                        LaunchedEffect(dismissState.currentValue) {
-                            when (dismissState.currentValue) {
-                                SwipeToDismissBoxValue.StartToEnd -> {
-                                    if (owesMoney) {
-                                        viewModel.recordUdhaarEntry(
-                                            customerName = bal.customerName,
-                                            amount = bal.netBalance,
-                                            type = "PAYMENT",
-                                            notes = "Full settlement"
-                                        )
-                                        android.widget.Toast.makeText(context, "✓ Marked as Paid!", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                    dismissState.reset()
-                                }
-                                SwipeToDismissBoxValue.EndToStart -> {
-                                    val template = context.getString(
-                                        R.string.udh_reminder_template,
-                                        bal.customerName,
-                                        bal.netBalance
+                        LimitedSwipeToActionBox(
+                            enableStartToEnd = owesMoney,
+                            enableEndToStart = owesMoney,
+                            onStartToEnd = {
+                                if (owesMoney) {
+                                    val amountToSettle = bal.netBalance
+                                    val customerToSettle = bal.customerName
+                                    viewModel.recordUdhaarEntry(
+                                        customerName = customerToSettle,
+                                        amount = amountToSettle,
+                                        type = "PAYMENT",
+                                        notes = "Full settlement"
                                     )
-                                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                                        data = Uri.parse("https://api.whatsapp.com/send?text=${URLEncoder.encode(template, "UTF-8")}")
+                                    coroutineScope.launch {
+                                        val result = snackbarHostState.showSnackbar(
+                                            message = "Marked as paid",
+                                            actionLabel = "UNDO",
+                                            duration = androidx.compose.material3.SnackbarDuration.Short
+                                        )
+                                        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                                            viewModel.recordUdhaarEntry(
+                                                customerName = customerToSettle,
+                                                amount = amountToSettle,
+                                                type = "CREDIT",
+                                                notes = "Undo settlement"
+                                            )
+                                        }
                                     }
-                                    context.startActivity(intent)
-                                    dismissState.reset()
                                 }
-                                else -> {}
-                            }
-                        }
-
-                        SwipeToDismissBox(
-                            state = dismissState,
-                            backgroundContent = {
-                                val direction = dismissState.dismissDirection
+                            },
+                            onEndToStart = {
+                                val template = context.getString(
+                                    R.string.udh_reminder_template,
+                                    bal.customerName,
+                                    bal.netBalance
+                                )
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    data = Uri.parse("https://api.whatsapp.com/send?text=${URLEncoder.encode(template, "UTF-8")}")
+                                }
+                                context.startActivity(intent)
+                            },
+                            backgroundContent = { offsetX ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clip(RoundedCornerShape(16.dp))
                                         .background(
-                                            when (direction) {
-                                                SwipeToDismissBoxValue.StartToEnd -> Emerald500
-                                                SwipeToDismissBoxValue.EndToStart -> WhatsAppGreen
+                                            when {
+                                                offsetX > 0 -> Emerald500
+                                                offsetX < 0 -> WhatsAppGreen
                                                 else -> Color.Transparent
                                             }
                                         )
                                         .padding(horizontal = 20.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = when (direction) {
-                                        SwipeToDismissBoxValue.StartToEnd -> Arrangement.Start
+                                    horizontalArrangement = when {
+                                        offsetX > 0 -> Arrangement.Start
                                         else -> Arrangement.End
                                     }
                                 ) {
-                                    when (direction) {
-                                        SwipeToDismissBoxValue.StartToEnd -> {
+                                    when {
+                                        offsetX > 0 -> {
                                             Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Text("Mark Paid", color = Color.White, fontWeight = FontWeight.Bold)
                                         }
-                                        SwipeToDismissBoxValue.EndToStart -> {
+                                        offsetX < 0 -> {
                                             Text("WhatsApp Remind", color = Color.White, fontWeight = FontWeight.Bold)
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Icon(Icons.Default.Send, contentDescription = null, tint = Color.White)
                                         }
-                                        else -> {}
                                     }
                                 }
                             }
@@ -498,6 +527,9 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
 
             // Transaction entry dialog
             if (showDialog) {
+                var nameError by remember { mutableStateOf(false) }
+                var amountError by remember { mutableStateOf(false) }
+
                 androidx.compose.ui.window.Dialog(onDismissRequest = { showDialog = false }) {
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(8.dp),
@@ -538,8 +570,9 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                             if (selectedCustomer == null) {
                                 OutlinedTextField(
                                     value = inputCustomerName,
-                                    onValueChange = { inputCustomerName = it },
-                                    label = { Text("Customer Name") },
+                                    onValueChange = { inputCustomerName = it; nameError = false },
+                                    label = { Text(if (nameError) "Valid Name Required" else "Customer Name") },
+                                    isError = nameError,
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
                                     shape = RoundedCornerShape(12.dp)
@@ -550,8 +583,9 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
 
                             OutlinedTextField(
                                 value = inputAmount,
-                                onValueChange = { inputAmount = it },
-                                label = { Text(stringResource(id = R.string.udh_amount_label)) },
+                                onValueChange = { inputAmount = it; amountError = false },
+                                label = { Text(if (amountError) "Valid Amount Required" else stringResource(id = R.string.udh_amount_label)) },
+                                isError = amountError,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
@@ -587,9 +621,13 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     onClick = {
                                         val name = inputCustomerName.trim()
                                         val amt = inputAmount.toDoubleOrNull()
-                                        if (name.isBlank() || amt == null || amt <= 0.0) return@Button
+                                        
+                                        var isValid = true
+                                        if (name.isBlank()) { nameError = true; isValid = false }
+                                        if (amt == null || amt <= 0.0) { amountError = true; isValid = false }
+                                        if (!isValid) return@Button
 
-                                        viewModel.recordUdhaarEntry(name, amt, dialogType, inputNotes)
+                                        viewModel.recordUdhaarEntry(name, amt!!, dialogType, inputNotes)
                                         showDialog = false
 
                                         if (showCustomerLedgerSheet && selectedCustomer != null) {
@@ -600,7 +638,9 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                             }
                                         }
 
-                                        android.widget.Toast.makeText(context, context.getString(R.string.udh_toast_saved), android.widget.Toast.LENGTH_SHORT).show()
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Entry saved successfully")
+                                        }
                                     },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp),
@@ -677,6 +717,70 @@ fun UdhaarCustomerCard(
                     color = if (owesMoney) Coral500 else Emerald500
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun LimitedSwipeToActionBox(
+    enableStartToEnd: Boolean,
+    enableEndToStart: Boolean,
+    onStartToEnd: () -> Unit,
+    onEndToStart: () -> Unit,
+    backgroundContent: @Composable (offsetX: Float) -> Unit,
+    content: @Composable () -> Unit
+) {
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
+    val maxDragPx = with(density) { (configuration.screenWidthDp * 0.45f).dp.toPx() } // Limit drag to 45% of screen
+    val triggerPx = with(density) { (configuration.screenWidthDp * 0.25f).dp.toPx() } // Trigger at 25% of screen
+
+    val offsetX = remember { Animatable(0f) }
+    val coroutineScope = rememberCoroutineScope()
+
+    Box(
+        modifier = Modifier.draggable(
+            orientation = Orientation.Horizontal,
+            state = rememberDraggableState { delta ->
+                coroutineScope.launch {
+                    var newOffset = offsetX.value + delta
+                    if (!enableStartToEnd && newOffset > 0) newOffset = 0f
+                    if (!enableEndToStart && newOffset < 0) newOffset = 0f
+
+                    if (newOffset > maxDragPx) newOffset = maxDragPx
+                    if (newOffset < -maxDragPx) newOffset = -maxDragPx
+
+                    offsetX.snapTo(newOffset)
+                }
+            },
+            onDragStopped = {
+                coroutineScope.launch {
+                    // Check if we passed the threshold to trigger action
+                    if (offsetX.value >= triggerPx && enableStartToEnd) {
+                        // animate back first, then trigger
+                        offsetX.animateTo(0f, animationSpec = androidx.compose.animation.core.tween(200))
+                        onStartToEnd()
+                    } else if (offsetX.value <= -triggerPx && enableEndToStart) {
+                        offsetX.animateTo(0f, animationSpec = androidx.compose.animation.core.tween(200))
+                        onEndToStart()
+                    } else {
+                        // didn't pass threshold, just snap back
+                        offsetX.animateTo(0f, animationSpec = androidx.compose.animation.core.tween(200))
+                    }
+                }
+            }
+        )
+    ) {
+        // Background
+        Box(modifier = Modifier.matchParentSize()) {
+            backgroundContent(offsetX.value)
+        }
+
+        // Foreground
+        Box(
+            modifier = Modifier.offset { IntOffset(offsetX.value.roundToInt(), 0) }
+        ) {
+            content()
         }
     }
 }
