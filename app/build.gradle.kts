@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.pdfscanner.editorapp"
+    namespace = "com.storebook.inventoryapp"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.pdfscanner.editorapp"
+        applicationId = "com.storebook.inventoryapp"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
@@ -106,6 +106,8 @@ dependencies {
     implementation("io.github.oothp:android-pdf-viewer:3.2.0-beta06")
     implementation("com.google.android.play:review-ktx:2.0.2")
     implementation("com.google.android.play:app-update-ktx:2.1.0")
+    // Google Play In-App Billing
+    implementation("com.android.billingclient:billing-ktx:7.1.1")
     // Networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.serialization)

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.ImageToPDFPDFReader" parent="Theme.Material3.Light.NoActionBar">
+    <style name="Theme.StoreBook" parent="Theme.Material3.Light.NoActionBar">
         <item name="android:windowBackground">@android:color/white</item>
     </style>
 
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">#FFFFFF</item>
         <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
-        <item name="postSplashScreenTheme">@style/Theme.ImageToPDFPDFReader</item>
+        <item name="postSplashScreenTheme">@style/Theme.StoreBook</item>
         <item name="android:windowBackground">@android:color/white</item>
     </style>
 

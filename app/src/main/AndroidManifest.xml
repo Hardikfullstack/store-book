@@ -23,7 +23,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
     <application
-        android:name=".ImageToPdfApplication"
+        android:name=".StoreBookApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -33,7 +33,7 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
         android:localeConfig="@xml/locales_config"
-        android:theme="@style/Theme.ImageToPDFPDFReader">
+        android:theme="@style/Theme.StoreBook">
 
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"

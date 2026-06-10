@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Image to PDF PDF Reader"
+rootProject.name = "StoreBook"
 include(":app")
