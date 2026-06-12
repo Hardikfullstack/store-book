@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.DownloadForOffline
 import androidx.compose.material.icons.outlined.Inventory
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Store
 import androidx.compose.material.icons.outlined.LocalShipping
 import androidx.compose.material.icons.outlined.MoneyOff
 import androidx.compose.material.icons.outlined.PieChart
@@ -322,6 +323,15 @@ fun MoreScreen(navController: NavController, viewModel: StoreBookViewModel) {
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
                         IconOptionRow(
+                            icon = Icons.Outlined.Store,
+                            iconBg = Color(0xFF10B981).copy(alpha = 0.12f),
+                            iconTint = Color(0xFF10B981),
+                            title = "Business Settings",
+                            onClick = { activeModal = "BUSINESS"; showSheet = true }
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                        IconOptionRow(
                             icon = Icons.Outlined.CloudSync,
                             iconBg = Color(0xFFEAB308).copy(alpha = 0.12f),
                             iconTint = Color(0xFFEAB308),
@@ -433,6 +443,55 @@ fun MoreScreen(navController: NavController, viewModel: StoreBookViewModel) {
                                 showSheet = false
                             }
                         )
+                    }
+                    "BUSINESS" -> {
+                        var nameInput by remember { mutableStateOf(viewModel.businessName) }
+                        var gstinInput by remember { mutableStateOf(viewModel.businessGstin) }
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp).padding(bottom = 32.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Text("Business Settings", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            OutlinedTextField(
+                                value = nameInput,
+                                onValueChange = { nameInput = it },
+                                label = { Text("Store Owner's Name") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            OutlinedTextField(
+                                value = gstinInput,
+                                onValueChange = { gstinInput = it },
+                                label = { Text("Store Owner's GSTIN") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            var addressInput by remember { mutableStateOf(viewModel.businessAddress) }
+                            OutlinedTextField(
+                                value = addressInput,
+                                onValueChange = { addressInput = it },
+                                label = { Text("Store Owner's Address") },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 2,
+                                maxLines = 4,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            Button(
+                                onClick = { 
+                                    viewModel.updateBusinessName(nameInput)
+                                    viewModel.updateBusinessGstin(gstinInput)
+                                    viewModel.updateBusinessAddress(addressInput)
+                                    showSheet = false
+                                    android.widget.Toast.makeText(context, "Settings saved", android.widget.Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.fillMaxWidth().height(52.dp),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text(stringResource(id = R.string.btn_save), fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
                 }
             }

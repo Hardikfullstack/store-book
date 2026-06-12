@@ -8,7 +8,7 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
 
     companion object {
         const val DATABASE_NAME = "storebook.db"
-        const val DATABASE_VERSION = 3
+        const val DATABASE_VERSION = 6
 
         // Table Names
         const val TABLE_ITEMS = "items"
@@ -37,6 +37,8 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
         const val KEY_ITEM_THRESHOLD = "low_stock_threshold"
         const val KEY_ITEM_CATEGORY = "category"
         const val KEY_ITEM_PHOTO = "photo_path"
+        const val KEY_ITEM_HSN = "hsn_code"
+        const val KEY_ITEM_TAX_RATE = "tax_rate"
         const val KEY_ITEM_IS_DELETED = "is_deleted"
         const val KEY_ITEM_DELETED_TIME = "deleted_timestamp"
 
@@ -44,6 +46,10 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
         const val KEY_SALE_TOTAL = "total_amount"
         const val KEY_SALE_DISCOUNT = "discount_amount"
         const val KEY_SALE_CUSTOMER = "customer_name"
+        const val KEY_SALE_CUSTOMER_GSTIN = "customer_gstin"
+        const val KEY_SALE_BUSINESS_GSTIN = "business_gstin"
+        const val KEY_SALE_CUSTOMER_ADDRESS = "customer_address"
+        const val KEY_SALE_BUSINESS_ADDRESS = "business_address"
 
         // Sale Items Table Columns
         const val KEY_SI_SALE_ID = "sale_id"
@@ -78,6 +84,8 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
                 + KEY_ITEM_THRESHOLD + " REAL NOT NULL DEFAULT 0.0,"
                 + KEY_ITEM_CATEGORY + " TEXT NOT NULL,"
                 + KEY_ITEM_PHOTO + " TEXT,"
+                + KEY_ITEM_HSN + " TEXT,"
+                + KEY_ITEM_TAX_RATE + " REAL NOT NULL DEFAULT 0.0,"
                 + KEY_ITEM_IS_DELETED + " INTEGER NOT NULL DEFAULT 0,"
                 + KEY_ITEM_DELETED_TIME + " INTEGER DEFAULT 0,"
                 + KEY_CLOUD_ID + " TEXT,"
@@ -90,6 +98,10 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
                 + KEY_SALE_TOTAL + " REAL NOT NULL,"
                 + KEY_SALE_DISCOUNT + " REAL NOT NULL DEFAULT 0.0,"
                 + KEY_SALE_CUSTOMER + " TEXT,"
+                + KEY_SALE_CUSTOMER_GSTIN + " TEXT,"
+                + KEY_SALE_BUSINESS_GSTIN + " TEXT,"
+                + KEY_SALE_CUSTOMER_ADDRESS + " TEXT,"
+                + KEY_SALE_BUSINESS_ADDRESS + " TEXT,"
                 + KEY_NOTES + " TEXT,"
                 + KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0,"
                 + KEY_CLOUD_ID + " TEXT,"
@@ -177,6 +189,21 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_${table}_is_synced ON $table($KEY_IS_SYNCED)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_${table}_updated_at ON $table($KEY_UPDATED_AT)")
             }
+        }
+        if (oldVersion < 4) {
+            // Upgrade to version 4: Add HSN and Tax Rate to Items
+            db.execSQL("ALTER TABLE $TABLE_ITEMS ADD COLUMN $KEY_ITEM_HSN TEXT")
+            db.execSQL("ALTER TABLE $TABLE_ITEMS ADD COLUMN $KEY_ITEM_TAX_RATE REAL NOT NULL DEFAULT 0.0")
+        }
+        if (oldVersion < 5) {
+            // Upgrade to version 5: Add GSTIN columns to Sales
+            db.execSQL("ALTER TABLE $TABLE_SALES ADD COLUMN $KEY_SALE_CUSTOMER_GSTIN TEXT")
+            db.execSQL("ALTER TABLE $TABLE_SALES ADD COLUMN $KEY_SALE_BUSINESS_GSTIN TEXT")
+        }
+        if (oldVersion < 6) {
+            // Upgrade to version 6: Add Address columns to Sales
+            db.execSQL("ALTER TABLE $TABLE_SALES ADD COLUMN $KEY_SALE_CUSTOMER_ADDRESS TEXT")
+            db.execSQL("ALTER TABLE $TABLE_SALES ADD COLUMN $KEY_SALE_BUSINESS_ADDRESS TEXT")
         }
     }
 }

@@ -607,10 +607,8 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
                 modifier = Modifier.align(Alignment.BottomCenter)
             ) {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
                 ) {
@@ -750,7 +748,7 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
                                     },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(84.dp)
+                                        
                                         .onFocusChanged { state ->
                                             if (state.isFocused) {
                                                 showCustomerSuggestions = true
@@ -828,7 +826,7 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
                                                 }
                                             },
                                             onClick = {
-                                                viewModel.cartCustomerName = name
+                                                viewModel.selectCustomer(name)
                                                 showCustomerSuggestions = false
                                                 customerNameError = false
                                             }
@@ -840,6 +838,45 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
                                 }
                         }
 
+                        
+                        var showAdvancedBilling by remember { mutableStateOf(false) }
+                        Text(
+                            text = if (showAdvancedBilling) "Hide Additional Billing Details" else "Add GSTIN & Address (Optional)",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showAdvancedBilling = !showAdvancedBilling }
+                                .padding(vertical = 4.dp),
+                            textAlign = TextAlign.Center
+                        )
+                        
+                        AnimatedVisibility(visible = showAdvancedBilling) {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                // ── Customer GSTIN ──────────────────────────────────────────
+                                OutlinedTextField(
+                                    value = viewModel.cartCustomerGstin,
+                                    onValueChange = { viewModel.cartCustomerGstin = it },
+                                    label = { Text("Customer GSTIN (Optional)") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                
+                                // ── Customer Address ────────────────────────────────────────
+                                OutlinedTextField(
+                                    value = viewModel.cartCustomerAddress,
+                                    onValueChange = { viewModel.cartCustomerAddress = it },
+                                    label = { Text("Customer Address (Optional)") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    minLines = 2,
+                                    maxLines = 3,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                            }
+                        }
+                        
                         // ── Checkout Button ─────────────────────────────────────
                         Button(
                             onClick = {

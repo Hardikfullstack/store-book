@@ -26,6 +26,8 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStreamReader
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class StoreBookViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -68,6 +70,19 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun selectCustomer(name: String) {
+        cartCustomerName = name
+        viewModelScope.launch {
+            val (gstin, address) = repository.getCustomerDetails(name)
+            if (!gstin.isNullOrBlank()) {
+                cartCustomerGstin = gstin
+            }
+            if (!address.isNullOrBlank()) {
+                cartCustomerAddress = address
+            }
+        }
+    }
+
     private val _expensesList = MutableStateFlow<List<ExpenseEntry>>(emptyList())
     val expensesList: StateFlow<List<ExpenseEntry>> = _expensesList
 
@@ -77,8 +92,33 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
 
     var cartDiscount by mutableStateOf(0.0)
     var cartCustomerName by mutableStateOf("")
+    var cartCustomerGstin by mutableStateOf("")
+    var cartCustomerAddress by mutableStateOf("")
     var cartNotes by mutableStateOf("")
     var cartPaymentMode by mutableStateOf("Cash")
+    
+    private val prefs = application.getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE)
+    var businessName by mutableStateOf(prefs.getString("business_name", "StoreBook Kirana") ?: "StoreBook Kirana")
+        private set
+    var businessGstin by mutableStateOf(prefs.getString("business_gstin", "") ?: "")
+        private set
+    var businessAddress by mutableStateOf(prefs.getString("business_address", "") ?: "")
+        private set
+
+    fun updateBusinessName(name: String) {
+        businessName = name
+        prefs.edit().putString("business_name", name).apply()
+    }
+
+    fun updateBusinessGstin(gstin: String) {
+        businessGstin = gstin
+        prefs.edit().putString("business_gstin", gstin).apply()
+    }
+    
+    fun updateBusinessAddress(address: String) {
+        businessAddress = address
+        prefs.edit().putString("business_address", address).apply()
+    }
 
     // Billing state (reactive from Play Billing client)
     var isPremiumUser: Boolean by mutableStateOf(false)
@@ -176,7 +216,9 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
         buyPrice: Double,
         sellPrice: Double,
         threshold: Double,
-        category: String
+        category: String,
+        hsnCode: String? = null,
+        taxRate: Double = 0.0
     ) {
         viewModelScope.launch {
             val item = Item(
@@ -186,7 +228,9 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
                 buyPrice = buyPrice,
                 sellPrice = sellPrice,
                 lowStockThreshold = threshold,
-                category = category
+                category = category,
+                hsnCode = hsnCode,
+                taxRate = taxRate
             )
             repository.insertItem(item)
             loadAllData()
@@ -201,7 +245,9 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
         buyPrice: Double,
         sellPrice: Double,
         threshold: Double,
-        category: String
+        category: String,
+        hsnCode: String? = null,
+        taxRate: Double = 0.0
     ) {
         viewModelScope.launch {
             val item = Item(
@@ -212,7 +258,9 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
                 buyPrice = buyPrice,
                 sellPrice = sellPrice,
                 lowStockThreshold = threshold,
-                category = category
+                category = category,
+                hsnCode = hsnCode,
+                taxRate = taxRate
             )
             repository.updateItem(item)
             loadAllData()
@@ -260,6 +308,8 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
         cartItems = emptyList()
         cartDiscount = 0.0
         cartCustomerName = ""
+        cartCustomerGstin = ""
+        cartCustomerAddress = ""
         cartNotes = ""
         cartPaymentMode = "Cash"
     }
@@ -282,6 +332,10 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
                 itemsInCart = cartItems,
                 discount = cartDiscount,
                 customerName = customerNameForSale,
+                customerGstin = cartCustomerGstin.takeIf { it.isNotBlank() },
+                customerAddress = cartCustomerAddress.takeIf { it.isNotBlank() },
+                businessGstin = businessGstin.takeIf { it.isNotBlank() },
+                businessAddress = businessAddress.takeIf { it.isNotBlank() },
                 notes = notesForSale,
                 paymentMode = paymentMode
             )
@@ -289,12 +343,14 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
                 lastSaleId = saleId
                 lastSaleTime = System.currentTimeMillis()
 
-                // Calculate grand total
-                var subtotal = 0.0
-                for (c in cartItems) {
-                    subtotal += c.item.sellPrice * c.quantity
-                }
-                val total = subtotal - cartDiscount
+                // Calculate grand total with taxes
+                val taxSummary = com.storebook.inventoryapp.data.billing.BillingEngine.calculateInvoiceTaxes(
+                    cartItems = cartItems,
+                    totalDiscount = cartDiscount,
+                    businessGstin = businessGstin.takeIf { it.isNotBlank() },
+                    customerGstin = cartCustomerGstin.takeIf { it.isNotBlank() }
+                )
+                val total = taxSummary.grandTotal
 
                 // NOTE: recordSale() ALREADY creates Udhaar CREDIT entry if customerName is present
                 // So we do NOT need to create it here again. Removing the duplicate insert.
@@ -367,6 +423,60 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     // --- CSV Operations ---
+
+    fun shareInvoice(context: android.content.Context, saleId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val sale = repository.getSaleById(saleId)
+            if (sale != null) {
+                // Fetch actual items from DB to get the correct taxRate and HSN
+                val mappedCartItems = sale.items.map { saleItem ->
+                    val actualItem = repository.getItemById(saleItem.itemId) ?: Item(
+                        id = saleItem.itemId,
+                        name = saleItem.itemName,
+                        quantity = 0.0,
+                        unit = saleItem.unit,
+                        buyPrice = saleItem.buyPrice,
+                        sellPrice = saleItem.sellPrice,
+                        lowStockThreshold = 0.0,
+                        category = ""
+                    )
+                    CartItem(item = actualItem, quantity = saleItem.quantity)
+                }
+
+                val file = com.storebook.inventoryapp.utils.InvoicePdfGenerator.generateInvoicePdf(
+                    context = context,
+                    sale = sale,
+                    cartItems = mappedCartItems,
+                    shopName = businessName,
+                    shopAddress = businessAddress,
+                    shopGstin = businessGstin
+                )
+                if (file != null) {
+                    withContext(Dispatchers.Main) {
+                        val uri = androidx.core.content.FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            file
+                        )
+                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "application/pdf"
+                            putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(android.content.Intent.createChooser(intent, "Share Invoice"))
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        android.widget.Toast.makeText(context, "Failed to generate PDF", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } else {
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(context, "Sale not found", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     fun exportInventoryToCSV(context: Context, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {

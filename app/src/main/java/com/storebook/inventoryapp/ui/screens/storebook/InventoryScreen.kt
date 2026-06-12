@@ -120,6 +120,8 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
     var inputSellPrice by remember { mutableStateOf("") }
     var inputThreshold by remember { mutableStateOf("5") }
     var inputCategory by remember { mutableStateOf("Groceries") }
+    var inputHsnCode by remember { mutableStateOf("") }
+    var inputTaxRate by remember { mutableStateOf("") }
     var nameError by remember { mutableStateOf(false) }
     var priceError by remember { mutableStateOf(false) }
 
@@ -183,7 +185,8 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
         editingItem = null
         inputName = ""; inputQty = ""; inputUnit = "pcs"
         inputBuyPrice = ""; inputSellPrice = ""; inputThreshold = "5"
-        inputCategory = "Groceries"; nameError = false; priceError = false
+        inputCategory = "Groceries"; inputHsnCode = ""; inputTaxRate = ""
+        nameError = false; priceError = false
         showSheet = true
     }
 
@@ -193,7 +196,8 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
         inputUnit = item.unit; inputBuyPrice = formatQty(item.buyPrice)
         inputSellPrice = formatQty(item.sellPrice)
         inputThreshold = formatQty(item.lowStockThreshold)
-        inputCategory = item.category; nameError = false; priceError = false
+        inputCategory = item.category; inputHsnCode = item.hsnCode ?: ""; inputTaxRate = if (item.taxRate > 0) item.taxRate.toString() else ""
+        nameError = false; priceError = false
         showSheet = true
     }
 
@@ -636,6 +640,25 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             singleLine = true
                         )
 
+                        // Taxes & HSN
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(
+                                value = inputHsnCode,
+                                onValueChange = { inputHsnCode = it },
+                                label = { Text("HSN/SAC Code") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = inputTaxRate,
+                                onValueChange = { inputTaxRate = it },
+                                label = { Text("Tax Rate (%)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                        }
+
                         Button(
                             onClick = {
                                 val name = inputName.trim()
@@ -643,15 +666,17 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 val buy = inputBuyPrice.toDoubleOrNull()
                                 val sell = inputSellPrice.toDoubleOrNull()
                                 val threshold = inputThreshold.toDoubleOrNull() ?: 5.0
+                                val hsn = inputHsnCode.trim().takeIf { it.isNotBlank() }
+                                val tax = inputTaxRate.toDoubleOrNull() ?: 0.0
 
                                 nameError = name.isBlank()
                                 priceError = buy == null || sell == null
                                 if (nameError || priceError || qty == null) return@Button
 
                                 if (editingItem == null) {
-                                    viewModel.addItem(name, qty, inputUnit, buy!!, sell!!, threshold, inputCategory)
+                                    viewModel.addItem(name, qty, inputUnit, buy!!, sell!!, threshold, inputCategory, hsn, tax)
                                 } else {
-                                    viewModel.updateItem(editingItem!!.id, name, qty, inputUnit, buy!!, sell!!, threshold, inputCategory)
+                                    viewModel.updateItem(editingItem!!.id, name, qty, inputUnit, buy!!, sell!!, threshold, inputCategory, hsn, tax)
                                 }
                                 showSheet = false
                                 android.widget.Toast.makeText(context, context.getString(R.string.inv_save_success), android.widget.Toast.LENGTH_SHORT).show()

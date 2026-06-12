@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
@@ -404,19 +405,19 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
                     when (groupBy) {
                         GroupBy.DATE -> {
                             items(filteredItems.sortedByDescending { it.timestamp }) { item ->
-                                FlatLineItemCard(item)
+                                FlatLineItemCard(item, onShare = { viewModel.shareInvoice(context, item.saleId) })
                             }
                         }
                         GroupBy.PRODUCT -> {
                             val grouped = filteredItems.groupBy { it.itemName }.toList().sortedByDescending { it.second.sumOf { i -> i.revenue } }
                             items(grouped) { (prodName, itemsList) ->
-                                ExpandableGroupCard(title = prodName, items = itemsList, groupBy = groupBy)
+                                ExpandableGroupCard(title = prodName, items = itemsList, groupBy = groupBy, onShareItem = { saleId -> viewModel.shareInvoice(context, saleId) })
                             }
                         }
                         GroupBy.CUSTOMER -> {
                             val grouped = filteredItems.groupBy { it.customerName }.toList().sortedByDescending { it.second.sumOf { i -> i.revenue } }
                             items(grouped) { (custName, itemsList) ->
-                                ExpandableGroupCard(title = custName, items = itemsList, groupBy = groupBy)
+                                ExpandableGroupCard(title = custName, items = itemsList, groupBy = groupBy, onShareItem = { saleId -> viewModel.shareInvoice(context, saleId) })
                             }
                         }
                     }
@@ -503,7 +504,7 @@ fun SheetCheckboxOption(text: String, checked: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun FlatLineItemCard(item: LineItem) {
+fun FlatLineItemCard(item: LineItem, onShare: () -> Unit) {
     val dateFmt = remember { SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()) }
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -525,7 +526,13 @@ fun FlatLineItemCard(item: LineItem) {
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).padding(end = 8.dp)
                 )
-                Text("${item.revenue.toRupee()}", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary, fontFamily = Poppins)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${item.revenue.toRupee()}", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary, fontFamily = Poppins)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    IconButton(onClick = onShare, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Outlined.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                    }
+                }
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("${item.quantity} ${item.unit} x ${item.sellPrice.toRupeeWithDecimals()}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -552,7 +559,7 @@ fun FlatLineItemCard(item: LineItem) {
 }
 
 @Composable
-fun ExpandableGroupCard(title: String, items: List<LineItem>, groupBy: GroupBy) {
+fun ExpandableGroupCard(title: String, items: List<LineItem>, groupBy: GroupBy, onShareItem: (Long) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val totalRevenue = items.sumOf { it.revenue }
     val totalProfit = items.sumOf { it.profit }
@@ -622,12 +629,18 @@ fun ExpandableGroupCard(title: String, items: List<LineItem>, groupBy: GroupBy) 
                                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                         modifier = Modifier.weight(1f).padding(end = 8.dp)
                                     )
-                                    Text(
-                                        text = "${item.revenue.toRupee()}",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = "${item.revenue.toRupee()}",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        IconButton(onClick = { onShareItem(item.saleId) }, modifier = Modifier.size(20.dp)) {
+                                            Icon(Icons.Outlined.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+                                        }
+                                    }
                                 }
                                 
                                 Spacer(modifier = Modifier.height(2.dp))

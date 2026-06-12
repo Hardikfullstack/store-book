@@ -20,6 +20,8 @@ data class Item(
     val lowStockThreshold: Double,
     val category: String,
     val photoPath: String? = null,
+    val hsnCode: String? = null,
+    val taxRate: Double = 0.0,
     val isDeleted: Int = 0,
     val deletedTimestamp: Long = 0
 ) : Serializable
@@ -35,6 +37,10 @@ data class Sale(
     val totalAmount: Double,
     val discountAmount: Double,
     val customerName: String? = null,
+    val customerGstin: String? = null,
+    val businessGstin: String? = null,
+    val customerAddress: String? = null,
+    val businessAddress: String? = null,
     val notes: String? = null,
     val items: List<SaleItemDetail> = emptyList()
 ) : Serializable
@@ -121,6 +127,8 @@ class StoreBookRepository(context: Context) {
             put(StoreBookDbHelper.KEY_ITEM_THRESHOLD, item.lowStockThreshold)
             put(StoreBookDbHelper.KEY_ITEM_CATEGORY, item.category)
             put(StoreBookDbHelper.KEY_ITEM_PHOTO, item.photoPath)
+            put(StoreBookDbHelper.KEY_ITEM_HSN, item.hsnCode)
+            put(StoreBookDbHelper.KEY_ITEM_TAX_RATE, item.taxRate)
             put(StoreBookDbHelper.KEY_ITEM_IS_DELETED, 0)
             put(StoreBookDbHelper.KEY_ITEM_DELETED_TIME, 0)
             put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
@@ -140,6 +148,8 @@ class StoreBookRepository(context: Context) {
             put(StoreBookDbHelper.KEY_ITEM_THRESHOLD, item.lowStockThreshold)
             put(StoreBookDbHelper.KEY_ITEM_CATEGORY, item.category)
             put(StoreBookDbHelper.KEY_ITEM_PHOTO, item.photoPath)
+            put(StoreBookDbHelper.KEY_ITEM_HSN, item.hsnCode)
+            put(StoreBookDbHelper.KEY_ITEM_TAX_RATE, item.taxRate)
             put(StoreBookDbHelper.KEY_ITEM_IS_DELETED, item.isDeleted)
             put(StoreBookDbHelper.KEY_ITEM_DELETED_TIME, item.deletedTimestamp)
             put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
@@ -191,18 +201,23 @@ class StoreBookRepository(context: Context) {
         itemsInCart: List<CartItem>,
         discount: Double,
         customerName: String?,
+        customerGstin: String? = null,
+        customerAddress: String? = null,
+        businessGstin: String? = null,
+        businessAddress: String? = null,
         notes: String?,
         paymentMode: String
     ): Long = withContext(Dispatchers.IO) {
         val db = dbHelper.writableDatabase
         db.beginTransaction()
         try {
-            // 1. Calculate total sale amount
-            var subtotal = 0.0
-            for (cartItem in itemsInCart) {
-                subtotal += cartItem.item.sellPrice * cartItem.quantity
-            }
-            val total = subtotal - discount
+            val taxSummary = com.storebook.inventoryapp.data.billing.BillingEngine.calculateInvoiceTaxes(
+                cartItems = itemsInCart,
+                totalDiscount = discount,
+                businessGstin = businessGstin,
+                customerGstin = customerGstin
+            )
+            val total = taxSummary.grandTotal
 
             // 2. Insert into Sales table
             val saleTime = System.currentTimeMillis()
@@ -211,6 +226,10 @@ class StoreBookRepository(context: Context) {
                 put(StoreBookDbHelper.KEY_SALE_TOTAL, total)
                 put(StoreBookDbHelper.KEY_SALE_DISCOUNT, discount)
                 put(StoreBookDbHelper.KEY_SALE_CUSTOMER, customerName)
+                put(StoreBookDbHelper.KEY_SALE_CUSTOMER_GSTIN, customerGstin)
+                put(StoreBookDbHelper.KEY_SALE_BUSINESS_GSTIN, businessGstin)
+                put(StoreBookDbHelper.KEY_SALE_CUSTOMER_ADDRESS, customerAddress)
+                put(StoreBookDbHelper.KEY_SALE_BUSINESS_ADDRESS, businessAddress)
                 put(StoreBookDbHelper.KEY_NOTES, notes)
                 put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
                 put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
@@ -325,6 +344,15 @@ class StoreBookRepository(context: Context) {
             db.endTransaction()
         }
     }
+    suspend fun getSaleById(saleId: Long): Sale? = withContext(Dispatchers.IO) {
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT * FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_ID} = ?",
+            arrayOf(saleId.toString())
+        )
+        val sales = fetchSalesFromCursor(cursor)
+        sales.firstOrNull()
+    }
 
     suspend fun getSales(): List<Sale> = withContext(Dispatchers.IO) {
         val db = dbHelper.readableDatabase
@@ -362,6 +390,10 @@ class StoreBookRepository(context: Context) {
             val total = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SALE_TOTAL)
             val disc = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SALE_DISCOUNT)
             val cust = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SALE_CUSTOMER)
+            val cGstin = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SALE_CUSTOMER_GSTIN)
+            val bGstin = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SALE_BUSINESS_GSTIN)
+            val cAddr = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SALE_CUSTOMER_ADDRESS)
+            val bAddr = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SALE_BUSINESS_ADDRESS)
             val notes = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_NOTES)
             while (c.moveToNext()) {
                 salesList.add(Sale(
@@ -370,6 +402,10 @@ class StoreBookRepository(context: Context) {
                     totalAmount = c.getDouble(total),
                     discountAmount = c.getDouble(disc),
                     customerName = c.getString(cust),
+                    customerGstin = c.getString(cGstin),
+                    businessGstin = c.getString(bGstin),
+                    customerAddress = c.getString(cAddr),
+                    businessAddress = c.getString(bAddr),
                     notes = c.getString(notes),
                     items = emptyList()
                 ))
@@ -509,19 +545,43 @@ class StoreBookRepository(context: Context) {
             """.trimIndent()
         }
         
-        val cursor = if (q.isEmpty()) {
-            db.rawQuery(sql, arrayOf(limit.toString()))
-        } else {
-            val likeArg = "%${q}%"
-            db.rawQuery(sql, arrayOf(likeArg, likeArg, limit.toString()))
-        }
-        
+        val args = if (q.isEmpty()) arrayOf(limit.toString()) else arrayOf("%$q%", "%$q%", limit.toString())
+
+        val cursor = db.rawQuery(sql, args)
         cursor.use { c ->
             while (c.moveToNext()) {
                 names.add(c.getString(0))
             }
         }
         names
+    }
+
+    suspend fun getCustomerDetails(customerName: String): Pair<String?, String?> = withContext(Dispatchers.IO) {
+        val db = dbHelper.readableDatabase
+        var gstin: String? = null
+        var address: String? = null
+        try {
+            val cursor = db.rawQuery(
+                """
+                SELECT ${StoreBookDbHelper.KEY_SALE_CUSTOMER_GSTIN}, ${StoreBookDbHelper.KEY_SALE_CUSTOMER_ADDRESS} 
+                FROM ${StoreBookDbHelper.TABLE_SALES} 
+                WHERE ${StoreBookDbHelper.KEY_SALE_CUSTOMER} = ? 
+                AND (${StoreBookDbHelper.KEY_SALE_CUSTOMER_GSTIN} IS NOT NULL OR ${StoreBookDbHelper.KEY_SALE_CUSTOMER_ADDRESS} IS NOT NULL)
+                ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC 
+                LIMIT 1
+                """.trimIndent(),
+                arrayOf(customerName)
+            )
+            cursor.use { c ->
+                if (c.moveToFirst()) {
+                    gstin = c.getString(0)
+                    address = c.getString(1)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        Pair(gstin, address)
     }
 
     suspend fun getCustomerLedger(customerName: String): List<UdhaarEntry> = withContext(Dispatchers.IO) {
@@ -665,6 +725,8 @@ class StoreBookRepository(context: Context) {
             lowStockThreshold = c.getDouble(c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_ITEM_THRESHOLD)),
             category = c.getString(c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_ITEM_CATEGORY)),
             photoPath = c.getString(c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_ITEM_PHOTO)),
+            hsnCode = if (c.getColumnIndex(StoreBookDbHelper.KEY_ITEM_HSN) != -1) c.getString(c.getColumnIndex(StoreBookDbHelper.KEY_ITEM_HSN)) else null,
+            taxRate = if (c.getColumnIndex(StoreBookDbHelper.KEY_ITEM_TAX_RATE) != -1) c.getDouble(c.getColumnIndex(StoreBookDbHelper.KEY_ITEM_TAX_RATE)) else 0.0,
             isDeleted = c.getInt(c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_ITEM_IS_DELETED)),
             deletedTimestamp = c.getLong(c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_ITEM_DELETED_TIME))
         )
@@ -713,6 +775,10 @@ class StoreBookRepository(context: Context) {
                     }
                 }
             }
+            
+            // Insert sample tax rates for existing items
+            db.execSQL("UPDATE ${StoreBookDbHelper.TABLE_ITEMS} SET ${StoreBookDbHelper.KEY_ITEM_TAX_RATE} = 18.0 WHERE ${StoreBookDbHelper.KEY_ITEM_TAX_RATE} = 0.0")
+
             db.setTransactionSuccessful()
         } catch (e: Exception) {
             e.printStackTrace()
