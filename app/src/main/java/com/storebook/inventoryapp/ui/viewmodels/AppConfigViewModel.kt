@@ -22,6 +22,7 @@ class AppConfigViewModel(
     private val prefs = application.getSharedPreferences("app_config", Context.MODE_PRIVATE)
     private val defaultAppName = "StoreBook"
     private val defaultAppBrand = " Kirana"
+    @Suppress("ktlint:standard:constant")
     private val API_PACKAGE_NAME = "StoreBook"
     private val _appResponse = MutableStateFlow<AppResponse?>(loadCachedResponse())
     val appResponse: StateFlow<AppResponse?> = _appResponse

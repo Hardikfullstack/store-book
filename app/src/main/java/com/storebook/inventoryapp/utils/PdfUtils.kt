@@ -286,7 +286,7 @@ object PdfUtils {
                 // Last resort: search file structure for /Count (often visible even in encrypted PDFs)
                 try {
                     file.inputStream().use { input ->
-                        val bytes = ByteArray(matchBufferSize)
+                        val bytes = ByteArray(MATCH_BUFFER_SIZE)
                         var read = input.read(bytes)
                         while (read != -1) {
                             val chunk = String(bytes, 0, read, Charsets.US_ASCII)
@@ -307,7 +307,7 @@ object PdfUtils {
         }
     }
 
-    private const val matchBufferSize = 8192
+    private const val MATCH_BUFFER_SIZE = 8192
 
     suspend fun getPageCount(
         context: android.content.Context,
@@ -340,7 +340,7 @@ object PdfUtils {
                 // Last resort structural search
                 try {
                     context.contentResolver.openInputStream(uri)?.use { input ->
-                        val bytes = ByteArray(matchBufferSize)
+                        val bytes = ByteArray(MATCH_BUFFER_SIZE)
                         var read = input.read(bytes)
                         while (read != -1) {
                             val chunk = String(bytes, 0, read, Charsets.US_ASCII)

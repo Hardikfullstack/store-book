@@ -159,7 +159,7 @@ fun MoreScreen(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
+                    .padding(bottom = paddingValues.calculateBottomPadding()),
             contentPadding = PaddingValues(bottom = 24.dp),
         ) {
             // Gradient header with shop info
@@ -169,6 +169,7 @@ fun MoreScreen(
                         Modifier
                             .fillMaxWidth()
                             .background(Brush.linearGradient(listOf(InkBlue700, InkBlue500)))
+                            .padding(top = paddingValues.calculateTopPadding())
                             .padding(horizontal = 20.dp, vertical = 20.dp),
                 ) {
                     Row(

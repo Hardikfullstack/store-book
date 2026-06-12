@@ -56,7 +56,6 @@ data class FolderInfo(
 class ImageViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
-    @Suppress("ktlint:standard:backing-property")
     private val _allImages = mutableListOf<MediaImage>()
     private val _images = MutableStateFlow<List<MediaImage>>(emptyList())
     val images: StateFlow<List<MediaImage>> = _images
@@ -95,7 +94,6 @@ class ImageViewModel(
     private val _shouldFocusSearch = MutableStateFlow(false)
     val shouldFocusSearch: StateFlow<Boolean> = _shouldFocusSearch
 
-    @Suppress("ktlint:standard:backing-property")
     private val _importedPdfMap = MutableStateFlow<Map<String, Long>>(emptyMap())
     private val _importedPdfPaths = MutableStateFlow<Set<String>>(emptySet())
 
@@ -410,7 +408,6 @@ class ImageViewModel(
         _selectedImages.clear()
     }
 
-    @Suppress("ktlint:standard:backing-property")
     private val _backupSelectedImages = mutableListOf<MediaImage>()
 
     fun backupSelectedImages() {

@@ -21,15 +21,14 @@ fun SystemBarsConfig(isDarkMode: Boolean) {
         SideEffect {
             val activity = view.context.findActivity() as? ComponentActivity ?: return@SideEffect
             if (isDarkMode) {
-                val darkColor = android.graphics.Color.parseColor("#212121")
                 activity.enableEdgeToEdge(
-                    statusBarStyle = SystemBarStyle.dark(darkColor),
-                    navigationBarStyle = SystemBarStyle.dark(darkColor),
+                    statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+                    navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
                 )
             } else {
                 activity.enableEdgeToEdge(
-                    statusBarStyle = SystemBarStyle.light(Color.WHITE, Color.BLACK),
-                    navigationBarStyle = SystemBarStyle.light(Color.WHITE, Color.BLACK),
+                    statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
+                    navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
                 )
             }
 

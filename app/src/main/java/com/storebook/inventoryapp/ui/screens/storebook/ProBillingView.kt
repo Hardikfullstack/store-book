@@ -46,7 +46,7 @@ fun ProBillingView(
     LaunchedEffect(billingState.isBillingReady) {
         if (billingState.isBillingReady) {
             billingManager.fetchProductDetails(
-                onSuccess = { products -> /* populated via state */ },
+                onSuccess = { _ -> },
                 onFailed = { /* ignore */ },
             )
         }

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -75,6 +76,7 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.storebook.inventoryapp.R
+import com.storebook.inventoryapp.data.billing.BillingEngine
 import com.storebook.inventoryapp.data.repository.CartItem
 import com.storebook.inventoryapp.data.repository.Item
 import com.storebook.inventoryapp.ui.navigation.Routes
@@ -140,8 +142,24 @@ fun SalesScreen(
             }
         }
     }
-    val grandTotal by remember(subtotal, viewModel.cartDiscount) {
-        derivedStateOf { (subtotal - viewModel.cartDiscount).coerceAtLeast(0.0) }
+    
+    val taxSummary by remember(viewModel.cartItems, viewModel.cartDiscount, viewModel.businessGstin, viewModel.cartCustomerGstin) {
+        derivedStateOf {
+            BillingEngine.calculateInvoiceTaxes(
+                cartItems = viewModel.cartItems,
+                totalDiscount = viewModel.cartDiscount,
+                businessGstin = viewModel.businessGstin,
+                customerGstin = viewModel.cartCustomerGstin
+            )
+        }
+    }
+
+    val grandTotal by remember(taxSummary) {
+        derivedStateOf { taxSummary.grandTotal }
+    }
+    
+    val totalTax by remember(taxSummary) {
+        derivedStateOf { taxSummary.totalCgst + taxSummary.totalSgst + taxSummary.totalIgst }
     }
 
     val isUdhaarMode = viewModel.cartPaymentMode == "Udhaar"
@@ -409,6 +427,7 @@ fun SalesScreen(
                     Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surface)
+                        .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -746,6 +765,14 @@ fun SalesScreen(
                                     fontWeight = FontWeight.Black,
                                     color = MaterialTheme.colorScheme.primary,
                                 )
+                                if (totalTax > 0.0) {
+                                    Text(
+                                        "(incl. ${totalTax.toRupee()} tax)",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                }
                             }
                             OutlinedTextField(
                                 value = if (viewModel.cartDiscount == 0.0) "" else viewModel.cartDiscount.toString(),
@@ -1089,10 +1116,13 @@ fun SalesSuccessScreen(
                 )
             }
             val subtotal = cartItems.sumOf { it.item.sellPrice * it.quantity }
+            val taxAmount = totalAmount - (subtotal - discount)
+            val taxLine = if (taxAmount > 0.0) "Tax: ₹${String.format("%.2f", taxAmount)}\n" else ""
+            
             context.getString(
                 R.string.sales_invoice_template,
                 "#$saleId",
-                itemsStr.toString(),
+                itemsStr.toString() + taxLine,
                 subtotal,
                 discount,
                 totalAmount,
@@ -1218,6 +1248,18 @@ fun SalesSuccessScreen(
                             fontSize = 13.sp,
                         )
                         Text("-${discount.toRupee()}", color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+                    }
+                }
+                val subtotal = cartItems.sumOf { it.item.sellPrice * it.quantity }
+                val taxAmount = totalAmount - (subtotal - discount)
+                if (taxAmount > 0.0) {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(
+                            "Taxes",
+                            fontSize = 13.sp,
+                        )
+                        Text("+${taxAmount.toRupee()}", fontSize = 13.sp)
                     }
                 }
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))

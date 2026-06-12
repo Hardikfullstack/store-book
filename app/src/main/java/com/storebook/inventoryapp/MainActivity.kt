@@ -80,18 +80,7 @@ class MainActivity : AppCompatActivity() {
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         val themeManager = ManualThemeManager.getInstance(this)
-        enableEdgeToEdge(
-            statusBarStyle =
-                SystemBarStyle.light(
-                    android.graphics.Color.WHITE,
-                    android.graphics.Color.BLACK,
-                ),
-            navigationBarStyle =
-                SystemBarStyle.light(
-                    android.graphics.Color.WHITE,
-                    android.graphics.Color.WHITE,
-                ),
-        )
+        enableEdgeToEdge()
         val appConfigViewModel: AppConfigViewModel by viewModels()
 
         lifecycleScope.launch {

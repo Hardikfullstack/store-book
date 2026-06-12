@@ -1,0 +1,40 @@
+# Root configuration
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+ktlint_standard_constant-background-message = disabled
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.kt]
+indent_size = 4
+ktlint_standard_constant-background-message = disabled
+max_line_length = 120
+ktlint_code_style = ktlint_official
+ktlint_standard_no_blank_line_in_rarrow_body = disabled
+ktlint_standard_filename = disabled
+ktlint_standard_trailing_comma_on_call_site = enabled
+ktlint_standard_trailing_comma_on_declaration_site = enabled
+ktlint_standard_no_consecutive_blank_lines = enabled
+ktlint_standard_no_empty_class_body = enabled
+ktlint_standard_no_consecutive_comments_line_break = enabled
+ktlint_standard_chain_wrapped_at_first_element = disabled
+ktlint_standard_modern_box_with_implements = disabled
+ktlint_standard_argument-list-wrapping = disabled
+# Compose convention: Composable factory functions use PascalCase
+ktlint_standard_function-naming = disabled
+ktlint_standard_class-naming = disabled
+ktlint_standard_no-wildcard-imports = disabled
+ktlint_standard_backing-property = disabled
+
+[*.xml]
+indent_size = 4
+ktlint_standard_constant-background-message = disabled
+
+[*.{gradle.kts,build.gradle.kts}]
+indent_size = 4
+ktlint_standard_constant-background-message = disabled

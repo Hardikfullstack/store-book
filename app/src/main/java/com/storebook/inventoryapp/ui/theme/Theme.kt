@@ -33,12 +33,13 @@ class ManualThemeManager(
     companion object {
         private const val KEY_IS_DARK_MODE = "is_dark_mode"
 
+        @Suppress("ktlint:standard:property-naming")
         @Volatile
-        private var INSTANCE: ManualThemeManager? = null
+        private var _instance: ManualThemeManager? = null
 
         fun getInstance(context: Context): ManualThemeManager =
-            INSTANCE ?: synchronized(this) {
-                INSTANCE ?: ManualThemeManager(context.applicationContext).also { INSTANCE = it }
+            _instance ?: synchronized(this) {
+                _instance ?: ManualThemeManager(context.applicationContext).also { _instance = it }
             }
     }
 }
