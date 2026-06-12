@@ -75,7 +75,8 @@ private val LightColorScheme = lightColorScheme(
     onError = Color.White,
     errorContainer = Coral100,
     onErrorContainer = Color(0xFF7F1D1D),
-    outline = SlateGray100
+    outline = SlateGray100,
+    outlineVariant = SlateGray100
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -98,7 +99,9 @@ private val DarkColorScheme = darkColorScheme(
     error = Coral400,
     onError = Color(0xFF7F1D1D),
     errorContainer = Color(0xFF7F1D1D),
-    onErrorContainer = Coral100
+    onErrorContainer = Coral100,
+    outline = SlateGray600,
+    outlineVariant = SlateGray600
 )
 @Composable
 fun StoreBookTheme(

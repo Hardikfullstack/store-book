@@ -42,7 +42,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
+import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -88,12 +90,12 @@ fun SalesHistoryScreen(navController: NavController, viewModel: StoreBookViewMod
                     datePickerState.selectedDateMillis?.let { selectedDateMillis = it }
                     showDatePicker = false
                 }) {
-                    Text("OK")
+                    Text(stringResource(id = R.string.btn_ok))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
+                    Text(stringResource(id = R.string.btn_cancel))
                 }
             }
         ) {
@@ -104,7 +106,7 @@ fun SalesHistoryScreen(navController: NavController, viewModel: StoreBookViewMod
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Sales History", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(id = R.string.hist_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -149,7 +151,7 @@ fun SalesHistoryScreen(navController: NavController, viewModel: StoreBookViewMod
                     Text("🛒", fontSize = 48.sp)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "No sales found for this date",
+                        text = stringResource(id = R.string.hist_no_sales),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 16.sp,
                         textAlign = TextAlign.Center
@@ -165,7 +167,7 @@ fun SalesHistoryScreen(navController: NavController, viewModel: StoreBookViewMod
                         val profit = sale.items.sumOf { (it.sellPrice - it.buyPrice) * it.quantity } - sale.discountAmount
                         SaleTimelineCard(
                             sale = sale,
-                            customerName = sale.customerName ?: "Walk-in Customer",
+                            customerName = sale.customerName ?: stringResource(id = R.string.customer_walk_in),
                             saleTime = saleTime,
                             profit = profit
                         )

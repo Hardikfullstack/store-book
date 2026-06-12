@@ -18,6 +18,7 @@ import com.storebook.inventoryapp.data.repository.Item
 import com.storebook.inventoryapp.data.repository.Sale
 import com.storebook.inventoryapp.data.repository.StoreBookRepository
 import com.storebook.inventoryapp.data.repository.UdhaarEntry
+import com.storebook.inventoryapp.data.sync.FirestoreSyncManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -30,6 +31,7 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val repository = StoreBookRepository(application.applicationContext)
     val billingManager = PlayBillingManager(application.applicationContext)
+    private val syncManager = FirestoreSyncManager(application.applicationContext)
 
     // Data Flows
     private val _allItems = MutableStateFlow<List<Item>>(emptyList())
@@ -97,6 +99,17 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             billingManager.state.collect { billingState ->
                 isPremiumUser = billingState.isProUnlocked
+                if (isPremiumUser) {
+                    triggerSync()
+                }
+            }
+        }
+    }
+
+    fun triggerSync() {
+        viewModelScope.launch {
+            if (isPremiumUser) {
+                syncManager.syncAllData()
             }
         }
     }
@@ -111,6 +124,9 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
             _udhaarBalances.value = repository.getUdhaarBalances()
             _customerSuggestions.value = repository.searchCustomers("", 50)
             _expensesList.value = repository.getExpenses()
+            
+            // Automatically attempt sync after updating data
+            triggerSync()
         }
     }
 

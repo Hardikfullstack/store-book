@@ -123,6 +123,8 @@ class StoreBookRepository(context: Context) {
             put(StoreBookDbHelper.KEY_ITEM_PHOTO, item.photoPath)
             put(StoreBookDbHelper.KEY_ITEM_IS_DELETED, 0)
             put(StoreBookDbHelper.KEY_ITEM_DELETED_TIME, 0)
+            put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+            put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
         }
         db.insertWithOnConflict(StoreBookDbHelper.TABLE_ITEMS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
     }
@@ -140,6 +142,8 @@ class StoreBookRepository(context: Context) {
             put(StoreBookDbHelper.KEY_ITEM_PHOTO, item.photoPath)
             put(StoreBookDbHelper.KEY_ITEM_IS_DELETED, item.isDeleted)
             put(StoreBookDbHelper.KEY_ITEM_DELETED_TIME, item.deletedTimestamp)
+            put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+            put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
         }
         db.update(StoreBookDbHelper.TABLE_ITEMS, values, "${StoreBookDbHelper.KEY_ID} = ?", arrayOf(item.id.toString()))
     }
@@ -149,6 +153,8 @@ class StoreBookRepository(context: Context) {
         val values = ContentValues().apply {
             put(StoreBookDbHelper.KEY_ITEM_IS_DELETED, 1)
             put(StoreBookDbHelper.KEY_ITEM_DELETED_TIME, System.currentTimeMillis())
+            put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+            put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
         }
         db.update(StoreBookDbHelper.TABLE_ITEMS, values, "${StoreBookDbHelper.KEY_ID} = ?", arrayOf(id.toString()))
     }
@@ -173,6 +179,8 @@ class StoreBookRepository(context: Context) {
         val values = ContentValues().apply {
             put(StoreBookDbHelper.KEY_ITEM_IS_DELETED, 0)
             put(StoreBookDbHelper.KEY_ITEM_DELETED_TIME, 0)
+            put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+            put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
         }
         db.update(StoreBookDbHelper.TABLE_ITEMS, values, "${StoreBookDbHelper.KEY_ID} = ?", arrayOf(id.toString()))
     }
@@ -204,6 +212,8 @@ class StoreBookRepository(context: Context) {
                 put(StoreBookDbHelper.KEY_SALE_DISCOUNT, discount)
                 put(StoreBookDbHelper.KEY_SALE_CUSTOMER, customerName)
                 put(StoreBookDbHelper.KEY_NOTES, notes)
+                put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
             }
             val saleId = db.insert(StoreBookDbHelper.TABLE_SALES, null, saleValues)
 
@@ -222,6 +232,8 @@ class StoreBookRepository(context: Context) {
                     put(StoreBookDbHelper.KEY_SI_QTY, cartItem.quantity)
                     put(StoreBookDbHelper.KEY_SI_SELL_PRICE, cartItem.item.sellPrice)
                     put(StoreBookDbHelper.KEY_SI_BUY_PRICE, cartItem.item.buyPrice)
+                    put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                    put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
                 }
                 db.insert(StoreBookDbHelper.TABLE_SALE_ITEMS, null, saleItemValues)
 
@@ -229,6 +241,8 @@ class StoreBookRepository(context: Context) {
                 val newQty = cartItem.item.quantity - cartItem.quantity
                 val itemUpdateValues = ContentValues().apply {
                     put(StoreBookDbHelper.KEY_ITEM_QTY, newQty)
+                    put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                    put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
                 }
                 db.update(
                     StoreBookDbHelper.TABLE_ITEMS,
@@ -246,6 +260,8 @@ class StoreBookRepository(context: Context) {
                     put(StoreBookDbHelper.KEY_UDHAAR_TYPE, "CREDIT")
                     put(StoreBookDbHelper.KEY_TIMESTAMP, saleTime)
                     put(StoreBookDbHelper.KEY_NOTES, "Sale bill #$saleId" + (if (notes != null) " - $notes" else ""))
+                    put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                    put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
                 }
                 db.insert(StoreBookDbHelper.TABLE_UDHAAR, null, udhaarValues)
             }
@@ -276,23 +292,30 @@ class StoreBookRepository(context: Context) {
             }
 
             // 2. Add back stock to items
+            val timeNow = System.currentTimeMillis()
             for (pair in saleItems) {
                 db.execSQL(
-                    "UPDATE ${StoreBookDbHelper.TABLE_ITEMS} SET ${StoreBookDbHelper.KEY_ITEM_QTY} = ${StoreBookDbHelper.KEY_ITEM_QTY} + ? WHERE ${StoreBookDbHelper.KEY_ID} = ?",
-                    arrayOf(pair.second, pair.first)
+                    "UPDATE ${StoreBookDbHelper.TABLE_ITEMS} SET ${StoreBookDbHelper.KEY_ITEM_QTY} = ${StoreBookDbHelper.KEY_ITEM_QTY} + ?, ${StoreBookDbHelper.KEY_IS_SYNCED} = 0, ${StoreBookDbHelper.KEY_UPDATED_AT} = ? WHERE ${StoreBookDbHelper.KEY_ID} = ?",
+                    arrayOf(pair.second, timeNow, pair.first)
                 )
             }
 
-            // 3. Delete from Udhaar associated with this sale
-            db.delete(
+            // 3. Delete from Udhaar associated with this sale (Soft Delete)
+            val softDelValues = ContentValues().apply {
+                put(StoreBookDbHelper.KEY_IS_DELETED, 1)
+                put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                put(StoreBookDbHelper.KEY_UPDATED_AT, timeNow)
+            }
+            db.update(
                 StoreBookDbHelper.TABLE_UDHAAR,
+                softDelValues,
                 "${StoreBookDbHelper.KEY_NOTES} LIKE ?",
                 arrayOf("Sale bill #$saleId%")
             )
 
-            // 4. Delete sale and sale_items
-            db.delete(StoreBookDbHelper.TABLE_SALE_ITEMS, "${StoreBookDbHelper.KEY_SI_SALE_ID} = ?", arrayOf(saleId.toString()))
-            db.delete(StoreBookDbHelper.TABLE_SALES, "${StoreBookDbHelper.KEY_ID} = ?", arrayOf(saleId.toString()))
+            // 4. Soft delete sale and sale_items
+            db.update(StoreBookDbHelper.TABLE_SALE_ITEMS, softDelValues, "${StoreBookDbHelper.KEY_SI_SALE_ID} = ?", arrayOf(saleId.toString()))
+            db.update(StoreBookDbHelper.TABLE_SALES, softDelValues, "${StoreBookDbHelper.KEY_ID} = ?", arrayOf(saleId.toString()))
 
             db.setTransactionSuccessful()
             true
@@ -306,7 +329,7 @@ class StoreBookRepository(context: Context) {
     suspend fun getSales(): List<Sale> = withContext(Dispatchers.IO) {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery(
-            "SELECT * FROM ${StoreBookDbHelper.TABLE_SALES} ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC",
+            "SELECT * FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC",
             null
         )
         fetchSalesFromCursor(cursor)
@@ -315,7 +338,7 @@ class StoreBookRepository(context: Context) {
     suspend fun getSalesPage(limit: Int = 50, offset: Int = 0): List<Sale> = withContext(Dispatchers.IO) {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery(
-            "SELECT * FROM ${StoreBookDbHelper.TABLE_SALES} ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC LIMIT ? OFFSET ?",
+            "SELECT * FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC LIMIT ? OFFSET ?",
             arrayOf(limit.toString(), offset.toString())
         )
         fetchSalesFromCursor(cursor)
@@ -324,7 +347,7 @@ class StoreBookRepository(context: Context) {
     suspend fun getSalesByDateRange(startTs: Long, endTs: Long): List<Sale> = withContext(Dispatchers.IO) {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery(
-            "SELECT * FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_TIMESTAMP} BETWEEN ? AND ? ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC",
+            "SELECT * FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND ${StoreBookDbHelper.KEY_TIMESTAMP} BETWEEN ? AND ? ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC",
             arrayOf(startTs.toString(), endTs.toString())
         )
         fetchSalesFromCursor(cursor)
@@ -356,7 +379,7 @@ class StoreBookRepository(context: Context) {
         val saleIds = salesList.map { it.id }
         val placeholders = saleIds.joinToString(",") { "?" }
         val itemsCursor = db.rawQuery(
-            "SELECT * FROM ${StoreBookDbHelper.TABLE_SALE_ITEMS} WHERE ${StoreBookDbHelper.KEY_SI_SALE_ID} IN ($placeholders)",
+            "SELECT * FROM ${StoreBookDbHelper.TABLE_SALE_ITEMS} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND ${StoreBookDbHelper.KEY_SI_SALE_ID} IN ($placeholders)",
             saleIds.map { it.toString() }.toTypedArray()
         )
         val itemsBySaleId = mutableMapOf<Long, MutableList<SaleItemDetail>>()
@@ -421,6 +444,8 @@ class StoreBookRepository(context: Context) {
             put(StoreBookDbHelper.KEY_UDHAAR_TYPE, entry.type)
             put(StoreBookDbHelper.KEY_TIMESTAMP, entry.timestamp)
             put(StoreBookDbHelper.KEY_NOTES, entry.notes)
+            put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+            put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
         }
         db.insert(StoreBookDbHelper.TABLE_UDHAAR, null, values)
     }
@@ -435,6 +460,7 @@ class StoreBookRepository(context: Context) {
                     "SUM(CASE WHEN ${StoreBookDbHelper.KEY_UDHAAR_TYPE} = 'CREDIT' THEN ${StoreBookDbHelper.KEY_UDHAAR_AMOUNT} ELSE -${StoreBookDbHelper.KEY_UDHAAR_AMOUNT} END) as balance, " +
                     "MAX(${StoreBookDbHelper.KEY_TIMESTAMP}) as last_time " +
                     "FROM ${StoreBookDbHelper.TABLE_UDHAAR} " +
+                    "WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 " +
                     "GROUP BY ${StoreBookDbHelper.KEY_UDHAAR_CUSTOMER} " +
                     "ORDER BY last_time DESC",
             null
@@ -459,10 +485,10 @@ class StoreBookRepository(context: Context) {
             """
             SELECT customer_name FROM (
                 SELECT ${StoreBookDbHelper.KEY_SALE_CUSTOMER} AS customer_name, MAX(${StoreBookDbHelper.KEY_TIMESTAMP}) as ts 
-                FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_SALE_CUSTOMER} IS NOT NULL AND ${StoreBookDbHelper.KEY_SALE_CUSTOMER} != '' GROUP BY 1
+                FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND ${StoreBookDbHelper.KEY_SALE_CUSTOMER} IS NOT NULL AND ${StoreBookDbHelper.KEY_SALE_CUSTOMER} != '' GROUP BY 1
                 UNION
                 SELECT ${StoreBookDbHelper.KEY_UDHAAR_CUSTOMER} AS customer_name, MAX(${StoreBookDbHelper.KEY_TIMESTAMP}) as ts 
-                FROM ${StoreBookDbHelper.TABLE_UDHAAR} WHERE ${StoreBookDbHelper.KEY_UDHAAR_CUSTOMER} IS NOT NULL AND ${StoreBookDbHelper.KEY_UDHAAR_CUSTOMER} != '' GROUP BY 1
+                FROM ${StoreBookDbHelper.TABLE_UDHAAR} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND ${StoreBookDbHelper.KEY_UDHAAR_CUSTOMER} IS NOT NULL AND ${StoreBookDbHelper.KEY_UDHAAR_CUSTOMER} != '' GROUP BY 1
             )
             GROUP BY customer_name
             ORDER BY MAX(ts) DESC
@@ -472,10 +498,10 @@ class StoreBookRepository(context: Context) {
             """
             SELECT customer_name FROM (
                 SELECT ${StoreBookDbHelper.KEY_SALE_CUSTOMER} AS customer_name, MAX(${StoreBookDbHelper.KEY_TIMESTAMP}) as ts 
-                FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_SALE_CUSTOMER} LIKE ? GROUP BY 1
+                FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND ${StoreBookDbHelper.KEY_SALE_CUSTOMER} LIKE ? GROUP BY 1
                 UNION
                 SELECT ${StoreBookDbHelper.KEY_UDHAAR_CUSTOMER} AS customer_name, MAX(${StoreBookDbHelper.KEY_TIMESTAMP}) as ts 
-                FROM ${StoreBookDbHelper.TABLE_UDHAAR} WHERE ${StoreBookDbHelper.KEY_UDHAAR_CUSTOMER} LIKE ? GROUP BY 1
+                FROM ${StoreBookDbHelper.TABLE_UDHAAR} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND ${StoreBookDbHelper.KEY_UDHAAR_CUSTOMER} LIKE ? GROUP BY 1
             )
             GROUP BY customer_name
             ORDER BY MAX(ts) DESC
@@ -503,7 +529,7 @@ class StoreBookRepository(context: Context) {
         val db = dbHelper.readableDatabase
 
         val cursor = db.rawQuery(
-            "SELECT * FROM ${StoreBookDbHelper.TABLE_UDHAAR} WHERE ${StoreBookDbHelper.KEY_UDHAAR_CUSTOMER} = ? ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} ASC",
+            "SELECT * FROM ${StoreBookDbHelper.TABLE_UDHAAR} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND ${StoreBookDbHelper.KEY_UDHAAR_CUSTOMER} = ? ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} ASC",
             arrayOf(customerName)
         )
         cursor.use { c ->
@@ -534,6 +560,8 @@ class StoreBookRepository(context: Context) {
             put(StoreBookDbHelper.KEY_TIMESTAMP, entry.timestamp)
             put(StoreBookDbHelper.KEY_EXPENSE_SUPPLIER, entry.supplierName)
             put(StoreBookDbHelper.KEY_EXPENSE_PHONE, entry.supplierPhone)
+            put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+            put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
         }
         db.insert(StoreBookDbHelper.TABLE_EXPENSES, null, values)
     }
@@ -543,7 +571,7 @@ class StoreBookRepository(context: Context) {
         val db = dbHelper.readableDatabase
 
         val cursor = db.rawQuery(
-            "SELECT * FROM ${StoreBookDbHelper.TABLE_EXPENSES} ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC",
+            "SELECT * FROM ${StoreBookDbHelper.TABLE_EXPENSES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC",
             null
         )
         cursor.use { c ->
@@ -587,10 +615,13 @@ class StoreBookRepository(context: Context) {
             itemCursor.close()
 
             // 2. Calculate new quantity and buy price (update buy price if changed)
+            val timeNow = System.currentTimeMillis()
             val newQty = currentItem.quantity + quantityToAdd
             val itemValues = ContentValues().apply {
                 put(StoreBookDbHelper.KEY_ITEM_QTY, newQty)
                 put(StoreBookDbHelper.KEY_ITEM_BUY_PRICE, costPrice) // update buy price to latest cost
+                put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                put(StoreBookDbHelper.KEY_UPDATED_AT, timeNow)
             }
             db.update(
                 StoreBookDbHelper.TABLE_ITEMS,
@@ -604,9 +635,11 @@ class StoreBookRepository(context: Context) {
                 put(StoreBookDbHelper.KEY_EXPENSE_TYPE, "RESTOCK")
                 put(StoreBookDbHelper.KEY_EXPENSE_DESC, "Restocked ${currentItem.name} (${quantityToAdd} ${currentItem.unit})")
                 put(StoreBookDbHelper.KEY_EXPENSE_AMOUNT, costPrice * quantityToAdd)
-                put(StoreBookDbHelper.KEY_TIMESTAMP, System.currentTimeMillis())
+                put(StoreBookDbHelper.KEY_TIMESTAMP, timeNow)
                 put(StoreBookDbHelper.KEY_EXPENSE_SUPPLIER, supplierName)
                 put(StoreBookDbHelper.KEY_EXPENSE_PHONE, supplierPhone)
+                put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                put(StoreBookDbHelper.KEY_UPDATED_AT, timeNow)
             }
             db.insert(StoreBookDbHelper.TABLE_EXPENSES, null, expenseValues)
 
@@ -654,7 +687,11 @@ class StoreBookRepository(context: Context) {
                     val oldName = c.getString(1) ?: continue
                     val newName = oldName.formatName()
                     if (oldName != newName) {
-                        val values = ContentValues().apply { put(StoreBookDbHelper.KEY_UDHAAR_CUSTOMER, newName) }
+                        val values = ContentValues().apply { 
+                            put(StoreBookDbHelper.KEY_UDHAAR_CUSTOMER, newName)
+                            put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                            put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
+                        }
                         db.update(StoreBookDbHelper.TABLE_UDHAAR, values, "${StoreBookDbHelper.KEY_ID} = ?", arrayOf(id.toString()))
                     }
                 }
@@ -667,7 +704,11 @@ class StoreBookRepository(context: Context) {
                     val oldName = c.getString(1) ?: continue
                     val newName = oldName.formatName()
                     if (oldName != newName) {
-                        val values = ContentValues().apply { put(StoreBookDbHelper.KEY_SALE_CUSTOMER, newName) }
+                        val values = ContentValues().apply { 
+                            put(StoreBookDbHelper.KEY_SALE_CUSTOMER, newName)
+                            put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                            put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
+                        }
                         db.update(StoreBookDbHelper.TABLE_SALES, values, "${StoreBookDbHelper.KEY_ID} = ?", arrayOf(id.toString()))
                     }
                 }

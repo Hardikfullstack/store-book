@@ -8,7 +8,7 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
 
     companion object {
         const val DATABASE_NAME = "storebook.db"
-        const val DATABASE_VERSION = 2
+        const val DATABASE_VERSION = 3
 
         // Table Names
         const val TABLE_ITEMS = "items"
@@ -21,6 +21,12 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
         const val KEY_ID = "id"
         const val KEY_TIMESTAMP = "timestamp"
         const val KEY_NOTES = "notes"
+        
+        // Sync & Cloud Columns
+        const val KEY_CLOUD_ID = "cloud_id"
+        const val KEY_IS_SYNCED = "is_synced"
+        const val KEY_UPDATED_AT = "updated_at"
+        const val KEY_IS_DELETED = "is_deleted"
 
         // Items Table Columns
         const val KEY_ITEM_NAME = "name"
@@ -73,7 +79,10 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
                 + KEY_ITEM_CATEGORY + " TEXT NOT NULL,"
                 + KEY_ITEM_PHOTO + " TEXT,"
                 + KEY_ITEM_IS_DELETED + " INTEGER NOT NULL DEFAULT 0,"
-                + KEY_ITEM_DELETED_TIME + " INTEGER DEFAULT 0" + ")")
+                + KEY_ITEM_DELETED_TIME + " INTEGER DEFAULT 0,"
+                + KEY_CLOUD_ID + " TEXT,"
+                + KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0,"
+                + KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")")
 
         val createSalesTable = ("CREATE TABLE " + TABLE_SALES + "("
                 + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -81,7 +90,11 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
                 + KEY_SALE_TOTAL + " REAL NOT NULL,"
                 + KEY_SALE_DISCOUNT + " REAL NOT NULL DEFAULT 0.0,"
                 + KEY_SALE_CUSTOMER + " TEXT,"
-                + KEY_NOTES + " TEXT" + ")")
+                + KEY_NOTES + " TEXT,"
+                + KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0,"
+                + KEY_CLOUD_ID + " TEXT,"
+                + KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0,"
+                + KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")")
 
         val createSaleItemsTable = ("CREATE TABLE " + TABLE_SALE_ITEMS + "("
                 + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -91,7 +104,11 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
                 + KEY_SI_UNIT + " TEXT NOT NULL,"
                 + KEY_SI_QTY + " REAL NOT NULL,"
                 + KEY_SI_SELL_PRICE + " REAL NOT NULL,"
-                + KEY_SI_BUY_PRICE + " REAL NOT NULL" + ")")
+                + KEY_SI_BUY_PRICE + " REAL NOT NULL,"
+                + KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0,"
+                + KEY_CLOUD_ID + " TEXT,"
+                + KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0,"
+                + KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")")
 
         val createUdhaarTable = ("CREATE TABLE " + TABLE_UDHAAR + "("
                 + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -99,7 +116,11 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
                 + KEY_UDHAAR_AMOUNT + " REAL NOT NULL,"
                 + KEY_UDHAAR_TYPE + " TEXT NOT NULL," // 'CREDIT' or 'PAYMENT'
                 + KEY_TIMESTAMP + " INTEGER NOT NULL,"
-                + KEY_NOTES + " TEXT" + ")")
+                + KEY_NOTES + " TEXT,"
+                + KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0,"
+                + KEY_CLOUD_ID + " TEXT,"
+                + KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0,"
+                + KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")")
 
         val createExpensesTable = ("CREATE TABLE " + TABLE_EXPENSES + "("
                 + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -108,7 +129,11 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
                 + KEY_EXPENSE_AMOUNT + " REAL NOT NULL,"
                 + KEY_TIMESTAMP + " INTEGER NOT NULL,"
                 + KEY_EXPENSE_SUPPLIER + " TEXT,"
-                + KEY_EXPENSE_PHONE + " TEXT" + ")")
+                + KEY_EXPENSE_PHONE + " TEXT,"
+                + KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0,"
+                + KEY_CLOUD_ID + " TEXT,"
+                + KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0,"
+                + KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")")
 
         db.execSQL(createItemsTable)
         db.execSQL(createSalesTable)
@@ -123,14 +148,35 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_udhaar_customer ON ${TABLE_UDHAAR}(${KEY_UDHAAR_CUSTOMER})")
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_sales_timestamp ON ${TABLE_SALES}(${KEY_TIMESTAMP})")
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_expenses_timestamp ON ${TABLE_EXPENSES}(${KEY_TIMESTAMP})")
+        
+        // Sync indexes
+        val tables = listOf(TABLE_ITEMS, TABLE_SALES, TABLE_SALE_ITEMS, TABLE_UDHAAR, TABLE_EXPENSES)
+        for (table in tables) {
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_${table}_cloud_id ON $table($KEY_CLOUD_ID) WHERE $KEY_CLOUD_ID IS NOT NULL")
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_${table}_is_synced ON $table($KEY_IS_SYNCED)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_${table}_updated_at ON $table($KEY_UPDATED_AT)")
+        }
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_ITEMS)
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_SALES)
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_SALE_ITEMS)
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_UDHAAR)
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_EXPENSES)
-        onCreate(db)
+        if (oldVersion < 3) {
+            // Upgrade to version 3: Add sync tracking columns
+            val tables = listOf(TABLE_ITEMS, TABLE_SALES, TABLE_SALE_ITEMS, TABLE_UDHAAR, TABLE_EXPENSES)
+            for (table in tables) {
+                db.execSQL("ALTER TABLE $table ADD COLUMN $KEY_CLOUD_ID TEXT")
+                db.execSQL("ALTER TABLE $table ADD COLUMN $KEY_IS_SYNCED INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE $table ADD COLUMN $KEY_UPDATED_AT INTEGER NOT NULL DEFAULT 0")
+                
+                // Add is_deleted to tables that don't have it
+                if (table != TABLE_ITEMS) {
+                    db.execSQL("ALTER TABLE $table ADD COLUMN $KEY_IS_DELETED INTEGER NOT NULL DEFAULT 0")
+                }
+                
+                // Create indexes for sync columns
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_${table}_cloud_id ON $table($KEY_CLOUD_ID) WHERE $KEY_CLOUD_ID IS NOT NULL")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_${table}_is_synced ON $table($KEY_IS_SYNCED)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_${table}_updated_at ON $table($KEY_UPDATED_AT)")
+            }
+        }
     }
 }

@@ -1,14 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">स्टोरबुक</string>
-
-    <!-- Navigation Tabs -->
     <string name="tab_dashboard">डैशबोर्ड</string>
     <string name="tab_inventory">स्टॉक सूची</string>
     <string name="tab_sales">नई बिक्री</string>
     <string name="tab_udhaar">उधार खाता</string>
     <string name="tab_more">अन्य विकल्प</string>
-
-    <!-- Dashboard Screen -->
     <string name="dash_today_summary">आज का सारांश</string>
     <string name="dash_total_items">कुल आइटम</string>
     <string name="dash_low_stock">कम स्टॉक</string>
@@ -22,8 +19,6 @@
     <string name="btn_undo">वापस लें</string>
     <string name="toast_undo_success">बिक्री रद्द की गई। स्टॉक वापस आ गया!</string>
     <string name="toast_undo_timeout">वापस लेने की अवधि (30 सेकंड) समाप्त हो चुकी है।</string>
-
-    <!-- Inventory Screen -->
     <string name="inv_search_hint">नाम से आइटम खोजें...</string>
     <string name="inv_filter_all">सभी श्रेणियां</string>
     <string name="inv_filter_low_stock">केवल कम स्टॉक</string>
@@ -45,8 +40,6 @@
     <string name="inv_err_duplicate_name">इस नाम का आइटम पहले से मौजूद है।</string>
     <string name="inv_delete_confirm_title">आइटम हटाएं?</string>
     <string name="inv_delete_confirm_desc">क्या आप वाकई इस आइटम को हटाना चाहते हैं? इसे 7 दिनों तक पुनर्प्राप्त किया जा सकता है।</string>
-    
-    <!-- Units -->
     <string name="unit_pcs">पीस (pcs)</string>
     <string name="unit_kg">किलोग्राम (kg)</string>
     <string name="unit_g">ग्राम (g)</string>
@@ -55,16 +48,12 @@
     <string name="unit_dozen">दर्जन (dozen)</string>
     <string name="unit_box">डिब्बा (box)</string>
     <string name="unit_packet">पैकेट (packet)</string>
-
-    <!-- Categories -->
     <string name="cat_groceries">किराना (Groceries)</string>
     <string name="cat_dairy">डेयरी (Dairy)</string>
     <string name="cat_beverages">पेय पदार्थ (Beverages)</string>
     <string name="cat_stationery">स्टेशनरी (Stationery)</string>
     <string name="cat_household">घरेलू सामान (Household)</string>
     <string name="cat_other">अन्य (Others)</string>
-
-    <!-- Sales & Cart Screen -->
     <string name="sales_cart_title">चालू बिल / कार्ट</string>
     <string name="sales_add_cart_hint">जोड़ने के लिए आइटम चुनें...</string>
     <string name="sales_empty_cart">कार्ट खाली है। बिल में जोड़ने के लिए आइटम पर टैप करें।</string>
@@ -80,8 +69,6 @@
     <string name="btn_share_whatsapp">व्हाट्सएप पर बिल भेजें</string>
     <string name="btn_back_home">होम स्क्रीन पर जाएं</string>
     <string name="sales_invoice_template">बिल सारांश - %1$s\nदुकान: स्टोरबुक\n-------------------------\n%2$s-------------------------\nकुल मूल्य: ₹%3$.2f\nछूट: ₹%4$.2f\nकुल देय राशि: ₹%5$.2f\nखरीदारी के लिए धन्यवाद!</string>
-
-    <!-- Udhaar (Credit Ledger) Screen -->
     <string name="udh_title">ग्राहक उधार बहीखाता</string>
     <string name="udh_search_hint">ग्राहक का नाम खोजें...</string>
     <string name="udh_empty">कोई उधार रिकॉर्ड नहीं मिला।</string>
@@ -95,8 +82,6 @@
     <string name="udh_toast_saved">खाता प्रविष्टि सफलतापूर्वक दर्ज की गई!</string>
     <string name="udh_reminder_whatsapp">व्हाट्सएप रिमाइंडर भेजें</string>
     <string name="udh_reminder_template">नमस्ते %1$s, हमारी दुकान पर आपका बकाया उधार बिल ₹%2$.2f है। कृपया जल्द ही भुगतान करें। धन्यवाद! - स्टोरबुक</string>
-
-    <!-- Expenses & Restocking -->
     <string name="exp_title">खर्च और रीस्टॉक</string>
     <string name="exp_overhead_title">दुकान का अन्य खर्च दर्ज करें</string>
     <string name="exp_restock_title">स्टॉक रीस्टॉक (नया माल जोड़ें)</string>
@@ -107,8 +92,6 @@
     <string name="exp_restock_qty">रीस्टॉक की जाने वाली मात्रा</string>
     <string name="exp_cost_price">खरीद मूल्य प्रति यूनिट (₹)</string>
     <string name="exp_toast_logged">खर्च दर्ज हो गया और स्टॉक अपडेट हो गया!</string>
-
-    <!-- More Screen / Reports -->
     <string name="more_title">सेटिंग्स और टूल्स</string>
     <string name="more_language">ऐप की भाषा (App Language)</string>
     <string name="more_premium">स्टोरबुक प्रीमियम फीचर्स</string>
@@ -116,23 +99,17 @@
     <string name="more_csv_import">CSV फ़ाइल से स्टॉक लोड करें</string>
     <string name="more_pnl_report">लाभ और हानि रिपोर्ट (P&amp;L)</string>
     <string name="more_expense_track">दुकान के खर्च (Expenses)</string>
-    
-    <!-- P&L Reports -->
     <string name="rep_title">बिजनेस रिपोर्ट</string>
     <string name="rep_revenue">कुल बिक्री: ₹%1$.2f</string>
     <string name="rep_profit">कुल शुद्ध लाभ: ₹%1$.2f</string>
     <string name="rep_expenses">कुल खर्चा: ₹%1$.2f</string>
     <string name="rep_pnl_sub">बिक्री इतिहास और दर्ज किए गए दुकान खर्चों के आधार पर लाभ-हानि रिपोर्ट</string>
-
-    <!-- Premium Plans -->
     <string name="prem_title">स्टोरबुक प्रीमियम अनलॉक करें</string>
     <string name="prem_free_limit">मुफ़्त प्लान: अधिकतम 50 आइटम। केवल लोकल बैकअप।</string>
     <string name="prem_pro_features">प्रीमियम प्रो प्लान (₹199/माह)</string>
     <string name="prem_pro_desc">असीमित आइटम, ऑटो क्लाउड बैकअप, व्हाट्सएप बिल इनवॉइस, लाभ और हानि (P&amp;L) चार्ट और पूरा ग्राहक उधार बहीखाता।</string>
     <string name="prem_sub_btn">प्रो प्लान में अपग्रेड करें</string>
     <string name="prem_active">प्रीमियम एक्टिव है - स्टोरबुक का समर्थन करने के लिए धन्यवाद!</string>
-
-    <!-- Onboarding Walkthrough -->
     <string name="onb_step1_title">स्टोरबुक में आपका स्वागत है!</string>
     <string name="onb_step1_desc">कागज़ के बहीखातों को अलविदा कहें। स्टोरबुक आपकी दुकान के स्टॉक, दैनिक बिक्री और ग्राहकों के उधार खाते को 100% सुरक्षित और बिना इंटरनेट के प्रबंधित करने का एक आसान ऐप है।</string>
     <string name="onb_step2_title">आसान स्टॉक प्रबंधन</string>
@@ -141,8 +118,6 @@
     <string name="onb_step3_desc">5 सेकंड के भीतर बिल बनाएं और बिक्री दर्ज करें। उधार खातों का प्रबंधन करें और एक क्लिक में व्हाट्सएप पर भुगतान अनुस्मारक भेजें।</string>
     <string name="btn_next">आगे बढ़ें</string>
     <string name="btn_get_started">शुरू करें</string>
-
-    <!-- General / Dialogs -->
     <string name="btn_cancel">रद्द करें</string>
     <string name="btn_save">सहेजें</string>
     <string name="btn_add">जोड़ें</string>
@@ -155,8 +130,6 @@
     <string name="toast_csv_imported">CSV से स्टॉक सफलतापूर्वक लोड हो गया है!</string>
     <string name="toast_premium_simulated">सब्सक्रिप्शन एक्टिव हो गया (स्टोरबुक प्रीमियम डेमो मोड)</string>
     <string name="search_no_results">कोई परिणाम नहीं मिला।</string>
-
-    <!-- Permission handler strings -->
     <string name="permission_camera_title">कैमरा अनुमति आवश्यक है</string>
     <string name="permission_photo_title">फोटो अनुमति आवश्यक है</string>
     <string name="permission_general_title">अनुमति आवश्यक है</string>
@@ -168,4 +141,92 @@
     <string name="permission_settings_title">अनुमतियाँ अक्षम हैं</string>
     <string name="permission_settings_desc">इस सुविधा का उपयोग करने के लिए कृपया ऐप सेटिंग्स में आवश्यक अनुमतियों को सक्षम करें।</string>
     <string name="btn_open_settings">सेटिंग्स खोलें</string>
+    <string name="auth_title">सिंक करने के लिए लॉगिन करें</string>
+    <string name="auth_enter_phone">फ़ोन नंबर दर्ज करें</string>
+    <string name="auth_enter_otp">ओटीपी (OTP) दर्ज करें</string>
+    <string name="auth_desc">अपनी स्टॉक सूची को सुरक्षित रूप से बैकअप और सिंक करने के लिए लॉगिन करें।</string>
+    <string name="auth_otp_sent_to">हमने %1$s पर 6 अंकों का कोड भेजा है</string>
+    <string name="auth_phone_label">फ़ोन नंबर</string>
+    <string name="auth_btn_send_otp">ओटीपी भेजें</string>
+    <string name="auth_otp_label">6 अंकों का ओटीपी</string>
+    <string name="auth_btn_verify">सत्यापित करें और लॉगिन करें</string>
+    <string name="auth_err_invalid_phone">वैध नंबर दर्ज करें</string>
+    <string name="auth_err_invalid_otp">6 अंकों का ओटीपी दर्ज करें</string>
+    <string name="auth_toast_otp_sent">ओटीपी भेजा गया</string>
+    <string name="auth_toast_verification_failed">सत्यापन विफल: %1$s</string>
+    <string name="auth_toast_auth_failed">प्रमाणीकरण विफल</string>
+    <string name="more_cloud_sync">क्लाउड बैकअप और सिंक</string>
+    <string name="btn_ok">ठीक है</string>
+    <string name="btn_close">बंद करें</string>
+    <string name="btn_view_all">सभी देखें</string>
+    <string name="accessibility_ad_loading">विज्ञापन लोड हो रहा है</string>
+    <string name="ad_loading_desc">विज्ञापन लोड होने तक प्रतीक्षा करें</string>
+    <string name="ad_loading_title">लोड हो रहा है...</string>
+    <string name="btn_discard">खारिज करें</string>
+    <string name="btn_go_back">वापस जाएं</string>
+    <string name="btn_open">खोलें</string>
+    <string name="btn_view_files">फ़ाइलें देखें</string>
+    <string name="compress_compressed">संपीड़ित (Compressed)</string>
+    <string name="compress_compressing">संपीड़ित किया जा रहा है...</string>
+    <string name="udh_mark_paid">जमा दर्ज करें</string>
+    <string name="udh_whatsapp_remind">व्हाट्सएप याद दिलाएं</string>
+    <string name="udh_customer_prefix">ग्राहक: %1$s</string>
+    <string name="udh_desc_note">विवरण / बिल नोट</string>
+    <string name="udh_no_results">\'%1$s\' के लिए कोई परिणाम नहीं मिला</string>
+    <string name="udh_last_trans">अंतिम: %1$s</string>
+    <string name="ana_apply_custom">कस्टम लागू करें</string>
+    <string name="ana_all_time">कुल समय</string>
+    <string name="ana_today">आज</string>
+    <string name="ana_this_month">इस महीने</string>
+    <string name="ana_title">बिक्री विश्लेषण (Analytics)</string>
+    <string name="ana_total_revenue">कुल बिक्री</string>
+    <string name="ana_net_profit">शुद्ध लाभ</string>
+    <string name="ana_no_sales">इन फिल्टर से मेल खाती कोई बिक्री नहीं है।</string>
+    <string name="ana_filter_customer">ग्राहक अनुसार फ़िल्टर</string>
+    <string name="ana_clear_all">सभी साफ़ करें</string>
+    <string name="ana_filter_product">उत्पाद अनुसार फ़िल्टर</string>
+    <string name="hist_title">बिक्री का इतिहास</string>
+    <string name="hist_no_sales">इस तारीख के लिए कोई बिक्री नहीं मिली</string>
+    <string name="dash_sale_details">बिक्री का विवरण</string>
+    <string name="dlg_delete_entity">%1$s हटाएं?</string>
+    <string name="dlg_dont_ask_again">मुझसे दोबारा न पूछें</string>
+    <string name="more_recent_expenses">हाल के खर्च</string>
+    <string name="more_stock_item">स्टॉक आइटम</string>
+    <string name="more_pro_plans">स्टोरबुक प्रो प्लान</string>
+    <string name="more_pro_desc">क्लाउड बैकअप, असीमित आइटम और रिपोर्ट</string>
+    <string name="pro_err_play_store">प्ले स्टोर से कनेक्ट करने में असमर्थ। कृपया पुनः प्रयास करें।</string>
+    <string name="pro_active_title">स्टोरबुक प्रो सक्रिय</string>
+    <string name="pro_active_desc">सभी फीचर्स अनलॉक हैं</string>
+    <string name="inv_loading">स्टॉक लोड हो रहा है…</string>
+    <string name="inv_loading_more">और लोड हो रहा है…</string>
+    <string name="inv_err_empty_name">नाम खाली नहीं हो सकता</string>
+    <string name="inv_err_prices">कृपया खरीद और बिक्री मूल्य भरें।</string>
+    <string name="inv_sort_dynamic">क्रम: %1$s</string>
+    <string name="inv_all_items_loaded">सभी %1$d आइटम लोड हो गए</string>
+    <string name="inv_sell_prefix">बिक्री %1$s</string>
+    <string name="inv_buy_prefix">खरीद %1$s</string>
+    <string name="sales_add_to_cart">कार्ट में जोड़ें</string>
+    <string name="sales_discount_rupee">छूट ₹</string>
+    <string name="sales_discount_short">छूट</string>
+    <string name="sales_total_short">कुल</string>
+    <string name="sales_item_stock">स्टॉक: %1$s %2$s  ·  %3$s/%4$s</string>
+    <string name="sales_udhaar_warning">बिक्री उधार खाते में बकाया ऋण के रूप में दर्ज की जाएगी।</string>
+    <string name="sales_current_due">वर्तमान बकाया: %1$s</string>
+    <string name="dash_greeting_morning">सुप्रभात</string>
+    <string name="dash_greeting_afternoon">नमस्ते</string>
+    <string name="dash_greeting_evening">शुभ संध्या</string>
+    <string name="dash_subtitle">व्यापार खाता बही</string>
+    <string name="customer_walk_in">साधारण ग्राहक</string>
+    <string name="rep_revenue_label">राजस्व</string>
+    <string name="rep_product_profit_label">उत्पाद लाभ</string>
+    <string name="rep_expenses_label">खर्च</string>
+    <string name="rep_net_profit_label">शुद्ध लाभ</string>
+    <string name="rep_net_loss_label">शुद्ध हानि</string>
+    <string name="ana_group_products">उत्पाद</string>
+    <string name="ana_group_customers">ग्राहक</string>
+    <string name="ana_group_timeline">समय-रेखा</string>
+    <string name="ana_date_today">आज</string>
+    <string name="ana_date_this_month">इस महीने</string>
+    <string name="ana_date_custom">कस्टम तारीख</string>
+    <string name="ana_date_all_time">पूरा समय</string>
 </resources>

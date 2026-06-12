@@ -27,20 +27,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -76,11 +78,8 @@ import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.data.repository.CustomerBalance
 import com.storebook.inventoryapp.data.repository.UdhaarEntry
-import com.storebook.inventoryapp.ui.theme.Coral100
-import com.storebook.inventoryapp.ui.theme.Coral500
-import com.storebook.inventoryapp.ui.theme.Emerald500
-import com.storebook.inventoryapp.ui.theme.InkBlue500
-import com.storebook.inventoryapp.ui.theme.WhatsAppGreen
+import androidx.compose.foundation.BorderStroke
+import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -177,38 +176,65 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Total outstanding gradient card
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(Brush.linearGradient(listOf(Color(0xFFB91C1C), Coral500)))
-                        .padding(16.dp)
+                // Total outstanding premium card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Coral100.copy(alpha = 0.8f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("📒", fontSize = 20.sp)
+                            }
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Column {
+                                Text(
+                                    text = stringResource(id = R.string.udh_total_outstanding),
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 0.1.sp
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "${totalOutstanding.toRupee()}",
+                                    fontSize = 26.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Coral500,
+                                    fontFamily = Poppins
+                                )
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
                             Text(
-                                text = stringResource(id = R.string.udh_total_outstanding),
-                                fontSize = 12.sp,
-                                color = Color.White.copy(alpha = 0.8f)
-                            )
-                            Text(
-                                text = "${totalOutstanding.toRupee()}",
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.Black,
-                                color = Color.White
+                                text = "${balances.size} customers",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
                             )
                         }
-                        Text(
-                            text = "${balances.size} customers",
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
                     }
                 }
 
@@ -221,7 +247,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(20.dp)
                 )
             }
         }
@@ -249,7 +275,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                         Text("🔍", fontSize = 48.sp)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "No results found for '$searchQ'",
+                            text = stringResource(id = R.string.udh_no_results, searchQ),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                             textAlign = TextAlign.Center
                         )
@@ -261,6 +287,50 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)
                 ) {
+                    val topCustomers = balances.filter { it.netBalance > 0 }.sortedByDescending { it.netBalance }.take(4)
+                    if (topCustomers.isNotEmpty() && searchQ.isEmpty()) {
+                        item {
+                            Text(
+                                "Speed Dial",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                            )
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(topCustomers) { bal ->
+                                    Card(
+                                        modifier = Modifier
+                                            .width(120.dp)
+                                            .clickable {
+                                                selectedCustomer = bal
+                                                fetchLedger(bal.customerName)
+                                                showCustomerLedgerSheet = true
+                                            },
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.size(32.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(bal.customerName.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Bold)
+                                            }
+                                            Spacer(modifier = Modifier.height(6.dp))
+                                            Text(bal.customerName, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                            Text(bal.netBalance.toRupee(), fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
+
                     items(filteredBalances, key = { it.customerName }) { bal ->
                         val owesMoney = bal.netBalance > 0
 
@@ -328,12 +398,12 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                         offsetX > 0 -> {
                                             Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
                                             Spacer(modifier = Modifier.width(6.dp))
-                                            Text("Mark Paid", color = Color.White, fontWeight = FontWeight.Bold)
+                                            Text(stringResource(id = R.string.udh_mark_paid), color = Color.White, fontWeight = FontWeight.Bold)
                                         }
                                         offsetX < 0 -> {
-                                            Text("WhatsApp Remind", color = Color.White, fontWeight = FontWeight.Bold)
+                                            Text(stringResource(id = R.string.udh_whatsapp_remind), color = Color.White, fontWeight = FontWeight.Bold)
                                             Spacer(modifier = Modifier.width(6.dp))
-                                            Icon(Icons.Default.Send, contentDescription = null, tint = Color.White)
+                                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = Color.White)
                                         }
                                     }
                                 }
@@ -432,7 +502,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        Divider()
+                        HorizontalDivider()
                         Spacer(modifier = Modifier.height(8.dp))
 
                         // Ledger timeline
@@ -578,7 +648,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     shape = RoundedCornerShape(12.dp)
                                 )
                             } else {
-                                Text("Customer: ${selectedCustomer!!.customerName}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text(stringResource(id = R.string.udh_customer_prefix, selectedCustomer!!.customerName), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
 
                             OutlinedTextField(
@@ -595,7 +665,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                             OutlinedTextField(
                                 value = inputNotes,
                                 onValueChange = { inputNotes = it },
-                                label = { Text("Description / Bill Note") },
+                                label = { Text(stringResource(id = R.string.udh_desc_note)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp)
@@ -668,9 +738,10 @@ fun UdhaarCustomerCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -698,7 +769,7 @@ fun UdhaarCustomerCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(bal.customerName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Text(
-                    text = "Last: ${lastDateFmt.format(Date(bal.lastTransactionTime))}",
+                    text = stringResource(id = R.string.udh_last_trans, lastDateFmt.format(Date(bal.lastTransactionTime))),
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                 )

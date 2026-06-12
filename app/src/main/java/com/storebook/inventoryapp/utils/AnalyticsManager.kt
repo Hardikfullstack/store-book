@@ -3,7 +3,7 @@ package com.storebook.inventoryapp.utils
 import android.os.Bundle
 import com.google.firebase.Firebase
 import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.analytics.analytics
+import android.content.Context
 
 /**
  * AnalyticsManager is a common utility to log events to Firebase Analytics. It provides a central
@@ -13,9 +13,9 @@ object AnalyticsManager {
     private var firebaseAnalytics: FirebaseAnalytics? = null
 
     /** Initializes Firebase Analytics. Should be called once at app startup. */
-    fun init() {
+    fun init(context: Context) {
         if (firebaseAnalytics == null) {
-            firebaseAnalytics = Firebase.analytics
+            firebaseAnalytics = FirebaseAnalytics.getInstance(context)
         }
     }
 

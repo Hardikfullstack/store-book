@@ -61,14 +61,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.storebook.inventoryapp.data.repository.Sale
 import com.storebook.inventoryapp.data.repository.StoreBookRepository
-import com.storebook.inventoryapp.ui.theme.Coral500
-import com.storebook.inventoryapp.ui.theme.Emerald500
+import com.storebook.inventoryapp.R
+import androidx.compose.foundation.BorderStroke
+import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -102,6 +104,7 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
     var isLoading by remember { mutableStateOf(true) }
 
     val context = LocalContext.current
+    val defaultCustName = stringResource(id = R.string.customer_walk_in)
     val repository = remember { StoreBookRepository(context) }
 
     // Filters
@@ -126,9 +129,9 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
         isLoading = false
     }
 
-    val lineItems = remember(rawSales) {
+    val lineItems = remember(rawSales, defaultCustName) {
         rawSales.flatMap { sale ->
-            val custName = sale.customerName ?: "Walk-in Customer"
+            val custName = sale.customerName ?: defaultCustName
             val itemsCount = if (sale.items.isNotEmpty()) sale.items.size else 1
             val discountPerItem = sale.discountAmount / itemsCount
             sale.items.map { item ->
@@ -216,10 +219,10 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
                         quickDateFilter = "Custom"
                     }
                     showDateRangePicker = false
-                }) { Text("Apply Custom") }
+                }) { Text(stringResource(id = R.string.ana_apply_custom)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDateRangePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showDateRangePicker = false }) { Text(stringResource(id = R.string.btn_cancel)) }
             }
         ) {
             Column {
@@ -228,13 +231,13 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     item {
-                        androidx.compose.material3.OutlinedButton(onClick = { quickDateFilter = "All Time"; showDateRangePicker = false }) { Text("All Time") }
+                        androidx.compose.material3.OutlinedButton(onClick = { quickDateFilter = "All Time"; showDateRangePicker = false }) { Text(stringResource(id = R.string.ana_all_time)) }
                     }
                     item {
-                        androidx.compose.material3.OutlinedButton(onClick = { quickDateFilter = "Today"; showDateRangePicker = false }) { Text("Today") }
+                        androidx.compose.material3.OutlinedButton(onClick = { quickDateFilter = "Today"; showDateRangePicker = false }) { Text(stringResource(id = R.string.ana_today)) }
                     }
                     item {
-                        androidx.compose.material3.OutlinedButton(onClick = { quickDateFilter = "This Month"; showDateRangePicker = false }) { Text("This Month") }
+                        androidx.compose.material3.OutlinedButton(onClick = { quickDateFilter = "This Month"; showDateRangePicker = false }) { Text(stringResource(id = R.string.ana_this_month)) }
                     }
                 }
                 HorizontalDivider()
@@ -246,7 +249,7 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Sales Analytics", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(id = R.string.ana_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -273,11 +276,11 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Total Revenue", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(id = R.string.ana_total_revenue), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("${totalRevenue.toRupee()}", fontWeight = FontWeight.Black, fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("Net Profit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(id = R.string.ana_net_profit), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         val totalProfitAbs = Math.abs(totalProfit)
                         Text(
                             text = if (totalProfit >= 0) "${totalProfitAbs.toRupee()}" else "-${totalProfitAbs.toRupee()}",
@@ -306,7 +309,11 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val options = listOf(GroupBy.PRODUCT to "Products", GroupBy.CUSTOMER to "Customers", GroupBy.DATE to "Timeline")
+                val options = listOf(
+                    GroupBy.PRODUCT to stringResource(R.string.ana_group_products),
+                    GroupBy.CUSTOMER to stringResource(R.string.ana_group_customers),
+                    GroupBy.DATE to stringResource(R.string.ana_group_timeline)
+                )
                 options.forEach { (g, label) ->
                     val isSelected = groupBy == g
                     Box(
@@ -336,8 +343,8 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
             ) {
                 item {
                     val dateLabel = when (quickDateFilter) {
-                        "Today" -> "📅 Today"
-                        "This Month" -> "📅 This Month"
+                        "Today" -> "📅 " + stringResource(R.string.ana_date_today)
+                        "This Month" -> "📅 " + stringResource(R.string.ana_date_this_month)
                         "Custom" -> {
                             if (customStartDate != null) {
                                 val sf = SimpleDateFormat("dd MMM", Locale.getDefault())
@@ -346,9 +353,9 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
                                 } else {
                                     "📅 ${sf.format(Date(customStartDate!!))}"
                                 }
-                            } else "📅 Custom Date"
+                            } else "📅 " + stringResource(R.string.ana_date_custom)
                         }
-                        else -> "📅 All Time"
+                        else -> "📅 " + stringResource(R.string.ana_date_all_time)
                     }
 
                     FilterChip(
@@ -359,7 +366,7 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
                     )
                 }
                 item {
-                    val custLabel = if (customerFilter.isEmpty()) "Customers" else if (customerFilter.size == 1) "Cust: ${customerFilter.first().take(6)}.." else "${customerFilter.size} Custs"
+                    val custLabel = if (customerFilter.isEmpty()) stringResource(R.string.ana_group_customers) else if (customerFilter.size == 1) "Cust: ${customerFilter.first().take(6)}.." else "${customerFilter.size} Custs"
                     FilterChip(
                         selected = customerFilter.isNotEmpty(),
                         onClick = { activeSheet = "CUSTOMER"; showSheet = true },
@@ -368,7 +375,7 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
                     )
                 }
                 item {
-                    val prodLabel = if (productFilter.isEmpty()) "Products" else if (productFilter.size == 1) "Prod: ${productFilter.first().take(6)}.." else "${productFilter.size} Prods"
+                    val prodLabel = if (productFilter.isEmpty()) stringResource(R.string.ana_group_products) else if (productFilter.size == 1) "Prod: ${productFilter.first().take(6)}.." else "${productFilter.size} Prods"
                     FilterChip(
                         selected = productFilter.isNotEmpty(),
                         onClick = { activeSheet = "PRODUCT"; showSheet = true },
@@ -386,7 +393,7 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
                 }
             } else if (filteredItems.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No sales match these filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(id = R.string.ana_no_sales), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
                 LazyColumn(
@@ -427,9 +434,9 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
                     when (activeSheet) {
                         "CUSTOMER" -> {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("Filter by Customer", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                Text(stringResource(id = R.string.ana_filter_customer), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                                 if (customerFilter.isNotEmpty()) {
-                                    TextButton(onClick = { customerFilter = emptySet() }) { Text("Clear All") }
+                                    TextButton(onClick = { customerFilter = emptySet() }) { Text(stringResource(id = R.string.ana_clear_all)) }
                                 }
                             }
                             Spacer(Modifier.height(8.dp))
@@ -444,9 +451,9 @@ fun SalesAnalyticsScreen(navController: NavController, viewModel: StoreBookViewM
                         }
                         "PRODUCT" -> {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("Filter by Product", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                Text(stringResource(id = R.string.ana_filter_product), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                                 if (productFilter.isNotEmpty()) {
-                                    TextButton(onClick = { productFilter = emptySet() }) { Text("Clear All") }
+                                    TextButton(onClick = { productFilter = emptySet() }) { Text(stringResource(id = R.string.ana_clear_all)) }
                                 }
                             }
                             Spacer(Modifier.height(8.dp))
@@ -501,8 +508,9 @@ fun FlatLineItemCard(item: LineItem) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = RoundedCornerShape(12.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(20.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -517,7 +525,7 @@ fun FlatLineItemCard(item: LineItem) {
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).padding(end = 8.dp)
                 )
-                Text("${item.revenue.toRupee()}", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                Text("${item.revenue.toRupee()}", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary, fontFamily = Poppins)
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("${item.quantity} ${item.unit} x ${item.sellPrice.toRupeeWithDecimals()}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -525,7 +533,8 @@ fun FlatLineItemCard(item: LineItem) {
                 Text(
                     text = if (item.profit >= 0) "Profit: ${profitAbs.toRupee()}" else "Loss: -${profitAbs.toRupee()}",
                     fontSize = 12.sp,
-                    color = if (item.profit >= 0) Emerald500 else Coral500
+                    color = if (item.profit >= 0) Emerald500 else Coral500,
+                    fontWeight = FontWeight.Bold
                 )
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -553,8 +562,9 @@ fun ExpandableGroupCard(title: String, items: List<LineItem>, groupBy: GroupBy) 
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = RoundedCornerShape(12.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(20.dp)
     ) {
         Column {
             Row(

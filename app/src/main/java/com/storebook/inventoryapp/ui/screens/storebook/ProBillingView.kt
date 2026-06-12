@@ -64,7 +64,7 @@ fun ProBillingView(isProActive: Boolean, onDismiss: () -> Unit) {
 
             !billingState.isBillingReady -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Unable to connect to Play Store. Please try again.", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(id = R.string.pro_err_play_store), color = MaterialTheme.colorScheme.error)
                 }
             }
 
@@ -99,8 +99,8 @@ fun ProBillingView(isProActive: Boolean, onDismiss: () -> Unit) {
                             ) {
                                 Icon(Icons.Default.Star, "Pro active", tint = Gold400, modifier = Modifier.size(28.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("StoreBook Pro Active", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                    Text("All features unlocked", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(id = R.string.pro_active_title), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                    Text(stringResource(id = R.string.pro_active_desc), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }

@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.res.stringResource
+import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.ui.theme.Coral500
 
 private const val PREF_FILE = "storebook_prefs"
@@ -122,7 +124,7 @@ fun DeleteConfirmationDialog(
                 }
 
                 Text(
-                    text = "Delete $entityLabel?",
+                    text = stringResource(id = R.string.dlg_delete_entity, entityLabel),
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 19.sp
                 )
@@ -153,7 +155,7 @@ fun DeleteConfirmationDialog(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Don't ask me again",
+                        text = stringResource(id = R.string.dlg_dont_ask_again),
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
@@ -169,7 +171,7 @@ fun DeleteConfirmationDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp)
                     ) {
-                        Text("Cancel", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text(stringResource(id = R.string.btn_cancel), fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                     }
 
                     Button(
@@ -193,7 +195,7 @@ fun DeleteConfirmationDialog(
                             tint = Color.White
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Delete", fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(stringResource(id = R.string.btn_delete), fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }

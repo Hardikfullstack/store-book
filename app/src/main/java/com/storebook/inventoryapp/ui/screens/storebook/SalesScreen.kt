@@ -32,7 +32,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
@@ -45,7 +45,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -79,14 +79,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.data.repository.CartItem
 import com.storebook.inventoryapp.data.repository.Item
 import com.storebook.inventoryapp.ui.navigation.Routes
-import com.storebook.inventoryapp.ui.theme.Coral100
-import com.storebook.inventoryapp.ui.theme.Coral500
-import com.storebook.inventoryapp.ui.theme.Emerald500
-import com.storebook.inventoryapp.ui.theme.WhatsAppGreen
+import androidx.compose.foundation.BorderStroke
+import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import java.net.URLEncoder
 
@@ -137,6 +136,16 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
     val isUdhaarMode = viewModel.cartPaymentMode == "Udhaar"
 
     if (showSuccessScreen) {
+        androidx.activity.compose.BackHandler(enabled = showSuccessScreen) {
+            showSuccessScreen = false
+            navController.navigate(Routes.Dashboard) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
         SalesSuccessScreen(
             saleId = generatedSaleId,
             totalAmount = generatedTotalAmount,
@@ -145,6 +154,13 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
             paymentMode = lastPaymentMode,
             onBack = {
                 showSuccessScreen = false
+                navController.navigate(Routes.Dashboard) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
             }
         )
         return
@@ -174,7 +190,7 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
                         Column {
                             Text(item.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             Text(
-                                text = "Stock: ${formatQty(item.quantity)} ${item.unit}  ·  ${item.sellPrice.toRupee()}/${item.unit}",
+                                text = stringResource(id = R.string.sales_item_stock, formatQty(item.quantity), item.unit, item.sellPrice.toRupee(), item.unit),
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -243,6 +259,38 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
                         }
                     }
 
+                    // Quick Presets Row
+                    val presets = when (item.unit.lowercase()) {
+                        "kg", "ltr", "liter" -> listOf(0.5, 1.0, 2.0, 5.0)
+                        "gm", "g" -> listOf(100.0, 250.0, 500.0, 1000.0)
+                        else -> listOf(1.0, 2.0, 5.0, 10.0)
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                    ) {
+                        presets.forEach { presetVal ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                                    .clickable {
+                                        val s = formatQty(presetVal)
+                                        editingQtyText = TextFieldValue(s, TextRange(s.length))
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "+${formatQty(presetVal)} ${item.unit}",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+
                     Text(
                         text = when {
                             step == 1.0 -> "Type exact amount or use + / −"
@@ -290,7 +338,7 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
                             ),
                             shape = RoundedCornerShape(14.dp)
                         ) {
-                            Text("Cancel", fontWeight = FontWeight.Bold)
+                            Text(stringResource(id = R.string.btn_cancel), fontWeight = FontWeight.Bold)
                         }
                         Button(
                             onClick = {
@@ -307,7 +355,7 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(14.dp)
                         ) {
-                            Text("Add to Cart", fontWeight = FontWeight.Bold)
+                            Text(stringResource(id = R.string.sales_add_to_cart), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -336,7 +384,7 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", modifier = Modifier.size(18.dp))
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(18.dp))
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
@@ -418,13 +466,18 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
                                             }
                                         }
                                     },
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(20.dp),
                                 colors = CardDefaults.cardColors(
                                     containerColor = if (inCart != null)
-                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                    else MaterialTheme.colorScheme.surface
                                 ),
-                                elevation = CardDefaults.cardElevation(if (inCart != null) 2.dp else 0.dp)
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (inCart != null) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                    else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp),
@@ -532,7 +585,7 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
                                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                                         ) {
                                             Text(
-                                                text = if (isPcs) "Add" else "Add ${item.unit}",
+                                                text = if (isPcs) stringResource(id = R.string.btn_add) else stringResource(id = R.string.btn_add) + " ${item.unit}",
                                                 color = MaterialTheme.colorScheme.primary,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 12.sp
@@ -587,7 +640,7 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
                             OutlinedTextField(
                                 value = if (viewModel.cartDiscount == 0.0) "" else viewModel.cartDiscount.toString(),
                                 onValueChange = { viewModel.cartDiscount = it.toDoubleOrNull() ?: 0.0 },
-                                label = { Text("Discount ₹", fontSize = 11.sp) },
+                                label = { Text(stringResource(id = R.string.sales_discount_rupee), fontSize = 11.sp) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.width(110.dp).height(56.dp),
                                 singleLine = true,
@@ -658,7 +711,7 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Sale will be recorded in Udhaar ledger as credit due.",
+                                    text = stringResource(id = R.string.sales_udhaar_warning),
                                     fontSize = 11.sp,
                                     color = Coral500,
                                     fontWeight = FontWeight.Medium
@@ -764,7 +817,7 @@ fun SalesScreen(navController: NavController, viewModel: StoreBookViewModel) {
                                                             val bal = udhaarBalances.find { it.customerName == name }
                                                             if (bal != null && bal.netBalance > 0) {
                                                                 Text(
-                                                                    text = "Current due: ${bal.netBalance.toRupee()}",
+                                                                    text = stringResource(id = R.string.sales_current_due, bal.netBalance.toRupee()),
                                                                     fontSize = 10.sp,
                                                                     color = Coral500,
                                                                     fontWeight = FontWeight.Bold
@@ -840,6 +893,11 @@ fun SalesSuccessScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(2000)
+        onBack()
+    }
 
     val invoiceText = remember(saleId, totalAmount, cartItems, discount) {
         val itemsStr = StringBuilder()
@@ -959,15 +1017,15 @@ fun SalesSuccessScreen(
                     }
                 }
                 if (discount > 0) {
-                    Divider(modifier = Modifier.padding(vertical = 4.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Discount", color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+                        Text(stringResource(id = R.string.sales_discount_short), color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
                         Text("-${discount.toRupee()}", color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
                     }
                 }
-                Divider(modifier = Modifier.padding(vertical = 4.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Total", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(stringResource(id = R.string.sales_total_short), fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     Text(
                         "${totalAmount.toRupee()}",
                         fontWeight = FontWeight.Black,
@@ -1005,7 +1063,7 @@ fun SalesSuccessScreen(
             ),
             shape = RoundedCornerShape(16.dp)
         ) {
-            Text("Close", fontWeight = FontWeight.Bold)
+            Text(stringResource(id = R.string.btn_close), fontWeight = FontWeight.Bold)
         }
     }
 }

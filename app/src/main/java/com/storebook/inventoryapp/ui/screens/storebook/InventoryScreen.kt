@@ -46,6 +46,9 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -70,9 +73,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.data.repository.Item
-import com.storebook.inventoryapp.ui.theme.Coral100
-import com.storebook.inventoryapp.ui.theme.Coral500
-import com.storebook.inventoryapp.ui.theme.Emerald500
+import androidx.compose.foundation.BorderStroke
+import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
@@ -102,8 +104,9 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
     val isLoadingItems by viewModel.isLoadingItems.collectAsState()
 
     // ── Delete confirmation dialog state ─────────────────────────────────────
+    // ── Delete confirmation dialog state ─────────────────────────────────────
     var pendingDeleteItem by remember { mutableStateOf<Item?>(null) }
-
+    var quickRefillItem by remember { mutableStateOf<Item?>(null) }
     // ── Add/Edit Bottom Sheet ─────────────────────────────────────────────────
     var showSheet by remember { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<Item?>(null) }
@@ -218,6 +221,90 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
         context = context
     )
 
+    // ── Quick Refill Dialog ──────────────────────────────────────────────────
+    if (quickRefillItem != null) {
+        var addQtyInput by remember { mutableStateOf("") }
+        val refillItem = quickRefillItem!!
+        
+        AlertDialog(
+            onDismissRequest = { quickRefillItem = null },
+            title = {
+                Text(
+                    text = "Refill Stock: ${refillItem.name}",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Current Stock: ${formatQty(refillItem.quantity)} ${refillItem.unit}",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = addQtyInput,
+                        onValueChange = { addQtyInput = it },
+                        label = { Text("Add Quantity") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Presets
+                    val presets = if (refillItem.unit in listOf("pcs", "dozen", "box", "packet")) {
+                        listOf(5, 10, 50, 100)
+                    } else {
+                        listOf(5, 10, 25, 50)
+                    }
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(presets, key = { it }) { preset ->
+                            FilterChip(
+                                label = "+$preset",
+                                isSelected = false,
+                                onClick = { 
+                                    val currentVal = addQtyInput.toDoubleOrNull() ?: 0.0
+                                    val formatted = if ((currentVal + preset) % 1.0 == 0.0) {
+                                        (currentVal + preset).toInt().toString()
+                                    } else {
+                                        (currentVal + preset).toString()
+                                    }
+                                    addQtyInput = formatted
+                                }
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val addedQty = addQtyInput.toDoubleOrNull() ?: 0.0
+                    if (addedQty > 0) {
+                        viewModel.updateItem(
+                            id = refillItem.id,
+                            name = refillItem.name,
+                            quantity = refillItem.quantity + addedQty,
+                            unit = refillItem.unit,
+                            buyPrice = refillItem.buyPrice,
+                            sellPrice = refillItem.sellPrice,
+                            threshold = refillItem.lowStockThreshold,
+                            category = refillItem.category
+                        )
+                    }
+                    quickRefillItem = null
+                }) {
+                    Text("Add Stock")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { quickRefillItem = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     // ── Main UI ──────────────────────────────────────────────────────────────
     Scaffold(
         topBar = {
@@ -258,7 +345,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = "Sort: ${when (sortBy) { "Qty" -> "Stock"; "Price" -> "Price"; else -> "Name" }}",
+                            text = stringResource(id = R.string.inv_sort_dynamic, when (sortBy) { "Qty" -> "Stock"; "Price" -> "Price"; else -> "Name" }),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -337,7 +424,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator()
                             Spacer(modifier = Modifier.height(12.dp))
-                            Text("Loading inventory…", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                            Text(stringResource(id = R.string.inv_loading), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                         }
                     }
                 }
@@ -374,21 +461,19 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             val isLowStock = item.quantity <= item.lowStockThreshold
 
                             // Swipe-to-delete — triggers dialog or direct delete
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                confirmValueChange = { value ->
-                                    if (value == SwipeToDismissBoxValue.EndToStart) {
-                                        if (shouldSkipInventoryDeleteConfirm(context)) {
-                                            // User said "don't ask again" — delete immediately
-                                            performDelete(item)
-                                        } else {
-                                            // Show confirmation dialog
-                                            pendingDeleteItem = item
-                                        }
-                                        // Return false so the card doesn't visually dismiss until confirmed
-                                        false
-                                    } else false
+                            val dismissState = rememberSwipeToDismissBoxState()
+
+                            LaunchedEffect(dismissState.currentValue) {
+                                if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+                                    if (shouldSkipInventoryDeleteConfirm(context)) {
+                                        performDelete(item)
+                                    } else {
+                                        pendingDeleteItem = item
+                                    }
+                                    // Snap back so it visually resets
+                                    dismissState.snapTo(SwipeToDismissBoxValue.Settled)
                                 }
-                            )
+                            }
 
                             SwipeToDismissBox(
                                 state = dismissState,
@@ -397,7 +482,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .clip(RoundedCornerShape(16.dp))
+                                            .clip(RoundedCornerShape(20.dp))
                                             .background(Coral500),
                                         contentAlignment = Alignment.CenterEnd
                                     ) {
@@ -405,7 +490,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                             modifier = Modifier.padding(end = 20.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("Delete", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                            Text(stringResource(id = R.string.btn_delete), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
                                         }
@@ -415,7 +500,8 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 InventoryItemCard(
                                     item = item,
                                     isLowStock = isLowStock,
-                                    onClick = { openEditSheet(item) }
+                                    onClick = { openEditSheet(item) },
+                                    onRefillClick = { quickRefillItem = item }
                                 )
                             }
                         }
@@ -430,7 +516,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 ) {
                                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                                     Spacer(modifier = Modifier.width(10.dp))
-                                    Text("Loading more…", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                    Text(stringResource(id = R.string.inv_loading_more), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                                 }
                             }
                         }
@@ -439,7 +525,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         if (!hasMoreItems && displayedItems.size > PAGE_SIZE) {
                             item(contentType = "end_of_list") {
                                 Text(
-                                    text = "All ${displayedItems.size} items loaded",
+                                    text = stringResource(id = R.string.inv_all_items_loaded, displayedItems.size),
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                                     textAlign = TextAlign.Center,
                                     fontSize = 11.sp,
@@ -480,7 +566,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             isError = nameError,
-                            supportingText = if (nameError) {{ Text("Name cannot be empty") }} else null
+                            supportingText = if (nameError) {{ Text(stringResource(id = R.string.inv_err_empty_name)) }} else null
                         )
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -527,7 +613,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             )
                         }
                         if (priceError) {
-                            Text("Please fill in buy and sell price.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                            Text(stringResource(id = R.string.inv_err_prices), color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                         }
 
                         // Category picker chips
@@ -585,16 +671,17 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
 // ── Item Card ─────────────────────────────────────────────────────────────────
 
 @Composable
-fun InventoryItemCard(item: Item, isLowStock: Boolean, onClick: () -> Unit) {
+fun InventoryItemCard(item: Item, isLowStock: Boolean, onClick: () -> Unit, onRefillClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isLowStock) Coral100.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -614,12 +701,34 @@ fun InventoryItemCard(item: Item, isLowStock: Boolean, onClick: () -> Unit) {
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).padding(end = 8.dp)
                 )
-                Text(
-                    text = "${formatQty(item.quantity)} ${item.unit}",
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 14.sp,
-                    color = if (isLowStock) Coral500 else MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "${formatQty(item.quantity)} ${item.unit}",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 14.sp,
+                        color = if (isLowStock) Coral500 else MaterialTheme.colorScheme.onSurface
+                    )
+                    
+                    // Quick Refill Plus Icon
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .clickable { onRefillClick() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Quick Refill",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
             
             Spacer(modifier = Modifier.height(4.dp))
@@ -630,7 +739,7 @@ fun InventoryItemCard(item: Item, isLowStock: Boolean, onClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${item.category} • Buy ${item.buyPrice.toRupee()}",
+                    text = "${item.category} • " + stringResource(id = R.string.inv_buy_prefix, item.buyPrice.toRupee()),
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f)
@@ -642,7 +751,7 @@ fun InventoryItemCard(item: Item, isLowStock: Boolean, onClick: () -> Unit) {
                 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Sell ${item.sellPrice.toRupee()}",
+                        text = stringResource(id = R.string.inv_sell_prefix, item.sellPrice.toRupee()),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary

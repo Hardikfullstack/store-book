@@ -33,4 +33,7 @@ sealed class Routes(val string: String) {
 
     @Serializable
     object SalesAnalytics : Routes("sales_analytics_screen")
+
+    @Serializable
+    object Auth : Routes("auth_screen")
 }

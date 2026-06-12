@@ -60,6 +60,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import com.storebook.inventoryapp.ui.theme.Poppins
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.toRoute
@@ -67,6 +69,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.storebook.inventoryapp.MainActivity
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.ui.screens.LanguageScreen
@@ -77,6 +80,7 @@ import com.storebook.inventoryapp.ui.screens.storebook.OnboardingScreen
 import com.storebook.inventoryapp.ui.screens.storebook.PremiumPlansSheetContent
 import com.storebook.inventoryapp.ui.screens.storebook.SalesScreen
 import com.storebook.inventoryapp.ui.screens.storebook.UdhaarScreen
+import com.storebook.inventoryapp.ui.screens.auth.AuthScreen
 import com.storebook.inventoryapp.utils.LanguageManager
 import kotlinx.coroutines.launch
 
@@ -132,7 +136,7 @@ fun AppNavigation() {
                     onTabSelected = { tab ->
                         if (tab.route != currentRoute) {
                             navController.navigate(tab.route) {
-                                popUpTo("com.storebook.inventoryapp.ui.navigation.Routes.Dashboard") {
+                                popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true
                                 }
                                 launchSingleTop = true
@@ -209,6 +213,18 @@ fun AppNavigation() {
                     }
                 }
             }
+            composable<Routes.Auth> {
+                AuthScreen(
+                    onAuthSuccess = {
+                        // After success, navigate back or to Dashboard
+                        navController.popBackStack()
+                        // Optional: You could trigger a sync here
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
         }
     }
 }
@@ -246,7 +262,8 @@ private fun ModernBottomNavBar(
                                 ) {
                                     Text(
                                         text = if (cartCount > 9) "9+" else "$cartCount",
-                                        fontWeight = FontWeight.Black
+                                        fontWeight = FontWeight.Black,
+                                        fontFamily = Poppins
                                     )
                                 }
                             }
@@ -256,7 +273,7 @@ private fun ModernBottomNavBar(
                                 contentDescription = null,
                                 modifier = Modifier
                                     .scale(scale)
-                                    .size(28.dp)
+                                    .size(24.dp)
                             )
                         }
                     } else {
@@ -265,7 +282,7 @@ private fun ModernBottomNavBar(
                             contentDescription = null,
                             modifier = Modifier
                                 .scale(scale)
-                                .size(if (isSalesTab) 28.dp else 24.dp)
+                                .size(24.dp)
                         )
                     }
                 },
@@ -273,7 +290,10 @@ private fun ModernBottomNavBar(
                     Text(
                         text = stringResource(id = tab.labelRes),
                         fontSize = 10.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        fontFamily = Poppins,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(

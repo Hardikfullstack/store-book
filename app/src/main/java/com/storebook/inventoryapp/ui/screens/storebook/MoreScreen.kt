@@ -48,6 +48,7 @@ import androidx.compose.material.icons.outlined.MoneyOff
 import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.UploadFile
+import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -56,6 +57,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
@@ -218,13 +220,13 @@ fun MoreScreen(navController: NavController, viewModel: StoreBookViewModel) {
                         Spacer(modifier = Modifier.width(14.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "StoreBook Pro Plans",
+                                text = stringResource(id = R.string.more_pro_plans),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
                                 color = Color(0xFFB8860B)
                             )
                             Text(
-                                text = "Cloud backup, unlimited items & reports",
+                                text = stringResource(id = R.string.more_pro_desc),
                                 fontSize = 12.sp,
                                 color = Color(0xFFB8860B).copy(alpha = 0.75f)
                             )
@@ -316,6 +318,15 @@ fun MoreScreen(navController: NavController, viewModel: StoreBookViewModel) {
                             iconTint = Color(0xFF0EA5E9),
                             title = stringResource(id = R.string.more_csv_import),
                             onClick = { csvFilePickerLauncher.launch(arrayOf("text/*", "application/csv", "text/csv")) }
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                        IconOptionRow(
+                            icon = Icons.Outlined.CloudSync,
+                            iconBg = Color(0xFFEAB308).copy(alpha = 0.12f),
+                            iconTint = Color(0xFFEAB308),
+                            title = stringResource(id = R.string.more_cloud_sync),
+                            onClick = { navController.navigate(Routes.Auth) }
                         )
                     }
                 }
@@ -597,7 +608,7 @@ fun ExpenseSheetContent(
             Text(stringResource(id = R.string.btn_save), fontWeight = FontWeight.Bold)
         }
 
-        Text("Recent Expenses", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(id = R.string.more_recent_expenses), fontSize = 13.sp, fontWeight = FontWeight.Bold)
 
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -652,9 +663,9 @@ fun ReportsSheetContent(salesList: List<Sale>, expensesList: List<ExpenseEntry>)
         HorizontalDivider()
 
         // Bar chart rows
-        ReportBarRow("Revenue", totalRevenue, maxVal, InkBlue500)
-        ReportBarRow("Product Profit", totalProfit, maxVal, Emerald500)
-        ReportBarRow("Expenses", totalOverheadExpenses, maxVal, Coral500)
+        ReportBarRow(stringResource(id = R.string.rep_revenue_label), totalRevenue, maxVal, InkBlue500)
+        ReportBarRow(stringResource(id = R.string.rep_product_profit_label), totalProfit, maxVal, Emerald500)
+        ReportBarRow(stringResource(id = R.string.rep_expenses_label), totalOverheadExpenses, maxVal, Coral500)
 
         HorizontalDivider()
 
@@ -672,7 +683,7 @@ fun ReportsSheetContent(salesList: List<Sale>, expensesList: List<ExpenseEntry>)
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (netProfit >= 0) "🎉 Net Profit" else "⚠️ Net Loss",
+                    text = if (netProfit >= 0) "🎉 " + stringResource(id = R.string.rep_net_profit_label) else "⚠️ " + stringResource(id = R.string.rep_net_loss_label),
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp
                 )
@@ -758,10 +769,10 @@ fun RestockSheetContent(
                 readOnly = true,
                 value = selectedItem?.name ?: "Select Stock Item...",
                 onValueChange = {},
-                label = { Text("Stock Item") },
+                label = { Text(stringResource(id = R.string.more_stock_item)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = itemDropdownExpanded) },
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                modifier = Modifier.menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp)
             )

@@ -102,6 +102,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.10.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-crashlytics")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
 
     implementation("io.github.oothp:android-pdf-viewer:3.2.0-beta06")
     implementation("com.google.android.play:review-ktx:2.0.2")

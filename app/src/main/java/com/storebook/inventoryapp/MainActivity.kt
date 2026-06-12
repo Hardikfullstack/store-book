@@ -68,7 +68,7 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
-        AnalyticsManager.init()
+        AnalyticsManager.init(this)
         AnalyticsManager.logEventWithAction("app_open", "app", "launched")
         PDFBoxResourceLoader.init(applicationContext)
 
