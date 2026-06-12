@@ -1,8 +1,6 @@
 package com.storebook.inventoryapp.ui.navigation
 
 import android.content.Context
-import android.os.Build
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -11,21 +9,10 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
@@ -45,15 +32,11 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -61,34 +44,29 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import com.storebook.inventoryapp.ui.theme.Poppins
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.toRoute
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.storebook.inventoryapp.MainActivity
 import com.storebook.inventoryapp.R
-import com.storebook.inventoryapp.ui.screens.LanguageScreen
+import com.storebook.inventoryapp.ui.screens.auth.AuthScreen
 import com.storebook.inventoryapp.ui.screens.storebook.DashboardScreen
 import com.storebook.inventoryapp.ui.screens.storebook.InventoryScreen
 import com.storebook.inventoryapp.ui.screens.storebook.MoreScreen
-import com.storebook.inventoryapp.ui.screens.storebook.OnboardingScreen
 import com.storebook.inventoryapp.ui.screens.storebook.PremiumPlansSheetContent
 import com.storebook.inventoryapp.ui.screens.storebook.SalesScreen
 import com.storebook.inventoryapp.ui.screens.storebook.UdhaarScreen
-import com.storebook.inventoryapp.ui.screens.auth.AuthScreen
-import com.storebook.inventoryapp.utils.LanguageManager
-import kotlinx.coroutines.launch
+import com.storebook.inventoryapp.ui.theme.Poppins
 
 data class BottomNavTab(
     val route: String,
     val icon: ImageVector,
     val selectedIcon: ImageVector,
-    val labelRes: Int
+    val labelRes: Int,
 )
 
 @Composable
@@ -97,7 +75,8 @@ fun AppNavigation() {
     val activity = context as? MainActivity
     val navController = rememberNavController()
     val storeBookViewModel: com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel()
+        androidx.lifecycle.viewmodel.compose
+            .viewModel()
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
@@ -108,23 +87,51 @@ fun AppNavigation() {
         mutableStateOf(sharedPref.getBoolean("onboarding_completed", false))
     }
 
-    val tabs = remember {
-        listOf(
-            BottomNavTab("com.storebook.inventoryapp.ui.navigation.Routes.Dashboard", Icons.Outlined.Home, Icons.Filled.Home, R.string.tab_dashboard),
-            BottomNavTab("com.storebook.inventoryapp.ui.navigation.Routes.Inventory", @Suppress("DEPRECATION") Icons.Outlined.List, @Suppress("DEPRECATION") Icons.Filled.List, R.string.tab_inventory),
-            BottomNavTab("com.storebook.inventoryapp.ui.navigation.Routes.Sales", Icons.Outlined.ShoppingCart, Icons.Filled.ShoppingCart, R.string.tab_sales),
-            BottomNavTab("com.storebook.inventoryapp.ui.navigation.Routes.Udhaar", Icons.Outlined.Warning, Icons.Filled.Warning, R.string.tab_udhaar),
-            BottomNavTab("com.storebook.inventoryapp.ui.navigation.Routes.More", Icons.Outlined.Menu, Icons.Filled.Menu, R.string.tab_more)
-        )
-    }
+    val tabs =
+        remember {
+            listOf(
+                BottomNavTab(
+                    "com.storebook.inventoryapp.ui.navigation.Routes.Dashboard",
+                    Icons.Outlined.Home,
+                    Icons.Filled.Home,
+                    R.string.tab_dashboard,
+                ),
+                BottomNavTab(
+                    "com.storebook.inventoryapp.ui.navigation.Routes.Inventory",
+                    @Suppress("DEPRECATION") Icons.Outlined.List,
+                    @Suppress("DEPRECATION") Icons.Filled.List,
+                    R.string.tab_inventory,
+                ),
+                BottomNavTab(
+                    "com.storebook.inventoryapp.ui.navigation.Routes.Sales",
+                    Icons.Outlined.ShoppingCart,
+                    Icons.Filled.ShoppingCart,
+                    R.string.tab_sales,
+                ),
+                BottomNavTab(
+                    "com.storebook.inventoryapp.ui.navigation.Routes.Udhaar",
+                    Icons.Outlined.Warning,
+                    Icons.Filled.Warning,
+                    R.string.tab_udhaar,
+                ),
+                BottomNavTab(
+                    "com.storebook.inventoryapp.ui.navigation.Routes.More",
+                    Icons.Outlined.Menu,
+                    Icons.Filled.Menu,
+                    R.string.tab_more,
+                ),
+            )
+        }
 
-    val showBottomBar = currentRoute in listOf(
-        "com.storebook.inventoryapp.ui.navigation.Routes.Dashboard",
-        "com.storebook.inventoryapp.ui.navigation.Routes.Inventory",
-        "com.storebook.inventoryapp.ui.navigation.Routes.Udhaar",
-        "com.storebook.inventoryapp.ui.navigation.Routes.More",
-        "com.storebook.inventoryapp.ui.navigation.Routes.Sales"
-    )
+    val showBottomBar =
+        currentRoute in
+            listOf(
+                "com.storebook.inventoryapp.ui.navigation.Routes.Dashboard",
+                "com.storebook.inventoryapp.ui.navigation.Routes.Inventory",
+                "com.storebook.inventoryapp.ui.navigation.Routes.Udhaar",
+                "com.storebook.inventoryapp.ui.navigation.Routes.More",
+                "com.storebook.inventoryapp.ui.navigation.Routes.Sales",
+            )
 
     Scaffold(
         bottomBar = {
@@ -143,41 +150,46 @@ fun AppNavigation() {
                                 restoreState = true
                             }
                         }
-                    }
+                    },
                 )
             }
-        }
+        },
     ) { paddingValues ->
         NavHost(
             navController = navController,
             startDestination = Routes.Dashboard,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
             enterTransition = {
-                fadeIn(animationSpec = tween(200)) + slideInHorizontally(
-                    animationSpec = tween(200),
-                    initialOffsetX = { it / 12 }
-                )
+                fadeIn(animationSpec = tween(200)) +
+                    slideInHorizontally(
+                        animationSpec = tween(200),
+                        initialOffsetX = { it / 12 },
+                    )
             },
             exitTransition = {
-                fadeOut(animationSpec = tween(150)) + slideOutHorizontally(
-                    animationSpec = tween(150),
-                    targetOffsetX = { -it / 12 }
-                )
+                fadeOut(animationSpec = tween(150)) +
+                    slideOutHorizontally(
+                        animationSpec = tween(150),
+                        targetOffsetX = { -it / 12 },
+                    )
             },
             popEnterTransition = {
-                fadeIn(animationSpec = tween(200)) + slideInHorizontally(
-                    animationSpec = tween(200),
-                    initialOffsetX = { -it / 12 }
-                )
+                fadeIn(animationSpec = tween(200)) +
+                    slideInHorizontally(
+                        animationSpec = tween(200),
+                        initialOffsetX = { -it / 12 },
+                    )
             },
             popExitTransition = {
-                fadeOut(animationSpec = tween(150)) + slideOutHorizontally(
-                    animationSpec = tween(150),
-                    targetOffsetX = { it / 12 }
-                )
-            }
+                fadeOut(animationSpec = tween(150)) +
+                    slideOutHorizontally(
+                        animationSpec = tween(150),
+                        targetOffsetX = { it / 12 },
+                    )
+            },
         ) {
             composable<Routes.Dashboard> {
                 DashboardScreen(navController = navController, viewModel = storeBookViewModel)
@@ -189,10 +201,16 @@ fun AppNavigation() {
                 SalesScreen(navController = navController, viewModel = storeBookViewModel)
             }
             composable<Routes.SalesHistory> {
-                com.storebook.inventoryapp.ui.screens.storebook.SalesHistoryScreen(navController = navController, viewModel = storeBookViewModel)
+                com.storebook.inventoryapp.ui.screens.storebook.SalesHistoryScreen(
+                    navController = navController,
+                    viewModel = storeBookViewModel,
+                )
             }
             composable<Routes.SalesAnalytics> {
-                com.storebook.inventoryapp.ui.screens.storebook.SalesAnalyticsScreen(navController = navController, viewModel = storeBookViewModel)
+                com.storebook.inventoryapp.ui.screens.storebook.SalesAnalyticsScreen(
+                    navController = navController,
+                    viewModel = storeBookViewModel,
+                )
             }
             composable<Routes.Udhaar> {
                 UdhaarScreen(viewModel = storeBookViewModel)
@@ -208,7 +226,7 @@ fun AppNavigation() {
                             onToggle = {
                                 storeBookViewModel.isPremiumUser = !storeBookViewModel.isPremiumUser
                                 navController.popBackStack()
-                            }
+                            },
                         )
                     }
                 }
@@ -222,7 +240,7 @@ fun AppNavigation() {
                     },
                     onNavigateBack = {
                         navController.popBackStack()
-                    }
+                    },
                 )
             }
         }
@@ -234,18 +252,18 @@ private fun ModernBottomNavBar(
     tabs: List<BottomNavTab>,
     currentRoute: String?,
     cartCount: Int,
-    onTabSelected: (BottomNavTab) -> Unit
+    onTabSelected: (BottomNavTab) -> Unit,
 ) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp
+        tonalElevation = 0.dp,
     ) {
         tabs.forEach { tab ->
             val isSelected = currentRoute == tab.route
             val scale by animateFloatAsState(
                 targetValue = if (isSelected) 1.1f else 1.0f,
                 animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                label = "tab_scale"
+                label = "tab_scale",
             )
             val isSalesTab = tab.labelRes == R.string.tab_sales
 
@@ -258,31 +276,33 @@ private fun ModernBottomNavBar(
                             badge = {
                                 androidx.compose.material3.Badge(
                                     containerColor = MaterialTheme.colorScheme.error,
-                                    contentColor = Color.White
+                                    contentColor = Color.White,
                                 ) {
                                     Text(
                                         text = if (cartCount > 9) "9+" else "$cartCount",
                                         fontWeight = FontWeight.Black,
-                                        fontFamily = Poppins
+                                        fontFamily = Poppins,
                                     )
                                 }
-                            }
+                            },
                         ) {
                             Icon(
                                 imageVector = if (isSelected) tab.selectedIcon else tab.icon,
                                 contentDescription = null,
-                                modifier = Modifier
-                                    .scale(scale)
-                                    .size(24.dp)
+                                modifier =
+                                    Modifier
+                                        .scale(scale)
+                                        .size(24.dp),
                             )
                         }
                     } else {
                         Icon(
                             imageVector = if (isSelected) tab.selectedIcon else tab.icon,
                             contentDescription = null,
-                            modifier = Modifier
-                                .scale(scale)
-                                .size(24.dp)
+                            modifier =
+                                Modifier
+                                    .scale(scale)
+                                    .size(24.dp),
                         )
                     }
                 },
@@ -293,16 +313,17 @@ private fun ModernBottomNavBar(
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         fontFamily = Poppins,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                colors =
+                    NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    ),
             )
         }
     }

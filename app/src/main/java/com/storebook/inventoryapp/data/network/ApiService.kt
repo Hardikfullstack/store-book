@@ -10,6 +10,6 @@ interface ApiService {
     @Multipart
     @POST("api/getApp")
     suspend fun getAppData(
-        @Part("package_name") packageName: RequestBody
+        @Part("package_name") packageName: RequestBody,
     ): AppResponse
 }

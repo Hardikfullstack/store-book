@@ -48,12 +48,13 @@ import com.storebook.inventoryapp.ui.theme.SystemBarsConfig
 import com.storebook.inventoryapp.ui.theme.isAppDarkMode
 import com.storebook.inventoryapp.utils.LanguageItem
 import com.storebook.inventoryapp.utils.getSupportedLanguages
+
 @Composable
 fun LanguageScreen(
     currentLanguageId: String = "en",
     isFirstTime: Boolean = false,
     onBack: () -> Unit = {},
-    onLanguageSelected: (String) -> Unit
+    onLanguageSelected: (String) -> Unit,
 ) {
     if (isFirstTime) {
         BackHandler {}
@@ -65,30 +66,34 @@ fun LanguageScreen(
     val languages = getSupportedLanguages()
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary)
-            .statusBarsPadding()
-            .navigationBarsPadding()
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.primary)
+                .statusBarsPadding()
+                .navigationBarsPadding(),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 14.dp, end = 20.dp, top = 15.dp, bottom = 15.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 14.dp, end = 20.dp, top = 15.dp, bottom = 15.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (!isFirstTime) {
                 CustomIconButton(
                     iconRes = R.drawable.ic_back_arrow,
-                    modifier = Modifier
-                        .size(36.dp),
+                    modifier =
+                        Modifier
+                            .size(36.dp),
                     size = 24,
                     onClick = onBack,
-                    tint = if(isDarkMode) Color.White else Color.Unspecified
+                    tint = if (isDarkMode) Color.White else Color.Unspecified,
                 )
                 Spacer(
-                    modifier = Modifier
-                        .width(10.dp)
+                    modifier =
+                        Modifier
+                            .width(10.dp),
                 )
             }
             Text(
@@ -97,34 +102,36 @@ fun LanguageScreen(
                 fontFamily = DMSans,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier
-                    .weight(1f)
+                modifier =
+                    Modifier
+                        .weight(1f),
             )
             CustomMainButton(
                 text = stringResource(id = R.string.btn_done),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(colorResource(R.color.red_text))
-                    .clickable {
-                        onLanguageSelected(selectedLanguageCode)
-                    }
-                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(colorResource(R.color.red_text))
+                        .clickable {
+                            onLanguageSelected(selectedLanguageCode)
+                        }.padding(horizontal = 24.dp, vertical = 8.dp),
             )
         }
 
         LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
             contentPadding = PaddingValues(bottom = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(languages) { language ->
                 LanguageRow(
                     language = language,
                     isSelected = language.id == selectedLanguageCode,
                     onClick = { selectedLanguageCode = language.id },
-                    isDarkMode = isDarkMode
+                    isDarkMode = isDarkMode,
                 )
             }
         }
@@ -136,80 +143,93 @@ fun LanguageRow(
     language: LanguageItem,
     isSelected: Boolean,
     onClick: () -> Unit,
-    isDarkMode: Boolean
+    isDarkMode: Boolean,
 ) {
-    val borderColor = if (isSelected) colorResource(id = R.color.red_text)
-                      else if(!isDarkMode) Color(0xFFF2F2F2)
-                      else  Color(0xFF303030)
+    val borderColor =
+        if (isSelected) {
+            colorResource(id = R.color.red_text)
+        } else if (!isDarkMode) {
+            Color(0xFFF2F2F2)
+        } else {
+            Color(0xFF303030)
+        }
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .border(1.dp, borderColor, RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.background)
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .border(1.dp, borderColor, RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.background)
+                .clickable { onClick() }
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Image(
             painter = painterResource(id = language.iconResId),
             contentDescription = "${language.name} flag",
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape),
-            contentScale = ContentScale.Crop
+            modifier =
+                Modifier
+                    .size(32.dp)
+                    .clip(CircleShape),
+            contentScale = ContentScale.Crop,
         )
 
         Spacer(
-            modifier = Modifier
-                .width(16.dp)
+            modifier =
+                Modifier
+                    .width(16.dp),
         )
 
         Row(
-            modifier = Modifier
-                .weight(1f)
+            modifier =
+                Modifier
+                    .weight(1f),
         ) {
             Text(
                 text = language.name,
                 fontSize = 16.sp,
                 fontFamily = DMSans,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.secondary
+                color = MaterialTheme.colorScheme.secondary,
             )
             Spacer(
-                modifier = Modifier
-                    .width(4.dp)
+                modifier =
+                    Modifier
+                        .width(4.dp),
             )
             Text(
                 text = "(${language.nativeName})",
                 fontSize = 16.sp,
                 fontFamily = DMSans,
                 fontWeight = FontWeight.Normal,
-                color = colorResource(id = R.color.gray_text)
+                color = colorResource(id = R.color.gray_text),
             )
         }
 
         Box(
-            modifier = Modifier
-                .size(24.dp)
-                .clip(CircleShape)
-                .border(
-                    width = 2.dp,
-                    color = if (isSelected) {
-                        colorResource(id = R.color.red_text)
-                    } else {
-                        if(isDarkMode) Color.White else Color(0xFFB4B4B4)
-                    },
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .border(
+                        width = 2.dp,
+                        color =
+                            if (isSelected) {
+                                colorResource(id = R.color.red_text)
+                            } else {
+                                if (isDarkMode) Color.White else Color(0xFFB4B4B4)
+                            },
+                        shape = CircleShape,
+                    ),
+            contentAlignment = Alignment.Center,
         ) {
             if (isSelected) {
                 Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(CircleShape)
-                        .background(colorResource(id = R.color.red_text))
+                    modifier =
+                        Modifier
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(colorResource(id = R.color.red_text)),
                 )
             }
         }

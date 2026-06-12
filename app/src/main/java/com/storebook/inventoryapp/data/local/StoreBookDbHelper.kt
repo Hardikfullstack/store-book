@@ -4,8 +4,9 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
-
+class StoreBookDbHelper(
+    context: Context,
+) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
     companion object {
         const val DATABASE_NAME = "storebook.db"
         const val DATABASE_VERSION = 6
@@ -21,7 +22,7 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
         const val KEY_ID = "id"
         const val KEY_TIMESTAMP = "timestamp"
         const val KEY_NOTES = "notes"
-        
+
         // Sync & Cloud Columns
         const val KEY_CLOUD_ID = "cloud_id"
         const val KEY_IS_SYNCED = "is_synced"
@@ -74,78 +75,88 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
     }
 
     override fun onCreate(db: SQLiteDatabase) {
-        val createItemsTable = ("CREATE TABLE " + TABLE_ITEMS + "("
-                + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + KEY_ITEM_NAME + " TEXT NOT NULL UNIQUE,"
-                + KEY_ITEM_QTY + " REAL NOT NULL DEFAULT 0.0,"
-                + KEY_ITEM_UNIT + " TEXT NOT NULL,"
-                + KEY_ITEM_BUY_PRICE + " REAL NOT NULL DEFAULT 0.0,"
-                + KEY_ITEM_SELL_PRICE + " REAL NOT NULL DEFAULT 0.0,"
-                + KEY_ITEM_THRESHOLD + " REAL NOT NULL DEFAULT 0.0,"
-                + KEY_ITEM_CATEGORY + " TEXT NOT NULL,"
-                + KEY_ITEM_PHOTO + " TEXT,"
-                + KEY_ITEM_HSN + " TEXT,"
-                + KEY_ITEM_TAX_RATE + " REAL NOT NULL DEFAULT 0.0,"
-                + KEY_ITEM_IS_DELETED + " INTEGER NOT NULL DEFAULT 0,"
-                + KEY_ITEM_DELETED_TIME + " INTEGER DEFAULT 0,"
-                + KEY_CLOUD_ID + " TEXT,"
-                + KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0,"
-                + KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")")
+        val createItemsTable = (
+            "CREATE TABLE " + TABLE_ITEMS + "(" +
+                KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                KEY_ITEM_NAME + " TEXT NOT NULL UNIQUE," +
+                KEY_ITEM_QTY + " REAL NOT NULL DEFAULT 0.0," +
+                KEY_ITEM_UNIT + " TEXT NOT NULL," +
+                KEY_ITEM_BUY_PRICE + " REAL NOT NULL DEFAULT 0.0," +
+                KEY_ITEM_SELL_PRICE + " REAL NOT NULL DEFAULT 0.0," +
+                KEY_ITEM_THRESHOLD + " REAL NOT NULL DEFAULT 0.0," +
+                KEY_ITEM_CATEGORY + " TEXT NOT NULL," +
+                KEY_ITEM_PHOTO + " TEXT," +
+                KEY_ITEM_HSN + " TEXT," +
+                KEY_ITEM_TAX_RATE + " REAL NOT NULL DEFAULT 0.0," +
+                KEY_ITEM_IS_DELETED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_ITEM_DELETED_TIME + " INTEGER DEFAULT 0," +
+                KEY_CLOUD_ID + " TEXT," +
+                KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")"
+        )
 
-        val createSalesTable = ("CREATE TABLE " + TABLE_SALES + "("
-                + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + KEY_TIMESTAMP + " INTEGER NOT NULL,"
-                + KEY_SALE_TOTAL + " REAL NOT NULL,"
-                + KEY_SALE_DISCOUNT + " REAL NOT NULL DEFAULT 0.0,"
-                + KEY_SALE_CUSTOMER + " TEXT,"
-                + KEY_SALE_CUSTOMER_GSTIN + " TEXT,"
-                + KEY_SALE_BUSINESS_GSTIN + " TEXT,"
-                + KEY_SALE_CUSTOMER_ADDRESS + " TEXT,"
-                + KEY_SALE_BUSINESS_ADDRESS + " TEXT,"
-                + KEY_NOTES + " TEXT,"
-                + KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0,"
-                + KEY_CLOUD_ID + " TEXT,"
-                + KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0,"
-                + KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")")
+        val createSalesTable = (
+            "CREATE TABLE " + TABLE_SALES + "(" +
+                KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                KEY_TIMESTAMP + " INTEGER NOT NULL," +
+                KEY_SALE_TOTAL + " REAL NOT NULL," +
+                KEY_SALE_DISCOUNT + " REAL NOT NULL DEFAULT 0.0," +
+                KEY_SALE_CUSTOMER + " TEXT," +
+                KEY_SALE_CUSTOMER_GSTIN + " TEXT," +
+                KEY_SALE_BUSINESS_GSTIN + " TEXT," +
+                KEY_SALE_CUSTOMER_ADDRESS + " TEXT," +
+                KEY_SALE_BUSINESS_ADDRESS + " TEXT," +
+                KEY_NOTES + " TEXT," +
+                KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_CLOUD_ID + " TEXT," +
+                KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")"
+        )
 
-        val createSaleItemsTable = ("CREATE TABLE " + TABLE_SALE_ITEMS + "("
-                + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + KEY_SI_SALE_ID + " INTEGER NOT NULL,"
-                + KEY_SI_ITEM_ID + " INTEGER NOT NULL,"
-                + KEY_SI_ITEM_NAME + " TEXT NOT NULL,"
-                + KEY_SI_UNIT + " TEXT NOT NULL,"
-                + KEY_SI_QTY + " REAL NOT NULL,"
-                + KEY_SI_SELL_PRICE + " REAL NOT NULL,"
-                + KEY_SI_BUY_PRICE + " REAL NOT NULL,"
-                + KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0,"
-                + KEY_CLOUD_ID + " TEXT,"
-                + KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0,"
-                + KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")")
+        val createSaleItemsTable = (
+            "CREATE TABLE " + TABLE_SALE_ITEMS + "(" +
+                KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                KEY_SI_SALE_ID + " INTEGER NOT NULL," +
+                KEY_SI_ITEM_ID + " INTEGER NOT NULL," +
+                KEY_SI_ITEM_NAME + " TEXT NOT NULL," +
+                KEY_SI_UNIT + " TEXT NOT NULL," +
+                KEY_SI_QTY + " REAL NOT NULL," +
+                KEY_SI_SELL_PRICE + " REAL NOT NULL," +
+                KEY_SI_BUY_PRICE + " REAL NOT NULL," +
+                KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_CLOUD_ID + " TEXT," +
+                KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")"
+        )
 
-        val createUdhaarTable = ("CREATE TABLE " + TABLE_UDHAAR + "("
-                + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + KEY_UDHAAR_CUSTOMER + " TEXT NOT NULL,"
-                + KEY_UDHAAR_AMOUNT + " REAL NOT NULL,"
-                + KEY_UDHAAR_TYPE + " TEXT NOT NULL," // 'CREDIT' or 'PAYMENT'
-                + KEY_TIMESTAMP + " INTEGER NOT NULL,"
-                + KEY_NOTES + " TEXT,"
-                + KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0,"
-                + KEY_CLOUD_ID + " TEXT,"
-                + KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0,"
-                + KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")")
+        val createUdhaarTable = (
+            "CREATE TABLE " + TABLE_UDHAAR + "(" +
+                KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                KEY_UDHAAR_CUSTOMER + " TEXT NOT NULL," +
+                KEY_UDHAAR_AMOUNT + " REAL NOT NULL," +
+                KEY_UDHAAR_TYPE + " TEXT NOT NULL," + // 'CREDIT' or 'PAYMENT'
+                KEY_TIMESTAMP + " INTEGER NOT NULL," +
+                KEY_NOTES + " TEXT," +
+                KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_CLOUD_ID + " TEXT," +
+                KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")"
+        )
 
-        val createExpensesTable = ("CREATE TABLE " + TABLE_EXPENSES + "("
-                + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + KEY_EXPENSE_TYPE + " TEXT NOT NULL," // 'RESTOCK' or 'OVERHEAD'
-                + KEY_EXPENSE_DESC + " TEXT NOT NULL,"
-                + KEY_EXPENSE_AMOUNT + " REAL NOT NULL,"
-                + KEY_TIMESTAMP + " INTEGER NOT NULL,"
-                + KEY_EXPENSE_SUPPLIER + " TEXT,"
-                + KEY_EXPENSE_PHONE + " TEXT,"
-                + KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0,"
-                + KEY_CLOUD_ID + " TEXT,"
-                + KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0,"
-                + KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")")
+        val createExpensesTable = (
+            "CREATE TABLE " + TABLE_EXPENSES + "(" +
+                KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                KEY_EXPENSE_TYPE + " TEXT NOT NULL," + // 'RESTOCK' or 'OVERHEAD'
+                KEY_EXPENSE_DESC + " TEXT NOT NULL," +
+                KEY_EXPENSE_AMOUNT + " REAL NOT NULL," +
+                KEY_TIMESTAMP + " INTEGER NOT NULL," +
+                KEY_EXPENSE_SUPPLIER + " TEXT," +
+                KEY_EXPENSE_PHONE + " TEXT," +
+                KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_CLOUD_ID + " TEXT," +
+                KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")"
+        )
 
         db.execSQL(createItemsTable)
         db.execSQL(createSalesTable)
@@ -160,17 +171,23 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_udhaar_customer ON ${TABLE_UDHAAR}(${KEY_UDHAAR_CUSTOMER})")
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_sales_timestamp ON ${TABLE_SALES}(${KEY_TIMESTAMP})")
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_expenses_timestamp ON ${TABLE_EXPENSES}(${KEY_TIMESTAMP})")
-        
+
         // Sync indexes
         val tables = listOf(TABLE_ITEMS, TABLE_SALES, TABLE_SALE_ITEMS, TABLE_UDHAAR, TABLE_EXPENSES)
         for (table in tables) {
-            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_${table}_cloud_id ON $table($KEY_CLOUD_ID) WHERE $KEY_CLOUD_ID IS NOT NULL")
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_${table}_cloud_id ON $table($KEY_CLOUD_ID) WHERE $KEY_CLOUD_ID IS NOT NULL",
+            )
             db.execSQL("CREATE INDEX IF NOT EXISTS idx_${table}_is_synced ON $table($KEY_IS_SYNCED)")
             db.execSQL("CREATE INDEX IF NOT EXISTS idx_${table}_updated_at ON $table($KEY_UPDATED_AT)")
         }
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+    override fun onUpgrade(
+        db: SQLiteDatabase,
+        oldVersion: Int,
+        newVersion: Int,
+    ) {
         if (oldVersion < 3) {
             // Upgrade to version 3: Add sync tracking columns
             val tables = listOf(TABLE_ITEMS, TABLE_SALES, TABLE_SALE_ITEMS, TABLE_UDHAAR, TABLE_EXPENSES)
@@ -178,14 +195,16 @@ class StoreBookDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_N
                 db.execSQL("ALTER TABLE $table ADD COLUMN $KEY_CLOUD_ID TEXT")
                 db.execSQL("ALTER TABLE $table ADD COLUMN $KEY_IS_SYNCED INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE $table ADD COLUMN $KEY_UPDATED_AT INTEGER NOT NULL DEFAULT 0")
-                
+
                 // Add is_deleted to tables that don't have it
                 if (table != TABLE_ITEMS) {
                     db.execSQL("ALTER TABLE $table ADD COLUMN $KEY_IS_DELETED INTEGER NOT NULL DEFAULT 0")
                 }
-                
+
                 // Create indexes for sync columns
-                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_${table}_cloud_id ON $table($KEY_CLOUD_ID) WHERE $KEY_CLOUD_ID IS NOT NULL")
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_${table}_cloud_id ON $table($KEY_CLOUD_ID) WHERE $KEY_CLOUD_ID IS NOT NULL",
+                )
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_${table}_is_synced ON $table($KEY_IS_SYNCED)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_${table}_updated_at ON $table($KEY_UPDATED_AT)")
             }

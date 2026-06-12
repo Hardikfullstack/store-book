@@ -1,11 +1,12 @@
 package com.storebook.inventoryapp.data.model
 
 import kotlinx.serialization.Serializable
+
 @Serializable
 data class AppResponse(
     val status: Int? = null,
     val title: String? = null,
-    val result: AppResult? = null
+    val result: AppResult? = null,
 )
 
 @Serializable
@@ -123,5 +124,5 @@ data class AppResult(
     val extra_data_6_message: String? = null,
     val extra_data_7_message: String? = null,
     val iconUrl: String? = null,
-    val app_des: String? = null
+    val app_des: String? = null,
 )

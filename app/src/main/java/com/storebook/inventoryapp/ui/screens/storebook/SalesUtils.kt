@@ -7,14 +7,17 @@ package com.storebook.inventoryapp.ui.screens.storebook
  * - Weight / volume decimals (kg, litre, liter):  step = 0.5
  * - Small weight / volume (g, ml):                step = 50.0
  */
-fun stepForUnit(unit: String): Double = when (unit.lowercase().trim()) {
-    "pcs", "piece", "pieces", "dozen", "box", "packet", "pack" -> 1.0
-    "kg", "kgs", "kilogram", "kilograms",
-    "litre", "liter", "l", "liters", "litres" -> 0.5
-    "g", "gram", "grams",
-    "ml", "milliliter", "millilitre", "milliliters" -> 50.0
-    else -> 1.0
-}
+fun stepForUnit(unit: String): Double =
+    when (unit.lowercase().trim()) {
+        "pcs", "piece", "pieces", "dozen", "box", "packet", "pack" -> 1.0
+        "kg", "kgs", "kilogram", "kilograms",
+        "litre", "liter", "l", "liters", "litres",
+        -> 0.5
+        "g", "gram", "grams",
+        "ml", "milliliter", "millilitre", "milliliters",
+        -> 50.0
+        else -> 1.0
+    }
 
 /**
  * Format a quantity for display.
@@ -35,11 +38,12 @@ fun formatQty(qty: Double): String {
 /**
  * Emoji label for each unit type — shown as item avatar in the sales list.
  */
-fun unitEmoji(unit: String): String = when (unit.lowercase().trim()) {
-    "kg", "kgs", "kilogram", "kilograms", "g", "gram", "grams" -> "⚖️"
-    "litre", "liter", "l", "litres", "liters", "ml", "milliliter", "millilitre" -> "🧴"
-    "dozen" -> "📦"
-    "box" -> "📦"
-    "packet", "pack" -> "🛍️"
-    else -> "🔢"
-}
+fun unitEmoji(unit: String): String =
+    when (unit.lowercase().trim()) {
+        "kg", "kgs", "kilogram", "kilograms", "g", "gram", "grams" -> "⚖️"
+        "litre", "liter", "l", "litres", "liters", "ml", "milliliter", "millilitre" -> "🧴"
+        "dozen" -> "📦"
+        "box" -> "📦"
+        "packet", "pack" -> "🛍️"
+        else -> "🔢"
+    }

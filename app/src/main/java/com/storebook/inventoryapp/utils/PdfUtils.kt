@@ -2,37 +2,41 @@ package com.storebook.inventoryapp.utils
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
+import android.util.LruCache
+import com.tom_roush.pdfbox.io.MemoryUsageSetting
+import com.tom_roush.pdfbox.pdmodel.PDDocument
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import com.tom_roush.pdfbox.pdmodel.PDDocument
-import com.tom_roush.pdfbox.io.MemoryUsageSetting
-import android.util.LruCache
 
 data class PdfFileMetadata(
     val thumbnail: Bitmap?,
     val pageCount: Int,
     val isPasswordProtected: Boolean,
     val isCompressed: Boolean = false,
-    val isCorrupt: Boolean = false
+    val isCorrupt: Boolean = false,
 )
 
 object PdfUtils {
     // Cache for 1/8th of available max memory for Bitmaps
     private val maxMemory = (Runtime.getRuntime().maxMemory() / 1024).toInt()
     private val cacheSize = maxMemory / 8
-    private val thumbnailCache = object : LruCache<String, PdfFileMetadata>(cacheSize) {
-        override fun sizeOf(key: String, value: PdfFileMetadata): Int {
-            // Calculate size in KB
-            val bitmapSize = value.thumbnail?.byteCount?.div(1024) ?: 0
-            // Add a small constant for the other two fields
-            return bitmapSize + 1 
+    private val thumbnailCache =
+        object : LruCache<String, PdfFileMetadata>(cacheSize) {
+            override fun sizeOf(
+                key: String,
+                value: PdfFileMetadata,
+            ): Int {
+                // Calculate size in KB
+                val bitmapSize = value.thumbnail?.byteCount?.div(1024) ?: 0
+                // Add a small constant for the other two fields
+                return bitmapSize + 1
+            }
         }
-    }
 
     suspend fun getPdfMetadataCached(file: File): PdfFileMetadata {
         val cacheKey = "${file.absolutePath}_${file.lastModified()}_${file.length()}"
-        
+
         // Return from cache if available
         thumbnailCache.get(cacheKey)?.let { return it }
 
@@ -45,13 +49,13 @@ object PdfUtils {
 
             try {
                 if (!file.exists()) return@withContext PdfFileMetadata(null, 0, false, false)
-                
+
                 // 1. Initial filename-based check (for speed & legacy)
                 isCompressedFlag = file.nameWithoutExtension.contains("_compressed", ignoreCase = true)
-                
+
                 pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
                 val renderer = PdfRenderer(pfd)
-                
+
                 // If it opened successfully, it's not password protected
                 isProtected = false
                 pageCount = renderer.pageCount
@@ -59,16 +63,17 @@ object PdfUtils {
                 // Generate thumbnail if there are pages
                 if (pageCount > 0) {
                     val page = renderer.openPage(0)
-                    thumbnail = Bitmap.createBitmap(
-                        (page.width * 0.25).toInt(),
-                        (page.height * 0.25).toInt(),
-                        Bitmap.Config.ARGB_8888
-                    )
+                    thumbnail =
+                        Bitmap.createBitmap(
+                            (page.width * 0.25).toInt(),
+                            (page.height * 0.25).toInt(),
+                            Bitmap.Config.ARGB_8888,
+                        )
                     page.render(thumbnail, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                     page.close()
                 }
                 renderer.close()
-                
+
                 // 2. Check for hidden metadata marking (if not protected)
                 if (!isProtected) {
                     try {
@@ -82,12 +87,11 @@ object PdfUtils {
                         // Ignore, rely on filename
                     }
                 }
-                
             } catch (e: Throwable) {
                 // Determine if failure was due to password protection
                 val message = e.message?.lowercase() ?: ""
                 isProtected = e is SecurityException || message.contains("password") || message.contains("protected")
-                
+
                 if (isProtected) {
                     // Try to get page count using fallback mechanism without needing password
                     // PDFBox fallback
@@ -128,23 +132,24 @@ object PdfUtils {
                 }
             }
 
-            val result = PdfFileMetadata(
-                thumbnail = thumbnail,
-                pageCount = pageCount,
-                isPasswordProtected = isProtected,
-                isCompressed = isCompressedFlag,
-                isCorrupt = !isProtected && pageCount == 0 && file.length() > 0
-            )
-            
+            val result =
+                PdfFileMetadata(
+                    thumbnail = thumbnail,
+                    pageCount = pageCount,
+                    isPasswordProtected = isProtected,
+                    isCompressed = isCompressedFlag,
+                    isCorrupt = !isProtected && pageCount == 0 && file.length() > 0,
+                )
+
             // Save to cache
             thumbnailCache.put(cacheKey, result)
-            
+
             result
         }
     }
 
-    suspend fun isPasswordProtected(file: File): Boolean {
-        return withContext(Dispatchers.IO) {
+    suspend fun isPasswordProtected(file: File): Boolean =
+        withContext(Dispatchers.IO) {
             var pfd: ParcelFileDescriptor? = null
             try {
                 pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
@@ -159,10 +164,12 @@ object PdfUtils {
                 pfd?.close()
             }
         }
-    }
 
-    suspend fun isPasswordProtected(context: android.content.Context, uri: android.net.Uri): Boolean {
-        return withContext(Dispatchers.IO) {
+    suspend fun isPasswordProtected(
+        context: android.content.Context,
+        uri: android.net.Uri,
+    ): Boolean =
+        withContext(Dispatchers.IO) {
             var pfd: ParcelFileDescriptor? = null
             try {
                 pfd = context.contentResolver.openFileDescriptor(uri, "r")
@@ -170,7 +177,9 @@ object PdfUtils {
                     val renderer = PdfRenderer(pfd)
                     renderer.close()
                     false
-                } else true
+                } else {
+                    true
+                }
             } catch (e: Exception) {
                 val message = e.message?.lowercase() ?: ""
                 e is SecurityException || message.contains("password") || message.contains("protected")
@@ -178,21 +187,21 @@ object PdfUtils {
                 pfd?.close()
             }
         }
-    }
 
-    suspend fun getPdfThumbnail(file: File): Bitmap? {
-        return withContext(Dispatchers.IO) {
+    suspend fun getPdfThumbnail(file: File): Bitmap? =
+        withContext(Dispatchers.IO) {
             var pfd: ParcelFileDescriptor? = null
             try {
                 pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
                 val renderer = PdfRenderer(pfd)
                 if (renderer.pageCount > 0) {
                     val page = renderer.openPage(0)
-                    val bitmap = Bitmap.createBitmap(
-                        (page.width * 0.5).toInt(),
-                        (page.height * 0.5).toInt(),
-                        Bitmap.Config.ARGB_8888
-                    )
+                    val bitmap =
+                        Bitmap.createBitmap(
+                            (page.width * 0.5).toInt(),
+                            (page.height * 0.5).toInt(),
+                            Bitmap.Config.ARGB_8888,
+                        )
                     page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                     page.close()
                     renderer.close()
@@ -211,8 +220,11 @@ object PdfUtils {
                 }
             }
         }
-    }
-    fun ellipsizeMiddle(text: String, maxLength: Int = 30): String {
+
+    fun ellipsizeMiddle(
+        text: String,
+        maxLength: Int = 30,
+    ): String {
         if (text.length <= maxLength) return text
         val prefixLen = maxLength / 2
         val suffixLen = maxLength - prefixLen - 3
@@ -220,10 +232,16 @@ object PdfUtils {
         return text.take(prefixLen) + "..." + text.takeLast(suffixLen)
     }
 
-    fun formatDisplayPath(path: String, includeFileName: Boolean = true): String {
+    fun formatDisplayPath(
+        path: String,
+        includeFileName: Boolean = true,
+    ): String {
         val file = File(path)
         val targetPath = if (includeFileName) path else (file.parent ?: "")
-        val internalStoragePath = android.os.Environment.getExternalStorageDirectory().absolutePath
+        val internalStoragePath =
+            android.os.Environment
+                .getExternalStorageDirectory()
+                .absolutePath
         return if (targetPath.startsWith(internalStoragePath)) {
             targetPath.replace(internalStoragePath, "/Internal Storage")
         } else {
@@ -238,7 +256,7 @@ object PdfUtils {
         return String.format(
             "%.2f %s",
             size / Math.pow(1024.0, digitGroups.toDouble()),
-            units[digitGroups]
+            units[digitGroups],
         )
     }
 
@@ -291,7 +309,10 @@ object PdfUtils {
 
     private const val matchBufferSize = 8192
 
-    suspend fun getPageCount(context: android.content.Context, uri: android.net.Uri): Int {
+    suspend fun getPageCount(
+        context: android.content.Context,
+        uri: android.net.Uri,
+    ): Int {
         return withContext(Dispatchers.IO) {
             var pfd: ParcelFileDescriptor? = null
             try {

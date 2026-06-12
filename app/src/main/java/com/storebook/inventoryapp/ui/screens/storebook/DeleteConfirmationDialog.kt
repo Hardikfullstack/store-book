@@ -35,13 +35,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.res.stringResource
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.ui.theme.Coral500
 
@@ -51,17 +51,26 @@ private const val PREF_SKIP_UDHAAR_DELETE = "skip_delete_udhaar_confirm"
 
 /** Returns true if the user has checked "Don't show again" for inventory deletes. */
 fun shouldSkipInventoryDeleteConfirm(context: Context): Boolean =
-    context.getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
+    context
+        .getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
         .getBoolean(PREF_SKIP_ITEM_DELETE, false)
 
 /** Returns true if the user has checked "Don't show again" for Udhaar entry deletes. */
 fun shouldSkipUdhaarDeleteConfirm(context: Context): Boolean =
-    context.getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
+    context
+        .getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
         .getBoolean(PREF_SKIP_UDHAAR_DELETE, false)
 
-private fun persistSkipPref(context: Context, prefKey: String, skip: Boolean) {
-    context.getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
-        .edit().putBoolean(prefKey, skip).apply()
+private fun persistSkipPref(
+    context: Context,
+    prefKey: String,
+    skip: Boolean,
+) {
+    context
+        .getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
+        .edit()
+        .putBoolean(prefKey, skip)
+        .apply()
 }
 
 /**
@@ -82,7 +91,7 @@ fun DeleteConfirmationDialog(
     prefKey: String = PREF_SKIP_ITEM_DELETE,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
-    context: Context
+    context: Context,
 ) {
     if (!visible) return
 
@@ -90,43 +99,46 @@ fun DeleteConfirmationDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(8.dp)
+            elevation = CardDefaults.cardElevation(8.dp),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 // Red delete icon badge
                 Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(Coral500.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .background(Coral500.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = null,
                         tint = Coral500,
-                        modifier = Modifier.size(30.dp)
+                        modifier = Modifier.size(30.dp),
                     )
                 }
 
                 Text(
                     text = stringResource(id = R.string.dlg_delete_entity, entityLabel),
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 19.sp
+                    fontSize = 19.sp,
                 )
 
                 Text(
@@ -134,44 +146,50 @@ fun DeleteConfirmationDialog(
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center,
-                    lineHeight = 20.sp
+                    lineHeight = 20.sp,
                 )
 
                 // Don't show again checkbox row
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                        .padding(horizontal = 12.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Checkbox(
                         checked = dontShowAgain,
                         onCheckedChange = { dontShowAgain = it },
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = MaterialTheme.colorScheme.primary
-                        )
+                        colors =
+                            CheckboxDefaults.colors(
+                                checkedColor = MaterialTheme.colorScheme.primary,
+                            ),
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = stringResource(id = R.string.dlg_dont_ask_again),
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     )
                 }
 
                 // Action buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     TextButton(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp)
+                        shape = RoundedCornerShape(14.dp),
                     ) {
-                        Text(stringResource(id = R.string.btn_cancel), fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text(
+                            stringResource(id = R.string.btn_cancel),
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                        )
                     }
 
                     Button(
@@ -182,20 +200,25 @@ fun DeleteConfirmationDialog(
                             onConfirm()
                             onDismiss()
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp),
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .height(44.dp),
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Coral500)
+                        colors = ButtonDefaults.buttonColors(containerColor = Coral500),
                     ) {
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = Color.White
+                            tint = Color.White,
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(stringResource(id = R.string.btn_delete), fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(
+                            stringResource(id = R.string.btn_delete),
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
                     }
                 }
             }

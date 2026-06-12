@@ -1,10 +1,6 @@
 package com.storebook.inventoryapp.ui.screens.storebook
 
 import android.app.Activity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import com.storebook.inventoryapp.utils.toRupee
-import com.storebook.inventoryapp.utils.toRupeeWithDecimals
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,14 +22,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.android.billingclient.api.ProductDetails
 import com.storebook.inventoryapp.R
-import com.storebook.inventoryapp.data.play.BillingState
 import com.storebook.inventoryapp.data.play.PlayBillingManager
 import com.storebook.inventoryapp.ui.theme.Gold200
 import com.storebook.inventoryapp.ui.theme.Gold400
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProBillingView(isProActive: Boolean, onDismiss: () -> Unit) {
+fun ProBillingView(
+    isProActive: Boolean,
+    onDismiss: () -> Unit,
+) {
     val ctx = LocalContext.current
     val activity = ctx as? Activity
     val billingManager = PlayBillingManager(ctx)
@@ -49,7 +47,7 @@ fun ProBillingView(isProActive: Boolean, onDismiss: () -> Unit) {
         if (billingState.isBillingReady) {
             billingManager.fetchProductDetails(
                 onSuccess = { products -> /* populated via state */ },
-                onFailed = { /* ignore */ }
+                onFailed = { /* ignore */ },
             )
         }
     }
@@ -71,15 +69,24 @@ fun ProBillingView(isProActive: Boolean, onDismiss: () -> Unit) {
             else -> {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     // Header icon
                     Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(if (billingState.isProUnlocked) Gold200.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
+                        modifier =
+                            Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (billingState.isProUnlocked) {
+                                        Gold200.copy(
+                                            alpha = 0.2f,
+                                        )
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    },
+                                ),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(if (billingState.isProUnlocked) "⭐" else "🔒", fontSize = 32.sp)
                     }
@@ -89,18 +96,29 @@ fun ProBillingView(isProActive: Boolean, onDismiss: () -> Unit) {
                     if (billingState.isProUnlocked) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                            shape = RoundedCornerShape(16.dp)
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                ),
+                            shape = RoundedCornerShape(16.dp),
                         ) {
                             Row(
                                 modifier = Modifier.padding(16.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Icon(Icons.Default.Star, "Pro active", tint = Gold400, modifier = Modifier.size(28.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(stringResource(id = R.string.pro_active_title), fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                    Text(stringResource(id = R.string.pro_active_desc), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        stringResource(id = R.string.pro_active_title),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
+                                    )
+                                    Text(
+                                        stringResource(id = R.string.pro_active_desc),
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
                                 }
                             }
                         }
@@ -110,16 +128,20 @@ fun ProBillingView(isProActive: Boolean, onDismiss: () -> Unit) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = Gold200.copy(alpha = 0.1f)),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
                     ) {
                         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text(stringResource(id = R.string.prem_pro_features), fontWeight = FontWeight.Black, fontSize = 15.sp)
+                            Text(
+                                stringResource(id = R.string.prem_pro_features),
+                                fontWeight = FontWeight.Black,
+                                fontSize = 15.sp,
+                            )
                             listOf(
                                 "☁️ Cloud backup & sync",
                                 "📦 Unlimited inventory items",
                                 "📊 Detailed P&L reports",
                                 "🔔 Smart low-stock alerts",
-                                "📱 WhatsApp invoice sharing"
+                                "📱 WhatsApp invoice sharing",
                             ).forEach { feature ->
                                 Text(feature, fontSize = 13.sp)
                             }
@@ -132,19 +154,19 @@ fun ProBillingView(isProActive: Boolean, onDismiss: () -> Unit) {
                             icon = "💎",
                             title = "Lifetime Pro",
                             subtitle = "One time payment — Forever access",
-                            isPrimary = true
+                            isPrimary = true,
                         )
                         PlanCard(
                             icon = "🎉",
                             title = "Annual Pro",
                             subtitle = "₹299 / year — Best value",
-                            isPrimary = false
+                            isPrimary = false,
                         )
                         PlanCard(
                             icon = "👤",
                             title = "Monthly Pro",
                             subtitle = "₹79 / month — Auto-renewed",
-                            isPrimary = false
+                            isPrimary = false,
                         )
                     }
 
@@ -152,7 +174,7 @@ fun ProBillingView(isProActive: Boolean, onDismiss: () -> Unit) {
                     Text(
                         "Purchases are detected automatically when connected to Play Store",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -166,35 +188,52 @@ private fun PlanCard(
     title: String,
     subtitle: String,
     isPrimary: Boolean,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isPrimary) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ),
-        shape = RoundedCornerShape(14.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (isPrimary) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    },
+            ),
+        shape = RoundedCornerShape(14.dp),
     ) {
         Row(
-            modifier = Modifier.padding(16.dp).then(
-                if (onClick == null) Modifier.alpha(0.5f) else Modifier
-            ),
+            modifier =
+                Modifier.padding(16.dp).then(
+                    if (onClick == null) Modifier.alpha(0.5f) else Modifier,
+                ),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(icon, fontSize = 28.sp)
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    style = MaterialTheme.typography.titleMedium,
+                )
                 Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Icon(
-                Icons.Default.Check, "",
-                tint = if (isPrimary) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
+                Icons.Default.Check,
+                "",
+                tint =
+                    if (isPrimary) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                modifier = Modifier.size(20.dp),
             )
         }
     }

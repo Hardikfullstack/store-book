@@ -2,7 +2,6 @@ package com.storebook.inventoryapp.utils
 
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.widget.Toast
 import com.google.android.play.core.appupdate.AppUpdateInfo
 import com.google.android.play.core.appupdate.AppUpdateManager
@@ -12,32 +11,42 @@ import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
 
-class AppUpdateHelper(private val context: Context) {
-
+class AppUpdateHelper(
+    private val context: Context,
+) {
     private val appUpdateManager: AppUpdateManager = AppUpdateManagerFactory.create(context)
     private var installStateListener: InstallStateUpdatedListener? = null
 
     interface UpdateStatusListener {
         fun onUpdateAvailable(appUpdateInfo: AppUpdateInfo)
+
         fun onUpdateNotAvailable()
+
         fun onUpdateFailed(e: Exception)
+
         fun onFlexibleUpdateDownloaded()
     }
 
     fun checkForUpdate(listener: UpdateStatusListener) {
         val appUpdateInfoTask = appUpdateManager.appUpdateInfo
-        appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
-            if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE) {
-                listener.onUpdateAvailable(appUpdateInfo)
-            } else {
-                listener.onUpdateNotAvailable()
+        appUpdateInfoTask
+            .addOnSuccessListener { appUpdateInfo ->
+                if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE) {
+                    listener.onUpdateAvailable(appUpdateInfo)
+                } else {
+                    listener.onUpdateNotAvailable()
+                }
+            }.addOnFailureListener { exception ->
+                listener.onUpdateFailed(exception)
             }
-        }.addOnFailureListener { exception ->
-            listener.onUpdateFailed(exception)
-        }
     }
 
-    fun startUpdate(activity: Activity, appUpdateInfo: AppUpdateInfo, updateType: Int, requestCode: Int) {
+    fun startUpdate(
+        activity: Activity,
+        appUpdateInfo: AppUpdateInfo,
+        updateType: Int,
+        requestCode: Int,
+    ) {
         if (updateType == AppUpdateType.FLEXIBLE) {
             registerInstallStateListener()
         }
@@ -46,7 +55,7 @@ class AppUpdateHelper(private val context: Context) {
                 appUpdateInfo,
                 updateType,
                 activity,
-                requestCode
+                requestCode,
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -55,11 +64,12 @@ class AppUpdateHelper(private val context: Context) {
 
     private fun registerInstallStateListener() {
         if (installStateListener == null) {
-            installStateListener = InstallStateUpdatedListener { state ->
-                if (state.installStatus() == InstallStatus.DOWNLOADED) {
-                    popupSnackBarForCompleteUpdate()
+            installStateListener =
+                InstallStateUpdatedListener { state ->
+                    if (state.installStatus() == InstallStatus.DOWNLOADED) {
+                        popupSnackBarForCompleteUpdate()
+                    }
                 }
-            }
             appUpdateManager.registerListener(installStateListener!!)
         }
     }
@@ -71,7 +81,10 @@ class AppUpdateHelper(private val context: Context) {
         }
     }
 
-    fun checkPendingUpdate(activity: Activity, requestCode: Int) {
+    fun checkPendingUpdate(
+        activity: Activity,
+        requestCode: Int,
+    ) {
         appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
             if (appUpdateInfo.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
                 try {
@@ -79,7 +92,7 @@ class AppUpdateHelper(private val context: Context) {
                         appUpdateInfo,
                         AppUpdateType.IMMEDIATE,
                         activity,
-                        requestCode
+                        requestCode,
                     )
                 } catch (e: Exception) {
                     e.printStackTrace()

@@ -1,14 +1,12 @@
 package com.storebook.inventoryapp.utils
 
 import android.content.Context
-import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import com.storebook.inventoryapp.data.billing.BillingEngine
 import com.storebook.inventoryapp.data.repository.CartItem
-import com.storebook.inventoryapp.data.repository.Item
 import com.storebook.inventoryapp.data.repository.Sale
 import java.io.File
 import java.io.FileOutputStream
@@ -17,24 +15,24 @@ import java.util.Date
 import java.util.Locale
 
 object InvoicePdfGenerator {
-
     fun generateInvoicePdf(
         context: Context,
         sale: Sale,
         cartItems: List<CartItem>,
         shopName: String,
         shopAddress: String,
-        shopGstin: String
+        shopGstin: String,
     ): File? {
         val document = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // A4 size
         val page = document.startPage(pageInfo)
         val canvas = page.canvas
 
-        val paint = Paint().apply {
-            color = Color.BLACK
-            textSize = 14f
-        }
+        val paint =
+            Paint().apply {
+                color = Color.BLACK
+                textSize = 14f
+            }
 
         var yPos = 50f
         val leftMargin = 50f
@@ -140,12 +138,13 @@ object InvoicePdfGenerator {
             yPos += 20f
         }
 
-        val taxSummary = BillingEngine.calculateInvoiceTaxes(
-            cartItems = cartItems,
-            totalDiscount = sale.discountAmount,
-            businessGstin = actualShopGstin,
-            customerGstin = sale.customerGstin
-        )
+        val taxSummary =
+            BillingEngine.calculateInvoiceTaxes(
+                cartItems = cartItems,
+                totalDiscount = sale.discountAmount,
+                businessGstin = actualShopGstin,
+                customerGstin = sale.customerGstin,
+            )
 
         val totalTax = taxSummary.totalCgst + taxSummary.totalSgst + taxSummary.totalIgst
         if (totalTax > 0) {
@@ -159,16 +158,31 @@ object InvoicePdfGenerator {
                     if (sumCgst > 0 || sumSgst > 0) {
                         val halfRate = String.format(Locale.US, "%.1f", rate / 2).replace(".0", "")
                         if (sumCgst > 0) {
-                            canvas.drawText("CGST ($halfRate%): ${String.format("Rs %.2f", sumCgst)}", rightMargin, yPos, paint)
+                            canvas.drawText(
+                                "CGST ($halfRate%): ${String.format("Rs %.2f", sumCgst)}",
+                                rightMargin,
+                                yPos,
+                                paint,
+                            )
                             yPos += 20f
                         }
                         if (sumSgst > 0) {
-                            canvas.drawText("SGST ($halfRate%): ${String.format("Rs %.2f", sumSgst)}", rightMargin, yPos, paint)
+                            canvas.drawText(
+                                "SGST ($halfRate%): ${String.format("Rs %.2f", sumSgst)}",
+                                rightMargin,
+                                yPos,
+                                paint,
+                            )
                             yPos += 20f
                         }
                     } else if (sumIgst > 0) {
                         val fmtRate = String.format(Locale.US, "%.1f", rate).replace(".0", "")
-                        canvas.drawText("IGST ($fmtRate%): ${String.format("Rs %.2f", sumIgst)}", rightMargin, yPos, paint)
+                        canvas.drawText(
+                            "IGST ($fmtRate%): ${String.format("Rs %.2f", sumIgst)}",
+                            rightMargin,
+                            yPos,
+                            paint,
+                        )
                         yPos += 20f
                     }
                 }
@@ -180,6 +194,13 @@ object InvoicePdfGenerator {
         canvas.drawText("Grand Total: ${String.format("Rs %.2f", sale.totalAmount)}", rightMargin, yPos, paint)
 
         document.finishPage(page)
+
+        // Clean up any old cached PDFs to ensure no permanent storage buildup
+        context.cacheDir.listFiles()?.forEach {
+            if (it.name.startsWith("Invoice_") && it.name.endsWith(".pdf") && it.name != "Invoice_${sale.id}.pdf") {
+                it.delete()
+            }
+        }
 
         val file = File(context.cacheDir, "Invoice_${sale.id}.pdf")
         try {

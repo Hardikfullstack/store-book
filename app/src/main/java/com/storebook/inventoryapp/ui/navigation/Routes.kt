@@ -3,12 +3,16 @@ package com.storebook.inventoryapp.ui.navigation
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class Routes(val string: String) {
+sealed class Routes(
+    val string: String,
+) {
     @Serializable
     object Splash : Routes("splash_screen")
 
     @Serializable
-    data class Language(val isFirstTime: Boolean = false) : Routes("language_screen")
+    data class Language(
+        val isFirstTime: Boolean = false,
+    ) : Routes("language_screen")
 
     @Serializable
     object Dashboard : Routes("dashboard_screen")

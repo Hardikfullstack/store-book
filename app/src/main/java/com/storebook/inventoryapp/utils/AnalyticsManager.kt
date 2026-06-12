@@ -1,9 +1,8 @@
 package com.storebook.inventoryapp.utils
 
-import android.os.Bundle
-import com.google.firebase.Firebase
-import com.google.firebase.analytics.FirebaseAnalytics
 import android.content.Context
+import android.os.Bundle
+import com.google.firebase.analytics.FirebaseAnalytics
 
 /**
  * AnalyticsManager is a common utility to log events to Firebase Analytics. It provides a central
@@ -20,16 +19,24 @@ object AnalyticsManager {
     }
 
     /** Logs a general event with optional parameters. */
-    fun logEvent(eventName: String, params: Bundle? = null) {
+    fun logEvent(
+        eventName: String,
+        params: Bundle? = null,
+    ) {
         firebaseAnalytics?.logEvent(eventName, params)
     }
 
-    fun logAdEvent(adType: String, placement: String, action: String) {
-        val bundle = Bundle().apply {
-            putString("ad_type", adType)
-            putString("placement", placement)
-            putString("action", action) // e.g., "request", "show", "click", "failed"
-        }
+    fun logAdEvent(
+        adType: String,
+        placement: String,
+        action: String,
+    ) {
+        val bundle =
+            Bundle().apply {
+                putString("ad_type", adType)
+                putString("placement", placement)
+                putString("action", action) // e.g., "request", "show", "click", "failed"
+            }
         logEvent("ad_performance", bundle)
     }
 
@@ -38,21 +45,22 @@ object AnalyticsManager {
         eventName: String,
         screenName: String,
         action: String,
-        extraParams: Map<String, Any>? = null
+        extraParams: Map<String, Any>? = null,
     ) {
-        val bundle = Bundle().apply {
-            putString("screen", screenName)
-            putString("action", action)
-            extraParams?.forEach { (key, value) ->
-                when (value) {
-                    is String -> putString(key, value)
-                    is Int -> putInt(key, value)
-                    is Long -> putLong(key, value)
-                    is Double -> putDouble(key, value)
-                    is Boolean -> putBoolean(key, value)
+        val bundle =
+            Bundle().apply {
+                putString("screen", screenName)
+                putString("action", action)
+                extraParams?.forEach { (key, value) ->
+                    when (value) {
+                        is String -> putString(key, value)
+                        is Int -> putInt(key, value)
+                        is Long -> putLong(key, value)
+                        is Double -> putDouble(key, value)
+                        is Boolean -> putBoolean(key, value)
+                    }
                 }
             }
-        }
         logEvent(eventName, bundle)
     }
 }

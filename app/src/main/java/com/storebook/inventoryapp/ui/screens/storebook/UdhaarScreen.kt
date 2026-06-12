@@ -2,15 +2,13 @@ package com.storebook.inventoryapp.ui.screens.storebook
 
 import android.content.Intent
 import android.net.Uri
-import com.storebook.inventoryapp.utils.toRupee
-import com.storebook.inventoryapp.utils.toRupeeWithDecimals
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,41 +19,37 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -66,35 +60,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.data.repository.CustomerBalance
 import com.storebook.inventoryapp.data.repository.UdhaarEntry
-import androidx.compose.foundation.BorderStroke
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
+import com.storebook.inventoryapp.utils.toRupee
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-import androidx.compose.animation.core.Animatable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,8 +104,11 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
 
     val filteredBalances by remember(balances, searchQ) {
         derivedStateOf {
-            if (searchQ.isBlank()) balances
-            else balances.filter { it.customerName.contains(searchQ, ignoreCase = true) }
+            if (searchQ.isBlank()) {
+                balances
+            } else {
+                balances.filter { it.customerName.contains(searchQ, ignoreCase = true) }
+            }
         }
     }
 
@@ -131,7 +121,11 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
     val dateFmt = remember { SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()) }
     val lastDateFmt = remember { SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()) }
 
-    val repository = remember { com.storebook.inventoryapp.data.repository.StoreBookRepository(context) }
+    val repository =
+        remember {
+            com.storebook.inventoryapp.data.repository
+                .StoreBookRepository(context)
+        }
     val fetchLedger: (String) -> Unit = { name ->
         coroutineScope.launch {
             ledgerEntries = repository.getCustomerLedger(name)
@@ -144,29 +138,33 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
         snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
         topBar = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = stringResource(id = R.string.udh_title),
                         fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold
+                        fontWeight = FontWeight.ExtraBold,
                     )
                     Button(
                         onClick = {
                             selectedCustomer = null
-                            inputCustomerName = ""; inputAmount = ""; inputNotes = ""
-                            dialogType = "CREDIT"; showDialog = true
+                            inputCustomerName = ""
+                            inputAmount = ""
+                            inputNotes = ""
+                            dialogType = "CREDIT"
+                            showDialog = true
                         },
                         shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
@@ -180,26 +178,29 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                        ),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(Coral100.copy(alpha = 0.8f)),
-                                contentAlignment = Alignment.Center
+                                modifier =
+                                    Modifier
+                                        .size(42.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(Coral100.copy(alpha = 0.8f)),
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Text("📒", fontSize = 20.sp)
                             }
@@ -210,7 +211,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 0.1.sp
+                                    letterSpacing = 0.1.sp,
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
@@ -218,21 +219,22 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     fontSize = 26.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = Coral500,
-                                    fontFamily = Poppins
+                                    fontFamily = Poppins,
                                 )
                             }
                         }
                         Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                            modifier =
+                                Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
                         ) {
                             Text(
                                 text = "${balances.size} customers",
                                 color = MaterialTheme.colorScheme.primary,
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                     }
@@ -247,15 +249,16 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     singleLine = true,
-                    shape = RoundedCornerShape(20.dp)
+                    shape = RoundedCornerShape(20.dp),
                 )
             }
-        }
+        },
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
         ) {
             if (balances.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -265,7 +268,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                         Text(
                             text = stringResource(id = R.string.udh_empty),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }
@@ -277,7 +280,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                         Text(
                             text = stringResource(id = R.string.udh_no_results, searchQ),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }
@@ -285,9 +288,12 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)
+                    contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
                 ) {
-                    val topCustomers = balances.filter { it.netBalance > 0 }.sortedByDescending { it.netBalance }.take(4)
+                    val topCustomers =
+                        balances.filter { it.netBalance > 0 }.sortedByDescending { it.netBalance }.take(
+                            4,
+                        )
                     if (topCustomers.isNotEmpty() && searchQ.isEmpty()) {
                         item {
                             Text(
@@ -295,34 +301,61 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
                             )
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 items(topCustomers) { bal ->
                                     Card(
-                                        modifier = Modifier
-                                            .width(120.dp)
-                                            .clickable {
-                                                selectedCustomer = bal
-                                                fetchLedger(bal.customerName)
-                                                showCustomerLedgerSheet = true
-                                            },
+                                        modifier =
+                                            Modifier
+                                                .width(120.dp)
+                                                .clickable {
+                                                    selectedCustomer = bal
+                                                    fetchLedger(bal.customerName)
+                                                    showCustomerLedgerSheet = true
+                                                },
                                         shape = RoundedCornerShape(12.dp),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                                        colors =
+                                            CardDefaults.cardColors(
+                                                containerColor =
+                                                    MaterialTheme.colorScheme.primaryContainer.copy(
+                                                        alpha = 0.5f,
+                                                    ),
+                                            ),
                                     ) {
                                         Column(
                                             modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                                            horizontalAlignment = Alignment.CenterHorizontally
+                                            horizontalAlignment = Alignment.CenterHorizontally,
                                         ) {
                                             Box(
-                                                modifier = Modifier.size(32.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
-                                                contentAlignment = Alignment.Center
+                                                modifier =
+                                                    Modifier
+                                                        .size(
+                                                            32.dp,
+                                                        ).clip(CircleShape)
+                                                        .background(MaterialTheme.colorScheme.primary),
+                                                contentAlignment = Alignment.Center,
                                             ) {
-                                                Text(bal.customerName.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Bold)
+                                                Text(
+                                                    bal.customerName.take(1).uppercase(),
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.Bold,
+                                                )
                                             }
                                             Spacer(modifier = Modifier.height(6.dp))
-                                            Text(bal.customerName, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                                            Text(bal.netBalance.toRupee(), fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                            Text(
+                                                bal.customerName,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            )
+                                            Text(
+                                                bal.netBalance.toRupee(),
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontWeight = FontWeight.Bold,
+                                            )
                                         }
                                     }
                                 }
@@ -345,69 +378,91 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                         customerName = customerToSettle,
                                         amount = amountToSettle,
                                         type = "PAYMENT",
-                                        notes = "Full settlement"
+                                        notes = "Full settlement",
                                     )
                                     coroutineScope.launch {
-                                        val result = snackbarHostState.showSnackbar(
-                                            message = "Marked as paid",
-                                            actionLabel = "UNDO",
-                                            duration = androidx.compose.material3.SnackbarDuration.Short
-                                        )
+                                        val result =
+                                            snackbarHostState.showSnackbar(
+                                                message = "Marked as paid",
+                                                actionLabel = "UNDO",
+                                                duration = androidx.compose.material3.SnackbarDuration.Short,
+                                            )
                                         if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
                                             viewModel.recordUdhaarEntry(
                                                 customerName = customerToSettle,
                                                 amount = amountToSettle,
                                                 type = "CREDIT",
-                                                notes = "Undo settlement"
+                                                notes = "Undo settlement",
                                             )
                                         }
                                     }
                                 }
                             },
                             onEndToStart = {
-                                val template = context.getString(
-                                    R.string.udh_reminder_template,
-                                    bal.customerName,
-                                    bal.netBalance
-                                )
-                                val intent = Intent(Intent.ACTION_VIEW).apply {
-                                    data = Uri.parse("https://api.whatsapp.com/send?text=${URLEncoder.encode(template, "UTF-8")}")
-                                }
+                                val template =
+                                    context.getString(
+                                        R.string.udh_reminder_template,
+                                        bal.customerName,
+                                        bal.netBalance,
+                                    )
+                                val intent =
+                                    Intent(Intent.ACTION_VIEW).apply {
+                                        data =
+                                            Uri.parse(
+                                                "https://api.whatsapp.com/send?text=${URLEncoder.encode(
+                                                    template,
+                                                    "UTF-8",
+                                                )}",
+                                            )
+                                    }
                                 context.startActivity(intent)
                             },
                             backgroundContent = { offsetX ->
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(
-                                            when {
-                                                offsetX > 0 -> Emerald500
-                                                offsetX < 0 -> WhatsAppGreen
-                                                else -> Color.Transparent
-                                            }
-                                        )
-                                        .padding(horizontal = 20.dp),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(
+                                                when {
+                                                    offsetX > 0 -> Emerald500
+                                                    offsetX < 0 -> WhatsAppGreen
+                                                    else -> Color.Transparent
+                                                },
+                                            ).padding(horizontal = 20.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = when {
-                                        offsetX > 0 -> Arrangement.Start
-                                        else -> Arrangement.End
-                                    }
+                                    horizontalArrangement =
+                                        when {
+                                            offsetX > 0 -> Arrangement.Start
+                                            else -> Arrangement.End
+                                        },
                                 ) {
                                     when {
                                         offsetX > 0 -> {
                                             Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
                                             Spacer(modifier = Modifier.width(6.dp))
-                                            Text(stringResource(id = R.string.udh_mark_paid), color = Color.White, fontWeight = FontWeight.Bold)
+                                            Text(
+                                                stringResource(id = R.string.udh_mark_paid),
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                            )
                                         }
                                         offsetX < 0 -> {
-                                            Text(stringResource(id = R.string.udh_whatsapp_remind), color = Color.White, fontWeight = FontWeight.Bold)
+                                            Text(
+                                                stringResource(id = R.string.udh_whatsapp_remind),
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                            )
                                             Spacer(modifier = Modifier.width(6.dp))
-                                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = Color.White)
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.Send,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                            )
                                         }
                                     }
                                 }
-                            }
+                            },
                         ) {
                             UdhaarCustomerCard(
                                 bal = bal,
@@ -417,7 +472,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     selectedCustomer = bal
                                     fetchLedger(bal.customerName)
                                     showCustomerLedgerSheet = true
-                                }
+                                },
                             )
                         }
                     }
@@ -431,35 +486,37 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                     onDismissRequest = { showCustomerLedgerSheet = false },
                     sheetState = sheetState,
                     containerColor = MaterialTheme.colorScheme.surface,
-                    dragHandle = { BottomSheetDefaults.DragHandle() }
+                    dragHandle = { BottomSheetDefaults.DragHandle() },
                 ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(0.88f)
-                            .padding(horizontal = 20.dp)
-                            .padding(bottom = 32.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(0.88f)
+                                .padding(horizontal = 20.dp)
+                                .padding(bottom = 32.dp),
                     ) {
                         // Header row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 // Avatar circle
                                 Box(
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primaryContainer),
-                                    contentAlignment = Alignment.Center
+                                    modifier =
+                                        Modifier
+                                            .size(44.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primaryContainer),
+                                    contentAlignment = Alignment.Center,
                                 ) {
                                     Text(
                                         customer.customerName.firstOrNull()?.uppercase() ?: "?",
                                         fontWeight = FontWeight.Black,
                                         fontSize = 18.sp,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
@@ -467,37 +524,51 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     Text(
                                         text = customer.customerName,
                                         fontSize = 17.sp,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
                                     )
                                     Text(
                                         text = "${customer.netBalance.toRupee()} outstanding",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (customer.netBalance > 0) Coral500 else Emerald500
+                                        color = if (customer.netBalance > 0) Coral500 else Emerald500,
                                     )
                                 }
                             }
 
                             // WhatsApp share icon
                             Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(WhatsAppGreen.copy(alpha = 0.12f))
-                                    .clickable {
-                                        val template = context.getString(
-                                            R.string.udh_reminder_template,
-                                            customer.customerName,
-                                            customer.netBalance
-                                        )
-                                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                                            data = Uri.parse("https://api.whatsapp.com/send?text=${URLEncoder.encode(template, "UTF-8")}")
-                                        }
-                                        context.startActivity(intent)
-                                    },
-                                contentAlignment = Alignment.Center
+                                modifier =
+                                    Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(WhatsAppGreen.copy(alpha = 0.12f))
+                                        .clickable {
+                                            val template =
+                                                context.getString(
+                                                    R.string.udh_reminder_template,
+                                                    customer.customerName,
+                                                    customer.netBalance,
+                                                )
+                                            val intent =
+                                                Intent(Intent.ACTION_VIEW).apply {
+                                                    data =
+                                                        Uri.parse(
+                                                            "https://api.whatsapp.com/send?text=${URLEncoder.encode(
+                                                                template,
+                                                                "UTF-8",
+                                                            )}",
+                                                        )
+                                                }
+                                            context.startActivity(intent)
+                                        },
+                                contentAlignment = Alignment.Center,
                             ) {
-                                Icon(Icons.Default.Share, contentDescription = null, tint = WhatsAppGreen, modifier = Modifier.size(20.dp))
+                                Icon(
+                                    Icons.Default.Share,
+                                    contentDescription = null,
+                                    tint = WhatsAppGreen,
+                                    modifier = Modifier.size(20.dp),
+                                )
                             }
                         }
 
@@ -508,31 +579,37 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                         // Ledger timeline
                         LazyColumn(
                             modifier = Modifier.weight(1f).fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             items(ledgerEntries) { entry ->
                                 val dateStr = dateFmt.format(Date(entry.timestamp))
                                 val isCredit = entry.type == "CREDIT"
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (isCredit) Coral100.copy(alpha = 0.5f)
-                                        else Emerald500.copy(alpha = 0.08f)
-                                    ),
-                                    shape = RoundedCornerShape(12.dp)
+                                    colors =
+                                        CardDefaults.cardColors(
+                                            containerColor =
+                                                if (isCredit) {
+                                                    Coral100.copy(alpha = 0.5f)
+                                                } else {
+                                                    Emerald500.copy(alpha = 0.08f)
+                                                },
+                                        ),
+                                    shape = RoundedCornerShape(12.dp),
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(12.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Box(
-                                                modifier = Modifier
-                                                    .width(3.dp)
-                                                    .height(40.dp)
-                                                    .clip(RoundedCornerShape(2.dp))
-                                                    .background(if (isCredit) Coral500 else Emerald500)
+                                                modifier =
+                                                    Modifier
+                                                        .width(3.dp)
+                                                        .height(40.dp)
+                                                        .clip(RoundedCornerShape(2.dp))
+                                                        .background(if (isCredit) Coral500 else Emerald500),
                                             )
                                             Spacer(modifier = Modifier.width(10.dp))
                                             Column {
@@ -540,19 +617,27 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                                     text = if (isCredit) "Credit Given (उधार दिया)" else "Payment Received (जमा किया)",
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = 13.sp,
-                                                    color = if (isCredit) Coral500 else Emerald500
+                                                    color = if (isCredit) Coral500 else Emerald500,
                                                 )
                                                 if (!entry.notes.isNullOrBlank()) {
-                                                    Text(entry.notes, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                                                    Text(
+                                                        entry.notes,
+                                                        fontSize = 12.sp,
+                                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                                    )
                                                 }
-                                                Text(dateStr, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                                                Text(
+                                                    dateStr,
+                                                    fontSize = 10.sp,
+                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                                )
                                             }
                                         }
                                         Text(
                                             text = "${entry.amount.toRupee()}",
                                             fontWeight = FontWeight.Black,
                                             fontSize = 15.sp,
-                                            color = if (isCredit) Coral500 else Emerald500
+                                            color = if (isCredit) Coral500 else Emerald500,
                                         )
                                     }
                                 }
@@ -564,31 +649,43 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                         // Give credit / Receive payment buttons
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             Button(
                                 onClick = {
                                     inputCustomerName = customer.customerName
-                                    inputAmount = ""; inputNotes = ""
-                                    dialogType = "CREDIT"; showDialog = true
+                                    inputAmount = ""
+                                    inputNotes = ""
+                                    dialogType = "CREDIT"
+                                    showDialog = true
                                 },
                                 shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = Coral500)
+                                colors = ButtonDefaults.buttonColors(containerColor = Coral500),
                             ) {
-                                Text(stringResource(id = R.string.udh_btn_give_credit), fontWeight = FontWeight.Bold, color = Color.White)
+                                Text(
+                                    stringResource(id = R.string.udh_btn_give_credit),
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
                             }
                             Button(
                                 onClick = {
                                     inputCustomerName = customer.customerName
-                                    inputAmount = ""; inputNotes = ""
-                                    dialogType = "PAYMENT"; showDialog = true
+                                    inputAmount = ""
+                                    inputNotes = ""
+                                    dialogType = "PAYMENT"
+                                    showDialog = true
                                 },
                                 shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = Emerald500)
+                                colors = ButtonDefaults.buttonColors(containerColor = Emerald500),
                             ) {
-                                Text(stringResource(id = R.string.udh_btn_receive_payment), fontWeight = FontWeight.Bold, color = Color.White)
+                                Text(
+                                    stringResource(id = R.string.udh_btn_receive_payment),
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
                             }
                         }
                     }
@@ -604,62 +701,93 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(8.dp),
                         shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     ) {
                         Column(
                             modifier = Modifier.padding(24.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (dialogType == "CREDIT") Coral500.copy(alpha = 0.12f)
-                                            else Emerald500.copy(alpha = 0.12f)
-                                        ),
-                                    contentAlignment = Alignment.Center
+                                    modifier =
+                                        Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (dialogType == "CREDIT") {
+                                                    Coral500.copy(alpha = 0.12f)
+                                                } else {
+                                                    Emerald500.copy(alpha = 0.12f)
+                                                },
+                                            ),
+                                    contentAlignment = Alignment.Center,
                                 ) {
                                     Text(
                                         if (dialogType == "CREDIT") "−" else "+",
                                         fontWeight = FontWeight.Black,
                                         fontSize = 20.sp,
-                                        color = if (dialogType == "CREDIT") Coral500 else Emerald500
+                                        color = if (dialogType == "CREDIT") Coral500 else Emerald500,
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text(
-                                    text = if (dialogType == "CREDIT") "Give Credit (उधार दें)" else "Receive Payment (जमा करें)",
+                                    text =
+                                        if (dialogType ==
+                                            "CREDIT"
+                                        ) {
+                                            "Give Credit (उधार दें)"
+                                        } else {
+                                            "Receive Payment (जमा करें)"
+                                        },
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (dialogType == "CREDIT") Coral500 else Emerald500
+                                    color = if (dialogType == "CREDIT") Coral500 else Emerald500,
                                 )
                             }
 
                             if (selectedCustomer == null) {
                                 OutlinedTextField(
                                     value = inputCustomerName,
-                                    onValueChange = { inputCustomerName = it; nameError = false },
+                                    onValueChange = {
+                                        inputCustomerName = it
+                                        nameError = false
+                                    },
                                     label = { Text(if (nameError) "Valid Name Required" else "Customer Name") },
                                     isError = nameError,
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
-                                    shape = RoundedCornerShape(12.dp)
+                                    shape = RoundedCornerShape(12.dp),
                                 )
                             } else {
-                                Text(stringResource(id = R.string.udh_customer_prefix, selectedCustomer!!.customerName), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text(
+                                    stringResource(id = R.string.udh_customer_prefix, selectedCustomer!!.customerName),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                )
                             }
 
                             OutlinedTextField(
                                 value = inputAmount,
-                                onValueChange = { inputAmount = it; amountError = false },
-                                label = { Text(if (amountError) "Valid Amount Required" else stringResource(id = R.string.udh_amount_label)) },
+                                onValueChange = {
+                                    inputAmount = it
+                                    amountError = false
+                                },
+                                label = {
+                                    Text(
+                                        if (amountError) {
+                                            "Valid Amount Required"
+                                        } else {
+                                            stringResource(
+                                                id = R.string.udh_amount_label,
+                                            )
+                                        },
+                                    )
+                                },
                                 isError = amountError,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(12.dp),
                             )
 
                             OutlinedTextField(
@@ -668,21 +796,22 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                 label = { Text(stringResource(id = R.string.udh_desc_note)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(12.dp),
                             )
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
                                 Button(
                                     onClick = { showDialog = false },
                                     modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                    ),
-                                    shape = RoundedCornerShape(12.dp)
+                                    colors =
+                                        ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        ),
+                                    shape = RoundedCornerShape(12.dp),
                                 ) {
                                     Text(stringResource(id = R.string.btn_cancel), fontWeight = FontWeight.Bold)
                                 }
@@ -691,10 +820,16 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     onClick = {
                                         val name = inputCustomerName.trim()
                                         val amt = inputAmount.toDoubleOrNull()
-                                        
+
                                         var isValid = true
-                                        if (name.isBlank()) { nameError = true; isValid = false }
-                                        if (amt == null || amt <= 0.0) { amountError = true; isValid = false }
+                                        if (name.isBlank()) {
+                                            nameError = true
+                                            isValid = false
+                                        }
+                                        if (amt == null || amt <= 0.0) {
+                                            amountError = true
+                                            isValid = false
+                                        }
                                         if (!isValid) return@Button
 
                                         viewModel.recordUdhaarEntry(name, amt!!, dialogType, inputNotes)
@@ -704,7 +839,11 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                             fetchLedger(selectedCustomer!!.customerName)
                                             coroutineScope.launch {
                                                 val updatedList = repository.getUdhaarBalances()
-                                                selectedCustomer = updatedList.find { it.customerName == selectedCustomer!!.customerName }
+                                                selectedCustomer =
+                                                    updatedList.find {
+                                                        it.customerName ==
+                                                            selectedCustomer!!.customerName
+                                                    }
                                             }
                                         }
 
@@ -714,11 +853,16 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (dialogType == "CREDIT") Coral500 else Emerald500
-                                    )
+                                    colors =
+                                        ButtonDefaults.buttonColors(
+                                            containerColor = if (dialogType == "CREDIT") Coral500 else Emerald500,
+                                        ),
                                 ) {
-                                    Text(stringResource(id = R.string.btn_save), color = Color.White, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        stringResource(id = R.string.btn_save),
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                    )
                                 }
                             }
                         }
@@ -734,44 +878,52 @@ fun UdhaarCustomerCard(
     bal: CustomerBalance,
     lastDateFmt: SimpleDateFormat,
     owesMoney: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             // Avatar
             Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (owesMoney) Coral500.copy(alpha = 0.12f)
-                        else Emerald500.copy(alpha = 0.12f)
-                    ),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (owesMoney) {
+                                Coral500.copy(alpha = 0.12f)
+                            } else {
+                                Emerald500.copy(alpha = 0.12f)
+                            },
+                        ),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = bal.customerName.firstOrNull()?.uppercase() ?: "?",
                     fontWeight = FontWeight.Black,
                     fontSize = 17.sp,
-                    color = if (owesMoney) Coral500 else Emerald500
+                    color = if (owesMoney) Coral500 else Emerald500,
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(bal.customerName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Text(
-                    text = stringResource(id = R.string.udh_last_trans, lastDateFmt.format(Date(bal.lastTransactionTime))),
+                    text =
+                        stringResource(
+                            id = R.string.udh_last_trans,
+                            lastDateFmt.format(Date(bal.lastTransactionTime)),
+                        ),
                     fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
@@ -779,13 +931,13 @@ fun UdhaarCustomerCard(
                     text = "${bal.netBalance.toRupee()}",
                     fontWeight = FontWeight.Black,
                     fontSize = 16.sp,
-                    color = if (owesMoney) Coral500 else Emerald500
+                    color = if (owesMoney) Coral500 else Emerald500,
                 )
                 Text(
                     text = if (owesMoney) "Due" else "Advance",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (owesMoney) Coral500 else Emerald500
+                    color = if (owesMoney) Coral500 else Emerald500,
                 )
             }
         }
@@ -799,7 +951,7 @@ fun LimitedSwipeToActionBox(
     onStartToEnd: () -> Unit,
     onEndToStart: () -> Unit,
     backgroundContent: @Composable (offsetX: Float) -> Unit,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
@@ -810,37 +962,54 @@ fun LimitedSwipeToActionBox(
     val coroutineScope = rememberCoroutineScope()
 
     Box(
-        modifier = Modifier.draggable(
-            orientation = Orientation.Horizontal,
-            state = rememberDraggableState { delta ->
-                coroutineScope.launch {
-                    var newOffset = offsetX.value + delta
-                    if (!enableStartToEnd && newOffset > 0) newOffset = 0f
-                    if (!enableEndToStart && newOffset < 0) newOffset = 0f
+        modifier =
+            Modifier.draggable(
+                orientation = Orientation.Horizontal,
+                state =
+                    rememberDraggableState { delta ->
+                        coroutineScope.launch {
+                            var newOffset = offsetX.value + delta
+                            if (!enableStartToEnd && newOffset > 0) newOffset = 0f
+                            if (!enableEndToStart && newOffset < 0) newOffset = 0f
 
-                    if (newOffset > maxDragPx) newOffset = maxDragPx
-                    if (newOffset < -maxDragPx) newOffset = -maxDragPx
+                            if (newOffset > maxDragPx) newOffset = maxDragPx
+                            if (newOffset < -maxDragPx) newOffset = -maxDragPx
 
-                    offsetX.snapTo(newOffset)
-                }
-            },
-            onDragStopped = {
-                coroutineScope.launch {
-                    // Check if we passed the threshold to trigger action
-                    if (offsetX.value >= triggerPx && enableStartToEnd) {
-                        // animate back first, then trigger
-                        offsetX.animateTo(0f, animationSpec = androidx.compose.animation.core.tween(200))
-                        onStartToEnd()
-                    } else if (offsetX.value <= -triggerPx && enableEndToStart) {
-                        offsetX.animateTo(0f, animationSpec = androidx.compose.animation.core.tween(200))
-                        onEndToStart()
-                    } else {
-                        // didn't pass threshold, just snap back
-                        offsetX.animateTo(0f, animationSpec = androidx.compose.animation.core.tween(200))
+                            offsetX.snapTo(newOffset)
+                        }
+                    },
+                onDragStopped = {
+                    coroutineScope.launch {
+                        // Check if we passed the threshold to trigger action
+                        if (offsetX.value >= triggerPx && enableStartToEnd) {
+                            // animate back first, then trigger
+                            offsetX.animateTo(
+                                0f,
+                                animationSpec =
+                                    androidx.compose.animation.core
+                                        .tween(200),
+                            )
+                            onStartToEnd()
+                        } else if (offsetX.value <= -triggerPx && enableEndToStart) {
+                            offsetX.animateTo(
+                                0f,
+                                animationSpec =
+                                    androidx.compose.animation.core
+                                        .tween(200),
+                            )
+                            onEndToStart()
+                        } else {
+                            // didn't pass threshold, just snap back
+                            offsetX.animateTo(
+                                0f,
+                                animationSpec =
+                                    androidx.compose.animation.core
+                                        .tween(200),
+                            )
+                        }
                     }
-                }
-            }
-        )
+                },
+            ),
     ) {
         // Background
         Box(modifier = Modifier.matchParentSize()) {
@@ -849,7 +1018,7 @@ fun LimitedSwipeToActionBox(
 
         // Foreground
         Box(
-            modifier = Modifier.offset { IntOffset(offsetX.value.roundToInt(), 0) }
+            modifier = Modifier.offset { IntOffset(offsetX.value.roundToInt(), 0) },
         ) {
             content()
         }

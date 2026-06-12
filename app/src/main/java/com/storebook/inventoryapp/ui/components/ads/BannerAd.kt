@@ -38,43 +38,48 @@ import com.storebook.inventoryapp.utils.LocalAppConfig
 @Composable
 fun BannerAdSkeleton() {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(60.dp) // Standard banner height
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(60.dp) // Standard banner height
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(45.dp)
-                .shimmerEffect()
+            modifier =
+                Modifier
+                    .size(45.dp)
+                    .shimmerEffect(),
         )
 
         Spacer(modifier = Modifier.width(12.dp))
 
         Column(verticalArrangement = Arrangement.Center) {
             Box(
-                modifier = Modifier
-                    .width(120.dp)
-                    .height(14.dp)
-                    .shimmerEffect()
+                modifier =
+                    Modifier
+                        .width(120.dp)
+                        .height(14.dp)
+                        .shimmerEffect(),
             )
             Spacer(modifier = Modifier.height(6.dp))
             Box(
-                modifier = Modifier
-                    .width(80.dp)
-                    .height(10.dp)
-                    .shimmerEffect()
+                modifier =
+                    Modifier
+                        .width(80.dp)
+                        .height(10.dp)
+                        .shimmerEffect(),
             )
         }
 
         Spacer(modifier = Modifier.weight(1f))
 
         Box(
-            modifier = Modifier
-                .width(80.dp)
-                .height(30.dp)
-                .shimmerEffect(RoundedCornerShape(18.dp))
+            modifier =
+                Modifier
+                    .width(80.dp)
+                    .height(30.dp)
+                    .shimmerEffect(RoundedCornerShape(18.dp)),
         )
     }
 }
@@ -84,7 +89,7 @@ fun BannerAd(
     modifier: Modifier = Modifier,
     adId: String? = null,
     isBackground: Boolean = false,
-    placement: String = "unknown_screen"
+    placement: String = "unknown_screen",
 ) {
     val appConfig = LocalAppConfig.current
     if (appConfig?.result?.google_ads_on_off != "on") return
@@ -93,9 +98,10 @@ fun BannerAd(
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
-    val adSize = remember(screenWidth) {
-        AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, screenWidth)
-    }
+    val adSize =
+        remember(screenWidth) {
+            AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, screenWidth)
+        }
 
     var isAdLoaded by remember { mutableStateOf(false) }
     var isAdFailed by remember { mutableStateOf(false) }
@@ -111,42 +117,45 @@ fun BannerAd(
                 AdView(ctx).apply {
                     setAdSize(adSize)
                     adUnitId = finalAdId
-                    adListener = object : AdListener() {
-                        override fun onAdLoaded() {
-                            isAdLoaded = true
-                            AnalyticsManager.logAdEvent("banner", placement, "loaded")
-                        }
+                    adListener =
+                        object : AdListener() {
+                            override fun onAdLoaded() {
+                                isAdLoaded = true
+                                AnalyticsManager.logAdEvent("banner", placement, "loaded")
+                            }
 
-                        override fun onAdClicked() {
-                            AnalyticsManager.logAdEvent("banner", placement, "clicked")
-                        }
+                            override fun onAdClicked() {
+                                AnalyticsManager.logAdEvent("banner", placement, "clicked")
+                            }
 
-                        override fun onAdFailedToLoad(adError: LoadAdError) {
-                            isAdLoaded = false
-                            isAdFailed = true
-                            AnalyticsManager.logAdEvent("banner", placement, "failed_to_load")
-                        }
+                            override fun onAdFailedToLoad(adError: LoadAdError) {
+                                isAdLoaded = false
+                                isAdFailed = true
+                                AnalyticsManager.logAdEvent("banner", placement, "failed_to_load")
+                            }
 
-                        override fun onAdImpression() {
-                            AnalyticsManager.logAdEvent("banner", placement, "impression")
+                            override fun onAdImpression() {
+                                AnalyticsManager.logAdEvent("banner", placement, "impression")
+                            }
                         }
-                    }
                     AnalyticsManager.logAdEvent("banner", placement, "request")
                     loadAd(AdRequest.Builder().build())
                 }
-            }
+            },
         )
 
         if (!isAdLoaded) {
             Surface(
-                color = if (isBackground) {
-                    colorResource(R.color.black_text)
-                } else {
-                    MaterialTheme.colorScheme.onPrimary
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(adSize.height.dp)
+                color =
+                    if (isBackground) {
+                        colorResource(R.color.black_text)
+                    } else {
+                        MaterialTheme.colorScheme.onPrimary
+                    },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(adSize.height.dp),
             ) {
                 BannerAdSkeleton()
             }

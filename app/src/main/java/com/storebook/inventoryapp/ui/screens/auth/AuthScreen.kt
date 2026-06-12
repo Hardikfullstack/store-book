@@ -17,19 +17,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.storebook.inventoryapp.R
 import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
+import com.storebook.inventoryapp.R
 import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
     onAuthSuccess: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -37,40 +37,41 @@ fun AuthScreen(
 
     var phoneNumber by remember { mutableStateOf("") }
     var otpCode by remember { mutableStateOf("") }
-    
+
     var isOtpSent by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var verificationId by remember { mutableStateOf("") }
     var resendToken by remember { mutableStateOf<PhoneAuthProvider.ForceResendingToken?>(null) }
 
-    val callbacks = remember {
-        object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-            override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                // Auto-retrieval or instant validation
-                signInWithPhoneAuthCredential(auth, credential, onAuthSuccess) { err ->
+    val callbacks =
+        remember {
+            object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+                override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                    // Auto-retrieval or instant validation
+                    signInWithPhoneAuthCredential(auth, credential, onAuthSuccess) { err ->
+                        isLoading = false
+                        Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onVerificationFailed(e: FirebaseException) {
                     isLoading = false
-                    Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
+                    val msg = context.getString(R.string.auth_toast_verification_failed, e.message)
+                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                }
+
+                override fun onCodeSent(
+                    verId: String,
+                    token: PhoneAuthProvider.ForceResendingToken,
+                ) {
+                    isLoading = false
+                    isOtpSent = true
+                    verificationId = verId
+                    resendToken = token
+                    Toast.makeText(context, context.getString(R.string.auth_toast_otp_sent), Toast.LENGTH_SHORT).show()
                 }
             }
-
-            override fun onVerificationFailed(e: FirebaseException) {
-                isLoading = false
-                val msg = context.getString(R.string.auth_toast_verification_failed, e.message)
-                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-            }
-
-            override fun onCodeSent(
-                verId: String,
-                token: PhoneAuthProvider.ForceResendingToken
-            ) {
-                isLoading = false
-                isOtpSent = true
-                verificationId = verId
-                resendToken = token
-                Toast.makeText(context, context.getString(R.string.auth_toast_otp_sent), Toast.LENGTH_SHORT).show()
-            }
         }
-    }
 
     Scaffold(
         topBar = {
@@ -80,29 +81,45 @@ fun AuthScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
-                }
+                },
             )
-        }
+        },
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(24.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = if (isOtpSent) stringResource(R.string.auth_enter_otp) else stringResource(R.string.auth_enter_phone),
+                text =
+                    if (isOtpSent) {
+                        stringResource(
+                            R.string.auth_enter_otp,
+                        )
+                    } else {
+                        stringResource(R.string.auth_enter_phone)
+                    },
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 8.dp),
             )
-            
+
             Text(
-                text = if (isOtpSent) stringResource(R.string.auth_otp_sent_to, phoneNumber) else stringResource(R.string.auth_desc),
+                text =
+                    if (isOtpSent) {
+                        stringResource(
+                            R.string.auth_otp_sent_to,
+                            phoneNumber,
+                        )
+                    } else {
+                        stringResource(R.string.auth_desc)
+                    },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 32.dp)
+                modifier = Modifier.padding(bottom = 32.dp),
             )
 
             if (!isOtpSent) {
@@ -113,7 +130,7 @@ fun AuthScreen(
                     prefix = { Text("+91 ") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -122,23 +139,33 @@ fun AuthScreen(
                     onClick = {
                         if (phoneNumber.length >= 10 && activity != null) {
                             isLoading = true
-                            val options = PhoneAuthOptions.newBuilder(auth)
-                                .setPhoneNumber("+91$phoneNumber")
-                                .setTimeout(60L, TimeUnit.SECONDS)
-                                .setActivity(activity)
-                                .setCallbacks(callbacks)
-                                .build()
+                            val options =
+                                PhoneAuthOptions
+                                    .newBuilder(auth)
+                                    .setPhoneNumber("+91$phoneNumber")
+                                    .setTimeout(60L, TimeUnit.SECONDS)
+                                    .setActivity(activity)
+                                    .setCallbacks(callbacks)
+                                    .build()
                             PhoneAuthProvider.verifyPhoneNumber(options)
                         } else {
-                            Toast.makeText(context, context.getString(R.string.auth_err_invalid_phone), Toast.LENGTH_SHORT).show()
+                            Toast
+                                .makeText(
+                                    context,
+                                    context.getString(R.string.auth_err_invalid_phone),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
                     enabled = !isLoading,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
                     } else {
                         Text(stringResource(R.string.auth_btn_send_otp), fontSize = 16.sp)
                     }
@@ -150,7 +177,7 @@ fun AuthScreen(
                     label = { Text(stringResource(R.string.auth_otp_label)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -165,15 +192,23 @@ fun AuthScreen(
                                 Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
                             }
                         } else {
-                            Toast.makeText(context, context.getString(R.string.auth_err_invalid_otp), Toast.LENGTH_SHORT).show()
+                            Toast
+                                .makeText(
+                                    context,
+                                    context.getString(R.string.auth_err_invalid_otp),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
                     enabled = !isLoading,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
                     } else {
                         Text(stringResource(R.string.auth_btn_verify), fontSize = 16.sp)
                     }
@@ -187,9 +222,10 @@ private fun signInWithPhoneAuthCredential(
     auth: FirebaseAuth,
     credential: PhoneAuthCredential,
     onSuccess: () -> Unit,
-    onError: (String) -> Unit
+    onError: (String) -> Unit,
 ) {
-    auth.signInWithCredential(credential)
+    auth
+        .signInWithCredential(credential)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 onSuccess()

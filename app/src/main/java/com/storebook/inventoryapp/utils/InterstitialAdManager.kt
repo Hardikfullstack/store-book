@@ -31,7 +31,11 @@ object InterstitialAdManager {
      * Preloads an Interstitial Ad. Call this early (e.g., in a LaunchedEffect or when returning to
      * Home).
      */
-    fun loadAd(context: Context, adUnitId: String?, placement: String) {
+    fun loadAd(
+        context: Context,
+        adUnitId: String?,
+        placement: String,
+    ) {
         val appConfig = (context.applicationContext as? com.storebook.inventoryapp.StoreBookApplication)?.appConfig
         if (appConfig?.result?.google_ads_on_off != "on") return
         if (adUnitId.isNullOrEmpty() || interstitialAd != null || isLoadingAd) {
@@ -43,22 +47,22 @@ object InterstitialAdManager {
         val adRequest = AdRequest.Builder().build()
 
         InterstitialAd.load(
-                context,
-                adUnitId,
-                adRequest,
-                object : InterstitialAdLoadCallback() {
-                    override fun onAdFailedToLoad(adError: LoadAdError) {
-                        AnalyticsManager.logAdEvent("interstitial", placement, "failed_to_load")
-                        interstitialAd = null
-                        isLoadingAd = false
-                    }
-
-                    override fun onAdLoaded(ad: InterstitialAd) {
-                        AnalyticsManager.logAdEvent("interstitial", placement, "loaded")
-                        interstitialAd = ad
-                        isLoadingAd = false
-                    }
+            context,
+            adUnitId,
+            adRequest,
+            object : InterstitialAdLoadCallback() {
+                override fun onAdFailedToLoad(adError: LoadAdError) {
+                    AnalyticsManager.logAdEvent("interstitial", placement, "failed_to_load")
+                    interstitialAd = null
+                    isLoadingAd = false
                 }
+
+                override fun onAdLoaded(ad: InterstitialAd) {
+                    AnalyticsManager.logAdEvent("interstitial", placement, "loaded")
+                    interstitialAd = ad
+                    isLoadingAd = false
+                }
+            },
         )
     }
 
@@ -71,7 +75,7 @@ object InterstitialAdManager {
         adUnitId: String?,
         isOn: Boolean,
         placement: String,
-        onAdDismissed: () -> Unit
+        onAdDismissed: () -> Unit,
     ) {
         val appConfig = (activity.applicationContext as? com.storebook.inventoryapp.StoreBookApplication)?.appConfig
         if (appConfig?.result?.google_ads_on_off != "on") {
@@ -92,14 +96,15 @@ object InterstitialAdManager {
 
             // Start a timeout job
             timeoutJob?.cancel()
-            timeoutJob = scope.launch {
-                delay(3000) // 3 seconds timeout
-                if (isAdLoading.value) {
-                    isAdLoading.value = false
-                    AnalyticsManager.logAdEvent("interstitial", placement, "loading_timeout")
-                    onAdDismissed()
+            timeoutJob =
+                scope.launch {
+                    delay(3000) // 3 seconds timeout
+                    if (isAdLoading.value) {
+                        isAdLoading.value = false
+                        AnalyticsManager.logAdEvent("interstitial", placement, "loading_timeout")
+                        onAdDismissed()
+                    }
                 }
-            }
 
             val adRequest = AdRequest.Builder().build()
             InterstitialAd.load(
@@ -124,7 +129,7 @@ object InterstitialAdManager {
                             showAd(activity, adUnitId, placement, onAdDismissed)
                         }
                     }
-                }
+                },
             )
         }
     }
@@ -133,35 +138,35 @@ object InterstitialAdManager {
         activity: Activity,
         adUnitId: String,
         placement: String,
-        onAdDismissed: () -> Unit
+        onAdDismissed: () -> Unit,
     ) {
         interstitialAd?.fullScreenContentCallback =
-                object : FullScreenContentCallback() {
-                    override fun onAdDismissedFullScreenContent() {
-                        AnalyticsManager.logAdEvent("interstitial", placement, "dismissed")
-                        interstitialAd = null
-                        onAdDismissed()
-                        // Preload the next ad instantly
-                        loadAd(activity, adUnitId, placement)
-                    }
-
-                    override fun onAdFailedToShowFullScreenContent(adError: AdError) {
-                        AnalyticsManager.logAdEvent("interstitial", placement, "failed_to_show")
-                        interstitialAd = null
-                        onAdDismissed()
-                        // Try to load again
-                        loadAd(activity, adUnitId, placement)
-                    }
-
-                    override fun onAdShowedFullScreenContent() {
-                        AnalyticsManager.logAdEvent("interstitial", placement, "show")
-                        interstitialAd = null
-                    }
-
-                    override fun onAdImpression() {
-                        AnalyticsManager.logAdEvent("interstitial", placement, "impression")
-                    }
+            object : FullScreenContentCallback() {
+                override fun onAdDismissedFullScreenContent() {
+                    AnalyticsManager.logAdEvent("interstitial", placement, "dismissed")
+                    interstitialAd = null
+                    onAdDismissed()
+                    // Preload the next ad instantly
+                    loadAd(activity, adUnitId, placement)
                 }
+
+                override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                    AnalyticsManager.logAdEvent("interstitial", placement, "failed_to_show")
+                    interstitialAd = null
+                    onAdDismissed()
+                    // Try to load again
+                    loadAd(activity, adUnitId, placement)
+                }
+
+                override fun onAdShowedFullScreenContent() {
+                    AnalyticsManager.logAdEvent("interstitial", placement, "show")
+                    interstitialAd = null
+                }
+
+                override fun onAdImpression() {
+                    AnalyticsManager.logAdEvent("interstitial", placement, "impression")
+                }
+            }
 
         interstitialAd?.show(activity)
     }

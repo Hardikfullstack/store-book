@@ -16,7 +16,9 @@ import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 
-class AppConfigViewModel(application: Application) : AndroidViewModel(application) {
+class AppConfigViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("app_config", Context.MODE_PRIVATE)
     private val defaultAppName = "StoreBook"
     private val defaultAppBrand = " Kirana"
@@ -26,14 +28,14 @@ class AppConfigViewModel(application: Application) : AndroidViewModel(applicatio
     private val _dynamicAppName =
         MutableStateFlow(
             _appResponse.value?.result?.app_name
-                ?: prefs.getString("dynamic_app_name", defaultAppName) ?: defaultAppName
+                ?: prefs.getString("dynamic_app_name", defaultAppName) ?: defaultAppName,
         )
     val dynamicAppName: StateFlow<String> = _dynamicAppName
 
     private val _dynamicAppBrand =
         MutableStateFlow(
             _appResponse.value?.result?.extra_data_7_message
-                ?: prefs.getString("dynamic_app_brand", defaultAppBrand) ?: defaultAppBrand
+                ?: prefs.getString("dynamic_app_brand", defaultAppBrand) ?: defaultAppBrand,
         )
     val dynamicAppBrand: StateFlow<String> = _dynamicAppBrand
 
@@ -59,7 +61,12 @@ class AppConfigViewModel(application: Application) : AndroidViewModel(applicatio
         val cachedBrand = prefs.getString("dynamic_app_brand", null)
         val cachedOffline = prefs.getString("offline_on_off", null)
 
-        return if (cachedName != null || cachedMaintenance != null || cachedVersion != null || cachedBrand != null || cachedOffline != null) {
+        return if (cachedName != null ||
+            cachedMaintenance != null ||
+            cachedVersion != null ||
+            cachedBrand != null ||
+            cachedOffline != null
+        ) {
             // Reconstruct a partial AppResponse from the necessary cached fields
             AppResponse(
                 status = 200,
@@ -70,10 +77,12 @@ class AppConfigViewModel(application: Application) : AndroidViewModel(applicatio
                         extra_data_7_message = cachedBrand ?: defaultAppBrand,
                         extra_data_1_on_off = cachedMaintenance ?: "off",
                         extra_data_2_message = cachedVersion ?: "",
-                        extra_data_6_on_off = cachedOffline ?: "off"
-                    )
+                        extra_data_6_on_off = cachedOffline ?: "off",
+                    ),
             )
-        } else null
+        } else {
+            null
+        }
     }
 
     private fun fetchAppData() {

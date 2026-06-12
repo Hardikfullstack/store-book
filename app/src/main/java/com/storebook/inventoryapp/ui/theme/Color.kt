@@ -10,7 +10,7 @@ val InkBlue700 = Color(0xFF4338CA)
 val InkBlue500 = Color(0xFF6366F1)
 val InkBlue300 = Color(0xFF818CF8)
 val InkBlue100 = Color(0xFFC7D2FE)
-val InkBlue50  = Color(0xFFEEF2FF)
+val InkBlue50 = Color(0xFFEEF2FF)
 
 // Saffron — modern amber/gold
 val Saffron500 = Color(0xFFF59E0B)

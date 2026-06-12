@@ -14,12 +14,17 @@ data class BillingState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val purchaseToken: String? = null,
-    val expirationTimestampMillis: Long? = null
+    val expirationTimestampMillis: Long? = null,
 )
 
 sealed interface PurchaseResult {
     object Success : PurchaseResult
+
     object AlreadyOwned : PurchaseResult
-    data class Failure(val message: String) : PurchaseResult
+
+    data class Failure(
+        val message: String,
+    ) : PurchaseResult
+
     object Pending : PurchaseResult
 }

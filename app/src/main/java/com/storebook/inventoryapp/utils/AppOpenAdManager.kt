@@ -17,9 +17,10 @@ import com.storebook.inventoryapp.utils.AnalyticsManager
 import java.util.Date
 
 /** Prefetches and shows App Open Ads. */
-class AppOpenAdManager(private val myApplication: StoreBookApplication) :
-    Application.ActivityLifecycleCallbacks, DefaultLifecycleObserver {
-
+class AppOpenAdManager(
+    private val myApplication: StoreBookApplication,
+) : Application.ActivityLifecycleCallbacks,
+    DefaultLifecycleObserver {
     private var appOpenAd: AppOpenAd? = null
     private var isLoadingAd = false
     private var isShowingAd = false
@@ -61,7 +62,7 @@ class AppOpenAdManager(private val myApplication: StoreBookApplication) :
                     isLoadingAd = false
                     loadTime = Date().time
 
-                    // If we just loaded the first ad, try to show it immediately 
+                    // If we just loaded the first ad, try to show it immediately
                     // (mostly for the splash screen experience)
                     showAdIfAvailable()
                 }
@@ -71,14 +72,12 @@ class AppOpenAdManager(private val myApplication: StoreBookApplication) :
                     appOpenAd = null
                     isLoadingAd = false
                 }
-            }
+            },
         )
     }
 
     /** Utility method that checks if ad exists and can be shown. */
-    private fun isAdAvailable(): Boolean {
-        return appOpenAd != null && wasLoadTimeLessThanNHoursAgo(4)
-    }
+    private fun isAdAvailable(): Boolean = appOpenAd != null && wasLoadTimeLessThanNHoursAgo(4)
 
     private fun wasLoadTimeLessThanNHoursAgo(numHours: Long): Boolean {
         val dateDifference: Long = Date().time - loadTime
@@ -97,31 +96,32 @@ class AppOpenAdManager(private val myApplication: StoreBookApplication) :
                 return
             }
 
-            appOpenAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
-                override fun onAdDismissedFullScreenContent() {
-                    appOpenAd = null
-                    isShowingAd = false
-                    fetchAd()
-                }
+            appOpenAd?.fullScreenContentCallback =
+                object : FullScreenContentCallback() {
+                    override fun onAdDismissedFullScreenContent() {
+                        appOpenAd = null
+                        isShowingAd = false
+                        fetchAd()
+                    }
 
-                override fun onAdFailedToShowFullScreenContent(adError: AdError) {
-                    appOpenAd = null
-                    isShowingAd = false
-                    fetchAd()
-                }
+                    override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                        appOpenAd = null
+                        isShowingAd = false
+                        fetchAd()
+                    }
 
-                override fun onAdShowedFullScreenContent() {
-                    isShowingAd = true
-                }
+                    override fun onAdShowedFullScreenContent() {
+                        isShowingAd = true
+                    }
 
-                override fun onAdImpression() {
-                    AnalyticsManager.logAdEvent("app_open", "app_start", "impression")
-                }
+                    override fun onAdImpression() {
+                        AnalyticsManager.logAdEvent("app_open", "app_start", "impression")
+                    }
 
-                override fun onAdClicked() {
-                    AnalyticsManager.logAdEvent("app_open", "app_start", "clicked")
+                    override fun onAdClicked() {
+                        AnalyticsManager.logAdEvent("app_open", "app_start", "clicked")
+                    }
                 }
-            }
             currentActivity?.let {
                 appOpenAd?.show(it)
             }
@@ -136,7 +136,10 @@ class AppOpenAdManager(private val myApplication: StoreBookApplication) :
     }
 
     /** ActivityLifecycleCallback methods */
-    override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+    override fun onActivityCreated(
+        activity: Activity,
+        savedInstanceState: Bundle?,
+    ) {}
 
     override fun onActivityStarted(activity: Activity) {
         currentActivity = activity
@@ -150,7 +153,10 @@ class AppOpenAdManager(private val myApplication: StoreBookApplication) :
 
     override fun onActivityStopped(activity: Activity) {}
 
-    override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+    override fun onActivitySaveInstanceState(
+        activity: Activity,
+        outState: Bundle,
+    ) {}
 
     override fun onActivityDestroyed(activity: Activity) {
         currentActivity = null

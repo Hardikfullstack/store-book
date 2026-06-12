@@ -9,7 +9,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.storebook.inventoryapp.data.play.BillingState
 import com.storebook.inventoryapp.data.play.PlayBillingManager
 import com.storebook.inventoryapp.data.repository.CartItem
 import com.storebook.inventoryapp.data.repository.CustomerBalance
@@ -19,18 +18,19 @@ import com.storebook.inventoryapp.data.repository.Sale
 import com.storebook.inventoryapp.data.repository.StoreBookRepository
 import com.storebook.inventoryapp.data.repository.UdhaarEntry
 import com.storebook.inventoryapp.data.sync.FirestoreSyncManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStreamReader
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
-class StoreBookViewModel(application: Application) : AndroidViewModel(application) {
-
+class StoreBookViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val repository = StoreBookRepository(application.applicationContext)
     val billingManager = PlayBillingManager(application.applicationContext)
     private val syncManager = FirestoreSyncManager(application.applicationContext)
@@ -64,10 +64,11 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun updateCustomerSearch(query: String) {
         customerSearchJob?.cancel()
-        customerSearchJob = viewModelScope.launch {
-            kotlinx.coroutines.delay(200) // debounce
-            _customerSuggestions.value = repository.searchCustomers(query, 50)
-        }
+        customerSearchJob =
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(200) // debounce
+                _customerSuggestions.value = repository.searchCustomers(query, 50)
+            }
     }
 
     fun selectCustomer(name: String) {
@@ -96,7 +97,7 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
     var cartCustomerAddress by mutableStateOf("")
     var cartNotes by mutableStateOf("")
     var cartPaymentMode by mutableStateOf("Cash")
-    
+
     private val prefs = application.getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE)
     var businessName by mutableStateOf(prefs.getString("business_name", "StoreBook Kirana") ?: "StoreBook Kirana")
         private set
@@ -114,7 +115,7 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
         businessGstin = gstin
         prefs.edit().putString("business_gstin", gstin).apply()
     }
-    
+
     fun updateBusinessAddress(address: String) {
         businessAddress = address
         prefs.edit().putString("business_address", address).apply()
@@ -122,7 +123,6 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
 
     // Billing state (reactive from Play Billing client)
     var isPremiumUser: Boolean by mutableStateOf(false)
-
 
     // Undo mechanism
     var lastSaleId by mutableStateOf<Long?>(null)
@@ -164,7 +164,7 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
             _udhaarBalances.value = repository.getUdhaarBalances()
             _customerSuggestions.value = repository.searchCustomers("", 50)
             _expensesList.value = repository.getExpenses()
-            
+
             // Automatically attempt sync after updating data
             triggerSync()
         }
@@ -178,11 +178,12 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
     fun loadFilteredItems(
         search: String = "",
         category: String = "All",
-        sortBy: String = "Name"
+        sortBy: String = "Name",
     ) {
         viewModelScope.launch {
             _isLoadingItems.value = true
-            _filteredItems.value = repository.getActiveItemsFiltered(search = search, category = category, sortBy = sortBy)
+            _filteredItems.value =
+                repository.getActiveItemsFiltered(search = search, category = category, sortBy = sortBy)
             _isLoadingItems.value = false
         }
     }
@@ -193,17 +194,27 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
         sortBy: String,
         currentSize: Int,
         pageSize: Int = 50,
-        onResult: (List<Item>) -> Unit
+        onResult: (List<Item>) -> Unit,
     ) {
         viewModelScope.launch {
-            val more = repository.getActiveItemsFiltered(search = search, category = category, sortBy = sortBy, limit = pageSize, offset = currentSize)
+            val more =
+                repository.getActiveItemsFiltered(
+                    search = search,
+                    category = category,
+                    sortBy = sortBy,
+                    limit = pageSize,
+                    offset = currentSize,
+                )
             onResult(more)
         }
     }
 
     // --- Inventory Actions ---
 
-    fun loadSalesHistory(startTs: Long, endTs: Long) {
+    fun loadSalesHistory(
+        startTs: Long,
+        endTs: Long,
+    ) {
         viewModelScope.launch {
             _salesHistoryList.value = repository.getSalesByDateRange(startTs, endTs)
         }
@@ -218,20 +229,21 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
         threshold: Double,
         category: String,
         hsnCode: String? = null,
-        taxRate: Double = 0.0
+        taxRate: Double = 0.0,
     ) {
         viewModelScope.launch {
-            val item = Item(
-                name = name.trim(),
-                quantity = quantity,
-                unit = unit,
-                buyPrice = buyPrice,
-                sellPrice = sellPrice,
-                lowStockThreshold = threshold,
-                category = category,
-                hsnCode = hsnCode,
-                taxRate = taxRate
-            )
+            val item =
+                Item(
+                    name = name.trim(),
+                    quantity = quantity,
+                    unit = unit,
+                    buyPrice = buyPrice,
+                    sellPrice = sellPrice,
+                    lowStockThreshold = threshold,
+                    category = category,
+                    hsnCode = hsnCode,
+                    taxRate = taxRate,
+                )
             repository.insertItem(item)
             loadAllData()
         }
@@ -247,21 +259,22 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
         threshold: Double,
         category: String,
         hsnCode: String? = null,
-        taxRate: Double = 0.0
+        taxRate: Double = 0.0,
     ) {
         viewModelScope.launch {
-            val item = Item(
-                id = id,
-                name = name.trim(),
-                quantity = quantity,
-                unit = unit,
-                buyPrice = buyPrice,
-                sellPrice = sellPrice,
-                lowStockThreshold = threshold,
-                category = category,
-                hsnCode = hsnCode,
-                taxRate = taxRate
-            )
+            val item =
+                Item(
+                    id = id,
+                    name = name.trim(),
+                    quantity = quantity,
+                    unit = unit,
+                    buyPrice = buyPrice,
+                    sellPrice = sellPrice,
+                    lowStockThreshold = threshold,
+                    category = category,
+                    hsnCode = hsnCode,
+                    taxRate = taxRate,
+                )
             repository.updateItem(item)
             loadAllData()
         }
@@ -276,26 +289,34 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
 
     // --- Cart Actions ---
 
-    fun addToCart(item: Item, qty: Double) {
+    fun addToCart(
+        item: Item,
+        qty: Double,
+    ) {
         val existing = cartItems.find { it.item.id == item.id }
         if (existing != null) {
-            cartItems = cartItems.map { ci ->
-                if (ci.item.id == item.id) ci.copy(quantity = ci.quantity + qty) else ci
-            }
+            cartItems =
+                cartItems.map { ci ->
+                    if (ci.item.id == item.id) ci.copy(quantity = ci.quantity + qty) else ci
+                }
         } else {
             cartItems = cartItems + CartItem(item, qty)
         }
     }
 
-    fun updateCartQty(item: Item, qty: Double) {
+    fun updateCartQty(
+        item: Item,
+        qty: Double,
+    ) {
         val existing = cartItems.find { it.item.id == item.id }
         if (existing != null) {
             if (qty <= 0.0) {
                 removeFromCart(item)
             } else {
-                cartItems = cartItems.map { ci ->
-                    if (ci.item.id == item.id) ci.copy(quantity = qty) else ci
-                }
+                cartItems =
+                    cartItems.map { ci ->
+                        if (ci.item.id == item.id) ci.copy(quantity = qty) else ci
+                    }
             }
         }
     }
@@ -316,40 +337,44 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
 
     // --- Sales Actions ---
 
-    private fun String.formatName(): String {
-        return this.trim().split(Regex("\\s+")).joinToString(" ") { word ->
+    private fun String.formatName(): String =
+        this.trim().split(Regex("\\s+")).joinToString(" ") { word ->
             word.lowercase().replaceFirstChar { it.uppercase() }
         }
-    }
 
-    fun checkout(paymentMode: String = cartPaymentMode, onSuccess: (Long, Double) -> Unit) {
+    fun checkout(
+        paymentMode: String = cartPaymentMode,
+        onSuccess: (Long, Double) -> Unit,
+    ) {
         if (cartItems.isEmpty()) return
         val customerNameForSale = cartCustomerName.takeIf { it.isNotBlank() }?.formatName()
         val notesForSale = cartNotes.trim().takeIf { it.isNotBlank() }
 
         viewModelScope.launch {
-            val saleId = repository.recordSale(
-                itemsInCart = cartItems,
-                discount = cartDiscount,
-                customerName = customerNameForSale,
-                customerGstin = cartCustomerGstin.takeIf { it.isNotBlank() },
-                customerAddress = cartCustomerAddress.takeIf { it.isNotBlank() },
-                businessGstin = businessGstin.takeIf { it.isNotBlank() },
-                businessAddress = businessAddress.takeIf { it.isNotBlank() },
-                notes = notesForSale,
-                paymentMode = paymentMode
-            )
+            val saleId =
+                repository.recordSale(
+                    itemsInCart = cartItems,
+                    discount = cartDiscount,
+                    customerName = customerNameForSale,
+                    customerGstin = cartCustomerGstin.takeIf { it.isNotBlank() },
+                    customerAddress = cartCustomerAddress.takeIf { it.isNotBlank() },
+                    businessGstin = businessGstin.takeIf { it.isNotBlank() },
+                    businessAddress = businessAddress.takeIf { it.isNotBlank() },
+                    notes = notesForSale,
+                    paymentMode = paymentMode,
+                )
             if (saleId != -1L) {
                 lastSaleId = saleId
                 lastSaleTime = System.currentTimeMillis()
 
                 // Calculate grand total with taxes
-                val taxSummary = com.storebook.inventoryapp.data.billing.BillingEngine.calculateInvoiceTaxes(
-                    cartItems = cartItems,
-                    totalDiscount = cartDiscount,
-                    businessGstin = businessGstin.takeIf { it.isNotBlank() },
-                    customerGstin = cartCustomerGstin.takeIf { it.isNotBlank() }
-                )
+                val taxSummary =
+                    com.storebook.inventoryapp.data.billing.BillingEngine.calculateInvoiceTaxes(
+                        cartItems = cartItems,
+                        totalDiscount = cartDiscount,
+                        businessGstin = businessGstin.takeIf { it.isNotBlank() },
+                        customerGstin = cartCustomerGstin.takeIf { it.isNotBlank() },
+                    )
                 val total = taxSummary.grandTotal
 
                 // NOTE: recordSale() ALREADY creates Udhaar CREDIT entry if customerName is present
@@ -380,15 +405,21 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
 
     // --- Udhaar Credit Ledger Actions ---
 
-    fun recordUdhaarEntry(customerName: String, amount: Double, type: String, notes: String?) {
+    fun recordUdhaarEntry(
+        customerName: String,
+        amount: Double,
+        type: String,
+        notes: String?,
+    ) {
         viewModelScope.launch {
-            val entry = UdhaarEntry(
-                customerName = customerName.formatName(),
-                amount = amount,
-                type = type,
-                timestamp = System.currentTimeMillis(),
-                notes = notes?.trim()
-            )
+            val entry =
+                UdhaarEntry(
+                    customerName = customerName.formatName(),
+                    amount = amount,
+                    type = type,
+                    timestamp = System.currentTimeMillis(),
+                    notes = notes?.trim(),
+                )
             repository.insertUdhaarEntry(entry)
             loadAllData()
         }
@@ -396,27 +427,37 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
 
     // --- Expenses Logger Actions ---
 
-    fun logOverheadExpense(desc: String, amount: Double) {
+    fun logOverheadExpense(
+        desc: String,
+        amount: Double,
+    ) {
         viewModelScope.launch {
-            val entry = ExpenseEntry(
-                type = "OVERHEAD",
-                description = desc.trim(),
-                amount = amount,
-                timestamp = System.currentTimeMillis()
-            )
+            val entry =
+                ExpenseEntry(
+                    type = "OVERHEAD",
+                    description = desc.trim(),
+                    amount = amount,
+                    timestamp = System.currentTimeMillis(),
+                )
             repository.insertExpense(entry)
             loadAllData()
         }
     }
 
-    fun logRestockItem(itemId: Long, quantity: Double, costPrice: Double, supplier: String?, phone: String?) {
+    fun logRestockItem(
+        itemId: Long,
+        quantity: Double,
+        costPrice: Double,
+        supplier: String?,
+        phone: String?,
+    ) {
         viewModelScope.launch {
             repository.restockItem(
                 itemId = itemId,
                 quantityToAdd = quantity,
                 costPrice = costPrice,
                 supplierName = supplier?.trim()?.takeIf { it.isNotBlank() },
-                supplierPhone = phone?.trim()?.takeIf { it.isNotBlank() }
+                supplierPhone = phone?.trim()?.takeIf { it.isNotBlank() },
             )
             loadAllData()
         }
@@ -424,68 +465,89 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
 
     // --- CSV Operations ---
 
-    fun shareInvoice(context: android.content.Context, saleId: Long) {
+    fun shareInvoice(
+        context: android.content.Context,
+        saleId: Long,
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             val sale = repository.getSaleById(saleId)
             if (sale != null) {
                 // Fetch actual items from DB to get the correct taxRate and HSN
-                val mappedCartItems = sale.items.map { saleItem ->
-                    val actualItem = repository.getItemById(saleItem.itemId) ?: Item(
-                        id = saleItem.itemId,
-                        name = saleItem.itemName,
-                        quantity = 0.0,
-                        unit = saleItem.unit,
-                        buyPrice = saleItem.buyPrice,
-                        sellPrice = saleItem.sellPrice,
-                        lowStockThreshold = 0.0,
-                        category = ""
-                    )
-                    CartItem(item = actualItem, quantity = saleItem.quantity)
-                }
+                val mappedCartItems =
+                    sale.items.map { saleItem ->
+                        val actualItem =
+                            repository.getItemById(saleItem.itemId) ?: Item(
+                                id = saleItem.itemId,
+                                name = saleItem.itemName,
+                                quantity = 0.0,
+                                unit = saleItem.unit,
+                                buyPrice = saleItem.buyPrice,
+                                sellPrice = saleItem.sellPrice,
+                                lowStockThreshold = 0.0,
+                                category = "",
+                            )
+                        CartItem(item = actualItem, quantity = saleItem.quantity)
+                    }
 
-                val file = com.storebook.inventoryapp.utils.InvoicePdfGenerator.generateInvoicePdf(
-                    context = context,
-                    sale = sale,
-                    cartItems = mappedCartItems,
-                    shopName = businessName,
-                    shopAddress = businessAddress,
-                    shopGstin = businessGstin
-                )
+                val file =
+                    com.storebook.inventoryapp.utils.InvoicePdfGenerator.generateInvoicePdf(
+                        context = context,
+                        sale = sale,
+                        cartItems = mappedCartItems,
+                        shopName = businessName,
+                        shopAddress = businessAddress,
+                        shopGstin = businessGstin,
+                    )
                 if (file != null) {
                     withContext(Dispatchers.Main) {
-                        val uri = androidx.core.content.FileProvider.getUriForFile(
-                            context,
-                            "${context.packageName}.fileprovider",
-                            file
-                        )
-                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                            type = "application/pdf"
-                            putExtra(android.content.Intent.EXTRA_STREAM, uri)
-                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        }
+                        val uri =
+                            androidx.core.content.FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.fileprovider",
+                                file,
+                            )
+                        val intent =
+                            android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "application/pdf"
+                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
                         context.startActivity(android.content.Intent.createChooser(intent, "Share Invoice"))
                     }
                 } else {
                     withContext(Dispatchers.Main) {
-                        android.widget.Toast.makeText(context, "Failed to generate PDF", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast
+                            .makeText(
+                                context,
+                                "Failed to generate PDF",
+                                android.widget.Toast.LENGTH_SHORT,
+                            ).show()
                     }
                 }
             } else {
                 withContext(Dispatchers.Main) {
-                    android.widget.Toast.makeText(context, "Sale not found", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast
+                        .makeText(context, "Sale not found", android.widget.Toast.LENGTH_SHORT)
+                        .show()
                 }
             }
         }
     }
 
-    fun exportInventoryToCSV(context: Context, onSuccess: () -> Unit, onError: (String) -> Unit) {
+    fun exportInventoryToCSV(
+        context: Context,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit,
+    ) {
         viewModelScope.launch {
             try {
                 val items = repository.getActiveItems()
                 val csvContent = StringBuilder()
                 csvContent.append("ID,Item Name,Stock Quantity,Unit,Buy Price,Sell Price,Alert Threshold,Category\n")
                 for (item in items) {
-                    csvContent.append("${item.id},\"${item.name}\",${item.quantity},${item.unit},${item.buyPrice},${item.sellPrice},${item.lowStockThreshold},\"${item.category}\"\n")
+                    csvContent.append(
+                        "${item.id},\"${item.name}\",${item.quantity},${item.unit},${item.buyPrice},${item.sellPrice},${item.lowStockThreshold},\"${item.category}\"\n",
+                    )
                 }
 
                 val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.filesDir
@@ -500,11 +562,17 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun importInventoryFromCSV(context: Context, fileUri: Uri, onSuccess: () -> Unit, onError: (String) -> Unit) {
+    fun importInventoryFromCSV(
+        context: Context,
+        fileUri: Uri,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit,
+    ) {
         viewModelScope.launch {
             try {
-                val inputStream = context.contentResolver.openInputStream(fileUri)
-                    ?: throw Exception("Could not open CSV file")
+                val inputStream =
+                    context.contentResolver.openInputStream(fileUri)
+                        ?: throw Exception("Could not open CSV file")
                 val reader = BufferedReader(InputStreamReader(inputStream))
                 var line: String? = reader.readLine() // Read header
                 var importedCount = 0
@@ -520,15 +588,16 @@ class StoreBookViewModel(application: Application) : AndroidViewModel(applicatio
                         val threshold = tokens[6].toDoubleOrNull() ?: 0.0
                         val category = tokens[7].replace("\"", "").trim()
 
-                        val item = Item(
-                            name = name,
-                            quantity = qty,
-                            unit = unit,
-                            buyPrice = buyPrice,
-                            sellPrice = sellPrice,
-                            lowStockThreshold = threshold,
-                            category = category
-                        )
+                        val item =
+                            Item(
+                                name = name,
+                                quantity = qty,
+                                unit = unit,
+                                buyPrice = buyPrice,
+                                sellPrice = sellPrice,
+                                lowStockThreshold = threshold,
+                                category = category,
+                            )
                         repository.insertItem(item)
                         importedCount++
                     }

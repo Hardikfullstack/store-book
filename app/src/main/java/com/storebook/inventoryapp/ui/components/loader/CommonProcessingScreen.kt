@@ -38,27 +38,28 @@ fun CommonProcessingScreen(
     progress: Int,
     lottieRes: Int? = null,
     title: String,
-    isCompressed: Boolean = false
+    isCompressed: Boolean = false,
 ) {
     val animatedProgress by animateFloatAsState(
         targetValue = progress / 100f,
         animationSpec = tween(durationMillis = 500),
-        label = "ProgressAnimation"
+        label = "ProgressAnimation",
     )
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.primary),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
     ) {
         if (lottieRes != null) {
             val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(lottieRes))
             LottieAnimation(
                 composition = composition,
-                modifier = Modifier.size(200.dp).scale(if(isCompressed) 1f else 2f),
-                iterations = LottieConstants.IterateForever
+                modifier = Modifier.size(200.dp).scale(if (isCompressed) 1f else 2f),
+                iterations = LottieConstants.IterateForever,
             )
             Spacer(modifier = Modifier.height(0.dp))
         }
@@ -67,21 +68,22 @@ fun CommonProcessingScreen(
             fontSize = 30.sp,
             fontFamily = Poppins,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.secondary
+            color = MaterialTheme.colorScheme.secondary,
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         LinearProgressIndicator(
             progress = { animatedProgress },
-            modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .height(4.dp)
-                .clip(RoundedCornerShape(50)),
+            modifier =
+                Modifier
+                    .fillMaxWidth(0.6f)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(50)),
             color = colorResource(R.color.red_text),
             trackColor = if (isAppDarkMode) Color(0xFF333333) else Color(0xFFD9D9D9),
             drawStopIndicator = {},
-            gapSize = 0.dp
+            gapSize = 0.dp,
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -91,7 +93,7 @@ fun CommonProcessingScreen(
             fontSize = 20.sp,
             fontFamily = Poppins,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.secondary
+            color = MaterialTheme.colorScheme.secondary,
         )
     }
 }

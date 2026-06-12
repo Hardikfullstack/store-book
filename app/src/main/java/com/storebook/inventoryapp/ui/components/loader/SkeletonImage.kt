@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
 fun SkeletonImage(
     modifier: Modifier = Modifier,
     isLoading: Boolean,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     if (isLoading) {
         LazyVerticalGrid(
@@ -25,21 +25,24 @@ fun SkeletonImage(
             contentPadding = PaddingValues(15.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = modifier
-                .fillMaxSize()
+            modifier =
+                modifier
+                    .fillMaxSize(),
         ) {
-            items(15) { // Show 15 dummy items
+            items(15) {
+                // Show 15 dummy items
                 Box(
-                    modifier = Modifier
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .shimmerEffect()
+                    modifier =
+                        Modifier
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .shimmerEffect(),
                 )
             }
         }
     } else {
         Box(
-            modifier = modifier
+            modifier = modifier,
         ) {
             content()
         }

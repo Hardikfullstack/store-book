@@ -1,71 +1,86 @@
 package com.storebook.inventoryapp.data.play
 
 import android.util.Log
-import com.android.billingclient.api.*
+import com.android.billingclient.api.BillingClient
+import com.android.billingclient.api.BillingClientStateListener
+import com.android.billingclient.api.BillingFlowParams
+import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.ProductDetails
+import com.android.billingclient.api.Purchase
+import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryPurchasesParams
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 private const val TAG = "PlayBillingManager"
 
-class PlayBillingManager(private val appContext: android.content.Context) {
-
+class PlayBillingManager(
+    private val appContext: android.content.Context,
+) {
     private val _state = MutableStateFlow(BillingState())
     val state: StateFlow<BillingState> = _state.asStateFlow()
 
-    private val billingClient = BillingClient.newBuilder(appContext.applicationContext)
-        .setListener { billingResult, purchaseList ->
-            Log.d(TAG, "PurchaseUpdated: code=${billingResult.responseCode} n=${purchaseList?.size}")
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                purchaseList
-                    ?.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.let {
-                        val ids = it.mapNotNull { p -> p.products.firstOrNull() }.toSet()
-                        _state.value = _state.value.copy(
-                            isProUnlocked = true,
-                            purchasedProductIds = ids
-                        )
-                    }
-            }
-        }
-        .enablePendingPurchases()
-        .build()
+    private val billingClient =
+        BillingClient
+            .newBuilder(appContext.applicationContext)
+            .setListener { billingResult, purchaseList ->
+                Log.d(TAG, "PurchaseUpdated: code=${billingResult.responseCode} n=${purchaseList?.size}")
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    purchaseList
+                        ?.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let {
+                            val ids = it.mapNotNull { p -> p.products.firstOrNull() }.toSet()
+                            _state.value =
+                                _state.value.copy(
+                                    isProUnlocked = true,
+                                    purchasedProductIds = ids,
+                                )
+                        }
+                }
+            }.enablePendingPurchases()
+            .build()
 
     fun connect() {
         _state.value = _state.value.copy(isLoading = true)
-        billingClient.startConnection(object : BillingClientStateListener {
-            override fun onBillingSetupFinished(billingResult: BillingResult) {
-                val ready = billingResult.responseCode == BillingClient.BillingResponseCode.OK
-                _state.value = _state.value.copy(
-                    isBillingReady = ready,
-                    isLoading = false,
-                    errorMessage = if (!ready) billingResult.debugMessage else null
-                )
-                if (ready) {
-                    queryPurchases()
+        billingClient.startConnection(
+            object : BillingClientStateListener {
+                override fun onBillingSetupFinished(billingResult: BillingResult) {
+                    val ready = billingResult.responseCode == BillingClient.BillingResponseCode.OK
+                    _state.value =
+                        _state.value.copy(
+                            isBillingReady = ready,
+                            isLoading = false,
+                            errorMessage = if (!ready) billingResult.debugMessage else null,
+                        )
+                    if (ready) {
+                        queryPurchases()
+                    }
                 }
-            }
 
-            override fun onBillingServiceDisconnected() {
-                _state.value = _state.value.copy(isBillingReady = false)
-            }
-        })
+                override fun onBillingServiceDisconnected() {
+                    _state.value = _state.value.copy(isBillingReady = false)
+                }
+            },
+        )
     }
 
     private fun queryPurchases() {
         billingClient.queryPurchasesAsync(
-            QueryPurchasesParams.newBuilder()
+            QueryPurchasesParams
+                .newBuilder()
                 .setProductType(BillingClient.ProductType.INAPP)
-                .build()
+                .build(),
         ) { billingResult, purchases ->
             updateProUnlocked(purchases)
         }
 
         billingClient.queryPurchasesAsync(
-            QueryPurchasesParams.newBuilder()
+            QueryPurchasesParams
+                .newBuilder()
                 .setProductType(BillingClient.ProductType.SUBS)
-                .build()
+                .build(),
         ) { billingResult, purchases ->
             updateProUnlocked(purchases)
         }
@@ -74,16 +89,18 @@ class PlayBillingManager(private val appContext: android.content.Context) {
     private fun updateProUnlocked(purchases: MutableList<Purchase>?) {
         Log.d(TAG, "Query result: count=${purchases?.size}")
         if (purchases?.isNotEmpty() == true) {
-            val activeIds = purchases
-                .filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-                .mapNotNull { it.products.firstOrNull() }
-                .toSet()
+            val activeIds =
+                purchases
+                    .filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+                    .mapNotNull { it.products.firstOrNull() }
+                    .toSet()
 
             if (activeIds.isNotEmpty()) {
-                _state.value = _state.value.copy(
-                    isProUnlocked = true,
-                    purchasedProductIds = activeIds
-                )
+                _state.value =
+                    _state.value.copy(
+                        isProUnlocked = true,
+                        purchasedProductIds = activeIds,
+                    )
             }
         }
     }
@@ -96,7 +113,7 @@ class PlayBillingManager(private val appContext: android.content.Context) {
 
     fun fetchProductDetails(
         onSuccess: (List<ProductDetails>) -> Unit,
-        onFailed: (String) -> Unit
+        onFailed: (String) -> Unit,
     ) {
         if (!billingClient.isReady) {
             _state.value = _state.value.copy(isBillingReady = false, errorMessage = "Billing not ready")
@@ -104,23 +121,29 @@ class PlayBillingManager(private val appContext: android.content.Context) {
             return
         }
 
-        val params = QueryProductDetailsParams.newBuilder()
-            .setProductList(
-                Products.ALL_PRODUCTS.map { productId ->
-                    val isSubscription = productId.contains("monthly") || productId.contains("yearly")
-                    QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(productId)
-                        .setProductType(
-                            if (isSubscription) BillingClient.ProductType.SUBS
-                            else BillingClient.ProductType.INAPP
-                        )
-                        .build()
-                }
-            )
-            .build()
+        val params =
+            QueryProductDetailsParams
+                .newBuilder()
+                .setProductList(
+                    Products.ALL_PRODUCTS.map { productId ->
+                        val isSubscription = productId.contains("monthly") || productId.contains("yearly")
+                        QueryProductDetailsParams.Product
+                            .newBuilder()
+                            .setProductId(productId)
+                            .setProductType(
+                                if (isSubscription) {
+                                    BillingClient.ProductType.SUBS
+                                } else {
+                                    BillingClient.ProductType.INAPP
+                                },
+                            ).build()
+                    },
+                ).build()
 
         billingClient.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && productDetailsList?.isNotEmpty() == true) {
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK &&
+                productDetailsList?.isNotEmpty() == true
+            ) {
                 onSuccess(productDetailsList)
             } else {
                 onFailed(billingResult.debugMessage ?: "No products found")
@@ -132,19 +155,21 @@ class PlayBillingManager(private val appContext: android.content.Context) {
         activity: androidx.activity.ComponentActivity,
         productDetails: ProductDetails,
         onSuccess: () -> Unit,
-        onFail: (String) -> Unit
+        onFail: (String) -> Unit,
     ) {
         _state.value = _state.value.copy(isLoading = true)
 
-        val params = BillingFlowParams.newBuilder()
-            .setProductDetailsParamsList(
-                listOf(
-                    BillingFlowParams.ProductDetailsParams.newBuilder()
-                        .setProductDetails(productDetails)
-                        .build()
-                )
-            )
-            .build()
+        val params =
+            BillingFlowParams
+                .newBuilder()
+                .setProductDetailsParamsList(
+                    listOf(
+                        BillingFlowParams.ProductDetailsParams
+                            .newBuilder()
+                            .setProductDetails(productDetails)
+                            .build(),
+                    ),
+                ).build()
 
         val billingResult = billingClient.launchBillingFlow(activity, params)
         _state.value = _state.value.copy(isLoading = false)

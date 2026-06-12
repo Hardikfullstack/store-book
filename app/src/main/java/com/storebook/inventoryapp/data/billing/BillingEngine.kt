@@ -1,11 +1,13 @@
 package com.storebook.inventoryapp.data.billing
 
 import com.storebook.inventoryapp.data.repository.CartItem
+import kotlin.math.max
+import kotlin.math.min
 
 // Enum to define Tax Types
 enum class TaxType {
     INTRASTATE, // CGST + SGST
-    INTERSTATE  // IGST
+    INTERSTATE, // IGST
 }
 
 // Data class to represent the calculated tax for an item
@@ -16,7 +18,7 @@ data class ItemTaxDetails(
     val sgstAmount: Double,
     val igstAmount: Double,
     val totalTaxAmount: Double,
-    val totalAmountWithTax: Double
+    val totalAmountWithTax: Double,
 )
 
 // Data class to represent the full invoice tax calculation
@@ -28,11 +30,10 @@ data class InvoiceTaxSummary(
     val totalSgst: Double,
     val totalIgst: Double,
     val grandTotal: Double,
-    val itemDetails: List<ItemTaxDetails>
+    val itemDetails: List<ItemTaxDetails>,
 )
 
 object BillingEngine {
-
     /**
      * Extracts state code from GSTIN. First 2 characters of a valid GSTIN represent the state code.
      */
@@ -46,7 +47,10 @@ object BillingEngine {
      * If both state codes match, it's Intrastate. Otherwise, Interstate.
      * If GSTIN is not provided or invalid, defaults to Intrastate for local B2C sales.
      */
-    fun determineTaxType(businessGstin: String?, customerGstin: String?): TaxType {
+    fun determineTaxType(
+        businessGstin: String?,
+        customerGstin: String?,
+    ): TaxType {
         val bizState = getStateCodeFromGSTIN(businessGstin)
         val custState = getStateCodeFromGSTIN(customerGstin)
 
@@ -65,17 +69,18 @@ object BillingEngine {
         cartItems: List<CartItem>,
         totalDiscount: Double,
         businessGstin: String?,
-        customerGstin: String?
+        customerGstin: String?,
     ): InvoiceTaxSummary {
         val taxType = determineTaxType(businessGstin, customerGstin)
-        
+
         var subTotal = 0.0
         for (item in cartItems) {
             subTotal += (item.item.sellPrice * item.quantity)
         }
 
-        val netTaxableAmount = Math.max(0.0, subTotal - totalDiscount)
-        
+        val actualDiscount = min(totalDiscount, subTotal)
+        val netTaxableAmount = max(0.0, subTotal - actualDiscount)
+
         // If subtotal is 0, nothing to calculate
         if (subTotal <= 0.0) {
             return InvoiceTaxSummary(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, emptyList())
@@ -90,8 +95,8 @@ object BillingEngine {
             val itemGross = cartItem.item.sellPrice * cartItem.quantity
             // Proportion of discount applied to this item
             val itemDiscountRatio = if (subTotal > 0) itemGross / subTotal else 0.0
-            val itemDiscount = totalDiscount * itemDiscountRatio
-            val itemNetTaxable = Math.max(0.0, itemGross - itemDiscount)
+            val itemDiscount = actualDiscount * itemDiscountRatio
+            val itemNetTaxable = max(0.0, itemGross - itemDiscount)
 
             val taxRate = cartItem.item.taxRate
             var cgst = 0.0
@@ -106,7 +111,7 @@ object BillingEngine {
             }
 
             val itemTotalTax = cgst + sgst + igst
-            
+
             totalCgst += cgst
             totalSgst += sgst
             totalIgst += igst
@@ -119,8 +124,8 @@ object BillingEngine {
                     sgstAmount = sgst,
                     igstAmount = igst,
                     totalTaxAmount = itemTotalTax,
-                    totalAmountWithTax = itemNetTaxable + itemTotalTax
-                )
+                    totalAmountWithTax = itemNetTaxable + itemTotalTax,
+                ),
             )
         }
 
@@ -128,13 +133,13 @@ object BillingEngine {
 
         return InvoiceTaxSummary(
             subTotal = subTotal,
-            totalDiscount = totalDiscount,
+            totalDiscount = actualDiscount,
             netTaxableAmount = netTaxableAmount,
             totalCgst = totalCgst,
             totalSgst = totalSgst,
             totalIgst = totalIgst,
             grandTotal = grandTotal,
-            itemDetails = itemDetails
+            itemDetails = itemDetails,
         )
     }
 }

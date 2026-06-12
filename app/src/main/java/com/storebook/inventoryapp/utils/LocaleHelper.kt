@@ -5,10 +5,14 @@ import android.content.ContextWrapper
 import android.os.Build
 import java.util.Locale
 
-class LocaleHelper(base: Context) : ContextWrapper(base) {
-
+class LocaleHelper(
+    base: Context,
+) : ContextWrapper(base) {
     companion object {
-        fun wrap(context: Context, language: String): ContextWrapper {
+        fun wrap(
+            context: Context,
+            language: String,
+        ): ContextWrapper {
             var contextVar = context
             val locale = Locale(language)
             Locale.setDefault(locale)

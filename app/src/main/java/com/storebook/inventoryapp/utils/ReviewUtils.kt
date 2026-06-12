@@ -1,11 +1,13 @@
 package com.storebook.inventoryapp.utils
 
 import android.app.Activity
-import android.content.Context
 import com.google.android.play.core.review.ReviewManagerFactory
 
 object ReviewUtils {
-    fun launchInAppReview(activity: Activity, onComplete: () -> Unit = {}) {
+    fun launchInAppReview(
+        activity: Activity,
+        onComplete: () -> Unit = {},
+    ) {
         val manager = ReviewManagerFactory.create(activity)
         val request = manager.requestReviewFlow()
         request.addOnCompleteListener { task ->

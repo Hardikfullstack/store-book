@@ -55,7 +55,7 @@ fun NativeAd(
     isSmall: Boolean = true,
     isBackground: Boolean = false,
     useExitLayout: Boolean = false,
-    placement: String = "unknown_screen"
+    placement: String = "unknown_screen",
 ) {
     val appConfig = LocalAppConfig.current
     if (appConfig?.result?.google_ads_on_off != "on") return
@@ -72,30 +72,32 @@ fun NativeAd(
 
     LaunchedEffect(finalAdId) {
         AnalyticsManager.logAdEvent("native", placement, "request")
-        val adLoader = AdLoader.Builder(context, finalAdId)
-            .forNativeAd { ad: NativeAd ->
-                nativeAd?.destroy()
-                nativeAd = ad
-                isAdLoaded = true
-                AnalyticsManager.logAdEvent("native", placement, "loaded")
-            }
-            .withAdListener(object : AdListener() {
-                override fun onAdFailedToLoad(adError: LoadAdError) {
-                    isAdLoaded = false
-                    isAdFailed = true
-                    AnalyticsManager.logAdEvent("native", placement, "failed_to_load")
-                }
+        val adLoader =
+            AdLoader
+                .Builder(context, finalAdId)
+                .forNativeAd { ad: NativeAd ->
+                    nativeAd?.destroy()
+                    nativeAd = ad
+                    isAdLoaded = true
+                    AnalyticsManager.logAdEvent("native", placement, "loaded")
+                }.withAdListener(
+                    object : AdListener() {
+                        override fun onAdFailedToLoad(adError: LoadAdError) {
+                            isAdLoaded = false
+                            isAdFailed = true
+                            AnalyticsManager.logAdEvent("native", placement, "failed_to_load")
+                        }
 
-                override fun onAdClicked() {
-                    AnalyticsManager.logAdEvent("native", placement, "clicked")
-                }
+                        override fun onAdClicked() {
+                            AnalyticsManager.logAdEvent("native", placement, "clicked")
+                        }
 
-                override fun onAdImpression() {
-                    AnalyticsManager.logAdEvent("native", placement, "impression")
-                }
-            })
-            .withNativeAdOptions(NativeAdOptions.Builder().build())
-            .build()
+                        override fun onAdImpression() {
+                            AnalyticsManager.logAdEvent("native", placement, "impression")
+                        }
+                    },
+                ).withNativeAdOptions(NativeAdOptions.Builder().build())
+                .build()
         adLoader.loadAd(AdRequest.Builder().build())
     }
 
@@ -108,20 +110,22 @@ fun NativeAd(
     val secondaryColor = MaterialTheme.colorScheme.secondary
     val onSecondaryColor = MaterialTheme.colorScheme.onSecondary
 
-    val layoutId = remember(useExitLayout, isSmall) {
-        when {
-            useExitLayout -> R.layout.ad_native_exit
-            isSmall -> R.layout.ad_native_small
-            else -> R.layout.ad_native_medium
+    val layoutId =
+        remember(useExitLayout, isSmall) {
+            when {
+                useExitLayout -> R.layout.ad_native_exit
+                isSmall -> R.layout.ad_native_small
+                else -> R.layout.ad_native_medium
+            }
         }
-    }
 
     Box(modifier = modifier.fillMaxWidth()) {
         if (isAdLoaded && nativeAd != null) {
             AndroidView(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(cornerRadius)),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(cornerRadius)),
                 factory = { ctx ->
                     val adView = LayoutInflater.from(ctx).inflate(layoutId, null) as NativeAdView
 
@@ -136,11 +140,12 @@ fun NativeAd(
                     adView.callToActionView = callToActionView
                     adView.iconView = iconView
 
-                    val cardBgColor = if (isBackground) {
-                        ctx.getColor(R.color.black_text)
-                    } else {
-                        onPrimaryColor.toArgb()
-                    }
+                    val cardBgColor =
+                        if (isBackground) {
+                            ctx.getColor(R.color.black_text)
+                        } else {
+                            onPrimaryColor.toArgb()
+                        }
                     cardView?.setCardBackgroundColor(cardBgColor)
                     headlineView?.setTextColor(secondaryColor.toArgb())
                     bodyView?.setTextColor(onSecondaryColor.toArgb())
@@ -181,19 +186,21 @@ fun NativeAd(
                 },
                 update = {
                     // We could rebind here if data updates rapidly
-                }
+                },
             )
         } else {
             Surface(
-                color = if (isBackground) {
-                    colorResource(R.color.black_text)
-                } else {
-                    MaterialTheme.colorScheme.onPrimary
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(cornerRadius)),
-                shape = RoundedCornerShape(cornerRadius)
+                color =
+                    if (isBackground) {
+                        colorResource(R.color.black_text)
+                    } else {
+                        MaterialTheme.colorScheme.onPrimary
+                    },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(cornerRadius)),
+                shape = RoundedCornerShape(cornerRadius),
             ) {
                 if (useExitLayout) {
                     NativeAdExitSkeleton()
@@ -210,47 +217,51 @@ fun NativeAd(
 @Composable
 fun NativeAdExitSkeleton() {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                color = MaterialTheme.colorScheme.onPrimary,
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-            )
-            .padding(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                ).padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .shimmerEffect(RoundedCornerShape(8.dp))
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .shimmerEffect(RoundedCornerShape(8.dp)),
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .shimmerEffect(RoundedCornerShape(20.dp))
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .shimmerEffect(RoundedCornerShape(20.dp)),
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.5f)
-                        .height(16.dp)
-                        .shimmerEffect()
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(0.5f)
+                            .height(16.dp)
+                            .shimmerEffect(),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(12.dp)
-                        .shimmerEffect()
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(0.8f)
+                            .height(12.dp)
+                            .shimmerEffect(),
                 )
             }
         }
@@ -258,10 +269,11 @@ fun NativeAdExitSkeleton() {
         Spacer(modifier = Modifier.height(16.dp))
 
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .shimmerEffect(RoundedCornerShape(50))
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .shimmerEffect(RoundedCornerShape(50)),
         )
     }
 }
@@ -269,37 +281,40 @@ fun NativeAdExitSkeleton() {
 @Composable
 fun NativeAdMediumSkeleton() {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                color = if (isAppDarkMode) Color(0xFF212121) else MaterialTheme.colorScheme.onPrimary,
-                shape = RoundedCornerShape(10.dp)
-            )
-            .padding(12.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(
+                    color = if (isAppDarkMode) Color(0xFF212121) else MaterialTheme.colorScheme.onPrimary,
+                    shape = RoundedCornerShape(10.dp),
+                ).padding(12.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(50.dp)
-                    .shimmerEffect(RoundedCornerShape(8.dp))
+                modifier =
+                    Modifier
+                        .size(50.dp)
+                        .shimmerEffect(RoundedCornerShape(8.dp)),
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.5f)
-                        .height(16.dp)
-                        .shimmerEffect()
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(0.5f)
+                            .height(16.dp)
+                            .shimmerEffect(),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(12.dp)
-                        .shimmerEffect()
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(0.8f)
+                            .height(12.dp)
+                            .shimmerEffect(),
                 )
             }
         }
@@ -307,19 +322,21 @@ fun NativeAdMediumSkeleton() {
         Spacer(modifier = Modifier.height(12.dp))
 
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(150.dp)
-                .shimmerEffect(RoundedCornerShape(8.dp))
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .shimmerEffect(RoundedCornerShape(8.dp)),
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(45.dp)
-                .shimmerEffect(RoundedCornerShape(50))
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(45.dp)
+                    .shimmerEffect(RoundedCornerShape(50)),
         )
     }
 }

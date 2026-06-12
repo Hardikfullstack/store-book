@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,11 +37,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
@@ -53,7 +52,10 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SalesHistoryScreen(navController: NavController, viewModel: StoreBookViewModel) {
+fun SalesHistoryScreen(
+    navController: NavController,
+    viewModel: StoreBookViewModel,
+) {
     val salesHistory by viewModel.salesHistoryList.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -66,13 +68,14 @@ fun SalesHistoryScreen(navController: NavController, viewModel: StoreBookViewMod
     val timeFmt = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
 
     LaunchedEffect(selectedDateMillis) {
-        val calendar = Calendar.getInstance().apply {
-            timeInMillis = selectedDateMillis
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
+        val calendar =
+            Calendar.getInstance().apply {
+                timeInMillis = selectedDateMillis
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
         val startTs = calendar.timeInMillis
         calendar.set(Calendar.HOUR_OF_DAY, 23)
         calendar.set(Calendar.MINUTE, 59)
@@ -97,7 +100,7 @@ fun SalesHistoryScreen(navController: NavController, viewModel: StoreBookViewMod
                 TextButton(onClick = { showDatePicker = false }) {
                     Text(stringResource(id = R.string.btn_cancel))
                 }
-            }
+            },
         ) {
             DatePicker(state = datePickerState)
         }
@@ -114,39 +117,46 @@ fun SalesHistoryScreen(navController: NavController, viewModel: StoreBookViewMod
                 },
                 actions = {
                     Row(
-                        modifier = Modifier
-                            .clickable { showDatePicker = true }
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier =
+                            Modifier
+                                .clickable { showDatePicker = true }
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             text = displayFmt.format(Date(selectedDateMillis)),
                             fontWeight = FontWeight.Medium,
                             fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
                         )
                         Spacer(modifier = Modifier.padding(4.dp))
-                        Icon(Icons.Default.DateRange, contentDescription = "Select Date", tint = MaterialTheme.colorScheme.primary)
+                        Icon(
+                            Icons.Default.DateRange,
+                            contentDescription = "Select Date",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
             )
-        }
+        },
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.background),
         ) {
             if (salesHistory.isEmpty()) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text("🛒", fontSize = 48.sp)
                     Spacer(modifier = Modifier.height(16.dp))
@@ -154,22 +164,23 @@ fun SalesHistoryScreen(navController: NavController, viewModel: StoreBookViewMod
                         text = stringResource(id = R.string.hist_no_sales),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 16.sp,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
                     )
                 }
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(salesHistory, key = { it.id }) { sale ->
                         val saleTime = timeFmt.format(Date(sale.timestamp))
-                        val profit = sale.items.sumOf { (it.sellPrice - it.buyPrice) * it.quantity } - sale.discountAmount
+                        val profit =
+                            sale.items.sumOf { (it.sellPrice - it.buyPrice) * it.quantity } - sale.discountAmount
                         SaleTimelineCard(
                             sale = sale,
                             customerName = sale.customerName ?: stringResource(id = R.string.customer_walk_in),
                             saleTime = saleTime,
-                            profit = profit
+                            profit = profit,
                         )
                     }
                 }

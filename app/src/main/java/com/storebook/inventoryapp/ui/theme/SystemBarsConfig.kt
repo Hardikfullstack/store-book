@@ -4,15 +4,15 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Color
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 @Composable
 fun SystemBarsConfig(isDarkMode: Boolean) {
@@ -24,15 +24,15 @@ fun SystemBarsConfig(isDarkMode: Boolean) {
                 val darkColor = android.graphics.Color.parseColor("#212121")
                 activity.enableEdgeToEdge(
                     statusBarStyle = SystemBarStyle.dark(darkColor),
-                    navigationBarStyle = SystemBarStyle.dark(darkColor)
+                    navigationBarStyle = SystemBarStyle.dark(darkColor),
                 )
             } else {
                 activity.enableEdgeToEdge(
                     statusBarStyle = SystemBarStyle.light(Color.WHITE, Color.BLACK),
-                    navigationBarStyle = SystemBarStyle.light(Color.WHITE, Color.BLACK)
+                    navigationBarStyle = SystemBarStyle.light(Color.WHITE, Color.BLACK),
                 )
             }
-            
+
             // Hide Bottom Navigation Bar
             val window = activity.window
             val controller = WindowCompat.getInsetsController(window, view)
@@ -43,8 +43,9 @@ fun SystemBarsConfig(isDarkMode: Boolean) {
 }
 
 // Helper function to safely extract Activity from Compose Context
-fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
-}
+fun Context.findActivity(): Activity? =
+    when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }

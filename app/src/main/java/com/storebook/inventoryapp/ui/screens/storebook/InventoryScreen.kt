@@ -1,9 +1,8 @@
 package com.storebook.inventoryapp.ui.screens.storebook
 
-import com.storebook.inventoryapp.utils.toRupee
-import com.storebook.inventoryapp.utils.toRupeeWithDecimals
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -44,11 +44,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -73,13 +71,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.data.repository.Item
-import androidx.compose.foundation.BorderStroke
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
+import com.storebook.inventoryapp.utils.toRupee
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.launch
 
 private const val PAGE_SIZE = 50
 
@@ -153,7 +150,10 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
     // ── Infinite scroll trigger — load next page when near bottom ─────────────
     val nearBottom by remember {
         derivedStateOf {
-            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val lastVisible =
+                listState.layoutInfo.visibleItemsInfo
+                    .lastOrNull()
+                    ?.index ?: 0
             val total = listState.layoutInfo.totalItemsCount
             total > 0 && lastVisible >= total - 8
         }
@@ -167,7 +167,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                 category = selectedCategory,
                 sortBy = sortBy,
                 currentSize = displayedItems.size,
-                pageSize = PAGE_SIZE
+                pageSize = PAGE_SIZE,
             ) { more ->
                 if (more.isEmpty()) {
                     hasMoreItems = false
@@ -183,31 +183,45 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
     // ── Helpers ───────────────────────────────────────────────────────────────
     fun openAddSheet() {
         editingItem = null
-        inputName = ""; inputQty = ""; inputUnit = "pcs"
-        inputBuyPrice = ""; inputSellPrice = ""; inputThreshold = "5"
-        inputCategory = "Groceries"; inputHsnCode = ""; inputTaxRate = ""
-        nameError = false; priceError = false
+        inputName = ""
+        inputQty = ""
+        inputUnit = "pcs"
+        inputBuyPrice = ""
+        inputSellPrice = ""
+        inputThreshold = "5"
+        inputCategory = "Groceries"
+        inputHsnCode = ""
+        inputTaxRate = ""
+        nameError = false
+        priceError = false
         showSheet = true
     }
 
     fun openEditSheet(item: Item) {
         editingItem = item
-        inputName = item.name; inputQty = formatQty(item.quantity)
-        inputUnit = item.unit; inputBuyPrice = formatQty(item.buyPrice)
+        inputName = item.name
+        inputQty = formatQty(item.quantity)
+        inputUnit = item.unit
+        inputBuyPrice = formatQty(item.buyPrice)
         inputSellPrice = formatQty(item.sellPrice)
         inputThreshold = formatQty(item.lowStockThreshold)
-        inputCategory = item.category; inputHsnCode = item.hsnCode ?: ""; inputTaxRate = if (item.taxRate > 0) item.taxRate.toString() else ""
-        nameError = false; priceError = false
+        inputCategory = item.category
+        inputHsnCode = item.hsnCode ?: ""
+        inputTaxRate =
+            if (item.taxRate > 0) item.taxRate.toString() else ""
+        nameError = false
+        priceError = false
         showSheet = true
     }
 
     fun performDelete(item: Item) {
         viewModel.deleteItem(item.id)
-        android.widget.Toast.makeText(
-            context,
-            context.getString(R.string.inv_delete_success),
-            android.widget.Toast.LENGTH_SHORT
-        ).show()
+        android.widget.Toast
+            .makeText(
+                context,
+                context.getString(R.string.inv_delete_success),
+                android.widget.Toast.LENGTH_SHORT,
+            ).show()
         // Optimistic UI update — remove immediately from local list
         displayedItems = displayedItems.filterNot { it.id == item.id }
     }
@@ -222,21 +236,21 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
             pendingDeleteItem = null
         },
         onDismiss = { pendingDeleteItem = null },
-        context = context
+        context = context,
     )
 
     // ── Quick Refill Dialog ──────────────────────────────────────────────────
     if (quickRefillItem != null) {
         var addQtyInput by remember { mutableStateOf("") }
         val refillItem = quickRefillItem!!
-        
+
         AlertDialog(
             onDismissRequest = { quickRefillItem = null },
             title = {
                 Text(
                     text = "Refill Stock: ${refillItem.name}",
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
             },
             text = {
@@ -244,7 +258,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                     Text(
                         text = "Current Stock: ${formatQty(refillItem.quantity)} ${refillItem.unit}",
                         fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
@@ -252,30 +266,32 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         onValueChange = { addQtyInput = it },
                         label = { Text("Add Quantity") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    
+
                     // Presets
-                    val presets = if (refillItem.unit in listOf("pcs", "dozen", "box", "packet")) {
-                        listOf(5, 10, 50, 100)
-                    } else {
-                        listOf(5, 10, 25, 50)
-                    }
+                    val presets =
+                        if (refillItem.unit in listOf("pcs", "dozen", "box", "packet")) {
+                            listOf(5, 10, 50, 100)
+                        } else {
+                            listOf(5, 10, 25, 50)
+                        }
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(presets, key = { it }) { preset ->
                             FilterChip(
                                 label = "+$preset",
                                 isSelected = false,
-                                onClick = { 
+                                onClick = {
                                     val currentVal = addQtyInput.toDoubleOrNull() ?: 0.0
-                                    val formatted = if ((currentVal + preset) % 1.0 == 0.0) {
-                                        (currentVal + preset).toInt().toString()
-                                    } else {
-                                        (currentVal + preset).toString()
-                                    }
+                                    val formatted =
+                                        if ((currentVal + preset) % 1.0 == 0.0) {
+                                            (currentVal + preset).toInt().toString()
+                                        } else {
+                                            (currentVal + preset).toString()
+                                        }
                                     addQtyInput = formatted
-                                }
+                                },
                             )
                         }
                     }
@@ -293,7 +309,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             buyPrice = refillItem.buyPrice,
                             sellPrice = refillItem.sellPrice,
                             threshold = refillItem.lowStockThreshold,
-                            category = refillItem.category
+                            category = refillItem.category,
                         )
                     }
                     quickRefillItem = null
@@ -305,7 +321,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                 TextButton(onClick = { quickRefillItem = null }) {
                     Text("Cancel")
                 }
-            }
+            },
         )
     }
 
@@ -313,46 +329,58 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
     Scaffold(
         topBar = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column {
                         Text(
                             text = stringResource(id = R.string.tab_inventory),
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.ExtraBold
+                            fontWeight = FontWeight.ExtraBold,
                         )
                         Text(
                             text = "${displayedItems.size}${if (hasMoreItems) "+" else ""} items",
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
 
                     // Sort toggle chip
                     Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .clickable {
-                                sortBy = when (sortBy) {
-                                    "Name" -> "Qty"; "Qty" -> "Price"; else -> "Name"
-                                }
-                            }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .clickable {
+                                    sortBy =
+                                        when (sortBy) {
+                                            "Name" -> "Qty"
+                                            "Qty" -> "Price"
+                                            else -> "Name"
+                                        }
+                                }.padding(horizontal = 12.dp, vertical = 6.dp),
                     ) {
                         Text(
-                            text = stringResource(id = R.string.inv_sort_dynamic, when (sortBy) { "Qty" -> "Stock"; "Price" -> "Price"; else -> "Name" }),
+                            text =
+                                stringResource(
+                                    id = R.string.inv_sort_dynamic,
+                                    when (sortBy) {
+                                        "Qty" -> "Stock"
+                                        "Price" -> "Price"
+                                        else -> "Name"
+                                    },
+                                ),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
@@ -372,7 +400,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         }
                     },
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(16.dp),
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -380,27 +408,27 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                 // Category Filter Chips
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(end = 8.dp)
+                    contentPadding = PaddingValues(end = 8.dp),
                 ) {
                     item {
                         FilterChip(
                             label = stringResource(id = R.string.inv_filter_all),
                             isSelected = selectedCategory == "All",
-                            onClick = { selectedCategory = "All" }
+                            onClick = { selectedCategory = "All" },
                         )
                     }
                     item {
                         FilterChip(
                             label = "⚠️ " + stringResource(id = R.string.inv_filter_low_stock),
                             isSelected = selectedCategory == "Low Stock",
-                            onClick = { selectedCategory = "Low Stock" }
+                            onClick = { selectedCategory = "Low Stock" },
                         )
                     }
                     items(categoriesList, key = { it }) { cat ->
                         FilterChip(
                             label = cat,
                             isSelected = selectedCategory == cat,
-                            onClick = { selectedCategory = cat }
+                            onClick = { selectedCategory = cat },
                         )
                     }
                 }
@@ -411,16 +439,17 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                 onClick = { openAddSheet() },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.White,
-                shape = CircleShape
+                shape = CircleShape,
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Item", modifier = Modifier.size(26.dp))
             }
-        }
+        },
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
         ) {
             when {
                 isLoadingItems && displayedItems.isEmpty() -> {
@@ -428,7 +457,10 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator()
                             Spacer(modifier = Modifier.height(12.dp))
-                            Text(stringResource(id = R.string.inv_loading), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                            Text(
+                                stringResource(id = R.string.inv_loading),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            )
                         }
                     }
                 }
@@ -439,12 +471,15 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             Text("📦", fontSize = 48.sp)
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = if (searchQ.isBlank() && selectedCategory == "All")
-                                    "No items yet.\nTap + to add your first item."
-                                else stringResource(id = R.string.search_no_results),
+                                text =
+                                    if (searchQ.isBlank() && selectedCategory == "All") {
+                                        "No items yet.\nTap + to add your first item."
+                                    } else {
+                                        stringResource(id = R.string.search_no_results)
+                                    },
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                                 textAlign = TextAlign.Center,
-                                fontSize = 14.sp
+                                fontSize = 14.sp,
                             )
                         }
                     }
@@ -455,12 +490,12 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         state = listState,
                         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
-                        contentPadding = PaddingValues(top = 8.dp, bottom = 90.dp)
+                        contentPadding = PaddingValues(top = 8.dp, bottom = 90.dp),
                     ) {
                         items(
                             items = displayedItems,
                             key = { it.id },
-                            contentType = { "inventory_item" }  // stable content type for Compose recycling
+                            contentType = { "inventory_item" }, // stable content type for Compose recycling
                         ) { item ->
                             val isLowStock = item.quantity <= item.lowStockThreshold
 
@@ -484,28 +519,34 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 enableDismissFromStartToEnd = false,
                                 backgroundContent = {
                                     Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(20.dp))
-                                            .background(Coral500),
-                                        contentAlignment = Alignment.CenterEnd
+                                        modifier =
+                                            Modifier
+                                                .fillMaxSize()
+                                                .clip(RoundedCornerShape(20.dp))
+                                                .background(Coral500),
+                                        contentAlignment = Alignment.CenterEnd,
                                     ) {
                                         Row(
                                             modifier = Modifier.padding(end = 20.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                                            verticalAlignment = Alignment.CenterVertically,
                                         ) {
-                                            Text(stringResource(id = R.string.btn_delete), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                            Text(
+                                                stringResource(id = R.string.btn_delete),
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                            )
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
                                         }
                                     }
-                                }
+                                },
                             ) {
                                 InventoryItemCard(
                                     item = item,
                                     isLowStock = isLowStock,
                                     onClick = { openEditSheet(item) },
-                                    onRefillClick = { quickRefillItem = item }
+                                    onRefillClick = { quickRefillItem = item },
                                 )
                             }
                         }
@@ -516,11 +557,15 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                                     horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                                     Spacer(modifier = Modifier.width(10.dp))
-                                    Text(stringResource(id = R.string.inv_loading_more), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                    Text(
+                                        stringResource(id = R.string.inv_loading_more),
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    )
                                 }
                             }
                         }
@@ -533,7 +578,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                                     textAlign = TextAlign.Center,
                                     fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
                                 )
                             }
                         }
@@ -547,30 +592,43 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                     onDismissRequest = { showSheet = false },
                     sheetState = sheetState,
                     containerColor = MaterialTheme.colorScheme.surface,
-                    dragHandle = { BottomSheetDefaults.DragHandle() }
+                    dragHandle = { BottomSheetDefaults.DragHandle() },
                 ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 8.dp)
-                            .padding(bottom = 32.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 8.dp)
+                                .padding(bottom = 32.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         Text(
-                            text = if (editingItem == null) stringResource(id = R.string.inv_add_title)
-                            else stringResource(id = R.string.inv_edit_title),
+                            text =
+                                if (editingItem == null) {
+                                    stringResource(id = R.string.inv_add_title)
+                                } else {
+                                    stringResource(id = R.string.inv_edit_title)
+                                },
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         )
 
                         OutlinedTextField(
                             value = inputName,
-                            onValueChange = { inputName = it; nameError = false },
+                            onValueChange = {
+                                inputName = it
+                                nameError = false
+                            },
                             label = { Text(stringResource(id = R.string.inv_name_label)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             isError = nameError,
-                            supportingText = if (nameError) {{ Text(stringResource(id = R.string.inv_err_empty_name)) }} else null
+                            supportingText =
+                                if (nameError) {
+                                    { Text(stringResource(id = R.string.inv_err_empty_name)) }
+                                } else {
+                                    null
+                                },
                         )
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -580,13 +638,17 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 label = { Text(stringResource(id = R.string.inv_qty_label)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f),
-                                singleLine = true
+                                singleLine = true,
                             )
                         }
 
                         // Unit picker chips
                         Column {
-                            Text(stringResource(id = R.string.inv_unit_label), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                stringResource(id = R.string.inv_unit_label),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                             Spacer(modifier = Modifier.height(6.dp))
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 items(unitsList, key = { it }) { u ->
@@ -599,34 +661,52 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             OutlinedTextField(
                                 value = inputBuyPrice,
-                                onValueChange = { inputBuyPrice = it; priceError = false },
+                                onValueChange = {
+                                    inputBuyPrice = it
+                                    priceError = false
+                                },
                                 label = { Text(stringResource(id = R.string.inv_buy_price_label)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f),
                                 singleLine = true,
-                                isError = priceError
+                                isError = priceError,
                             )
                             OutlinedTextField(
                                 value = inputSellPrice,
-                                onValueChange = { inputSellPrice = it; priceError = false },
+                                onValueChange = {
+                                    inputSellPrice = it
+                                    priceError = false
+                                },
                                 label = { Text(stringResource(id = R.string.inv_sell_price_label)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f),
                                 singleLine = true,
-                                isError = priceError
+                                isError = priceError,
                             )
                         }
                         if (priceError) {
-                            Text(stringResource(id = R.string.inv_err_prices), color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                            Text(
+                                stringResource(id = R.string.inv_err_prices),
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 12.sp,
+                            )
                         }
 
                         // Category picker chips
                         Column {
-                            Text(stringResource(id = R.string.inv_category_label), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                stringResource(id = R.string.inv_category_label),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                             Spacer(modifier = Modifier.height(6.dp))
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 items(categoriesList, key = { it }) { c ->
-                                    FilterChip(label = c, isSelected = inputCategory == c, onClick = { inputCategory = c })
+                                    FilterChip(
+                                        label = c,
+                                        isSelected = inputCategory == c,
+                                        onClick = { inputCategory = c },
+                                    )
                                 }
                             }
                         }
@@ -637,7 +717,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             label = { Text(stringResource(id = R.string.inv_threshold_label)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
+                            singleLine = true,
                         )
 
                         // Taxes & HSN
@@ -647,7 +727,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 onValueChange = { inputHsnCode = it },
                                 label = { Text("HSN/SAC Code") },
                                 modifier = Modifier.weight(1f),
-                                singleLine = true
+                                singleLine = true,
                             )
                             OutlinedTextField(
                                 value = inputTaxRate,
@@ -655,7 +735,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 label = { Text("Tax Rate (%)") },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f),
-                                singleLine = true
+                                singleLine = true,
                             )
                         }
 
@@ -674,15 +754,41 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 if (nameError || priceError || qty == null) return@Button
 
                                 if (editingItem == null) {
-                                    viewModel.addItem(name, qty, inputUnit, buy!!, sell!!, threshold, inputCategory, hsn, tax)
+                                    viewModel.addItem(
+                                        name,
+                                        qty,
+                                        inputUnit,
+                                        buy!!,
+                                        sell!!,
+                                        threshold,
+                                        inputCategory,
+                                        hsn,
+                                        tax,
+                                    )
                                 } else {
-                                    viewModel.updateItem(editingItem!!.id, name, qty, inputUnit, buy!!, sell!!, threshold, inputCategory, hsn, tax)
+                                    viewModel.updateItem(
+                                        editingItem!!.id,
+                                        name,
+                                        qty,
+                                        inputUnit,
+                                        buy!!,
+                                        sell!!,
+                                        threshold,
+                                        inputCategory,
+                                        hsn,
+                                        tax,
+                                    )
                                 }
                                 showSheet = false
-                                android.widget.Toast.makeText(context, context.getString(R.string.inv_save_success), android.widget.Toast.LENGTH_SHORT).show()
+                                android.widget.Toast
+                                    .makeText(
+                                        context,
+                                        context.getString(R.string.inv_save_success),
+                                        android.widget.Toast.LENGTH_SHORT,
+                                    ).show()
                             },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
-                            shape = RoundedCornerShape(14.dp)
+                            shape = RoundedCornerShape(14.dp),
                         ) {
                             Text(stringResource(id = R.string.btn_save), fontWeight = FontWeight.Bold)
                         }
@@ -696,27 +802,35 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
 // ── Item Card ─────────────────────────────────────────────────────────────────
 
 @Composable
-fun InventoryItemCard(item: Item, isLowStock: Boolean, onClick: () -> Unit, onRefillClick: () -> Unit) {
+fun InventoryItemCard(
+    item: Item,
+    isLowStock: Boolean,
+    onClick: () -> Unit,
+    onRefillClick: () -> Unit,
+) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isLowStock) Coral100.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surface
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = if (isLowStock) Coral100.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surface,
+            ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = item.name,
@@ -724,69 +838,96 @@ fun InventoryItemCard(item: Item, isLowStock: Boolean, onClick: () -> Unit, onRe
                     fontSize = 14.sp,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).padding(end = 8.dp)
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
                         text = "${formatQty(item.quantity)} ${item.unit}",
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 14.sp,
-                        color = if (isLowStock) Coral500 else MaterialTheme.colorScheme.onSurface
+                        color = if (isLowStock) Coral500 else MaterialTheme.colorScheme.onSurface,
                     )
-                    
+
                     // Quick Refill Plus Icon
                     Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .clickable { onRefillClick() },
-                        contentAlignment = Alignment.Center
+                        modifier =
+                            Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .clickable { onRefillClick() },
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Quick Refill",
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(16.dp),
                         )
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "${item.category} • " + stringResource(id = R.string.inv_buy_prefix, item.buyPrice.toRupee()),
+                    text =
+                        "${item.category} • " +
+                            stringResource(
+                                id = R.string.inv_buy_prefix,
+                                item.buyPrice.toRupee(),
+                            ),
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
-                
-                val margin = if (item.buyPrice > 0) ((item.sellPrice - item.buyPrice) / item.buyPrice * 100).toInt() else 0
-                val marginStr = if (margin > 0) "+$margin%" else if (margin < 0) "$margin%" else "0%"
-                val marginColor = if (margin >= 15) Emerald500 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                
+
+                val margin =
+                    if (item.buyPrice >
+                        0
+                    ) {
+                        ((item.sellPrice - item.buyPrice) / item.buyPrice * 100).toInt()
+                    } else {
+                        0
+                    }
+                val marginStr =
+                    if (margin > 0) {
+                        "+$margin%"
+                    } else if (margin < 0) {
+                        "$margin%"
+                    } else {
+                        "0%"
+                    }
+                val marginColor =
+                    if (margin >=
+                        15
+                    ) {
+                        Emerald500
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    }
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = stringResource(id = R.string.inv_sell_prefix, item.sellPrice.toRupee()),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = marginStr,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = marginColor
+                        color = marginColor,
                     )
                 }
             }
@@ -797,23 +938,28 @@ fun InventoryItemCard(item: Item, isLowStock: Boolean, onClick: () -> Unit, onRe
 // ── Filter Chip ───────────────────────────────────────────────────────────────
 
 @Composable
-fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit) {
+fun FilterChip(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
     val bgColor by animateColorAsState(
         targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
         animationSpec = tween(200),
-        label = "chip_color"
+        label = "chip_color",
     )
     val textColor by animateColorAsState(
         targetValue = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
         animationSpec = tween(200),
-        label = "chip_text"
+        label = "chip_text",
     )
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(bgColor)
-            .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 8.dp)
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(bgColor)
+                .clickable { onClick() }
+                .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {
         Text(text = label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = textColor)
     }
