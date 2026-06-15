@@ -10,6 +10,9 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,13 +44,18 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -75,6 +83,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.data.billing.BillingEngine
 import com.storebook.inventoryapp.data.repository.CartItem
@@ -120,6 +129,10 @@ fun SalesScreen(
     var editingQtyItem by remember { mutableStateOf<Item?>(null) }
     var editingQtyText by remember { mutableStateOf(TextFieldValue("")) }
     val editingQtyFocus = remember { FocusRequester() }
+    val qtySheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    var showCheckoutSheet by remember { mutableStateOf(false) }
+    val checkoutSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // O(1) cart lookup
     val cartMap by remember(viewModel.cartItems) { derivedStateOf { viewModel.cartItems.associateBy { it.item.id } } }
@@ -206,16 +219,19 @@ fun SalesScreen(
             }
         }
 
-        androidx.compose.ui.window.Dialog(onDismissRequest = { editingQtyItem = null }) {
-            Card(
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.fillMaxWidth(),
+        ModalBottomSheet(
+            onDismissRequest = { editingQtyItem = null },
+            sheetState = qtySheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle() },
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(unitEmoji(item.unit), fontSize = 26.sp)
                         Spacer(modifier = Modifier.width(10.dp))
@@ -415,6 +431,347 @@ fun SalesScreen(
                             Text(stringResource(id = R.string.sales_add_to_cart), fontWeight = FontWeight.Bold)
                         }
                     }
+            }
+        }
+    }
+
+    if (showCheckoutSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showCheckoutSheet = false },
+            sheetState = checkoutSheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle() },
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Checkout Summary",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = grandTotal.toRupee(),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                OutlinedTextField(
+                    value = if (viewModel.cartDiscount == 0.0) "" else viewModel.cartDiscount.toString(),
+                    onValueChange = { viewModel.cartDiscount = it.toDoubleOrNull() ?: 0.0 },
+                    label = { Text(stringResource(id = R.string.sales_discount_rupee), fontSize = 11.sp) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                )
+
+                // ── Payment Mode Chips ──────────────────────────────────
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        "Payment Mode",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        paymentModes.forEach { mode ->
+                            val isUdhaar = mode == "Udhaar"
+                            val isSelected = viewModel.cartPaymentMode == mode
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(
+                                            when {
+                                                isSelected && isUdhaar -> Coral500
+                                                isSelected -> MaterialTheme.colorScheme.primary
+                                                else -> MaterialTheme.colorScheme.surfaceVariant
+                                            },
+                                        ).clickable {
+                                            viewModel.cartPaymentMode = mode
+                                            customerNameError = false
+                                        }.padding(horizontal = 14.dp, vertical = 8.dp),
+                            ) {
+                                Text(
+                                    text =
+                                        when (mode) {
+                                            "Udhaar" -> "📒 Udhaar"
+                                            "Cash" -> "💵 Cash"
+                                            "UPI" -> "📱 UPI"
+                                            else -> mode
+                                        },
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color =
+                                        if (isSelected) {
+                                            Color.White
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // ── Udhaar info banner ──────────────────────────────────
+                AnimatedVisibility(visible = isUdhaarMode) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Coral100.copy(alpha = 0.7f))
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Coral500,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(id = R.string.sales_udhaar_warning),
+                            fontSize = 11.sp,
+                            color = Coral500,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+
+                // ── Customer Name with Autocomplete ────────────────────
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = viewModel.cartCustomerName,
+                        onValueChange = { name ->
+                            viewModel.cartCustomerName = name
+                            viewModel.updateCustomerSearch(name)
+                            customerNameError = false
+                            showCustomerSuggestions = true
+                        },
+                        label = {
+                            Text(
+                                if (isUdhaarMode) {
+                                    "Customer Name *"
+                                } else {
+                                    stringResource(
+                                        id = R.string.sales_customer_label,
+                                    )
+                                },
+                            )
+                        },
+                        placeholder = {
+                            Text(
+                                if (isUdhaarMode) "Required for Udhaar" else "Optional",
+                                fontSize = 12.sp,
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                tint = if (customerNameError) Coral500 else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .onFocusChanged { state ->
+                                    if (state.isFocused) {
+                                        showCustomerSuggestions = true
+                                    }
+                                },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        isError = customerNameError,
+                        supportingText = {
+                            Text(
+                                text = if (customerNameError) "Customer name is required for Udhaar" else " ",
+                                color = if (customerNameError) Coral500 else androidx.compose.ui.graphics.Color.Transparent,
+                                fontSize = 11.sp,
+                            )
+                        },
+                    )
+
+                    // ── Autocomplete dropdown ──
+                    DropdownMenu(
+                        expanded = showCustomerSuggestions && customerSuggestions.isNotEmpty(),
+                        onDismissRequest = { showCustomerSuggestions = false },
+                        properties = PopupProperties(focusable = false),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth(0.9f)
+                                .heightIn(max = 240.dp)
+                                .background(MaterialTheme.colorScheme.surface),
+                    ) {
+                        customerSuggestions.forEachIndexed { index, name ->
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .size(30.dp)
+                                                    .clip(CircleShape)
+                                                    .background(
+                                                        if (isUdhaarMode) {
+                                                            Coral500.copy(alpha = 0.12f)
+                                                        } else {
+                                                            MaterialTheme.colorScheme.primaryContainer
+                                                        },
+                                                    ),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text(
+                                                name.firstOrNull()?.uppercase() ?: "?",
+                                                fontWeight = FontWeight.Black,
+                                                fontSize = 13.sp,
+                                                color =
+                                                    if (isUdhaarMode) {
+                                                        Coral500
+                                                    } else {
+                                                        MaterialTheme.colorScheme.primary
+                                                    },
+                                            )
+                                        }
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = name,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 14.sp,
+                                            )
+                                            if (isUdhaarMode) {
+                                                val bal = udhaarBalances.find { it.customerName == name }
+                                                if (bal != null && bal.netBalance > 0) {
+                                                    Text(
+                                                        text =
+                                                            stringResource(
+                                                                id = R.string.sales_current_due,
+                                                                bal.netBalance.toRupee(),
+                                                            ),
+                                                        fontSize = 10.sp,
+                                                        color = Coral500,
+                                                        fontWeight = FontWeight.Bold,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    viewModel.selectCustomer(name)
+                                    showCustomerSuggestions = false
+                                    customerNameError = false
+                                },
+                            )
+                            if (index < customerSuggestions.lastIndex) {
+                                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                            }
+                        }
+                    }
+                }
+
+                var showAdvancedBilling by remember { mutableStateOf(false) }
+                Text(
+                    text = if (showAdvancedBilling) "Hide Additional Billing Details" else "Add GSTIN & Address (Optional)",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { showAdvancedBilling = !showAdvancedBilling }
+                            .padding(vertical = 4.dp),
+                    textAlign = TextAlign.Center,
+                )
+
+                AnimatedVisibility(visible = showAdvancedBilling) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // ── Customer GSTIN ──────────────────────────────────────────
+                        OutlinedTextField(
+                            value = viewModel.cartCustomerGstin,
+                            onValueChange = { viewModel.cartCustomerGstin = it },
+                            label = { Text("Customer GSTIN (Optional)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                        )
+
+                        // ── Customer Address ────────────────────────────────────────
+                        OutlinedTextField(
+                            value = viewModel.cartCustomerAddress,
+                            onValueChange = { viewModel.cartCustomerAddress = it },
+                            label = { Text("Customer Address (Optional)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2,
+                            maxLines = 3,
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                    }
+                }
+
+                // ── Checkout Button ─────────────────────────────────────
+                Button(
+                    onClick = {
+                        // Validate: Udhaar requires customer name
+                        if (isUdhaarMode && viewModel.cartCustomerName.trim().isBlank()) {
+                            customerNameError = true
+                            return@Button
+                        }
+                        showCustomerSuggestions = false
+                        lastPaymentMode = viewModel.cartPaymentMode
+                        lastCartSnap = viewModel.cartItems.toList()
+                        showCheckoutSheet = false
+                        viewModel.checkout(viewModel.cartPaymentMode) { saleId, total ->
+                            generatedSaleId = saleId
+                            generatedTotalAmount = total
+                            showSuccessScreen = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor =
+                                if (isUdhaarMode) {
+                                    Coral500
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
+                        ),
+                ) {
+                    Text(
+                        text =
+                            when (viewModel.cartPaymentMode) {
+                                "Udhaar" -> "📒 Record as Udhaar"
+                                "UPI" -> "📱 Confirm UPI Sale"
+                                else -> stringResource(id = R.string.sales_checkout)
+                            },
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                    )
                 }
             }
         }
@@ -744,16 +1101,18 @@ fun SalesScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 16.dp),
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier
+                            .verticalScroll(rememberScrollState())
+                            .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        // Total + discount row
+                        // Total + Quick Checkout row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     "${viewModel.cartItems.size} items in cart",
                                     fontSize = 12.sp,
@@ -774,94 +1133,14 @@ fun SalesScreen(
                                     )
                                 }
                             }
-                            OutlinedTextField(
-                                value = if (viewModel.cartDiscount == 0.0) "" else viewModel.cartDiscount.toString(),
-                                onValueChange = { viewModel.cartDiscount = it.toDoubleOrNull() ?: 0.0 },
-                                label = { Text(stringResource(id = R.string.sales_discount_rupee), fontSize = 11.sp) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.width(110.dp).height(56.dp),
-                                singleLine = true,
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                        }
 
-                        // ── Payment Mode Chips ──────────────────────────────────
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                "Payment Mode",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                paymentModes.forEach { mode ->
-                                    val isUdhaar = mode == "Udhaar"
-                                    val isSelected = viewModel.cartPaymentMode == mode
-                                    Box(
-                                        modifier =
-                                            Modifier
-                                                .clip(RoundedCornerShape(20.dp))
-                                                .background(
-                                                    when {
-                                                        isSelected && isUdhaar -> Coral500
-                                                        isSelected -> MaterialTheme.colorScheme.primary
-                                                        else -> MaterialTheme.colorScheme.surfaceVariant
-                                                    },
-                                                ).clickable {
-                                                    viewModel.cartPaymentMode = mode
-                                                    customerNameError = false
-                                                }.padding(horizontal = 14.dp, vertical = 8.dp),
-                                    ) {
-                                        Text(
-                                            text =
-                                                when (mode) {
-                                                    "Udhaar" -> "📒 Udhaar"
-                                                    "Cash" -> "💵 Cash"
-                                                    "UPI" -> "📱 UPI"
-                                                    else -> mode
-                                                },
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color =
-                                                if (isSelected) {
-                                                    Color.White
-                                                } else {
-                                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                                },
-                                        )
-                                    }
-                                }
+                            // Optional Add Details
+                            TextButton(onClick = { showCheckoutSheet = true }) {
+                                Text("+ Add Details", fontSize = 13.sp)
                             }
                         }
 
-                        // ── Udhaar info banner ──────────────────────────────────
-                        AnimatedVisibility(visible = isUdhaarMode) {
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Coral100.copy(alpha = 0.7f))
-                                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = Coral500,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = stringResource(id = R.string.sales_udhaar_warning),
-                                    fontSize = 11.sp,
-                                    color = Coral500,
-                                    fontWeight = FontWeight.Medium,
-                                )
-                            }
-                        }
-
-                        // ── Customer Name with Autocomplete ────────────────────
+                        // Compact Customer Selection
                         Box(modifier = Modifier.fillMaxWidth()) {
                             OutlinedTextField(
                                 value = viewModel.cartCustomerName,
@@ -871,23 +1150,7 @@ fun SalesScreen(
                                     customerNameError = false
                                     showCustomerSuggestions = true
                                 },
-                                label = {
-                                    Text(
-                                        if (isUdhaarMode) {
-                                            "Customer Name *"
-                                        } else {
-                                            stringResource(
-                                                id = R.string.sales_customer_label,
-                                            )
-                                        },
-                                    )
-                                },
-                                placeholder = {
-                                    Text(
-                                        if (isUdhaarMode) "Required for Udhaar" else "Optional",
-                                        fontSize = 12.sp,
-                                    )
-                                },
+                                placeholder = { Text("Customer Name (Optional)", fontSize = 13.sp) },
                                 leadingIcon = {
                                     Icon(
                                         Icons.Default.Person,
@@ -896,36 +1159,27 @@ fun SalesScreen(
                                         modifier = Modifier.size(18.dp),
                                     )
                                 },
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .onFocusChanged { state ->
-                                            if (state.isFocused) {
-                                                showCustomerSuggestions = true
-                                            }
-                                        },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onFocusChanged { state ->
+                                        if (state.isFocused) {
+                                            showCustomerSuggestions = true
+                                        }
+                                    },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                                 isError = customerNameError,
-                                supportingText = {
-                                    Text(
-                                        text = if (customerNameError) "Customer name is required for Udhaar" else " ",
-                                        color = if (customerNameError) Coral500 else androidx.compose.ui.graphics.Color.Transparent,
-                                        fontSize = 11.sp,
-                                    )
-                                },
                             )
-
-                            // ── Autocomplete dropdown (DropdownMenu automatically handles screen bounds) ──
+                            
+                            // ── Autocomplete dropdown ──
                             DropdownMenu(
                                 expanded = showCustomerSuggestions && customerSuggestions.isNotEmpty(),
                                 onDismissRequest = { showCustomerSuggestions = false },
                                 properties = PopupProperties(focusable = false),
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth(0.9f)
-                                        .heightIn(max = 240.dp)
-                                        .background(MaterialTheme.colorScheme.surface),
+                                modifier = Modifier
+                                    .fillMaxWidth(0.9f)
+                                    .heightIn(max = 240.dp)
+                                    .background(MaterialTheme.colorScheme.surface),
                             ) {
                                 customerSuggestions.forEachIndexed { index, name ->
                                     androidx.compose.material3.DropdownMenuItem(
@@ -935,31 +1189,18 @@ fun SalesScreen(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                             ) {
-                                                // Avatar circle
                                                 Box(
-                                                    modifier =
-                                                        Modifier
-                                                            .size(30.dp)
-                                                            .clip(CircleShape)
-                                                            .background(
-                                                                if (isUdhaarMode) {
-                                                                    Coral500.copy(alpha = 0.12f)
-                                                                } else {
-                                                                    MaterialTheme.colorScheme.primaryContainer
-                                                                },
-                                                            ),
+                                                    modifier = Modifier
+                                                        .size(30.dp)
+                                                        .clip(CircleShape)
+                                                        .background(MaterialTheme.colorScheme.primaryContainer),
                                                     contentAlignment = Alignment.Center,
                                                 ) {
                                                     Text(
                                                         name.firstOrNull()?.uppercase() ?: "?",
                                                         fontWeight = FontWeight.Black,
                                                         fontSize = 13.sp,
-                                                        color =
-                                                            if (isUdhaarMode) {
-                                                                Coral500
-                                                            } else {
-                                                                MaterialTheme.colorScheme.primary
-                                                            },
+                                                        color = MaterialTheme.colorScheme.primary,
                                                     )
                                                 }
 
@@ -969,21 +1210,17 @@ fun SalesScreen(
                                                         fontWeight = FontWeight.SemiBold,
                                                         fontSize = 14.sp,
                                                     )
-                                                    // Show existing balance if in Udhaar mode
-                                                    if (isUdhaarMode) {
-                                                        val bal = udhaarBalances.find { it.customerName == name }
-                                                        if (bal != null && bal.netBalance > 0) {
-                                                            Text(
-                                                                text =
-                                                                    stringResource(
-                                                                        id = R.string.sales_current_due,
-                                                                        bal.netBalance.toRupee(),
-                                                                    ),
-                                                                fontSize = 10.sp,
-                                                                color = Coral500,
-                                                                fontWeight = FontWeight.Bold,
-                                                            )
-                                                        }
+                                                    val bal = udhaarBalances.find { it.customerName == name }
+                                                    if (bal != null && bal.netBalance > 0) {
+                                                        Text(
+                                                            text = stringResource(
+                                                                id = R.string.sales_current_due,
+                                                                bal.netBalance.toRupee(),
+                                                            ),
+                                                            fontSize = 10.sp,
+                                                            color = Coral500,
+                                                            fontWeight = FontWeight.Bold,
+                                                        )
                                                     }
                                                 }
                                             }
@@ -1001,84 +1238,73 @@ fun SalesScreen(
                             }
                         }
 
-                        var showAdvancedBilling by remember { mutableStateOf(false) }
-                        Text(
-                            text = if (showAdvancedBilling) "Hide Additional Billing Details" else "Add GSTIN & Address (Optional)",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable { showAdvancedBilling = !showAdvancedBilling }
-                                    .padding(vertical = 4.dp),
-                            textAlign = TextAlign.Center,
-                        )
-
-                        AnimatedVisibility(visible = showAdvancedBilling) {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                // ── Customer GSTIN ──────────────────────────────────────────
-                                OutlinedTextField(
-                                    value = viewModel.cartCustomerGstin,
-                                    onValueChange = { viewModel.cartCustomerGstin = it },
-                                    label = { Text("Customer GSTIN (Optional)") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true,
-                                    shape = RoundedCornerShape(12.dp),
-                                )
-
-                                // ── Customer Address ────────────────────────────────────────
-                                OutlinedTextField(
-                                    value = viewModel.cartCustomerAddress,
-                                    onValueChange = { viewModel.cartCustomerAddress = it },
-                                    label = { Text("Customer Address (Optional)") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    minLines = 2,
-                                    maxLines = 3,
-                                    shape = RoundedCornerShape(12.dp),
-                                )
+                        // Payment Modes + Quick Charge
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            // Scrollable Chips
+                            Row(
+                                modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                paymentModes.forEach { mode ->
+                                    val isSelected = viewModel.cartPaymentMode == mode
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(
+                                                when {
+                                                    isSelected && mode == "Udhaar" -> Coral500
+                                                    isSelected -> MaterialTheme.colorScheme.primary
+                                                    else -> MaterialTheme.colorScheme.surfaceVariant
+                                                }
+                                            )
+                                            .clickable {
+                                                viewModel.cartPaymentMode = mode
+                                                if (mode == "Udhaar") {
+                                                    showCheckoutSheet = true
+                                                }
+                                            }
+                                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                                    ) {
+                                        Text(
+                                            text = when (mode) {
+                                                "Udhaar" -> "📒 Udhaar"
+                                                "Cash" -> "💵 Cash"
+                                                "UPI" -> "📱 UPI"
+                                                else -> mode
+                                            },
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                             }
-                        }
+                            
+                            Spacer(Modifier.width(12.dp))
 
-                        // ── Checkout Button ─────────────────────────────────────
-                        Button(
-                            onClick = {
-                                // Validate: Udhaar requires customer name
-                                if (isUdhaarMode && viewModel.cartCustomerName.trim().isBlank()) {
-                                    customerNameError = true
-                                    return@Button
-                                }
-                                showCustomerSuggestions = false
-                                lastPaymentMode = viewModel.cartPaymentMode
-                                lastCartSnap = viewModel.cartItems.toList()
-                                viewModel.checkout(viewModel.cartPaymentMode) { saleId, total ->
-                                    generatedSaleId = saleId
-                                    generatedTotalAmount = total
-                                    showSuccessScreen = true
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().height(52.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors =
-                                ButtonDefaults.buttonColors(
-                                    containerColor =
-                                        if (isUdhaarMode) {
-                                            Coral500
-                                        } else {
-                                            MaterialTheme.colorScheme.primary
-                                        },
-                                ),
-                        ) {
-                            Text(
-                                text =
-                                    when (viewModel.cartPaymentMode) {
-                                        "Udhaar" -> "📒 Record as Udhaar"
-                                        "UPI" -> "📱 Confirm UPI Sale"
-                                        else -> stringResource(id = R.string.sales_checkout)
-                                    },
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                            )
+                            // Quick Charge Button
+                            Button(
+                                onClick = {
+                                    if (viewModel.cartPaymentMode == "Udhaar" && viewModel.cartCustomerName.trim().isBlank()) {
+                                        showCheckoutSheet = true
+                                    } else {
+                                        lastPaymentMode = viewModel.cartPaymentMode
+                                        lastCartSnap = viewModel.cartItems.toList()
+                                        viewModel.checkout(viewModel.cartPaymentMode) { saleId, total ->
+                                            generatedSaleId = saleId
+                                            generatedTotalAmount = total
+                                            showSuccessScreen = true
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.height(48.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (viewModel.cartPaymentMode == "Udhaar") Coral500 else MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Text("Charge", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }

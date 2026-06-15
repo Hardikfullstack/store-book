@@ -615,7 +615,13 @@ fun DashboardScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(item.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                        Text(
+                                            text = item.name, 
+                                            fontWeight = FontWeight.SemiBold, 
+                                            fontSize = 14.sp,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
                                         Text(
                                             "Stock: ${formatQty(item.quantity)} ${item.unit}",
                                             fontSize = 12.sp,
@@ -1014,6 +1020,8 @@ fun SaleTimelineCard(
                     text = customerName,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
                 if (sale.items.size == 1) {
                     val item = sale.items.first()
@@ -1023,6 +1031,8 @@ fun SaleTimelineCard(
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                     Text(
                         text = saleTime,
@@ -1074,8 +1084,14 @@ fun SaleTimelineCard(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            Column {
-                                Text(item.itemName, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                Text(
+                                    text = item.itemName, 
+                                    fontWeight = FontWeight.SemiBold, 
+                                    fontSize = 14.sp,
+                                    maxLines = 2,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
                                 Text(
                                     "${item.quantity} ${item.unit} x ${item.sellPrice.toRupeeWithDecimals()}",
                                     fontSize = 12.sp,

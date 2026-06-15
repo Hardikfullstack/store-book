@@ -113,16 +113,45 @@ object InvoicePdfGenerator {
         var subtotal = 0.0
 
         for (item in cartItems) {
-            val itemName = item.item.name.take(20) + if (item.item.name.length > 20) "..." else ""
-            canvas.drawText(itemName, leftMargin, yPos, paint)
-            canvas.drawText("${item.quantity}", 300f, yPos, paint)
-            canvas.drawText(String.format("Rs %.2f", item.item.sellPrice), 400f, yPos, paint)
+            val maxWidth = 240f
+            val rawName = item.item.name
+            val breakChars1 = paint.breakText(rawName, true, maxWidth, null)
+            
             val lineTotal = item.item.sellPrice * item.quantity
             subtotal += lineTotal
-            paint.textAlign = Paint.Align.RIGHT
-            canvas.drawText(String.format("Rs %.2f", lineTotal), rightMargin, yPos, paint)
-            paint.textAlign = Paint.Align.LEFT
-            yPos += 20f
+
+            if (breakChars1 < rawName.length) {
+                // Two lines
+                val line1 = rawName.substring(0, breakChars1)
+                val remaining = rawName.substring(breakChars1)
+                val breakChars2 = paint.breakText(remaining, true, maxWidth - paint.measureText("..."), null)
+                val line2 = if (breakChars2 < remaining.length) {
+                    remaining.substring(0, breakChars2) + "..."
+                } else {
+                    remaining
+                }
+                
+                canvas.drawText(line1, leftMargin, yPos, paint)
+                canvas.drawText("${item.quantity}", 300f, yPos, paint)
+                canvas.drawText(String.format("Rs %.2f", item.item.sellPrice), 400f, yPos, paint)
+                paint.textAlign = Paint.Align.RIGHT
+                canvas.drawText(String.format("Rs %.2f", lineTotal), rightMargin, yPos, paint)
+                paint.textAlign = Paint.Align.LEFT
+                
+                yPos += 15f
+                canvas.drawText(line2, leftMargin, yPos, paint)
+                yPos += 20f
+            } else {
+                // Single line
+                canvas.drawText(rawName, leftMargin, yPos, paint)
+                canvas.drawText("${item.quantity}", 300f, yPos, paint)
+                canvas.drawText(String.format("Rs %.2f", item.item.sellPrice), 400f, yPos, paint)
+                paint.textAlign = Paint.Align.RIGHT
+                canvas.drawText(String.format("Rs %.2f", lineTotal), rightMargin, yPos, paint)
+                paint.textAlign = Paint.Align.LEFT
+                
+                yPos += 20f
+            }
         }
 
         yPos += 10f
