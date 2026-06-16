@@ -14,3 +14,7 @@
  ./gradlew assembleRelease    ---  build release version
  ./gradlew assembleDebug    ---  build debug version
  ./gradlew clean --rerun-tasks   --- clean build
+
+
+
+ adb logcat -v color  | grep "com.storebook.inventoryapp"
