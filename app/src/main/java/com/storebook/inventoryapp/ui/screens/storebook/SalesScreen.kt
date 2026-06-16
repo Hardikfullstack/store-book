@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -58,7 +59,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -102,8 +103,8 @@ fun SalesScreen(
     navController: NavController,
     viewModel: StoreBookViewModel,
 ) {
-    val allItems by viewModel.allItems.collectAsState()
-    val udhaarBalances by viewModel.udhaarBalances.collectAsState()
+    val allItems by viewModel.allItems.collectAsStateWithLifecycle()
+    val udhaarBalances by viewModel.udhaarBalances.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     var searchQ by remember { mutableStateOf("") }
@@ -123,7 +124,7 @@ fun SalesScreen(
     var showCustomerSuggestions by remember { mutableStateOf(false) }
 
     // Server-side filtered and limited customer suggestions
-    val customerSuggestions by viewModel.customerSuggestions.collectAsState()
+    val customerSuggestions by viewModel.customerSuggestions.collectAsStateWithLifecycle()
 
     // Custom qty dialog state
     var editingQtyItem by remember { mutableStateOf<Item?>(null) }
@@ -135,9 +136,9 @@ fun SalesScreen(
     val checkoutSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // O(1) cart lookup
-    val cartMap by remember(viewModel.cartItems) { derivedStateOf { viewModel.cartItems.associateBy { it.item.id } } }
+    val cartMap by remember { derivedStateOf { viewModel.cartItems.associateBy { it.item.id } } }
 
-    val filteredItems by remember(searchQ, allItems) {
+    val filteredItems by remember {
         derivedStateOf {
             if (searchQ.isBlank()) {
                 allItems
@@ -147,7 +148,20 @@ fun SalesScreen(
         }
     }
 
-    val subtotal by remember(viewModel.cartItems) {
+    // Undo last sale countdown
+    var undoSecondsLeft by remember { mutableStateOf(0) }
+    LaunchedEffect(viewModel.lastSaleId, viewModel.lastSaleTime) {
+        if (viewModel.lastSaleId != null) {
+            val elapsed = (System.currentTimeMillis() - viewModel.lastSaleTime) / 1000
+            undoSecondsLeft = (30 - elapsed).toInt().coerceAtLeast(0)
+            while (undoSecondsLeft > 0) {
+                kotlinx.coroutines.delay(1000)
+                undoSecondsLeft--
+            }
+        }
+    }
+
+    val subtotal by remember {
         derivedStateOf {
             viewModel.cartItems.sumOf {
                 it.item.sellPrice *
@@ -156,7 +170,7 @@ fun SalesScreen(
         }
     }
     
-    val taxSummary by remember(viewModel.cartItems, viewModel.cartDiscount, viewModel.businessGstin, viewModel.cartCustomerGstin) {
+    val taxSummary by remember {
         derivedStateOf {
             BillingEngine.calculateInvoiceTaxes(
                 cartItems = viewModel.cartItems,
@@ -167,11 +181,11 @@ fun SalesScreen(
         }
     }
 
-    val grandTotal by remember(taxSummary) {
+    val grandTotal by remember {
         derivedStateOf { taxSummary.grandTotal }
     }
     
-    val totalTax by remember(taxSummary) {
+    val totalTax by remember {
         derivedStateOf { taxSummary.totalCgst + taxSummary.totalSgst + taxSummary.totalIgst }
     }
 
@@ -180,13 +194,6 @@ fun SalesScreen(
     if (showSuccessScreen) {
         androidx.activity.compose.BackHandler(enabled = showSuccessScreen) {
             showSuccessScreen = false
-            navController.navigate(Routes.Dashboard) {
-                popUpTo(navController.graph.findStartDestination().id) {
-                    saveState = true
-                }
-                launchSingleTop = true
-                restoreState = true
-            }
         }
         SalesSuccessScreen(
             saleId = generatedSaleId,
@@ -196,13 +203,6 @@ fun SalesScreen(
             paymentMode = lastPaymentMode,
             onBack = {
                 showSuccessScreen = false
-                navController.navigate(Routes.Dashboard) {
-                    popUpTo(navController.graph.findStartDestination().id) {
-                        saveState = true
-                    }
-                    launchSingleTop = true
-                    restoreState = true
-                }
             },
         )
         return
@@ -346,7 +346,9 @@ fun SalesScreen(
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
                                         .clickable {
-                                            val s = formatQty(presetVal)
+                                            val cur = editingQtyText.text.toDoubleOrNull() ?: 0.0
+                                            val next = cur + presetVal
+                                            val s = formatQty(next)
                                             editingQtyText = TextFieldValue(s, TextRange(s.length))
                                         }.padding(horizontal = 12.dp, vertical = 6.dp),
                                 contentAlignment = Alignment.Center,
@@ -833,6 +835,69 @@ fun SalesScreen(
                     .padding(paddingValues),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
+                // Undo banner
+                AnimatedVisibility(
+                    visible = viewModel.lastSaleId != null && undoSecondsLeft > 0,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut(),
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            ),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.Notifications,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "बिक्री रद्द करें? (${undoSecondsLeft}s)",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            }
+                            Button(
+                                onClick = {
+                                    viewModel.undoLastSale {
+                                        android.widget.Toast
+                                            .makeText(
+                                                context,
+                                                context.getString(R.string.toast_undo_success),
+                                                android.widget.Toast.LENGTH_SHORT,
+                                            ).show()
+                                    }
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                colors =
+                                    ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                            ) {
+                                Text(
+                                    stringResource(id = R.string.btn_undo),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // Search bar
                 OutlinedTextField(
                     value = searchQ,

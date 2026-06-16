@@ -30,7 +30,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,7 +56,7 @@ fun SalesHistoryScreen(
     navController: NavController,
     viewModel: StoreBookViewModel,
 ) {
-    val salesHistory by viewModel.salesHistoryList.collectAsState()
+    val salesHistory by viewModel.salesHistoryList.collectAsStateWithLifecycle()
 
     var showDatePicker by remember { mutableStateOf(false) }
 

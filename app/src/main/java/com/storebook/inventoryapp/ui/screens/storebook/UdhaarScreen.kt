@@ -55,7 +55,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -92,7 +92,7 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UdhaarScreen(viewModel: StoreBookViewModel) {
-    val balances by viewModel.udhaarBalances.collectAsState()
+    val balances by viewModel.udhaarBalances.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -107,7 +107,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
     var inputNotes by remember { mutableStateOf("") }
     var inputCustomerName by remember { mutableStateOf("") }
 
-    val filteredBalances by remember(balances, searchQ) {
+    val filteredBalances by remember {
         derivedStateOf {
             if (searchQ.isBlank()) {
                 balances
@@ -117,7 +117,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
         }
     }
 
-    val totalOutstanding by remember(balances) {
+    val totalOutstanding by remember {
         derivedStateOf { balances.filter { it.netBalance > 0 }.sumOf { it.netBalance } }
     }
 
@@ -129,7 +129,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
     val repository =
         remember {
             com.storebook.inventoryapp.data.repository
-                .StoreBookRepository(context)
+                .StoreBookRepository(context.applicationContext)
         }
     val fetchLedger: (String) -> Unit = { name ->
         coroutineScope.launch {
@@ -532,11 +532,16 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                         fontSize = 17.sp,
                                         fontWeight = FontWeight.Bold,
                                     )
+                                    val isZero = kotlin.math.abs(customer.netBalance) < 0.01
                                     Text(
-                                        text = "${customer.netBalance.toRupee()} outstanding",
+                                        text = if (isZero) "₹0 Settled" else "${customer.netBalance.toRupee()} outstanding",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (customer.netBalance > 0) Coral500 else Emerald500,
+                                        color = when {
+                                            isZero -> androidx.compose.ui.graphics.Color.Gray
+                                            customer.netBalance > 0 -> Coral500
+                                            else -> Emerald500
+                                        },
                                     )
                                 }
                             }
@@ -898,6 +903,8 @@ fun UdhaarCustomerCard(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
+        val isZero = kotlin.math.abs(bal.netBalance) < 0.01
+        
         Row(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -909,11 +916,11 @@ fun UdhaarCustomerCard(
                         .size(44.dp)
                         .clip(CircleShape)
                         .background(
-                            if (owesMoney) {
-                                Coral500.copy(alpha = 0.12f)
-                            } else {
-                                Emerald500.copy(alpha = 0.12f)
-                            },
+                            when {
+                                isZero -> androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.12f)
+                                owesMoney -> Coral500.copy(alpha = 0.12f)
+                                else -> Emerald500.copy(alpha = 0.12f)
+                            }
                         ),
                 contentAlignment = Alignment.Center,
             ) {
@@ -921,12 +928,22 @@ fun UdhaarCustomerCard(
                     text = bal.customerName.firstOrNull()?.uppercase() ?: "?",
                     fontWeight = FontWeight.Black,
                     fontSize = 17.sp,
-                    color = if (owesMoney) Coral500 else Emerald500,
+                    color = when {
+                        isZero -> androidx.compose.ui.graphics.Color.Gray
+                        owesMoney -> Coral500
+                        else -> Emerald500
+                    },
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(bal.customerName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text(
+                    text = bal.customerName, 
+                    fontWeight = FontWeight.Bold, 
+                    fontSize = 15.sp,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
                 Text(
                     text =
                         stringResource(
@@ -939,16 +956,28 @@ fun UdhaarCustomerCard(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "${bal.netBalance.toRupee()}",
+                    text = if (isZero) "₹0" else "${bal.netBalance.toRupee()}",
                     fontWeight = FontWeight.Black,
                     fontSize = 16.sp,
-                    color = if (owesMoney) Coral500 else Emerald500,
+                    color = when {
+                        isZero -> androidx.compose.ui.graphics.Color.Gray
+                        owesMoney -> Coral500
+                        else -> Emerald500
+                    },
                 )
                 Text(
-                    text = if (owesMoney) "Due" else "Advance",
+                    text = when {
+                        isZero -> "Settled"
+                        owesMoney -> "Due"
+                        else -> "Advance"
+                    },
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (owesMoney) Coral500 else Emerald500,
+                    color = when {
+                        isZero -> androidx.compose.ui.graphics.Color.Gray
+                        owesMoney -> Coral500
+                        else -> Emerald500
+                    },
                 )
             }
         }

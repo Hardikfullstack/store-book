@@ -58,7 +58,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -98,25 +98,26 @@ fun DashboardScreen(
     navController: NavController,
     viewModel: StoreBookViewModel,
 ) {
-    val allItems by viewModel.allItems.collectAsState()
-    val lowStockItems by viewModel.lowStockItems.collectAsState()
-    val salesList by viewModel.salesList.collectAsState()
+    val allItems by viewModel.allItems.collectAsStateWithLifecycle()
+    val lowStockItems by viewModel.lowStockItems.collectAsStateWithLifecycle()
+    val salesList by viewModel.salesList.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     // Greeting based on time of day
+    val hourOfDay = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
     val greetingStr =
         when {
-            Calendar.getInstance().get(Calendar.HOUR_OF_DAY) < 12 -> stringResource(R.string.dash_greeting_morning)
-            Calendar.getInstance().get(Calendar.HOUR_OF_DAY) < 17 -> stringResource(R.string.dash_greeting_afternoon)
+            hourOfDay < 12 -> stringResource(R.string.dash_greeting_morning)
+            hourOfDay < 17 -> stringResource(R.string.dash_greeting_afternoon)
             else -> stringResource(R.string.dash_greeting_evening)
         }
     val greeting =
         remember(greetingStr) {
             val prefix =
                 when {
-                    Calendar.getInstance().get(Calendar.HOUR_OF_DAY) < 12 -> "🌅 "
-                    Calendar.getInstance().get(Calendar.HOUR_OF_DAY) < 17 -> "☀️ "
+                    hourOfDay < 12 -> "🌅 "
+                    hourOfDay < 17 -> "☀️ "
                     else -> "🌙 "
                 }
             "$prefix$greetingStr!"

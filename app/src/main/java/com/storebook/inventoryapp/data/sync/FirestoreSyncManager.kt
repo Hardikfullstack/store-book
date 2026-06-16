@@ -15,7 +15,7 @@ import java.util.UUID
 class FirestoreSyncManager(
     context: Context,
 ) {
-    private val dbHelper = StoreBookDbHelper(context)
+    private val dbHelper = StoreBookDbHelper(context.applicationContext)
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 

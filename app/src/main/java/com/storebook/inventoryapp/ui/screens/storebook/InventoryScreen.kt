@@ -53,7 +53,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -101,8 +101,8 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
     var isLoadingMore by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
-    val filteredItems by viewModel.filteredItems.collectAsState()
-    val isLoadingItems by viewModel.isLoadingItems.collectAsState()
+    val filteredItems by viewModel.filteredItems.collectAsStateWithLifecycle()
+    val isLoadingItems by viewModel.isLoadingItems.collectAsStateWithLifecycle()
 
     // ── Delete confirmation dialog state ─────────────────────────────────────
     // ── Delete confirmation dialog state ─────────────────────────────────────

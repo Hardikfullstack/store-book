@@ -34,10 +34,10 @@ fun ProBillingView(
 ) {
     val ctx = LocalContext.current
     val activity = ctx as? Activity
-    val billingManager = PlayBillingManager(ctx)
+    val billingManager = remember { PlayBillingManager(ctx.applicationContext) }
     val billingState by billingManager.state.collectAsState()
 
-    val productsFetched by remember { mutableStateOf<List<ProductDetails>?>(null) }
+    var productsFetched by remember { mutableStateOf<List<ProductDetails>?>(null) }
 
     LaunchedEffect(Unit) {
         if (!billingState.isBillingReady) billingManager.connect()
