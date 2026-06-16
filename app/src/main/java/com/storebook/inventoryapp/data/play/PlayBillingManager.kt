@@ -154,21 +154,24 @@ class PlayBillingManager(
     fun launchBillingFlow(
         activity: androidx.activity.ComponentActivity,
         productDetails: ProductDetails,
+        offerToken: String? = null,
         onSuccess: () -> Unit,
         onFail: (String) -> Unit,
     ) {
         _state.value = _state.value.copy(isLoading = true)
 
+        val productDetailsParamsBuilder = BillingFlowParams.ProductDetailsParams.newBuilder()
+            .setProductDetails(productDetails)
+            
+        if (offerToken != null) {
+            productDetailsParamsBuilder.setOfferToken(offerToken)
+        }
+
         val params =
             BillingFlowParams
                 .newBuilder()
                 .setProductDetailsParamsList(
-                    listOf(
-                        BillingFlowParams.ProductDetailsParams
-                            .newBuilder()
-                            .setProductDetails(productDetails)
-                            .build(),
-                    ),
+                    listOf(productDetailsParamsBuilder.build()),
                 ).build()
 
         val billingResult = billingClient.launchBillingFlow(activity, params)

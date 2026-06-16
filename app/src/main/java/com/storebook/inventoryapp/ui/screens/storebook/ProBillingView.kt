@@ -30,12 +30,15 @@ import com.storebook.inventoryapp.ui.theme.Gold400
 @Composable
 fun ProBillingView(
     isProActive: Boolean,
+    onRequireSignIn: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val ctx = LocalContext.current
     val activity = ctx as? Activity
     val billingManager = remember { PlayBillingManager(ctx.applicationContext) }
     val billingState by billingManager.state.collectAsState()
+
+    val auth = remember { com.google.firebase.auth.FirebaseAuth.getInstance() }
 
     var productsFetched by remember { mutableStateOf<List<ProductDetails>?>(null) }
 
@@ -46,31 +49,25 @@ fun ProBillingView(
     LaunchedEffect(billingState.isBillingReady) {
         if (billingState.isBillingReady) {
             billingManager.fetchProductDetails(
-                onSuccess = { _ -> },
+                onSuccess = { products -> 
+                    productsFetched = products
+                },
                 onFailed = { /* ignore */ },
             )
         }
     }
 
     Box(modifier = Modifier.fillMaxWidth().padding(24.dp).padding(bottom = 32.dp)) {
-        when {
-            billingState.isLoading && !billingState.isBillingReady -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            if (billingState.isLoading && !billingState.isBillingReady) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary)
+            } else if (!billingState.isBillingReady) {
+                Text(stringResource(id = R.string.pro_err_play_store), color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
             }
 
-            !billingState.isBillingReady -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(stringResource(id = R.string.pro_err_play_store), color = MaterialTheme.colorScheme.error)
-                }
-            }
-
-            else -> {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
                     // Header icon
                     Box(
                         modifier =
@@ -78,7 +75,7 @@ fun ProBillingView(
                                 .size(64.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (billingState.isProUnlocked) {
+                                    if (billingState.isProUnlocked || isProActive) {
                                         Gold200.copy(
                                             alpha = 0.2f,
                                         )
@@ -88,12 +85,12 @@ fun ProBillingView(
                                 ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(if (billingState.isProUnlocked) "⭐" else "🔒", fontSize = 32.sp)
+                        Text(if (billingState.isProUnlocked || isProActive) "⭐" else "🔒", fontSize = 32.sp)
                     }
 
                     Text(stringResource(id = R.string.more_premium), fontSize = 20.sp, fontWeight = FontWeight.Bold)
 
-                    if (billingState.isProUnlocked) {
+                    if (billingState.isProUnlocked || isProActive) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors =
@@ -148,26 +145,76 @@ fun ProBillingView(
                         }
                     }
 
-                    // Fallback purchase cards (shown when real product data isn't fetched)
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        PlanCard(
-                            icon = "💎",
-                            title = "Lifetime Pro",
-                            subtitle = "One time payment — Forever access",
-                            isPrimary = true,
-                        )
-                        PlanCard(
-                            icon = "🎉",
-                            title = "Annual Pro",
-                            subtitle = "₹299 / year — Best value",
-                            isPrimary = false,
-                        )
-                        PlanCard(
-                            icon = "👤",
-                            title = "Monthly Pro",
-                            subtitle = "₹79 / month — Auto-renewed",
-                            isPrimary = false,
-                        )
+                    val products = productsFetched
+                    if (products != null && products.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            products.forEachIndexed { index, product ->
+                                val offerToken = product.subscriptionOfferDetails?.firstOrNull()?.offerToken
+                                val price = product.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
+                                    ?: product.oneTimePurchaseOfferDetails?.formattedPrice
+                                    ?: ""
+                                PlanCard(
+                                    icon = if (index == 0) "💎" else if (index == 1) "🎉" else "👤",
+                                    title = product.name,
+                                    subtitle = "$price - ${product.description}",
+                                    isPrimary = index == 0,
+                                    onClick = {
+                                        if (auth.currentUser == null) {
+                                            onRequireSignIn()
+                                        } else {
+                                            (activity as? androidx.activity.ComponentActivity)?.let { act ->
+                                                billingManager.launchBillingFlow(
+                                                    act, 
+                                                    product, 
+                                                    offerToken,
+                                                    onSuccess = { onDismiss() },
+                                                    onFail = { err -> 
+                                                        android.widget.Toast.makeText(ctx, err, android.widget.Toast.LENGTH_SHORT).show()
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    } else {
+                        // Fallback purchase cards (shown when real product data isn't fetched)
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            PlanCard(
+                                icon = "💎",
+                                title = "Lifetime Pro",
+                                subtitle = "One time payment — Forever access",
+                                isPrimary = true,
+                                onClick = {
+                                    if (auth.currentUser == null) {
+                                        onRequireSignIn()
+                                    }
+                                }
+                            )
+                            PlanCard(
+                                icon = "🎉",
+                                title = "Annual Pro",
+                                subtitle = "₹299 / year — Best value",
+                                isPrimary = false,
+                                onClick = {
+                                    if (auth.currentUser == null) {
+                                        onRequireSignIn()
+                                    }
+                                }
+                            )
+                            PlanCard(
+                                icon = "👤",
+                                title = "Monthly Pro",
+                                subtitle = "₹79 / month — Auto-renewed",
+                                isPrimary = false,
+                                onClick = {
+                                    if (auth.currentUser == null) {
+                                        onRequireSignIn()
+                                    }
+                                }
+                            )
+                        }
                     }
 
                     HorizontalDivider()
@@ -176,8 +223,6 @@ fun ProBillingView(
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
-            }
         }
     }
 }

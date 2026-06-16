@@ -57,7 +57,7 @@ import com.storebook.inventoryapp.ui.screens.auth.AuthScreen
 import com.storebook.inventoryapp.ui.screens.storebook.DashboardScreen
 import com.storebook.inventoryapp.ui.screens.storebook.InventoryScreen
 import com.storebook.inventoryapp.ui.screens.storebook.MoreScreen
-import com.storebook.inventoryapp.ui.screens.storebook.PremiumPlansSheetContent
+
 import com.storebook.inventoryapp.ui.screens.storebook.SalesScreen
 import com.storebook.inventoryapp.ui.screens.storebook.UdhaarScreen
 import com.storebook.inventoryapp.ui.theme.Poppins
@@ -221,10 +221,12 @@ fun AppNavigation() {
             composable<Routes.PremiumPlans> {
                 Scaffold { padding ->
                     Box(modifier = Modifier.padding(padding)) {
-                        PremiumPlansSheetContent(
-                            isPremium = storeBookViewModel.isPremiumUser,
-                            onToggle = {
-                                storeBookViewModel.isPremiumUser = !storeBookViewModel.isPremiumUser
+                        com.storebook.inventoryapp.ui.screens.storebook.ProBillingView(
+                            isProActive = storeBookViewModel.isPremiumUser,
+                            onRequireSignIn = {
+                                navController.navigate(Routes.Auth)
+                            },
+                            onDismiss = {
                                 navController.popBackStack()
                             },
                         )

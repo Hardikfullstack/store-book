@@ -569,20 +569,15 @@ fun MoreScreen(
                         )
                     }
                     "PREMIUM" -> {
-                        PremiumPlansSheetContent(
-                                isPremium = viewModel.isPremiumUser,
-                                onToggle = {
-                                    viewModel.isPremiumUser = !viewModel.isPremiumUser
-                                    android.widget.Toast.makeText(
-                                                    context,
-                                                    context.getString(
-                                                            R.string.toast_premium_simulated
-                                                    ),
-                                                    android.widget.Toast.LENGTH_SHORT,
-                                            )
-                                            .show()
-                                    showSheet = false
-                                },
+                        ProBillingView(
+                            isProActive = viewModel.isPremiumUser,
+                            onRequireSignIn = {
+                                showSheet = false
+                                navController.navigate(Routes.Auth)
+                            },
+                            onDismiss = {
+                                showSheet = false
+                            }
                         )
                     }
                     "BUSINESS" -> {
@@ -1164,70 +1159,3 @@ fun RestockSheetContent(
     }
 }
 
-@Composable
-fun PremiumPlansSheetContent(
-        isPremium: Boolean,
-        onToggle: () -> Unit,
-) {
-    Column(
-            modifier = Modifier.fillMaxWidth().padding(24.dp).padding(bottom = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Box(
-                modifier =
-                        Modifier.size(64.dp)
-                                .clip(CircleShape)
-                                .background(Gold200.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center,
-        ) { Text("⭐", fontSize = 32.sp) }
-
-        Text(
-                stringResource(id = R.string.more_premium),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-        )
-
-        Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Gold200.copy(alpha = 0.1f)),
-                shape = RoundedCornerShape(16.dp),
-        ) {
-            Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                        stringResource(id = R.string.prem_pro_features),
-                        fontWeight = FontWeight.Black,
-                        fontSize = 15.sp
-                )
-                listOf(
-                                "☁️ Cloud backup & sync",
-                                "📦 Unlimited inventory items",
-                                "📊 Detailed P&L reports",
-                                "🔔 Smart low-stock alerts",
-                                "📱 WhatsApp invoice sharing",
-                        )
-                        .forEach { feature -> Text(feature, fontSize = 13.sp) }
-            }
-        }
-
-        Button(
-                onClick = onToggle,
-                colors =
-                        ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                        ),
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(14.dp),
-        ) {
-            Text(
-                    if (isPremium) "Simulate Free Account (PRO Active)"
-                    else stringResource(id = R.string.prem_sub_btn),
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-            )
-        }
-    }
-}
