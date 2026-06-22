@@ -25,6 +25,8 @@ app/*.aab
 *.jks
 *.keystore
 
+**/service-account.json
+
 # Nayi Zaroori Files (Security & Size ke liye)
 *.apk
 *.aab
@@ -36,3 +38,30 @@ app/*.aab
 app/release/
 *.dm
 baseline-prof.txt
+
+# Node/Web Exclusions
+**/node_modules
+web/node_modules
+web/.next
+web/.npm
+web/yarn.lock
+web/.env.local
+web/package-lock.json
+
+backend/node_modules
+backend/.npm
+backend/yarn.lock
+backend/.env.local
+backend/package-lock.json
+
+backend/node_modules
+backend/.npm
+backend/yarn.lock
+backend/.env.local
+backend/package-lock.json
+
+backend/node_modules
+backend/.npm
+backend/yarn.lock
+backend/.env.local
+backend/package-lock.json

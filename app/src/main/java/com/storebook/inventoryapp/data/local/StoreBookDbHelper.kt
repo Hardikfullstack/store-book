@@ -6,10 +6,10 @@ import android.database.sqlite.SQLiteOpenHelper
 
 class StoreBookDbHelper(
     context: Context,
-) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+    val storeId: String
+) : SQLiteOpenHelper(context, "storebook_${storeId}.db", null, DATABASE_VERSION) {
     companion object {
-        const val DATABASE_NAME = "storebook.db"
-        const val DATABASE_VERSION = 6
+        const val DATABASE_VERSION = 8
 
         // Table Names
         const val TABLE_ITEMS = "items"
@@ -17,6 +17,9 @@ class StoreBookDbHelper(
         const val TABLE_SALE_ITEMS = "sale_items"
         const val TABLE_UDHAAR = "udhaar"
         const val TABLE_EXPENSES = "expenses"
+        const val TABLE_SUPPLIERS = "suppliers"
+        const val TABLE_PURCHASES = "purchases"
+        const val TABLE_PURCHASE_ITEMS = "purchase_items"
 
         // Common Column Names
         const val KEY_ID = "id"
@@ -51,6 +54,7 @@ class StoreBookDbHelper(
         const val KEY_SALE_BUSINESS_GSTIN = "business_gstin"
         const val KEY_SALE_CUSTOMER_ADDRESS = "customer_address"
         const val KEY_SALE_BUSINESS_ADDRESS = "business_address"
+        const val KEY_SALE_TYPE = "type" // 'SALE' or 'ESTIMATE'
 
         // Sale Items Table Columns
         const val KEY_SI_SALE_ID = "sale_id"
@@ -106,6 +110,7 @@ class StoreBookDbHelper(
                 KEY_SALE_BUSINESS_GSTIN + " TEXT," +
                 KEY_SALE_CUSTOMER_ADDRESS + " TEXT," +
                 KEY_SALE_BUSINESS_ADDRESS + " TEXT," +
+                KEY_SALE_TYPE + " TEXT NOT NULL DEFAULT 'SALE'," +
                 KEY_NOTES + " TEXT," +
                 KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0," +
                 KEY_CLOUD_ID + " TEXT," +
@@ -158,11 +163,58 @@ class StoreBookDbHelper(
                 KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")"
         )
 
+        val createSuppliersTable = (
+            "CREATE TABLE " + TABLE_SUPPLIERS + "(" +
+                KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "name TEXT NOT NULL UNIQUE," +
+                "phone TEXT," +
+                "gstin TEXT," +
+                "address TEXT," +
+                KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_CLOUD_ID + " TEXT," +
+                KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")"
+        )
+
+        val createPurchasesTable = (
+            "CREATE TABLE " + TABLE_PURCHASES + "(" +
+                KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "supplier_id INTEGER NOT NULL," +
+                "supplier_name TEXT NOT NULL," +
+                "total_amount REAL NOT NULL," +
+                "tax_amount REAL NOT NULL DEFAULT 0.0," +
+                "type TEXT NOT NULL DEFAULT 'BILL'," +
+                KEY_TIMESTAMP + " INTEGER NOT NULL," +
+                KEY_NOTES + " TEXT," +
+                KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_CLOUD_ID + " TEXT," +
+                KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")"
+        )
+
+        val createPurchaseItemsTable = (
+            "CREATE TABLE " + TABLE_PURCHASE_ITEMS + "(" +
+                KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "purchase_id INTEGER NOT NULL," +
+                "item_id INTEGER NOT NULL," +
+                "item_name TEXT NOT NULL," +
+                "quantity REAL NOT NULL," +
+                "unit TEXT NOT NULL," +
+                "buy_price REAL NOT NULL," +
+                KEY_IS_DELETED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_CLOUD_ID + " TEXT," +
+                KEY_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0," +
+                KEY_UPDATED_AT + " INTEGER NOT NULL DEFAULT 0" + ")"
+        )
+
         db.execSQL(createItemsTable)
         db.execSQL(createSalesTable)
         db.execSQL(createSaleItemsTable)
         db.execSQL(createUdhaarTable)
         db.execSQL(createExpensesTable)
+        db.execSQL(createSuppliersTable)
+        db.execSQL(createPurchasesTable)
+        db.execSQL(createPurchaseItemsTable)
 
         // Create indexes for frequently queried columns
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_items_deleted ON ${TABLE_ITEMS}(${KEY_ITEM_IS_DELETED})")
@@ -171,9 +223,15 @@ class StoreBookDbHelper(
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_udhaar_customer ON ${TABLE_UDHAAR}(${KEY_UDHAAR_CUSTOMER})")
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_sales_timestamp ON ${TABLE_SALES}(${KEY_TIMESTAMP})")
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_expenses_timestamp ON ${TABLE_EXPENSES}(${KEY_TIMESTAMP})")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_purchases_timestamp ON ${TABLE_PURCHASES}(${KEY_TIMESTAMP})")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_purchases_supplier_id ON ${TABLE_PURCHASES}(supplier_id)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_purchase_items_purchase_id ON ${TABLE_PURCHASE_ITEMS}(purchase_id)")
 
         // Sync indexes
-        val tables = listOf(TABLE_ITEMS, TABLE_SALES, TABLE_SALE_ITEMS, TABLE_UDHAAR, TABLE_EXPENSES)
+        val tables = listOf(
+            TABLE_ITEMS, TABLE_SALES, TABLE_SALE_ITEMS, TABLE_UDHAAR, TABLE_EXPENSES,
+            TABLE_SUPPLIERS, TABLE_PURCHASES, TABLE_PURCHASE_ITEMS
+        )
         for (table in tables) {
             db.execSQL(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_${table}_cloud_id ON $table($KEY_CLOUD_ID) WHERE $KEY_CLOUD_ID IS NOT NULL",
@@ -223,6 +281,73 @@ class StoreBookDbHelper(
             // Upgrade to version 6: Add Address columns to Sales
             db.execSQL("ALTER TABLE $TABLE_SALES ADD COLUMN $KEY_SALE_CUSTOMER_ADDRESS TEXT")
             db.execSQL("ALTER TABLE $TABLE_SALES ADD COLUMN $KEY_SALE_BUSINESS_ADDRESS TEXT")
+        }
+        if (oldVersion < 7) {
+            // Upgrade to version 7: Add type to Sales for quotations
+            db.execSQL("ALTER TABLE $TABLE_SALES ADD COLUMN $KEY_SALE_TYPE TEXT NOT NULL DEFAULT 'SALE'")
+        }
+        if (oldVersion < 8) {
+            // Upgrade to version 8: Add suppliers, purchases, and purchase items tables
+            val createSuppliersTable = (
+                "CREATE TABLE IF NOT EXISTS suppliers (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "name TEXT NOT NULL UNIQUE," +
+                    "phone TEXT," +
+                    "gstin TEXT," +
+                    "address TEXT," +
+                    "is_deleted INTEGER NOT NULL DEFAULT 0," +
+                    "cloud_id TEXT," +
+                    "is_synced INTEGER NOT NULL DEFAULT 0," +
+                    "updated_at INTEGER NOT NULL DEFAULT 0" + ")"
+            )
+
+            val createPurchasesTable = (
+                "CREATE TABLE IF NOT EXISTS purchases (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "supplier_id INTEGER NOT NULL," +
+                    "supplier_name TEXT NOT NULL," +
+                    "total_amount REAL NOT NULL," +
+                    "tax_amount REAL NOT NULL DEFAULT 0.0," +
+                    "type TEXT NOT NULL DEFAULT 'BILL'," +
+                    "timestamp INTEGER NOT NULL," +
+                    "notes TEXT," +
+                    "is_deleted INTEGER NOT NULL DEFAULT 0," +
+                    "cloud_id TEXT," +
+                    "is_synced INTEGER NOT NULL DEFAULT 0," +
+                    "updated_at INTEGER NOT NULL DEFAULT 0" + ")"
+            )
+
+            val createPurchaseItemsTable = (
+                "CREATE TABLE IF NOT EXISTS purchase_items (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "purchase_id INTEGER NOT NULL," +
+                    "item_id INTEGER NOT NULL," +
+                    "item_name TEXT NOT NULL," +
+                    "quantity REAL NOT NULL," +
+                    "unit TEXT NOT NULL," +
+                    "buy_price REAL NOT NULL," +
+                    "is_deleted INTEGER NOT NULL DEFAULT 0," +
+                    "cloud_id TEXT," +
+                    "is_synced INTEGER NOT NULL DEFAULT 0," +
+                    "updated_at INTEGER NOT NULL DEFAULT 0" + ")"
+            )
+
+            db.execSQL(createSuppliersTable)
+            db.execSQL(createPurchasesTable)
+            db.execSQL(createPurchaseItemsTable)
+
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_purchases_timestamp ON purchases(timestamp)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_purchases_supplier_id ON purchases(supplier_id)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_purchase_items_purchase_id ON purchase_items(purchase_id)")
+
+            val tables8 = listOf("suppliers", "purchases", "purchase_items")
+            for (table in tables8) {
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_${table}_cloud_id ON $table(cloud_id) WHERE cloud_id IS NOT NULL",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_${table}_is_synced ON $table(is_synced)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_${table}_updated_at ON $table(updated_at)")
+            }
         }
     }
 }

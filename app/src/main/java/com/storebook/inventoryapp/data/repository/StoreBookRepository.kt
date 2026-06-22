@@ -41,6 +41,7 @@ data class Sale(
         val businessGstin: String? = null,
         val customerAddress: String? = null,
         val businessAddress: String? = null,
+        val type: String = "SALE", // 'SALE' or 'ESTIMATE'
         val notes: String? = null,
         val items: List<SaleItemDetail> = emptyList(),
 ) : Serializable
@@ -80,11 +81,50 @@ data class ExpenseEntry(
         val supplierPhone: String? = null,
 ) : Serializable
 
+data class Supplier(
+        val id: Long = 0,
+        val name: String,
+        val phone: String? = null,
+        val gstin: String? = null,
+        val address: String? = null,
+) : Serializable
+
+data class Purchase(
+        val id: Long = 0,
+        val supplierId: Long,
+        val supplierName: String,
+        val totalAmount: Double,
+        val taxAmount: Double = 0.0,
+        val type: String = "BILL",
+        val timestamp: Long,
+        val notes: String? = null,
+        val items: List<PurchaseItemDetail> = emptyList(),
+) : Serializable
+
+data class PurchaseItemDetail(
+        val id: Long = 0,
+        val purchaseId: Long,
+        val itemId: Long,
+        val itemName: String,
+        val quantity: Double,
+        val unit: String,
+        val buyPrice: Double,
+) : Serializable
+
+data class SupplierBalance(
+        val supplierId: Long,
+        val supplierName: String,
+        val phone: String? = null,
+        val netBalance: Double,
+        val lastTransactionTime: Long,
+) : Serializable
+
 // --- Repository ---
 class StoreBookRepository(
         private val context: Context,
+        val storeId: String,
 ) {
-    private val dbHelper = StoreBookDbHelper(context)
+    private val dbHelper = StoreBookDbHelper(context, storeId)
 
     // --- Inventory Operations ---
 
@@ -243,6 +283,7 @@ class StoreBookRepository(
             businessAddress: String? = null,
             notes: String?,
             paymentMode: String,
+            type: String = "SALE",
     ): Long =
             withContext(Dispatchers.IO) {
                 val db = dbHelper.writableDatabase
@@ -270,6 +311,7 @@ class StoreBookRepository(
                                 put(StoreBookDbHelper.KEY_SALE_BUSINESS_GSTIN, businessGstin)
                                 put(StoreBookDbHelper.KEY_SALE_CUSTOMER_ADDRESS, customerAddress)
                                 put(StoreBookDbHelper.KEY_SALE_BUSINESS_ADDRESS, businessAddress)
+                                put(StoreBookDbHelper.KEY_SALE_TYPE, type)
                                 put(StoreBookDbHelper.KEY_NOTES, notes)
                                 put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
                                 put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
@@ -303,28 +345,30 @@ class StoreBookRepository(
                                 }
                         db.insert(StoreBookDbHelper.TABLE_SALE_ITEMS, null, saleItemValues)
 
-                        // Update quantity in items table
-                        val newQty = cartItem.item.quantity - cartItem.quantity
-                        val itemUpdateValues =
-                                ContentValues().apply {
-                                    put(StoreBookDbHelper.KEY_ITEM_QTY, newQty)
-                                    put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
-                                    put(
-                                            StoreBookDbHelper.KEY_UPDATED_AT,
-                                            System.currentTimeMillis()
-                                    )
-                                }
-                        db.update(
-                                StoreBookDbHelper.TABLE_ITEMS,
-                                itemUpdateValues,
-                                "${StoreBookDbHelper.KEY_ID} = ?",
-                                arrayOf(cartItem.item.id.toString()),
-                        )
+                        // Update quantity in items table only if it's a real sale
+                        if (type != "ESTIMATE") {
+                            val newQty = cartItem.item.quantity - cartItem.quantity
+                            val itemUpdateValues =
+                                    ContentValues().apply {
+                                        put(StoreBookDbHelper.KEY_ITEM_QTY, newQty)
+                                        put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                                        put(
+                                                StoreBookDbHelper.KEY_UPDATED_AT,
+                                                System.currentTimeMillis()
+                                        )
+                                    }
+                            db.update(
+                                    StoreBookDbHelper.TABLE_ITEMS,
+                                    itemUpdateValues,
+                                    "${StoreBookDbHelper.KEY_ID} = ?",
+                                    arrayOf(cartItem.item.id.toString()),
+                            )
+                        }
                     }
 
                     // 4. If customer name is provided, total > 0, and payment mode is Udhaar,
-                    // record a credit entry automatically
-                    if (!customerName.isNullOrBlank() &&
+                    // record a credit entry automatically (only if it's a real sale)
+                    if (type != "ESTIMATE" && !customerName.isNullOrBlank() &&
                                     paymentMode.equals("Udhaar", ignoreCase = true)
                     ) {
                         val udhaarValues =
@@ -382,13 +426,24 @@ class StoreBookRepository(
                         }
                     }
 
-                    // 2. Add back stock to items
+                    // Check if it was an estimate
+                    var isEstimate = false
+                    val typeCursor = db.rawQuery("SELECT ${StoreBookDbHelper.KEY_SALE_TYPE} FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_ID} = ?", arrayOf(saleId.toString()))
+                    typeCursor.use {
+                        if (it.moveToFirst()) {
+                            isEstimate = it.getString(0) == "ESTIMATE"
+                        }
+                    }
+
+                    // 2. Add back stock to items (only if it was a real sale)
                     val timeNow = System.currentTimeMillis()
-                    for (pair in saleItems) {
-                        db.execSQL(
-                                "UPDATE ${StoreBookDbHelper.TABLE_ITEMS} SET ${StoreBookDbHelper.KEY_ITEM_QTY} = ${StoreBookDbHelper.KEY_ITEM_QTY} + ?, ${StoreBookDbHelper.KEY_IS_SYNCED} = 0, ${StoreBookDbHelper.KEY_UPDATED_AT} = ? WHERE ${StoreBookDbHelper.KEY_ID} = ?",
-                                arrayOf(pair.second, timeNow, pair.first),
-                        )
+                    if (!isEstimate) {
+                        for (pair in saleItems) {
+                            db.execSQL(
+                                    "UPDATE ${StoreBookDbHelper.TABLE_ITEMS} SET ${StoreBookDbHelper.KEY_ITEM_QTY} = ${StoreBookDbHelper.KEY_ITEM_QTY} + ?, ${StoreBookDbHelper.KEY_IS_SYNCED} = 0, ${StoreBookDbHelper.KEY_UPDATED_AT} = ? WHERE ${StoreBookDbHelper.KEY_ID} = ?",
+                                    arrayOf(pair.second, timeNow, pair.first),
+                            )
+                        }
                     }
 
                     // 3. Delete from Udhaar associated with this sale (Soft Delete)
@@ -428,6 +483,23 @@ class StoreBookRepository(
                 }
             }
 
+    suspend fun markQuotationAsConverted(quotationId: Long): Boolean =
+            withContext(Dispatchers.IO) {
+                val db = dbHelper.writableDatabase
+                val values = ContentValues().apply {
+                    put(StoreBookDbHelper.KEY_SALE_TYPE, "CONVERTED")
+                    put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                    put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
+                }
+                val count = db.update(
+                        StoreBookDbHelper.TABLE_SALES,
+                        values,
+                        "${StoreBookDbHelper.KEY_ID} = ?",
+                        arrayOf(quotationId.toString())
+                )
+                count > 0
+            }
+
     suspend fun getSaleById(saleId: Long): Sale? =
             withContext(Dispatchers.IO) {
                 val db = dbHelper.readableDatabase
@@ -445,7 +517,7 @@ class StoreBookRepository(
                 val db = dbHelper.readableDatabase
                 val cursor =
                         db.rawQuery(
-                                "SELECT * FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC",
+                                "SELECT * FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND ${StoreBookDbHelper.KEY_SALE_TYPE} = 'SALE' ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC",
                                 null,
                         )
                 fetchSalesFromCursor(cursor)
@@ -459,7 +531,7 @@ class StoreBookRepository(
                 val db = dbHelper.readableDatabase
                 val cursor =
                         db.rawQuery(
-                                "SELECT * FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC LIMIT ? OFFSET ?",
+                                "SELECT * FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND ${StoreBookDbHelper.KEY_SALE_TYPE} = 'SALE' ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC LIMIT ? OFFSET ?",
                                 arrayOf(limit.toString(), offset.toString()),
                         )
                 fetchSalesFromCursor(cursor)
@@ -473,8 +545,19 @@ class StoreBookRepository(
                 val db = dbHelper.readableDatabase
                 val cursor =
                         db.rawQuery(
-                                "SELECT * FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND ${StoreBookDbHelper.KEY_TIMESTAMP} BETWEEN ? AND ? ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC",
+                                "SELECT * FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND ${StoreBookDbHelper.KEY_SALE_TYPE} = 'SALE' AND ${StoreBookDbHelper.KEY_TIMESTAMP} BETWEEN ? AND ? ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC",
                                 arrayOf(startTs.toString(), endTs.toString()),
+                        )
+                fetchSalesFromCursor(cursor)
+            }
+
+    suspend fun getQuotations(): List<Sale> =
+            withContext(Dispatchers.IO) {
+                val db = dbHelper.readableDatabase
+                val cursor =
+                        db.rawQuery(
+                                "SELECT * FROM ${StoreBookDbHelper.TABLE_SALES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND (${StoreBookDbHelper.KEY_SALE_TYPE} = 'ESTIMATE' OR ${StoreBookDbHelper.KEY_SALE_TYPE} = 'CONVERTED') ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC",
+                                null,
                         )
                 fetchSalesFromCursor(cursor)
             }
@@ -493,6 +576,7 @@ class StoreBookRepository(
                     val bGstin = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SALE_BUSINESS_GSTIN)
                     val cAddr = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SALE_CUSTOMER_ADDRESS)
                     val bAddr = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SALE_BUSINESS_ADDRESS)
+                    val typeIdx = c.getColumnIndex(StoreBookDbHelper.KEY_SALE_TYPE) // Might not exist if DB not upgraded in some query
                     val notes = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_NOTES)
                     while (c.moveToNext()) {
                         salesList.add(
@@ -506,6 +590,7 @@ class StoreBookRepository(
                                         businessGstin = c.getString(bGstin),
                                         customerAddress = c.getString(cAddr),
                                         businessAddress = c.getString(bAddr),
+                                        type = if (typeIdx >= 0) c.getString(typeIdx) else "SALE",
                                         notes = c.getString(notes),
                                         items = emptyList(),
                                 ),
@@ -1072,6 +1157,261 @@ class StoreBookRepository(
                     }
                 }
             }
+            db.setTransactionSuccessful()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            db.endTransaction()
+        }
+    }
+    
+    // --- Supplier & Purchase Operations ---
+
+    suspend fun insertSupplier(supplier: Supplier): Long =
+            withContext(Dispatchers.IO) {
+                val db = dbHelper.writableDatabase
+                val values = ContentValues().apply {
+                    put("name", supplier.name)
+                    put("phone", supplier.phone)
+                    put("gstin", supplier.gstin)
+                    put("address", supplier.address)
+                    put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                    put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
+                }
+                db.insert(StoreBookDbHelper.TABLE_SUPPLIERS, null, values)
+            }
+
+    suspend fun getSuppliers(): List<Supplier> =
+            withContext(Dispatchers.IO) {
+                val list = mutableListOf<Supplier>()
+                val db = dbHelper.readableDatabase
+                val cursor = db.rawQuery(
+                    "SELECT * FROM ${StoreBookDbHelper.TABLE_SUPPLIERS} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 ORDER BY name ASC",
+                    null
+                )
+                cursor.use { c ->
+                    val colId = c.getColumnIndexOrThrow("id")
+                    val colName = c.getColumnIndexOrThrow("name")
+                    val colPhone = c.getColumnIndexOrThrow("phone")
+                    val colGstin = c.getColumnIndexOrThrow("gstin")
+                    val colAddr = c.getColumnIndexOrThrow("address")
+                    while (c.moveToNext()) {
+                        list.add(
+                            Supplier(
+                                id = c.getLong(colId),
+                                name = c.getString(colName),
+                                phone = c.getString(colPhone),
+                                gstin = c.getString(colGstin),
+                                address = c.getString(colAddr)
+                            )
+                        )
+                    }
+                }
+                list
+            }
+
+    suspend fun deleteSupplier(id: Long): Boolean =
+            withContext(Dispatchers.IO) {
+                val db = dbHelper.writableDatabase
+                val values = ContentValues().apply {
+                    put(StoreBookDbHelper.KEY_IS_DELETED, 1)
+                    put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                    put(StoreBookDbHelper.KEY_UPDATED_AT, System.currentTimeMillis())
+                }
+                db.update(StoreBookDbHelper.TABLE_SUPPLIERS, values, "id = ?", arrayOf(id.toString())) > 0
+            }
+
+    suspend fun insertPurchase(purchase: Purchase): Long =
+            withContext(Dispatchers.IO) {
+                val db = dbHelper.writableDatabase
+                db.beginTransaction()
+                try {
+                    val timeNow = System.currentTimeMillis()
+                    val values = ContentValues().apply {
+                        put("supplier_id", purchase.supplierId)
+                        put("supplier_name", purchase.supplierName)
+                        put("total_amount", purchase.totalAmount)
+                        put("tax_amount", purchase.taxAmount)
+                        put("type", purchase.type)
+                        put(StoreBookDbHelper.KEY_TIMESTAMP, purchase.timestamp)
+                        put(StoreBookDbHelper.KEY_NOTES, purchase.notes)
+                        put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                        put(StoreBookDbHelper.KEY_UPDATED_AT, timeNow)
+                    }
+                    val purchaseId = db.insert(StoreBookDbHelper.TABLE_PURCHASES, null, values)
+
+                    if (purchaseId != -1L) {
+                        for (pi in purchase.items) {
+                            val piValues = ContentValues().apply {
+                                put("purchase_id", purchaseId)
+                                put("item_id", pi.itemId)
+                                put("item_name", pi.itemName)
+                                put("quantity", pi.quantity)
+                                put("unit", pi.unit)
+                                put("buy_price", pi.buyPrice)
+                                put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                                put(StoreBookDbHelper.KEY_UPDATED_AT, timeNow)
+                            }
+                            db.insert(StoreBookDbHelper.TABLE_PURCHASE_ITEMS, null, piValues)
+
+                            // Update item stock quantity and buy price
+                            db.execSQL(
+                                "UPDATE ${StoreBookDbHelper.TABLE_ITEMS} SET ${StoreBookDbHelper.KEY_ITEM_QTY} = ${StoreBookDbHelper.KEY_ITEM_QTY} + ?, ${StoreBookDbHelper.KEY_ITEM_BUY_PRICE} = ?, ${StoreBookDbHelper.KEY_IS_SYNCED} = 0, ${StoreBookDbHelper.KEY_UPDATED_AT} = ? WHERE ${StoreBookDbHelper.KEY_ID} = ?",
+                                arrayOf(pi.quantity, pi.buyPrice, timeNow, pi.itemId)
+                            )
+                        }
+                    }
+
+                    db.setTransactionSuccessful()
+                    purchaseId
+                } finally {
+                    db.endTransaction()
+                }
+            }
+
+    suspend fun getPurchases(): List<Purchase> =
+            withContext(Dispatchers.IO) {
+                val purchasesList = mutableListOf<Purchase>()
+                val db = dbHelper.readableDatabase
+                val cursor = db.rawQuery(
+                    "SELECT * FROM ${StoreBookDbHelper.TABLE_PURCHASES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC",
+                    null
+                )
+                cursor.use { c ->
+                    val colId = c.getColumnIndexOrThrow("id")
+                    val colSuppId = c.getColumnIndexOrThrow("supplier_id")
+                    val colSuppName = c.getColumnIndexOrThrow("supplier_name")
+                    val colTotal = c.getColumnIndexOrThrow("total_amount")
+                    val colTax = c.getColumnIndexOrThrow("tax_amount")
+                    val colType = c.getColumnIndexOrThrow("type")
+                    val colTs = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_TIMESTAMP)
+                    val colNotes = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_NOTES)
+
+                    while (c.moveToNext()) {
+                        purchasesList.add(
+                            Purchase(
+                                id = c.getLong(colId),
+                                supplierId = c.getLong(colSuppId),
+                                supplierName = c.getString(colSuppName),
+                                totalAmount = c.getDouble(colTotal),
+                                taxAmount = c.getDouble(colTax),
+                                type = c.getString(colType),
+                                timestamp = c.getLong(colTs),
+                                notes = c.getString(colNotes),
+                                items = emptyList()
+                            )
+                        )
+                    }
+                }
+
+                if (purchasesList.isEmpty()) return@withContext emptyList()
+
+                val purchaseIds = purchasesList.map { it.id }
+                val placeholders = purchaseIds.joinToString(",") { "?" }
+                val itemsCursor = db.rawQuery(
+                    "SELECT * FROM ${StoreBookDbHelper.TABLE_PURCHASE_ITEMS} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND purchase_id IN ($placeholders)",
+                    purchaseIds.map { it.toString() }.toTypedArray()
+                )
+
+                val itemsByPurchaseId = mutableMapOf<Long, MutableList<PurchaseItemDetail>>()
+                itemsCursor.use { ic ->
+                    val piId = ic.getColumnIndexOrThrow("id")
+                    val piPurchaseId = ic.getColumnIndexOrThrow("purchase_id")
+                    val piItemId = ic.getColumnIndexOrThrow("item_id")
+                    val piItemName = ic.getColumnIndexOrThrow("item_name")
+                    val piQty = ic.getColumnIndexOrThrow("quantity")
+                    val piUnit = ic.getColumnIndexOrThrow("unit")
+                    val piPrice = ic.getColumnIndexOrThrow("buy_price")
+
+                    while (ic.moveToNext()) {
+                        val pId = ic.getLong(piPurchaseId)
+                        itemsByPurchaseId.computeIfAbsent(pId) { mutableListOf() }.add(
+                            PurchaseItemDetail(
+                                id = ic.getLong(piId),
+                                purchaseId = pId,
+                                itemId = ic.getLong(piItemId),
+                                itemName = ic.getString(piItemName),
+                                quantity = ic.getDouble(piQty),
+                                unit = ic.getString(piUnit),
+                                buyPrice = ic.getDouble(piPrice)
+                            )
+                        )
+                    }
+                }
+
+                purchasesList.map { p -> p.copy(items = itemsByPurchaseId[p.id] ?: emptyList()) }
+            }
+
+    suspend fun getSupplierBalances(): List<SupplierBalance> =
+            withContext(Dispatchers.IO) {
+                val list = mutableListOf<SupplierBalance>()
+                val db = dbHelper.readableDatabase
+
+                val cursor = db.rawQuery(
+                    """
+                    SELECT s.id, s.name, s.phone,
+                           SUM(CASE WHEN p.type = 'BILL' THEN p.total_amount ELSE -p.total_amount END) as balance,
+                           MAX(p.timestamp) as last_time
+                    FROM ${StoreBookDbHelper.TABLE_SUPPLIERS} s
+                    LEFT JOIN ${StoreBookDbHelper.TABLE_PURCHASES} p ON s.id = p.supplier_id AND p.is_deleted = 0
+                    WHERE s.is_deleted = 0
+                    GROUP BY s.id, s.name, s.phone
+                    ORDER BY last_time DESC, s.name ASC
+                    """.trimIndent(),
+                    null
+                )
+
+                cursor.use { c ->
+                    while (c.moveToNext()) {
+                        val id = c.getLong(0)
+                        val name = c.getString(1)
+                        val phone = c.getString(2)
+                        val bal = c.getDouble(3)
+                        val lastTime = c.getLong(4)
+                        list.add(
+                            SupplierBalance(
+                                supplierId = id,
+                                supplierName = name,
+                                phone = phone,
+                                netBalance = bal,
+                                lastTransactionTime = if (lastTime == 0L) System.currentTimeMillis() else lastTime
+                            )
+                        )
+                    }
+                }
+                list
+            }
+
+    suspend fun insertSupplierPayment(supplierId: Long, supplierName: String, amount: Double, notes: String?, timestamp: Long): Long =
+            withContext(Dispatchers.IO) {
+                val db = dbHelper.writableDatabase
+                val timeNow = System.currentTimeMillis()
+                val values = ContentValues().apply {
+                    put("supplier_id", supplierId)
+                    put("supplier_name", supplierName)
+                    put("total_amount", amount)
+                    put("tax_amount", 0.0)
+                    put("type", "PAYMENT")
+                    put(StoreBookDbHelper.KEY_TIMESTAMP, timestamp)
+                    put(StoreBookDbHelper.KEY_NOTES, notes)
+                    put(StoreBookDbHelper.KEY_IS_SYNCED, 0)
+                    put(StoreBookDbHelper.KEY_UPDATED_AT, timeNow)
+                }
+                db.insert(StoreBookDbHelper.TABLE_PURCHASES, null, values)
+            }
+
+    suspend fun clearLocalDatabase() = withContext(Dispatchers.IO) {
+        val db = dbHelper.writableDatabase
+        db.beginTransaction()
+        try {
+            db.execSQL("DELETE FROM ${StoreBookDbHelper.TABLE_ITEMS}")
+            db.execSQL("DELETE FROM ${StoreBookDbHelper.TABLE_SALES}")
+            db.execSQL("DELETE FROM ${StoreBookDbHelper.TABLE_SALE_ITEMS}")
+            db.execSQL("DELETE FROM ${StoreBookDbHelper.TABLE_UDHAAR}")
+            db.execSQL("DELETE FROM ${StoreBookDbHelper.TABLE_EXPENSES}")
+            db.execSQL("DELETE FROM ${StoreBookDbHelper.TABLE_SUPPLIERS}")
+            db.execSQL("DELETE FROM ${StoreBookDbHelper.TABLE_PURCHASES}")
+            db.execSQL("DELETE FROM ${StoreBookDbHelper.TABLE_PURCHASE_ITEMS}")
             db.setTransactionSuccessful()
         } catch (e: Exception) {
             e.printStackTrace()

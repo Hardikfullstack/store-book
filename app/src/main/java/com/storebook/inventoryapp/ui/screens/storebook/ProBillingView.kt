@@ -145,75 +145,91 @@ fun ProBillingView(
                         }
                     }
 
-                    val products = productsFetched
-                    if (products != null && products.isNotEmpty()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            products.forEachIndexed { index, product ->
-                                val offerToken = product.subscriptionOfferDetails?.firstOrNull()?.offerToken
-                                val price = product.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
-                                    ?: product.oneTimePurchaseOfferDetails?.formattedPrice
-                                    ?: ""
+                    if (billingState.isProUnlocked || isProActive) {
+                        Button(
+                            onClick = {
+                                val intent = android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse("https://play.google.com/store/account/subscriptions")
+                                )
+                                ctx.startActivity(intent)
+                            },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Manage Subscription", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        val products = productsFetched
+                        if (products != null && products.isNotEmpty()) {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                products.forEachIndexed { index, product ->
+                                    val offerToken = product.subscriptionOfferDetails?.firstOrNull()?.offerToken
+                                    val price = product.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
+                                        ?: product.oneTimePurchaseOfferDetails?.formattedPrice
+                                        ?: ""
+                                    PlanCard(
+                                        icon = if (index == 0) "💎" else if (index == 1) "🎉" else "👤",
+                                        title = product.name,
+                                        subtitle = "$price - ${product.description}",
+                                        isPrimary = index == 0,
+                                        onClick = {
+                                            if (auth.currentUser == null) {
+                                                onRequireSignIn()
+                                            } else {
+                                                (activity as? androidx.activity.ComponentActivity)?.let { act ->
+                                                    billingManager.launchBillingFlow(
+                                                        act, 
+                                                        product, 
+                                                        offerToken,
+                                                        onSuccess = { onDismiss() },
+                                                        onFail = { err -> 
+                                                            android.widget.Toast.makeText(ctx, err, android.widget.Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        } else {
+                            // Fallback purchase cards (shown when real product data isn't fetched)
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 PlanCard(
-                                    icon = if (index == 0) "💎" else if (index == 1) "🎉" else "👤",
-                                    title = product.name,
-                                    subtitle = "$price - ${product.description}",
-                                    isPrimary = index == 0,
+                                    icon = "💎",
+                                    title = "Lifetime Pro",
+                                    subtitle = "One time payment — Forever access",
+                                    isPrimary = true,
                                     onClick = {
                                         if (auth.currentUser == null) {
                                             onRequireSignIn()
-                                        } else {
-                                            (activity as? androidx.activity.ComponentActivity)?.let { act ->
-                                                billingManager.launchBillingFlow(
-                                                    act, 
-                                                    product, 
-                                                    offerToken,
-                                                    onSuccess = { onDismiss() },
-                                                    onFail = { err -> 
-                                                        android.widget.Toast.makeText(ctx, err, android.widget.Toast.LENGTH_SHORT).show()
-                                                    }
-                                                )
-                                            }
+                                        }
+                                    }
+                                )
+                                PlanCard(
+                                    icon = "🎉",
+                                    title = "Annual Pro",
+                                    subtitle = "₹299 / year — Best value",
+                                    isPrimary = false,
+                                    onClick = {
+                                        if (auth.currentUser == null) {
+                                            onRequireSignIn()
+                                        }
+                                    }
+                                )
+                                PlanCard(
+                                    icon = "👤",
+                                    title = "Monthly Pro",
+                                    subtitle = "₹79 / month — Auto-renewed",
+                                    isPrimary = false,
+                                    onClick = {
+                                        if (auth.currentUser == null) {
+                                            onRequireSignIn()
                                         }
                                     }
                                 )
                             }
-                        }
-                    } else {
-                        // Fallback purchase cards (shown when real product data isn't fetched)
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            PlanCard(
-                                icon = "💎",
-                                title = "Lifetime Pro",
-                                subtitle = "One time payment — Forever access",
-                                isPrimary = true,
-                                onClick = {
-                                    if (auth.currentUser == null) {
-                                        onRequireSignIn()
-                                    }
-                                }
-                            )
-                            PlanCard(
-                                icon = "🎉",
-                                title = "Annual Pro",
-                                subtitle = "₹299 / year — Best value",
-                                isPrimary = false,
-                                onClick = {
-                                    if (auth.currentUser == null) {
-                                        onRequireSignIn()
-                                    }
-                                }
-                            )
-                            PlanCard(
-                                icon = "👤",
-                                title = "Monthly Pro",
-                                subtitle = "₹79 / month — Auto-renewed",
-                                isPrimary = false,
-                                onClick = {
-                                    if (auth.currentUser == null) {
-                                        onRequireSignIn()
-                                    }
-                                }
-                            )
                         }
                     }
 

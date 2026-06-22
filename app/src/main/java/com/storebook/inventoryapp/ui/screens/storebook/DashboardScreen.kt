@@ -81,6 +81,7 @@ import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.data.repository.Item
 import com.storebook.inventoryapp.ui.navigation.Routes
 import com.storebook.inventoryapp.ui.theme.*
+import com.storebook.inventoryapp.ui.theme.isAppDarkMode
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import com.storebook.inventoryapp.utils.toRupee
 import com.storebook.inventoryapp.utils.toRupeeWithDecimals
@@ -255,12 +256,7 @@ fun DashboardScreen(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(InkBlue900, InkBlue700, InkBlue500),
-                            ),
-                        )
+                        .background(MaterialTheme.colorScheme.primary)
                         .statusBarsPadding()
                         .padding(horizontal = 24.dp, vertical = 22.dp),
             ) {
@@ -273,7 +269,7 @@ fun DashboardScreen(
                         Text(
                             text = greeting,
                             fontSize = 12.sp,
-                            color = Color.White.copy(alpha = 0.75f),
+                            color = if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
                             fontWeight = FontWeight.Medium,
                             letterSpacing = 0.2.sp,
                         )
@@ -287,13 +283,13 @@ fun DashboardScreen(
                                         fontSize = 24.sp,
                                         fontFamily = Inter,
                                     ),
-                                color = Color.White,
+                                color = if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
                             )
                         }
                         Text(
                             text = stringResource(id = R.string.dash_subtitle),
                             fontSize = 11.sp,
-                            color = Color.White.copy(alpha = 0.6f),
+                            color = if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
                             fontWeight = FontWeight.Medium,
                         )
                     }
@@ -311,7 +307,7 @@ fun DashboardScreen(
                                         if (viewModel.isPremiumUser) {
                                             Gold200.copy(alpha = 0.25f)
                                         } else {
-                                            Color.White.copy(alpha = 0.15f)
+                                            (if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary).copy(alpha = 0.15f)
                                         },
                                     ).clickable { navController.navigate(Routes.PremiumPlans) }
                                     .padding(horizontal = 14.dp, vertical = 7.dp),
@@ -320,7 +316,7 @@ fun DashboardScreen(
                                 text = if (viewModel.isPremiumUser) "★ PRO" else "FREE",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Black,
-                                color = if (viewModel.isPremiumUser) Gold400 else Color.White,
+                                color = if (viewModel.isPremiumUser) Gold400 else if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
                             )
                         }
 
@@ -350,7 +346,7 @@ fun DashboardScreen(
                                 Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.15f))
+                                    .background((if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary).copy(alpha = 0.15f))
                                     .clickable {
                                         if (currentUser == null) {
                                             navController.navigate(Routes.Auth)
@@ -367,7 +363,7 @@ fun DashboardScreen(
                         ) {
                             Text(
                                 text = avatarLetter,
-                                color = Color.White,
+                                color = if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                             )
@@ -413,7 +409,7 @@ fun DashboardScreen(
                                     fabExpanded = false
                                 },
                                 modifier = Modifier.size(48.dp),
-                                containerColor = Color.White,
+                                containerColor = MaterialTheme.colorScheme.surface,
                                 contentColor = MaterialTheme.colorScheme.primary,
                                 elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp),
                             ) { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(24.dp)) }
@@ -443,7 +439,7 @@ fun DashboardScreen(
                                     fabExpanded = false
                                 },
                                 modifier = Modifier.size(48.dp),
-                                containerColor = Color.White,
+                                containerColor = MaterialTheme.colorScheme.surface,
                                 contentColor = MaterialTheme.colorScheme.primary,
                                 elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp),
                             ) {
@@ -479,7 +475,7 @@ fun DashboardScreen(
                                     fabExpanded = false
                                 },
                                 modifier = Modifier.size(48.dp),
-                                containerColor = Color.White,
+                                containerColor = MaterialTheme.colorScheme.surface,
                                 contentColor = MaterialTheme.colorScheme.primary,
                                 elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp),
                             ) {
@@ -495,7 +491,7 @@ fun DashboardScreen(
                 FloatingActionButton(
                     onClick = { fabExpanded = !fabExpanded },
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 ) {
                     Icon(
                         if (fabExpanded) Icons.Default.Close else Icons.Default.Add,
@@ -565,8 +561,8 @@ fun DashboardScreen(
                                 Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(Coral500.copy(alpha = 0.05f))
-                                    .border(1.dp, Coral500.copy(alpha = 0.1f), RoundedCornerShape(16.dp)),
+                                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.05f))
+                                    .border(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.1f), RoundedCornerShape(16.dp)),
                         ) {
                             // Header
                             Row(
@@ -586,22 +582,22 @@ fun DashboardScreen(
                                 Icon(
                                     Icons.Default.Warning,
                                     contentDescription = null,
-                                    tint = Coral500,
+                                    tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(18.dp),
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = stringResource(id = R.string.dash_alert_banner, lowStockItems.size),
-                                    color = Coral500,
+                                    color = MaterialTheme.colorScheme.error,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
                                     modifier = Modifier.weight(1f),
                                 )
-                                Text("View All", color = Coral500, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                Text("View All", color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 Icon(
                                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = null,
-                                    tint = Coral500,
+                                    tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(16.dp),
                                 )
                             }
@@ -626,16 +622,16 @@ fun DashboardScreen(
                                         Text(
                                             "Stock: ${formatQty(item.quantity)} ${item.unit}",
                                             fontSize = 12.sp,
-                                            color = Coral500,
+                                            color = MaterialTheme.colorScheme.error,
                                         )
                                     }
                                     Button(
                                         onClick = { quickRefillItem = item },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Coral500),
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
                                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                         modifier = Modifier.height(28.dp),
                                     ) {
-                                        Text("Restock", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("Restock", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onError)
                                     }
                                 }
                             }
@@ -722,24 +718,26 @@ fun DashboardScreen(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                AnimatedMetricCard(
-                                    title = stringResource(id = R.string.dash_today_revenue),
-                                    value = todayRevenue.toRupee(),
-                                    gradient = Brush.linearGradient(listOf(InkBlue700, InkBlue500)),
-                                    emoji = "💰",
-                                    modifier = Modifier.weight(1f),
-                                )
-                                AnimatedMetricCard(
-                                    title = stringResource(id = R.string.dash_today_profit),
-                                    value = todayProfit.toRupee(),
-                                    gradient = Brush.linearGradient(listOf(Color(0xFF059669), Emerald500)),
-                                    emoji = "📈",
-                                    modifier = Modifier.weight(1f),
-                                )
+                            if (viewModel.userRole != "staff") {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    AnimatedMetricCard(
+                                        title = stringResource(id = R.string.dash_today_revenue),
+                                        value = todayRevenue.toRupee(),
+                                        gradient = Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)),
+                                        emoji = "💰",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    AnimatedMetricCard(
+                                        title = stringResource(id = R.string.dash_today_profit),
+                                        value = todayProfit.toRupee(),
+                                        gradient = Brush.linearGradient(listOf(Color(0xFF059669), Emerald500)),
+                                        emoji = "📈",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -749,7 +747,7 @@ fun DashboardScreen(
                                     title = stringResource(id = R.string.dash_total_items),
                                     value = "${allItems.size}",
                                     gradient = Brush.linearGradient(listOf(Color(0xFF7C3AED), Color(0xFF6D28D9))),
-                                    emoji = "📦",
+                                    emoji = "🛒",
                                     modifier = Modifier.weight(1f),
                                 )
                                 AnimatedMetricCard(
@@ -777,11 +775,8 @@ fun DashboardScreen(
                                 .fillMaxWidth()
                                 .height(56.dp)
                                 .clip(RoundedCornerShape(20.dp))
-                                .background(
-                                    Brush.horizontalGradient(
-                                        listOf(InkBlue700, InkBlue500),
-                                    ),
-                                ).clickable {
+                                .background(MaterialTheme.colorScheme.primary)
+                                .clickable {
                                     navController.navigate(Routes.Sales) {
                                         popUpTo<Routes.Dashboard> {
                                             saveState = true
@@ -799,13 +794,13 @@ fun DashboardScreen(
                             Icon(
                                 Icons.Default.ShoppingCart,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(20.dp),
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = stringResource(id = R.string.btn_quick_sale),
-                                color = Color.White,
+                                text = "Record Sale",
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                                 fontFamily = Inter,
@@ -906,7 +901,7 @@ fun AnimatedMetricCard(
             when (emoji) {
                 "💰" -> if (isDark) Color(0xFF312E81) else Color(0xFFEEF2FF)
                 "📈" -> if (isDark) Color(0xFF064E3B) else Color(0xFFD1FAE5)
-                "📦" -> if (isDark) Color(0xFF78350F) else Color(0xFFFEF3C7)
+                "🛒" -> if (isDark) Color(0xFF78350F) else Color(0xFFFEF3C7)
                 else -> if (isDark) Color(0xFF7F1D1D) else Color(0xFFFEE2E2)
             }
         }
@@ -915,7 +910,7 @@ fun AnimatedMetricCard(
             when (emoji) {
                 "💰" -> if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5)
                 "📈" -> if (isDark) Color(0xFF34D399) else Color(0xFF059669)
-                "📦" -> if (isDark) Color(0xFFFBBF24) else Color(0xFFD97706)
+                "🛒" -> if (isDark) Color(0xFFFBBF24) else Color(0xFFD97706)
                 else -> if (isDark) Color(0xFFF87171) else Color(0xFFDC2626)
             }
         }
@@ -1005,14 +1000,14 @@ fun SaleTimelineCard(
                     Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)),
+                        .background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = customerName.firstOrNull()?.uppercase() ?: "W",
                     fontWeight = FontWeight.Black,
                     fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))

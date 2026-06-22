@@ -74,14 +74,15 @@
     <string name="udh_empty">कोई उधार रिकॉर्ड नहीं मिला।</string>
     <string name="udh_total_outstanding">कुल बकाया उधार राशि</string>
     <string name="udh_ledger_title">%1$s का उधार खाता</string>
-    <string name="udh_btn_give_credit">उधार दिया (- उधार)</string>
-    <string name="udh_btn_receive_payment">पैसे मिले (+ जमा)</string>
+    <string name="udh_btn_give_credit">उधार दिया (+ उधार)</string>
+    <string name="udh_btn_receive_payment">पैसे मिले (- जमा)</string>
     <string name="udh_dialog_title">खाता प्रविष्टि जोड़ें</string>
     <string name="udh_amount_label">राशि (₹)</string>
     <string name="udh_outstanding_balance">बकाया राशि: ₹%1$.2f</string>
     <string name="udh_toast_saved">खाता प्रविष्टि सफलतापूर्वक दर्ज की गई!</string>
     <string name="udh_reminder_whatsapp">व्हाट्सएप रिमाइंडर भेजें</string>
     <string name="udh_reminder_template">नमस्ते %1$s, हमारी दुकान पर आपका बकाया उधार बिल ₹%2$.2f है। कृपया जल्द ही भुगतान करें। धन्यवाद! - स्टोरबुक</string>
+    <string name="udh_reminder_template_with_shop">नमस्ते %1$s, %3$s पर आपका बकाया उधार बिल ₹%2$.2f है। कृपया जल्द ही भुगतान करें। धन्यवाद!</string>
     <string name="exp_title">खर्च और रीस्टॉक</string>
     <string name="exp_overhead_title">दुकान का अन्य खर्च दर्ज करें</string>
     <string name="exp_restock_title">स्टॉक रीस्टॉक (नया माल जोड़ें)</string>

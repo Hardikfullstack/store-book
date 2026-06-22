@@ -46,3 +46,27 @@ val Gold200 = Color(0xFFFDE68A)
 
 // WhatsApp green
 val WhatsAppGreen = Color(0xFF22C55E)
+
+// Sunset Orange Mode
+val SunsetOrange900 = Color(0xFF7C2D12)
+val SunsetOrange700 = Color(0xFFC2410C)
+val SunsetOrange500 = Color(0xFFF97316)
+val SunsetOrange300 = Color(0xFFFDBA74)
+val SunsetOrange100 = Color(0xFFFFEDD5)
+val SunsetOrange50 = Color(0xFFFFF7ED)
+
+// Forest Green Mode
+val ForestGreen900 = Color(0xFF14532D)
+val ForestGreen700 = Color(0xFF15803D)
+val ForestGreen500 = Color(0xFF22C55E)
+val ForestGreen300 = Color(0xFF86EFAC)
+val ForestGreen100 = Color(0xFFDCFCE7)
+val ForestGreen50 = Color(0xFFF0FDF4)
+
+// Amethyst Purple Mode
+val AmethystPurple900 = Color(0xFF4C1D95)
+val AmethystPurple700 = Color(0xFF7E22CE)
+val AmethystPurple500 = Color(0xFFA855F7)
+val AmethystPurple300 = Color(0xFFD8B4FE)
+val AmethystPurple100 = Color(0xFFF3E8FF)
+val AmethystPurple50 = Color(0xFFFAF5FF)

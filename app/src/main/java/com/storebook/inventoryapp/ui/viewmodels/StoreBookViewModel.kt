@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import com.storebook.inventoryapp.data.play.PlayBillingManager
 import com.storebook.inventoryapp.data.repository.CartItem
 import com.storebook.inventoryapp.data.repository.CustomerBalance
@@ -17,6 +18,10 @@ import com.storebook.inventoryapp.data.repository.Item
 import com.storebook.inventoryapp.data.repository.Sale
 import com.storebook.inventoryapp.data.repository.StoreBookRepository
 import com.storebook.inventoryapp.data.repository.UdhaarEntry
+import com.storebook.inventoryapp.data.repository.Supplier
+import com.storebook.inventoryapp.data.repository.Purchase
+import com.storebook.inventoryapp.data.repository.PurchaseItemDetail
+import com.storebook.inventoryapp.data.repository.SupplierBalance
 import com.storebook.inventoryapp.data.sync.FirestoreSyncManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +32,24 @@ import kotlinx.coroutines.withContext
 class StoreBookViewModel(
         application: Application,
 ) : AndroidViewModel(application) {
-    private val repository = StoreBookRepository(application.applicationContext)
+    private val prefs =
+            application.getSharedPreferences(
+                    "storebook_prefs",
+                    android.content.Context.MODE_PRIVATE
+            )
+
+    var activeStoreId: String by mutableStateOf(prefs.getString("active_store_id", "default") ?: "default")
+        private set
+
+    var userStores: List<String> by mutableStateOf(prefs.getStringSet("user_stores", setOf("default"))?.toList() ?: listOf("default"))
+        private set
+
+    var userRole: String by mutableStateOf(prefs.getString("user_role", "owner") ?: "owner")
+        private set
+
+    var repository = StoreBookRepository(application.applicationContext, activeStoreId)
+        private set
+
     val billingManager = PlayBillingManager(application.applicationContext)
     private val syncManager = FirestoreSyncManager(application.applicationContext)
 
@@ -49,6 +71,9 @@ class StoreBookViewModel(
 
     private val _salesHistoryList = MutableStateFlow<List<Sale>>(emptyList())
     val salesHistoryList: StateFlow<List<Sale>> = _salesHistoryList
+
+    private val _quotationsList = MutableStateFlow<List<Sale>>(emptyList())
+    val quotationsList: StateFlow<List<Sale>> = _quotationsList
 
     private val _udhaarBalances = MutableStateFlow<List<CustomerBalance>>(emptyList())
     val udhaarBalances: StateFlow<List<CustomerBalance>> = _udhaarBalances
@@ -83,6 +108,15 @@ class StoreBookViewModel(
     private val _expensesList = MutableStateFlow<List<ExpenseEntry>>(emptyList())
     val expensesList: StateFlow<List<ExpenseEntry>> = _expensesList
 
+    private val _suppliers = MutableStateFlow<List<Supplier>>(emptyList())
+    val suppliers: StateFlow<List<Supplier>> = _suppliers
+
+    private val _purchases = MutableStateFlow<List<Purchase>>(emptyList())
+    val purchases: StateFlow<List<Purchase>> = _purchases
+
+    private val _supplierBalances = MutableStateFlow<List<SupplierBalance>>(emptyList())
+    val supplierBalances: StateFlow<List<SupplierBalance>> = _supplierBalances
+
     // Cart / Checkout State
     var cartItems by mutableStateOf<List<CartItem>>(emptyList())
         private set
@@ -94,11 +128,9 @@ class StoreBookViewModel(
     var cartNotes by mutableStateOf("")
     var cartPaymentMode by mutableStateOf("Cash")
 
-    private val prefs =
-            application.getSharedPreferences(
-                    "storebook_prefs",
-                    android.content.Context.MODE_PRIVATE
-            )
+    var convertingQuotationId by mutableStateOf<Long?>(null)
+        private set
+
     var businessName by
             mutableStateOf(
                     prefs.getString("business_name", "StoreBook Kirana") ?: "StoreBook Kirana"
@@ -125,7 +157,7 @@ class StoreBookViewModel(
     }
 
     // Billing state (reactive from Play Billing client)
-    var isPremiumUser: Boolean by mutableStateOf(false)
+    var isPremiumUser: Boolean by mutableStateOf(prefs.getBoolean("is_premium", false))
 
     // Undo mechanism
     var lastSaleId by mutableStateOf<Long?>(null)
@@ -138,26 +170,93 @@ class StoreBookViewModel(
             repository.standardizeCustomerNames()
             loadAllData()
         }
-        // Observe billing state changes
+
         viewModelScope.launch {
             billingManager.state.collect { billingState ->
-                isPremiumUser = billingState.isProUnlocked
+                // Staff members inherit the Owner's cloud sync capability.
+                // Their personal Google Play accounts won't have the subscription.
+                val playPremium = billingState.isProUnlocked
+                val webPremium = prefs.getBoolean("is_premium", false)
+                isPremiumUser = playPremium || webPremium || userRole == "staff"
                 if (isPremiumUser) {
                     triggerSync()
+                    startSyncManagerRealtime()
+                } else {
+                    syncManager.stopRealtimeSync()
                 }
             }
         }
     }
 
-    fun triggerSync() {
-        viewModelScope.launch {
+    private fun startSyncManagerRealtime() {
+        if (isPremiumUser && activeStoreId != "default") {
+            syncManager.registerDataChangedCallback {
+                // When other users edit the data, reload it locally (without triggering sync cycle)
+                loadAllData(triggerSync = false)
+            }
+            syncManager.startRealtimeSync(activeStoreId)
+        }
+    }
+
+    fun refreshUserState() {
+        userRole = prefs.getString("user_role", "owner") ?: "owner"
+        val playPremium = billingManager.state.value.isProUnlocked
+        val webPremium = prefs.getBoolean("is_premium", false)
+        isPremiumUser = playPremium || webPremium || userRole == "staff"
+        
+        val newStoreId = prefs.getString("active_store_id", "default") ?: "default"
+        if (newStoreId != activeStoreId) {
+            switchStore(newStoreId)
+        } else {
             if (isPremiumUser) {
-                syncManager.syncAllData()
+                startSyncManagerRealtime()
+            } else {
+                syncManager.stopRealtimeSync()
             }
         }
     }
 
-    fun loadAllData() {
+    fun switchStore(newStoreId: String) {
+        activeStoreId = newStoreId
+        prefs.edit().putString("active_store_id", newStoreId).apply()
+        
+        val stores = prefs.getStringSet("user_stores", setOf("default"))?.toMutableSet() ?: mutableSetOf("default")
+        if (!stores.contains(newStoreId)) {
+            stores.add(newStoreId)
+            prefs.edit().putStringSet("user_stores", stores).apply()
+        }
+        
+        userStores = prefs.getStringSet("user_stores", setOf("default"))?.toList() ?: listOf("default")
+        repository = StoreBookRepository(getApplication(), newStoreId)
+        viewModelScope.launch {
+            repository.standardizeCustomerNames()
+            loadAllData()
+            if (isPremiumUser) {
+                startSyncManagerRealtime()
+            } else {
+                syncManager.stopRealtimeSync()
+            }
+        }
+    }
+
+    fun triggerSync() {
+        if (isPremiumUser) {
+            val workRequest = androidx.work.OneTimeWorkRequestBuilder<com.storebook.inventoryapp.data.sync.StoreBookSyncWorker>()
+                .setConstraints(
+                    androidx.work.Constraints.Builder()
+                        .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                        .build()
+                )
+                .build()
+            androidx.work.WorkManager.getInstance(getApplication()).enqueueUniqueWork(
+                "StoreBookSync",
+                androidx.work.ExistingWorkPolicy.REPLACE,
+                workRequest
+            )
+        }
+    }
+
+    fun loadAllData(triggerSync: Boolean = true) {
         viewModelScope.launch {
             val items = repository.getActiveItems()
             _allItems.value = items
@@ -167,10 +266,20 @@ class StoreBookViewModel(
             _udhaarBalances.value = repository.getUdhaarBalances()
             _customerSuggestions.value = repository.searchCustomers("", 50)
             _expensesList.value = repository.getExpenses()
+            _quotationsList.value = repository.getQuotations()
+            _suppliers.value = repository.getSuppliers()
+            _purchases.value = repository.getPurchases()
+            _supplierBalances.value = repository.getSupplierBalances()
 
-            // Automatically attempt sync after updating data
-            triggerSync()
+            if (triggerSync) {
+                triggerSync()
+            }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        syncManager.stopRealtimeSync()
     }
 
     /**
@@ -340,6 +449,32 @@ class StoreBookViewModel(
         cartCustomerAddress = ""
         cartNotes = ""
         cartPaymentMode = "Cash"
+        convertingQuotationId = null
+    }
+
+    fun loadQuotationToCart(quotation: Sale) {
+        clearCart()
+        val convertedCartItems = quotation.items.map { saleItem ->
+            val actualItem = allItems.value.find { it.id == saleItem.itemId } ?: Item(
+                id = saleItem.itemId,
+                name = saleItem.itemName,
+                quantity = 0.0,
+                unit = saleItem.unit,
+                buyPrice = saleItem.buyPrice,
+                sellPrice = saleItem.sellPrice,
+                lowStockThreshold = 0.0,
+                category = "Imported"
+            )
+            CartItem(item = actualItem, quantity = saleItem.quantity)
+        }
+        cartItems = convertedCartItems
+        cartDiscount = quotation.discountAmount
+        cartCustomerName = quotation.customerName ?: ""
+        cartCustomerGstin = quotation.customerGstin ?: ""
+        cartCustomerAddress = quotation.customerAddress ?: ""
+        cartNotes = quotation.notes ?: ""
+        cartPaymentMode = "Cash"
+        convertingQuotationId = quotation.id
     }
 
     // --- Sales Actions ---
@@ -351,6 +486,7 @@ class StoreBookViewModel(
 
     fun checkout(
             paymentMode: String = cartPaymentMode,
+            type: String = "SALE",
             onSuccess: (Long, Double) -> Unit,
     ) {
         if (cartItems.isEmpty()) return
@@ -369,10 +505,13 @@ class StoreBookViewModel(
                             businessAddress = businessAddress.takeIf { it.isNotBlank() },
                             notes = notesForSale,
                             paymentMode = paymentMode,
+                            type = type,
                     )
             if (saleId != -1L) {
-                lastSaleId = saleId
-                lastSaleTime = System.currentTimeMillis()
+                if (type != "ESTIMATE") {
+                    lastSaleId = saleId
+                    lastSaleTime = System.currentTimeMillis()
+                }
 
                 // Calculate grand total with taxes
                 val taxSummary =
@@ -386,6 +525,11 @@ class StoreBookViewModel(
 
                 // NOTE: recordSale() ALREADY creates Udhaar CREDIT entry if customerName is present
                 // So we do NOT need to create it here again. Removing the duplicate insert.
+
+                // If this sale was converted from an estimate, mark the estimate as CONVERTED
+                convertingQuotationId?.let { oldQuoteId ->
+                    repository.markQuotationAsConverted(oldQuoteId)
+                }
 
                 clearCart()
                 loadAllData()
@@ -697,6 +841,75 @@ class StoreBookViewModel(
         viewModelScope.launch {
             repository.seedDummyData()
             loadAllData()
+        }
+    }
+
+    // --- Supplier & Purchase Operations ---
+    fun addSupplier(name: String, phone: String?, gstin: String?, address: String?, onResult: (Long) -> Unit = {}) {
+        viewModelScope.launch {
+            val id = repository.insertSupplier(Supplier(name = name, phone = phone, gstin = gstin, address = address))
+            loadAllData()
+            onResult(id)
+        }
+    }
+
+    fun removeSupplier(id: Long, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val success = repository.deleteSupplier(id)
+            loadAllData()
+            onResult(success)
+        }
+    }
+
+    fun addPurchase(purchase: Purchase, onResult: (Long) -> Unit = {}) {
+        viewModelScope.launch {
+            val id = repository.insertPurchase(purchase)
+            loadAllData()
+            onResult(id)
+        }
+    }
+
+    fun addSupplierPayment(supplierId: Long, supplierName: String, amount: Double, notes: String?, timestamp: Long = System.currentTimeMillis(), onResult: (Long) -> Unit = {}) {
+        viewModelScope.launch {
+            val id = repository.insertSupplierPayment(supplierId, supplierName, amount, notes, timestamp)
+            loadAllData()
+            onResult(id)
+        }
+    }
+
+    fun clearLocalDatabase() {
+        viewModelScope.launch {
+            repository.clearLocalDatabase()
+            loadAllData()
+        }
+    }
+
+    suspend fun createStaffAccount(username: String, pin: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val client = okhttp3.OkHttpClient()
+                val ownerId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return@withContext false
+                val json = """
+                    {
+                        "username": "$username",
+                        "password": "$pin",
+                        "storeId": "$activeStoreId",
+                        "ownerId": "$ownerId"
+                    }
+                """.trimIndent()
+                
+                val body = okhttp3.RequestBody.create("application/json; charset=utf-8".toMediaTypeOrNull(), json)
+                val request = okhttp3.Request.Builder()
+                    .url("http://10.0.2.2:3000/api/staff/invite")
+                    .post(body)
+                    .build()
+                
+                val response = client.newCall(request).execute()
+                response.isSuccessful
+            } catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
         }
     }
 }

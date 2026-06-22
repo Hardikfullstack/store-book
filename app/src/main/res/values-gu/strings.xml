@@ -74,14 +74,15 @@
     <string name="udh_empty">કોઈ ઉધાર નોંધ મળી નથી.</string>
     <string name="udh_total_outstanding">કુલ બાકી ઉધાર રકમ</string>
     <string name="udh_ledger_title">%1$s નું ખાતું</string>
-    <string name="udh_btn_give_credit">ઉધાર આપ્યા (- ઉધાર)</string>
-    <string name="udh_btn_receive_payment">પૈસા મળ્યા (+ જમા)</string>
+    <string name="udh_btn_give_credit">ઉધાર આપ્યા (+ ઉધાર)</string>
+    <string name="udh_btn_receive_payment">પૈસા મળ્યા (- જમા)</string>
     <string name="udh_dialog_title">ખાતામાં એન્ટ્રી ઉમેરો</string>
     <string name="udh_amount_label">રકમ (₹)</string>
     <string name="udh_outstanding_balance">બાકી રકમ: ₹%1$.2f</string>
     <string name="udh_toast_saved">ખાતામાં એન્ટ્રી સફળતાપૂર્વક સાચવવામાં આવી!</string>
     <string name="udh_reminder_whatsapp">વોટ્સએપ રીમાઇન્ડર મોકલો</string>
     <string name="udh_reminder_template">નમસ્તે %1$s, અમારી દુકાને તમારી બાકી ઉધાર રકમ ₹%2$.2f છે. કૃપા કરીને જલ્દી ચૂકવણી કરશો. આભાર! - સ્ટોરબુક</string>
+    <string name="udh_reminder_template_with_shop">નમસ્તે %1$s, %3$s પર તમારી બાકી ઉધાર રકમ ₹%2$.2f છે. કૃપા કરીને જલ્દી ચૂકવણી કરશો. આભાર!</string>
     <string name="exp_title">ખર્ચ અને નવો સ્ટોક</string>
     <string name="exp_overhead_title">દુકાનનો અન્ય ખર્ચ નોંધો</string>
     <string name="exp_restock_title">નવો સ્ટોક ઉમેરો (રીસ્ટોક)</string>

@@ -91,8 +91,9 @@ class MainActivity : AppCompatActivity() {
 
         setContent {
             val isDarkMode by themeManager.isDarkMode
+            val themeMode by themeManager.themeMode
 
-            StoreBookTheme(darkTheme = isDarkMode) {
+            StoreBookTheme(darkTheme = isDarkMode, themeMode = themeMode) {
                 val appConfigState by appConfigViewModel.appResponse.collectAsState()
                 val dynamicAppName by appConfigViewModel.dynamicAppName.collectAsState()
                 val dynamicAppBrand by appConfigViewModel.dynamicAppBrand.collectAsState()

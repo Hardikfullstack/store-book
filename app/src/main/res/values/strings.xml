@@ -87,14 +87,15 @@
     <string name="udh_empty">No credit records found.</string>
     <string name="udh_total_outstanding">Total Outstanding Credit</string>
     <string name="udh_ledger_title">%1$s\'s Credit Ledger</string>
-    <string name="udh_btn_give_credit">Give Credit (- उधार)</string>
-    <string name="udh_btn_receive_payment">Receive Payment (+ जमा)</string>
+    <string name="udh_btn_give_credit">Give Credit (+ उधार)</string>
+    <string name="udh_btn_receive_payment">Receive Payment (- जमा)</string>
     <string name="udh_dialog_title">Add Ledger Entry</string>
     <string name="udh_amount_label">Amount (₹)</string>
     <string name="udh_outstanding_balance">Outstanding Balance: ₹%1$.2f</string>
     <string name="udh_toast_saved">Ledger entry recorded successfully!</string>
     <string name="udh_reminder_whatsapp">Send WhatsApp Reminder</string>
     <string name="udh_reminder_template">Dear %1$s, your outstanding credit balance at our shop is ₹%2$.2f. Please clear it soon. Thank you! - StoreBook</string>
+    <string name="udh_reminder_template_with_shop">Dear %1$s, your outstanding credit balance at %3$s is ₹%2$.2f. Please clear it soon. Thank you!</string>
 
     <!-- Expenses & Restocking -->
     <string name="exp_title">Expenses &amp; Restock</string>

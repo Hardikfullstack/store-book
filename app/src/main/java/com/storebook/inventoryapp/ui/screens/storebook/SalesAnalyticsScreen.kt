@@ -111,7 +111,7 @@ fun SalesAnalyticsScreen(
 
     val context = LocalContext.current
     val defaultCustName = stringResource(id = R.string.customer_walk_in)
-    val repository = remember { StoreBookRepository(context) }
+    val repository = remember(viewModel.activeStoreId) { StoreBookRepository(context, viewModel.activeStoreId) }
 
     // Filters
     var groupBy by remember { mutableStateOf(GroupBy.PRODUCT) }
@@ -714,14 +714,14 @@ fun FlatLineItemCard(
                                 .size(
                                     16.dp,
                                 ).clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer),
+                                .background(MaterialTheme.colorScheme.primary),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             item.customerName.take(1).uppercase(),
                             fontSize = 8.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.onPrimary,
                         )
                     }
                     Spacer(Modifier.width(6.dp))

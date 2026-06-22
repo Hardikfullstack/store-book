@@ -40,6 +40,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -107,15 +109,24 @@ fun SalesScreen(
     val udhaarBalances by viewModel.udhaarBalances.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    val scanner = remember {
+        val options = com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions.Builder()
+            .setBarcodeFormats(com.google.mlkit.vision.barcode.common.Barcode.FORMAT_ALL_FORMATS)
+            .enableAutoZoom()
+            .build()
+        com.google.mlkit.vision.codescanner.GmsBarcodeScanning.getClient(context, options)
+    }
+
     var searchQ by remember { mutableStateOf("") }
     var showSuccessScreen by remember { mutableStateOf(false) }
     var generatedSaleId by remember { mutableStateOf(-1L) }
     var generatedTotalAmount by remember { mutableStateOf(0.0) }
+    var generatedSaleType by remember { mutableStateOf("SALE") }
     var lastCartSnap by remember { mutableStateOf<List<CartItem>>(emptyList()) }
     var lastPaymentMode by remember { mutableStateOf("Cash") }
 
     // Payment modes — now includes "Udhaar"
-    val paymentModes = listOf("Cash", "UPI", "Udhaar")
+    val paymentModes = listOf("Cash", "UPI", "Udhaar", "Estimate")
 
     // Customer name error state (mandatory for Udhaar)
     var customerNameError by remember { mutableStateOf(false) }
@@ -201,6 +212,7 @@ fun SalesScreen(
             cartItems = lastCartSnap,
             discount = viewModel.cartDiscount,
             paymentMode = lastPaymentMode,
+            isEstimate = generatedSaleType == "ESTIMATE",
             onBack = {
                 showSuccessScreen = false
             },
@@ -262,7 +274,7 @@ fun SalesScreen(
                                 Modifier
                                     .size(44.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .background(MaterialTheme.colorScheme.primary)
                                     .clickable {
                                         val cur = editingQtyText.text.toDoubleOrNull() ?: step
                                         val next = (cur - step).coerceAtLeast(step)
@@ -275,7 +287,7 @@ fun SalesScreen(
                                 "−",
                                 fontWeight = FontWeight.Black,
                                 fontSize = 22.sp,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.onPrimary,
                             )
                         }
 
@@ -310,7 +322,7 @@ fun SalesScreen(
                                 Modifier
                                     .size(44.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .background(MaterialTheme.colorScheme.primary)
                                     .clickable {
                                         val cur = editingQtyText.text.toDoubleOrNull() ?: 0.0
                                         val next = cur + step
@@ -323,7 +335,7 @@ fun SalesScreen(
                                 "+",
                                 fontWeight = FontWeight.Black,
                                 fontSize = 22.sp,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.onPrimary,
                             )
                         }
                     }
@@ -344,7 +356,7 @@ fun SalesScreen(
                                 modifier =
                                     Modifier
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                                        .background(MaterialTheme.colorScheme.primary)
                                         .clickable {
                                             val cur = editingQtyText.text.toDoubleOrNull() ?: 0.0
                                             val next = cur + presetVal
@@ -357,7 +369,7 @@ fun SalesScreen(
                                     text = "+${formatQty(presetVal)} ${item.unit}",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = MaterialTheme.colorScheme.onPrimary,
                                 )
                             }
                         }
@@ -499,7 +511,7 @@ fun SalesScreen(
                                         .clip(RoundedCornerShape(20.dp))
                                         .background(
                                             when {
-                                                isSelected && isUdhaar -> Coral500
+                                                isSelected && isUdhaar -> MaterialTheme.colorScheme.error
                                                 isSelected -> MaterialTheme.colorScheme.primary
                                                 else -> MaterialTheme.colorScheme.surfaceVariant
                                             },
@@ -519,10 +531,10 @@ fun SalesScreen(
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color =
-                                        if (isSelected) {
-                                            Color.White
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        when {
+                                            isSelected && isUdhaar -> MaterialTheme.colorScheme.onError
+                                            isSelected -> MaterialTheme.colorScheme.onPrimary
+                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
                                         },
                                 )
                             }
@@ -537,21 +549,21 @@ fun SalesScreen(
                             Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Coral100.copy(alpha = 0.7f))
+                                .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f))
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             Icons.Default.Warning,
                             contentDescription = null,
-                            tint = Coral500,
+                            tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(16.dp),
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = stringResource(id = R.string.sales_udhaar_warning),
                             fontSize = 11.sp,
-                            color = Coral500,
+                            color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.Medium,
                         )
                     }
@@ -640,7 +652,7 @@ fun SalesScreen(
                                                         if (isUdhaarMode) {
                                                             Coral500.copy(alpha = 0.12f)
                                                         } else {
-                                                            MaterialTheme.colorScheme.primaryContainer
+                                                            MaterialTheme.colorScheme.primary
                                                         },
                                                     ),
                                             contentAlignment = Alignment.Center,
@@ -653,7 +665,7 @@ fun SalesScreen(
                                                     if (isUdhaarMode) {
                                                         Coral500
                                                     } else {
-                                                        MaterialTheme.colorScheme.primary
+                                                        MaterialTheme.colorScheme.onPrimary
                                                     },
                                             )
                                         }
@@ -746,13 +758,15 @@ fun SalesScreen(
                         lastPaymentMode = viewModel.cartPaymentMode
                         lastCartSnap = viewModel.cartItems.toList()
                         showCheckoutSheet = false
-                        viewModel.checkout(viewModel.cartPaymentMode) { saleId, total ->
+                        viewModel.checkout(paymentMode = viewModel.cartPaymentMode, type = "SALE") { saleId, total ->
                             generatedSaleId = saleId
                             generatedTotalAmount = total
+                            generatedSaleType = "SALE"
                             showSuccessScreen = true
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
+                    enabled = viewModel.cartPaymentMode != "Estimate",
                     shape = RoundedCornerShape(16.dp),
                     colors =
                         ButtonDefaults.buttonColors(
@@ -775,6 +789,32 @@ fun SalesScreen(
                         fontSize = 15.sp,
                     )
                 }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // ── Save Estimate Button ─────────────────────────────────────
+                androidx.compose.material3.OutlinedButton(
+                    onClick = {
+                        showCustomerSuggestions = false
+                        lastPaymentMode = viewModel.cartPaymentMode
+                        lastCartSnap = viewModel.cartItems.toList()
+                        showCheckoutSheet = false
+                        viewModel.checkout(paymentMode = viewModel.cartPaymentMode, type = "ESTIMATE") { saleId, total ->
+                            generatedSaleId = saleId
+                            generatedTotalAmount = total
+                            generatedSaleType = "ESTIMATE"
+                            showSuccessScreen = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Text(
+                        text = "📄 Save as Estimate",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                    )
+                }
             }
         }
     }
@@ -785,7 +825,7 @@ fun SalesScreen(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
+                        .background(MaterialTheme.colorScheme.primary)
                         .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -795,7 +835,7 @@ fun SalesScreen(
                         Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
                             .clickable {
                                 viewModel.clearCart()
                                 customerNameError = false
@@ -806,7 +846,7 @@ fun SalesScreen(
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
@@ -815,15 +855,18 @@ fun SalesScreen(
                         text = stringResource(id = R.string.tab_sales),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onPrimary,
                     )
-                    if (viewModel.cartItems.isNotEmpty()) {
-                        Text(
-                            text = "${viewModel.cartItems.size} items · ${grandTotal.toRupee()}",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
+                    Text(
+                        text = if (viewModel.cartItems.isNotEmpty()) {
+                            "${viewModel.cartItems.size} items · ${grandTotal.toRupee()}"
+                        } else {
+                            "Add items to create a new sale"
+                        },
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                        fontWeight = FontWeight.Medium,
+                    )
                 }
             }
         },
@@ -908,6 +951,35 @@ fun SalesScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            scanner.startScan()
+                                .addOnSuccessListener { barcode: com.google.mlkit.vision.barcode.common.Barcode ->
+                                    val code = barcode.rawValue
+                                    if (!code.isNullOrBlank()) {
+                                        val matched = allItems.find { it.hsnCode == code }
+                                        if (matched != null) {
+                                            if (stepForUnit(matched.unit) == 1.0) {
+                                                viewModel.addToCart(matched, 1.0)
+                                                android.widget.Toast.makeText(context, "Added: ${matched.name}", android.widget.Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                val step = stepForUnit(matched.unit)
+                                                val s = formatQty(step)
+                                                editingQtyText = TextFieldValue(s, TextRange(s.length))
+                                                editingQtyItem = matched
+                                            }
+                                        } else {
+                                            android.widget.Toast.makeText(context, "No item found with barcode/HSN: $code", android.widget.Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                }
+                                .addOnFailureListener { e: Exception ->
+                                    android.widget.Toast.makeText(context, "Scan failed: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                        }) {
+                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan Barcode")
+                        }
+                    },
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
                 )
@@ -1069,7 +1141,7 @@ fun SalesScreen(
                                             ) {
                                                 Text(
                                                     "−",
-                                                    color = Color.White,
+                                                    color = MaterialTheme.colorScheme.onPrimary,
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = 18.sp,
                                                 )
@@ -1095,7 +1167,7 @@ fun SalesScreen(
                                                             if (!isPcs) " ${item.unit}" else "",
                                                     fontWeight = FontWeight.Black,
                                                     fontSize = 14.sp,
-                                                    color = Color.White,
+                                                    color = MaterialTheme.colorScheme.onPrimary,
                                                 )
                                             }
 
@@ -1117,7 +1189,7 @@ fun SalesScreen(
                                             ) {
                                                 Text(
                                                     "+",
-                                                    color = Color.White,
+                                                    color = MaterialTheme.colorScheme.onPrimary,
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = 18.sp,
                                                 )
@@ -1258,14 +1330,14 @@ fun SalesScreen(
                                                     modifier = Modifier
                                                         .size(30.dp)
                                                         .clip(CircleShape)
-                                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                                        .background(MaterialTheme.colorScheme.primary),
                                                     contentAlignment = Alignment.Center,
                                                 ) {
                                                     Text(
                                                         name.firstOrNull()?.uppercase() ?: "?",
                                                         fontWeight = FontWeight.Black,
                                                         fontSize = 13.sp,
-                                                        color = MaterialTheme.colorScheme.primary,
+                                                        color = MaterialTheme.colorScheme.onPrimary,
                                                     )
                                                 }
 
@@ -1318,6 +1390,7 @@ fun SalesScreen(
                                             .background(
                                                 when {
                                                     isSelected && mode == "Udhaar" -> Coral500
+                                                    isSelected && mode == "Estimate" -> androidx.compose.ui.graphics.Color(0xFF607D8B)
                                                     isSelected -> MaterialTheme.colorScheme.primary
                                                     else -> MaterialTheme.colorScheme.surfaceVariant
                                                 }
@@ -1335,11 +1408,12 @@ fun SalesScreen(
                                                 "Udhaar" -> "📒 Udhaar"
                                                 "Cash" -> "💵 Cash"
                                                 "UPI" -> "📱 UPI"
+                                                "Estimate" -> "📄 Estimate"
                                                 else -> mode
                                             },
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
@@ -1355,9 +1429,11 @@ fun SalesScreen(
                                     } else {
                                         lastPaymentMode = viewModel.cartPaymentMode
                                         lastCartSnap = viewModel.cartItems.toList()
-                                        viewModel.checkout(viewModel.cartPaymentMode) { saleId, total ->
+                                        val type = if (viewModel.cartPaymentMode == "Estimate") "ESTIMATE" else "SALE"
+                                        viewModel.checkout(paymentMode = if(type == "ESTIMATE") "Cash" else viewModel.cartPaymentMode, type = type) { saleId, total ->
                                             generatedSaleId = saleId
                                             generatedTotalAmount = total
+                                            generatedSaleType = type
                                             showSuccessScreen = true
                                         }
                                     }
@@ -1365,10 +1441,17 @@ fun SalesScreen(
                                 modifier = Modifier.height(48.dp),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (viewModel.cartPaymentMode == "Udhaar") Coral500 else MaterialTheme.colorScheme.primary
+                                    containerColor = when (viewModel.cartPaymentMode) {
+                                        "Udhaar" -> Coral500
+                                        "Estimate" -> androidx.compose.ui.graphics.Color(0xFF607D8B)
+                                        else -> MaterialTheme.colorScheme.primary
+                                    }
                                 )
                             ) {
-                                Text("Charge", fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = if (viewModel.cartPaymentMode == "Estimate") "Save" else "Charge",
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
@@ -1387,6 +1470,7 @@ fun SalesSuccessScreen(
     cartItems: List<CartItem>,
     discount: Double,
     paymentMode: String = "Cash",
+    isEstimate: Boolean = false,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -1456,7 +1540,7 @@ fun SalesSuccessScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = if (isUdhaar) "Udhaar दर्ज हुई! 📒" else stringResource(id = R.string.sales_success_title),
+            text = if (isEstimate) "Estimate Saved! 📄" else if (isUdhaar) "Udhaar दर्ज हुई! 📒" else stringResource(id = R.string.sales_success_title),
             style =
                 MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
@@ -1468,7 +1552,9 @@ fun SalesSuccessScreen(
 
         Text(
             text =
-                if (isUdhaar) {
+                if (isEstimate) {
+                    "Quotation #${saleId} saved. Stock was not deducted."
+                } else if (isUdhaar) {
                     "${totalAmount.toRupee()} — उधार खाते में जोड़ दिया गया।"
                 } else {
                     stringResource(id = R.string.sales_success_desc, totalAmount)
@@ -1490,20 +1576,21 @@ fun SalesSuccessScreen(
                         if (isUdhaar) {
                             Coral500.copy(alpha = 0.12f)
                         } else {
-                            MaterialTheme.colorScheme.primaryContainer
+                            MaterialTheme.colorScheme.primary
                         },
                     ).padding(horizontal = 16.dp, vertical = 6.dp),
         ) {
             Text(
                 text =
-                    when (paymentMode) {
-                        "Udhaar" -> "📒 Recorded in Udhaar Ledger"
-                        "UPI" -> "📱 UPI Payment"
+                    when {
+                        isEstimate || paymentMode == "Estimate" -> "📄 Estimation Stored"
+                        paymentMode == "Udhaar" -> "📒 Recorded in Udhaar Ledger"
+                        paymentMode == "UPI" -> "📱 UPI Payment"
                         else -> "💵 Cash Payment"
                     },
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isUdhaar) Coral500 else MaterialTheme.colorScheme.primary,
+                color = if (isUdhaar) Coral500 else MaterialTheme.colorScheme.onPrimary,
             )
         }
 
@@ -1585,7 +1672,7 @@ fun SalesSuccessScreen(
             colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
             shape = RoundedCornerShape(16.dp),
         ) {
-            Text(stringResource(id = R.string.btn_share_whatsapp), fontWeight = FontWeight.Bold, color = Color.White)
+            Text(stringResource(id = R.string.btn_share_whatsapp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
         }
 
         Spacer(modifier = Modifier.height(10.dp))

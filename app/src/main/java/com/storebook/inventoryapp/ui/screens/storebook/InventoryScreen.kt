@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -75,6 +76,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.data.repository.Item
+import com.storebook.inventoryapp.data.repository.Supplier
+import com.storebook.inventoryapp.data.repository.Purchase
+import com.storebook.inventoryapp.data.repository.PurchaseItemDetail
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.window.PopupProperties
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import com.storebook.inventoryapp.utils.toRupee
@@ -103,6 +110,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
 
     val filteredItems by viewModel.filteredItems.collectAsStateWithLifecycle()
     val isLoadingItems by viewModel.isLoadingItems.collectAsStateWithLifecycle()
+    val suppliers by viewModel.suppliers.collectAsStateWithLifecycle()
 
     // ── Delete confirmation dialog state ─────────────────────────────────────
     // ── Delete confirmation dialog state ─────────────────────────────────────
@@ -247,6 +255,18 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
     if (quickRefillItem != null) {
         var addQtyInput by remember { mutableStateOf("") }
         val refillItem = quickRefillItem!!
+        var buyPriceInput by remember { mutableStateOf(formatQty(refillItem.buyPrice)) }
+        var selectedSupplier by remember { mutableStateOf<Supplier?>(null) }
+        var supplierSearchText by remember { mutableStateOf("") }
+        var showSupplierDropdown by remember { mutableStateOf(false) }
+
+        val filteredSuppliers = remember(suppliers, supplierSearchText) {
+            if (supplierSearchText.isBlank()) {
+                suppliers
+            } else {
+                suppliers.filter { it.name.contains(supplierSearchText, ignoreCase = true) }
+            }
+        }
 
         AlertDialog(
             onDismissRequest = { quickRefillItem = null },
@@ -258,21 +278,26 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                 )
             },
             text = {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Text(
                         text = "Current Stock: ${formatQty(refillItem.quantity)} ${refillItem.unit}",
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+
                     OutlinedTextField(
                         value = addQtyInput,
                         onValueChange = { addQtyInput = it },
                         label = { Text("Add Quantity") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
 
                     // Presets
                     val presets =
@@ -299,22 +324,120 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             )
                         }
                     }
+
+                    if (viewModel.userRole != "staff") {
+                        OutlinedTextField(
+                            value = buyPriceInput,
+                            onValueChange = { buyPriceInput = it },
+                            label = { Text("Buy Price (Per ${refillItem.unit})") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+
+                    // Supplier Selector
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Supplier",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = if (selectedSupplier != null) selectedSupplier!!.name else supplierSearchText,
+                                onValueChange = {
+                                    selectedSupplier = null
+                                    supplierSearchText = it
+                                    showSupplierDropdown = true
+                                },
+                                placeholder = { Text("Search or type new supplier...") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                trailingIcon = {
+                                    TextButton(onClick = { showSupplierDropdown = !showSupplierDropdown }) {
+                                        Text("Select")
+                                    }
+                                }
+                            )
+
+                            DropdownMenu(
+                                expanded = showSupplierDropdown && (filteredSuppliers.isNotEmpty() || supplierSearchText.isNotBlank()),
+                                onDismissRequest = { showSupplierDropdown = false },
+                                properties = PopupProperties(focusable = false),
+                                modifier = Modifier
+                                    .fillMaxWidth(0.8f)
+                                    .heightIn(max = 200.dp)
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Cash Purchase / No Supplier") },
+                                    onClick = {
+                                        selectedSupplier = null
+                                        supplierSearchText = ""
+                                        showSupplierDropdown = false
+                                    }
+                                )
+
+                                filteredSuppliers.forEach { supplier ->
+                                    DropdownMenuItem(
+                                        text = { Text(supplier.name) },
+                                        onClick = {
+                                            selectedSupplier = supplier
+                                            supplierSearchText = supplier.name
+                                            showSupplierDropdown = false
+                                        }
+                                    )
+                                }
+
+                                if (supplierSearchText.isNotBlank() && filteredSuppliers.none { it.name.equals(supplierSearchText, ignoreCase = true) }) {
+                                    DropdownMenuItem(
+                                        text = { Text("Create supplier: \"$supplierSearchText\"") },
+                                        onClick = {
+                                            viewModel.addSupplier(
+                                                name = supplierSearchText,
+                                                phone = null,
+                                                gstin = null,
+                                                address = null
+                                            ) { newId ->
+                                                selectedSupplier = Supplier(id = newId, name = supplierSearchText)
+                                            }
+                                            showSupplierDropdown = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             },
             confirmButton = {
                 Button(onClick = {
                     val addedQty = addQtyInput.toDoubleOrNull() ?: 0.0
+                    val finalBuyPrice = buyPriceInput.toDoubleOrNull() ?: refillItem.buyPrice
                     if (addedQty > 0) {
-                        viewModel.updateItem(
-                            id = refillItem.id,
-                            name = refillItem.name,
-                            quantity = refillItem.quantity + addedQty,
-                            unit = refillItem.unit,
-                            buyPrice = refillItem.buyPrice,
-                            sellPrice = refillItem.sellPrice,
-                            threshold = refillItem.lowStockThreshold,
-                            category = refillItem.category,
+                        val purchase = Purchase(
+                            supplierId = selectedSupplier?.id ?: 0L,
+                            supplierName = selectedSupplier?.name ?: "Cash / Anonymous",
+                            totalAmount = addedQty * finalBuyPrice,
+                            taxAmount = addedQty * finalBuyPrice * (refillItem.taxRate / 100.0),
+                            type = "BILL",
+                            timestamp = System.currentTimeMillis(),
+                            notes = "Refill stock for ${refillItem.name}",
+                            items = listOf(
+                                PurchaseItemDetail(
+                                    purchaseId = 0L,
+                                    itemId = refillItem.id,
+                                    itemName = refillItem.name,
+                                    quantity = addedQty,
+                                    unit = refillItem.unit,
+                                    buyPrice = finalBuyPrice
+                                )
+                            )
                         )
+                        viewModel.addPurchase(purchase) {
+                            android.widget.Toast.makeText(context, "Stock refilled & purchase logged!", android.widget.Toast.LENGTH_SHORT).show()
+                        }
                     }
                     quickRefillItem = null
                 }) {
@@ -336,7 +459,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
+                        .background(MaterialTheme.colorScheme.primary)
                         .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 10.dp),
             ) {
@@ -350,11 +473,12 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             text = stringResource(id = R.string.tab_inventory),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onPrimary,
                         )
                         Text(
                             text = "${displayedItems.size}${if (hasMoreItems) "+" else ""} items",
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                         )
                     }
 
@@ -363,7 +487,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         modifier =
                             Modifier
                                 .clip(RoundedCornerShape(20.dp))
-                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .background(MaterialTheme.colorScheme.onPrimary)
                                 .clickable {
                                     sortBy =
                                         when (sortBy) {
@@ -443,7 +567,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
             FloatingActionButton(
                 onClick = { openAddSheet() },
                 containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = CircleShape,
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Item", modifier = Modifier.size(26.dp))
@@ -528,21 +652,20 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                             Modifier
                                                 .fillMaxSize()
                                                 .clip(RoundedCornerShape(20.dp))
-                                                .background(Coral500),
+                                                .background(MaterialTheme.colorScheme.error),
                                         contentAlignment = Alignment.CenterEnd,
                                     ) {
                                         Row(
                                             modifier = Modifier.padding(end = 20.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                         ) {
-                                            Text(
-                                                stringResource(id = R.string.btn_delete),
-                                                color = Color.White,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 13.sp,
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = "Delete",
+                                                tint = MaterialTheme.colorScheme.onError,
                                             )
                                             Spacer(modifier = Modifier.width(6.dp))
-                                            Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
+                                            Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.onError)
                                         }
                                     }
                                 },
@@ -550,6 +673,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 InventoryItemCard(
                                     item = item,
                                     isLowStock = isLowStock,
+                                    userRole = viewModel.userRole,
                                     onClick = { openEditSheet(item) },
                                     onRefillClick = { quickRefillItem = item },
                                 )
@@ -666,18 +790,20 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
 
                         // Buy + Sell price
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedTextField(
-                                value = inputBuyPrice,
-                                onValueChange = {
-                                    inputBuyPrice = it
-                                    priceError = false
-                                },
-                                label = { Text(stringResource(id = R.string.inv_buy_price_label)) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                isError = priceError,
-                            )
+                            if (viewModel.userRole != "staff") {
+                                OutlinedTextField(
+                                    value = inputBuyPrice,
+                                    onValueChange = {
+                                        inputBuyPrice = it
+                                        priceError = false
+                                    },
+                                    label = { Text(stringResource(id = R.string.inv_buy_price_label)) },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                    isError = priceError,
+                                )
+                            }
                             OutlinedTextField(
                                 value = inputSellPrice,
                                 onValueChange = {
@@ -812,6 +938,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
 fun InventoryItemCard(
     item: Item,
     isLowStock: Boolean,
+    userRole: String,
     onClick: () -> Unit,
     onRefillClick: () -> Unit,
 ) {
@@ -823,7 +950,7 @@ fun InventoryItemCard(
         shape = RoundedCornerShape(20.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = if (isLowStock) Coral100.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surface,
+                containerColor = if (isLowStock) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surface,
             ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -832,75 +959,88 @@ fun InventoryItemCard(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                    .padding(16.dp),
         ) {
+            // Row 1: Name, Category badge, Quantity
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = item.name,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).padding(end = 8.dp),
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "${formatQty(item.quantity)} ${item.unit}",
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 14.sp,
-                        color = if (isLowStock) Coral500 else MaterialTheme.colorScheme.onSurface,
+                        text = item.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
-
-                    // Quick Refill Plus Icon
+                    Spacer(modifier = Modifier.width(8.dp))
+                    // Category Badge
                     Box(
-                        modifier =
-                            Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .clickable { onRefillClick() },
-                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Quick Refill",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp),
+                        Text(
+                            text = item.category,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
+                Text(
+                    text = "${formatQty(item.quantity)} ${item.unit}",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 16.sp,
+                    color = if (isLowStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
+            // Row 2: Buy Price and Sell Price
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text =
-                        "${item.category} • " +
-                            stringResource(
-                                id = R.string.inv_buy_prefix,
-                                item.buyPrice.toRupee(),
-                            ),
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
+                Column {
+                    if (userRole != "staff") {
+                        Text(
+                            text = "Buy Price",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = stringResource(id = R.string.inv_buy_prefix, item.buyPrice.toRupee()),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "Sell Price",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = stringResource(id = R.string.inv_sell_prefix, item.sellPrice.toRupee()),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
 
+            if (userRole != "staff") {
+                Spacer(modifier = Modifier.height(8.dp))
+                // Row 3: Profit / Margin
                 val margin =
-                    if (item.buyPrice >
-                        0
-                    ) {
+                    if (item.buyPrice > 0) {
                         ((item.sellPrice - item.buyPrice) / item.buyPrice * 100).toInt()
                     } else {
                         0
@@ -913,30 +1053,51 @@ fun InventoryItemCard(
                     } else {
                         "0%"
                     }
+                val profitAbs = (item.sellPrice - item.buyPrice)
                 val marginColor =
-                    if (margin >=
-                        15
-                    ) {
+                    if (margin >= 15) {
                         Emerald500
                     } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = stringResource(id = R.string.inv_sell_prefix, item.sellPrice.toRupee()),
+                        text = "Profit/ Margin",
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = marginStr,
-                        fontSize = 10.sp,
+                        text = "$marginStr / ${profitAbs.toRupee()} Per ${item.unit}",
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = marginColor,
+                        color = marginColor
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Add Stock Button (Full width)
+            Button(
+                onClick = onRefillClick,
+                modifier = Modifier.fillMaxWidth().height(40.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.primary
+                ),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Text(
+                    text = "Add Stock",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
             }
         }
     }
@@ -956,7 +1117,7 @@ fun FilterChip(
         label = "chip_color",
     )
     val textColor by animateColorAsState(
-        targetValue = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
         animationSpec = tween(200),
         label = "chip_text",
     )

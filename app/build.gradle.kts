@@ -29,6 +29,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -99,11 +100,13 @@ dependencies {
     implementation(libs.pdfbox.android)
     implementation(libs.reorderable)
     implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation(platform("com.google.firebase:firebase-bom:34.10.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-crashlytics")
     implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-messaging")
     implementation("com.google.firebase:firebase-firestore")
 
     implementation("io.github.oothp:android-pdf-viewer:3.2.0-beta06")
@@ -115,6 +118,7 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.serialization)
     implementation(libs.okhttp.logging)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation("com.airbnb.android:lottie-compose:6.7.1")
 }
 

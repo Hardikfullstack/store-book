@@ -127,9 +127,9 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
     val lastDateFmt = remember { SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()) }
 
     val repository =
-        remember {
+        remember(viewModel.activeStoreId) {
             com.storebook.inventoryapp.data.repository
-                .StoreBookRepository(context.applicationContext)
+                .StoreBookRepository(context.applicationContext, viewModel.activeStoreId)
         }
     val fetchLedger: (String) -> Unit = { name ->
         coroutineScope.launch {
@@ -146,7 +146,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
+                        .background(MaterialTheme.colorScheme.primary)
                         .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 10.dp),
             ) {
@@ -155,11 +155,19 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = stringResource(id = R.string.udh_title),
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                    )
+                    Column {
+                        Text(
+                            text = stringResource(id = R.string.udh_title),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Text(
+                            text = "Customer Credit Ledger",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                        )
+                    }
                     Button(
                         onClick = {
                             selectedCustomer = null
@@ -170,6 +178,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                             showDialog = true
                         },
                         shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onPrimary, contentColor = MaterialTheme.colorScheme.primary),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -186,7 +195,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                     shape = RoundedCornerShape(24.dp),
                     colors =
                         CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
                         ),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -205,17 +214,17 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     Modifier
                                         .size(42.dp)
                                         .clip(RoundedCornerShape(14.dp))
-                                        .background(Coral100.copy(alpha = 0.8f)),
+                                        .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Text("📒", fontSize = 20.sp)
+                                Text("💰", fontSize = 20.sp)
                             }
                             Spacer(modifier = Modifier.width(14.dp))
                             Column {
                                 Text(
                                     text = stringResource(id = R.string.udh_total_outstanding),
                                     fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                     fontWeight = FontWeight.SemiBold,
                                     letterSpacing = 0.1.sp,
                                 )
@@ -224,7 +233,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     text = "${totalOutstanding.toRupee()}",
                                     fontSize = 26.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = Coral500,
+                                    color = MaterialTheme.colorScheme.error,
                                     fontFamily = Poppins,
                                 )
                             }
@@ -233,12 +242,12 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                             modifier =
                                 Modifier
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
+                                    .background(MaterialTheme.colorScheme.primary)
                                     .padding(horizontal = 10.dp, vertical = 6.dp),
                         ) {
                             Text(
-                                text = "${balances.size} customers",
-                                color = MaterialTheme.colorScheme.primary,
+                                text = "${balances.size} Customers",
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -256,6 +265,12 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     singleLine = true,
                     shape = RoundedCornerShape(20.dp),
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent
+                    )
                 )
             }
         },
@@ -344,7 +359,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                             ) {
                                                 Text(
                                                     bal.customerName.take(1).uppercase(),
-                                                    color = Color.White,
+                                                    color = MaterialTheme.colorScheme.onPrimary,
                                                     fontWeight = FontWeight.Bold,
                                                 )
                                             }
@@ -406,11 +421,20 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                             },
                             onEndToStart = {
                                 val template =
-                                    context.getString(
-                                        R.string.udh_reminder_template,
-                                        bal.customerName,
-                                        bal.netBalance,
-                                    )
+                                    if (viewModel.businessName.isNotBlank() && viewModel.businessName != "StoreBook Kirana") {
+                                        context.getString(
+                                            R.string.udh_reminder_template_with_shop,
+                                            bal.customerName,
+                                            bal.netBalance,
+                                            viewModel.businessName
+                                        )
+                                    } else {
+                                        context.getString(
+                                            R.string.udh_reminder_template,
+                                            bal.customerName,
+                                            bal.netBalance,
+                                        )
+                                    }
                                 val intent =
                                     Intent(Intent.ACTION_VIEW).apply {
                                         data =
@@ -431,8 +455,8 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                             .clip(RoundedCornerShape(16.dp))
                                             .background(
                                                 when {
-                                                    offsetX > 0 -> Emerald500
-                                                    offsetX < 0 -> WhatsAppGreen
+                                                    offsetX > 0 -> MaterialTheme.colorScheme.primary
+                                                    offsetX < 0 -> MaterialTheme.colorScheme.tertiary
                                                     else -> Color.Transparent
                                                 },
                                             ).padding(horizontal = 20.dp),
@@ -445,25 +469,25 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                 ) {
                                     when {
                                         offsetX > 0 -> {
-                                            Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
+                                            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Text(
                                                 stringResource(id = R.string.udh_mark_paid),
-                                                color = Color.White,
+                                                color = MaterialTheme.colorScheme.onPrimary,
                                                 fontWeight = FontWeight.Bold,
                                             )
                                         }
                                         offsetX < 0 -> {
                                             Text(
                                                 stringResource(id = R.string.udh_whatsapp_remind),
-                                                color = Color.White,
+                                                color = MaterialTheme.colorScheme.onTertiary,
                                                 fontWeight = FontWeight.Bold,
                                             )
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Icon(
                                                 Icons.AutoMirrored.Filled.Send,
                                                 contentDescription = null,
-                                                tint = Color.White,
+                                                tint = MaterialTheme.colorScheme.onTertiary,
                                             )
                                         }
                                     }
@@ -515,14 +539,14 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                         Modifier
                                             .size(44.dp)
                                             .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.primaryContainer),
+                                            .background(MaterialTheme.colorScheme.primary),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Text(
                                         customer.customerName.firstOrNull()?.uppercase() ?: "?",
                                         fontWeight = FontWeight.Black,
                                         fontSize = 18.sp,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        color = MaterialTheme.colorScheme.onPrimary,
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
@@ -538,9 +562,9 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = when {
-                                            isZero -> androidx.compose.ui.graphics.Color.Gray
-                                            customer.netBalance > 0 -> Coral500
-                                            else -> Emerald500
+                                            isZero -> MaterialTheme.colorScheme.onSurfaceVariant
+                                            customer.netBalance > 0 -> MaterialTheme.colorScheme.error
+                                            else -> MaterialTheme.colorScheme.secondary
                                         },
                                     )
                                 }
@@ -555,22 +579,55 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                         .background(WhatsAppGreen.copy(alpha = 0.12f))
                                         .clickable {
                                             val template =
-                                                context.getString(
-                                                    R.string.udh_reminder_template,
-                                                    customer.customerName,
-                                                    customer.netBalance,
-                                                )
-                                            val intent =
-                                                Intent(Intent.ACTION_VIEW).apply {
-                                                    data =
-                                                        Uri.parse(
-                                                            "https://api.whatsapp.com/send?text=${URLEncoder.encode(
-                                                                template,
-                                                                "UTF-8",
-                                                            )}",
-                                                        )
+                                                if (viewModel.businessName.isNotBlank() && viewModel.businessName != "StoreBook Kirana") {
+                                                    context.getString(
+                                                        R.string.udh_reminder_template_with_shop,
+                                                        customer.customerName,
+                                                        customer.netBalance,
+                                                        viewModel.businessName
+                                                    )
+                                                } else {
+                                                    context.getString(
+                                                        R.string.udh_reminder_template,
+                                                        customer.customerName,
+                                                        customer.netBalance,
+                                                    )
                                                 }
-                                            context.startActivity(intent)
+                                            val pdfFile = com.storebook.inventoryapp.utils.UdhaarPdfGenerator.generateUdhaarStatement(
+                                                context,
+                                                customer.customerName,
+                                                customer.netBalance,
+                                                ledgerEntries,
+                                                viewModel.businessName
+                                            )
+                                            if (pdfFile != null) {
+                                                val uri = androidx.core.content.FileProvider.getUriForFile(
+                                                    context,
+                                                    "${context.packageName}.fileprovider",
+                                                    pdfFile
+                                                )
+                                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                                    type = "application/pdf"
+                                                    putExtra(Intent.EXTRA_STREAM, uri)
+                                                    putExtra(Intent.EXTRA_TEXT, template)
+                                                    setPackage("com.whatsapp")
+                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                }
+                                                try {
+                                                    context.startActivity(intent)
+                                                } catch (e: Exception) {
+                                                    // Fallback if WhatsApp is not installed
+                                                    val fallbackIntent = Intent(Intent.ACTION_VIEW).apply {
+                                                        data = Uri.parse("https://api.whatsapp.com/send?text=${URLEncoder.encode(template, "UTF-8")}")
+                                                    }
+                                                    context.startActivity(fallbackIntent)
+                                                }
+                                            } else {
+                                                val fallbackIntent = Intent(Intent.ACTION_VIEW).apply {
+                                                    data = Uri.parse("https://api.whatsapp.com/send?text=${URLEncoder.encode(template, "UTF-8")}")
+                                                }
+                                                context.startActivity(fallbackIntent)
+                                            }
                                         },
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -601,9 +658,9 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                         CardDefaults.cardColors(
                                             containerColor =
                                                 if (isCredit) {
-                                                    Coral100.copy(alpha = 0.5f)
+                                                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
                                                 } else {
-                                                    Emerald500.copy(alpha = 0.08f)
+                                                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
                                                 },
                                         ),
                                     shape = RoundedCornerShape(12.dp),
@@ -672,12 +729,12 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                 },
                                 shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = Coral500),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                             ) {
                                 Text(
                                     stringResource(id = R.string.udh_btn_give_credit),
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onError,
                                 )
                             }
                             Button(
@@ -690,12 +747,12 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                 },
                                 shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = Emerald500),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             ) {
                                 Text(
                                     stringResource(id = R.string.udh_btn_receive_payment),
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onPrimary,
                                 )
                             }
                         }
@@ -739,7 +796,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Text(
-                                        if (dialogType == "CREDIT") "−" else "+",
+                                        if (dialogType == "CREDIT") "+" else "−",
                                         fontWeight = FontWeight.Black,
                                         fontSize = 20.sp,
                                         color = if (dialogType == "CREDIT") Coral500 else Emerald500,
@@ -871,12 +928,12 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     shape = RoundedCornerShape(12.dp),
                                     colors =
                                         ButtonDefaults.buttonColors(
-                                            containerColor = if (dialogType == "CREDIT") Coral500 else Emerald500,
+                                            containerColor = if (dialogType == "CREDIT") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                                         ),
                                 ) {
                                     Text(
                                         stringResource(id = R.string.btn_save),
-                                        color = Color.White,
+                                        color = if (dialogType == "CREDIT") MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary,
                                         fontWeight = FontWeight.Bold,
                                     )
                                 }
@@ -917,9 +974,9 @@ fun UdhaarCustomerCard(
                         .clip(CircleShape)
                         .background(
                             when {
-                                isZero -> androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.12f)
-                                owesMoney -> Coral500.copy(alpha = 0.12f)
-                                else -> Emerald500.copy(alpha = 0.12f)
+                                isZero -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
+                                owesMoney -> MaterialTheme.colorScheme.error.copy(alpha = 0.12f)
+                                else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
                             }
                         ),
                 contentAlignment = Alignment.Center,
@@ -929,9 +986,9 @@ fun UdhaarCustomerCard(
                     fontWeight = FontWeight.Black,
                     fontSize = 17.sp,
                     color = when {
-                        isZero -> androidx.compose.ui.graphics.Color.Gray
-                        owesMoney -> Coral500
-                        else -> Emerald500
+                        isZero -> MaterialTheme.colorScheme.onSurfaceVariant
+                        owesMoney -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.secondary
                     },
                 )
             }
@@ -960,9 +1017,9 @@ fun UdhaarCustomerCard(
                     fontWeight = FontWeight.Black,
                     fontSize = 16.sp,
                     color = when {
-                        isZero -> androidx.compose.ui.graphics.Color.Gray
-                        owesMoney -> Coral500
-                        else -> Emerald500
+                        isZero -> MaterialTheme.colorScheme.onSurfaceVariant
+                        owesMoney -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.secondary
                     },
                 )
                 Text(
@@ -974,9 +1031,9 @@ fun UdhaarCustomerCard(
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = when {
-                        isZero -> androidx.compose.ui.graphics.Color.Gray
-                        owesMoney -> Coral500
-                        else -> Emerald500
+                        isZero -> MaterialTheme.colorScheme.onSurfaceVariant
+                        owesMoney -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.secondary
                     },
                 )
             }

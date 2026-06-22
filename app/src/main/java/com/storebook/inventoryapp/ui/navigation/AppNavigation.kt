@@ -18,12 +18,12 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.ShoppingCart
-import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -57,9 +57,9 @@ import com.storebook.inventoryapp.ui.screens.auth.AuthScreen
 import com.storebook.inventoryapp.ui.screens.storebook.DashboardScreen
 import com.storebook.inventoryapp.ui.screens.storebook.InventoryScreen
 import com.storebook.inventoryapp.ui.screens.storebook.MoreScreen
-
 import com.storebook.inventoryapp.ui.screens.storebook.SalesScreen
 import com.storebook.inventoryapp.ui.screens.storebook.UdhaarScreen
+import com.storebook.inventoryapp.ui.screens.storebook.SupplierLedgerScreen
 import com.storebook.inventoryapp.ui.theme.Poppins
 
 data class BottomNavTab(
@@ -110,8 +110,8 @@ fun AppNavigation() {
                 ),
                 BottomNavTab(
                     "com.storebook.inventoryapp.ui.navigation.Routes.Udhaar",
-                    Icons.Outlined.Warning,
-                    Icons.Filled.Warning,
+                    Icons.Outlined.Book,
+                    Icons.Filled.Book,
                     R.string.tab_udhaar,
                 ),
                 BottomNavTab(
@@ -212,6 +212,12 @@ fun AppNavigation() {
                     viewModel = storeBookViewModel,
                 )
             }
+            composable<Routes.Quotations> {
+                com.storebook.inventoryapp.ui.screens.storebook.QuotationScreen(
+                    navController = navController,
+                    viewModel = storeBookViewModel,
+                )
+            }
             composable<Routes.Udhaar> {
                 UdhaarScreen(viewModel = storeBookViewModel)
             }
@@ -236,13 +242,30 @@ fun AppNavigation() {
             composable<Routes.Auth> {
                 AuthScreen(
                     onAuthSuccess = {
-                        // After success, navigate back or to Dashboard
-                        navController.popBackStack()
-                        // Optional: You could trigger a sync here
+                        storeBookViewModel.refreshUserState()
+                        navController.navigate(Routes.Dashboard) {
+                            popUpTo(Routes.Auth) { inclusive = true }
+                        }
                     },
                     onNavigateBack = {
-                        navController.popBackStack()
+                        if (!navController.popBackStack()) {
+                            navController.navigate(Routes.Dashboard) {
+                                popUpTo(Routes.Auth) { inclusive = true }
+                            }
+                        }
                     },
+                )
+            }
+            composable<Routes.InviteStaff> {
+                com.storebook.inventoryapp.ui.screens.storebook.InviteStaffScreen(
+                    navController = navController,
+                    viewModel = storeBookViewModel,
+                )
+            }
+            composable<Routes.SupplierLedger> {
+                SupplierLedgerScreen(
+                    viewModel = storeBookViewModel,
+                    onBack = { navController.popBackStack() }
                 )
             }
         }

@@ -205,19 +205,19 @@ fun DeleteConfirmationDialog(
                                 .weight(1f)
                                 .height(44.dp),
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Coral500),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     ) {
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onError,
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             stringResource(id = R.string.btn_delete),
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onError,
                         )
                     }
                 }
