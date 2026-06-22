@@ -202,6 +202,7 @@
     <string name="inv_loading_more">और लोड हो रहा है…</string>
     <string name="inv_err_empty_name">नाम खाली नहीं हो सकता</string>
     <string name="inv_err_prices">कृपया खरीद और बिक्री मूल्य भरें।</string>
+    <string name="inv_err_qty">कृपया मात्रा भरें।</string>
     <string name="inv_sort_dynamic">क्रम: %1$s</string>
     <string name="inv_all_items_loaded">सभी %1$d आइटम लोड हो गए</string>
     <string name="inv_sell_prefix">बिक्री %1$s</string>

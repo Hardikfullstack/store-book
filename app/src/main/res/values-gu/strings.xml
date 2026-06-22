@@ -202,6 +202,7 @@
     <string name="inv_loading_more">વધુ લોડ થઈ રહ્યું છે…</string>
     <string name="inv_err_empty_name">નામ ખાલી ન હોઈ શકે</string>
     <string name="inv_err_prices">કૃપા કરીને ખરીદ અને વેચાણ કિંમત ભરો.</string>
+    <string name="inv_err_qty">કૃપા કરીને જથ્થો ભરો</string>
     <string name="inv_sort_dynamic">ક્રમ: %1$s</string>
     <string name="inv_all_items_loaded">બધી %1$d આઇટમ લોડ થઈ ગઈ</string>
     <string name="inv_sell_prefix">વેચાણ %1$s</string>

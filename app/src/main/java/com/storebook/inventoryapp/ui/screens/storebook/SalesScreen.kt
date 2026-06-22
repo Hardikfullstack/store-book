@@ -180,7 +180,7 @@ fun SalesScreen(
             }
         }
     }
-    
+
     val taxSummary by remember {
         derivedStateOf {
             BillingEngine.calculateInvoiceTaxes(
@@ -195,7 +195,7 @@ fun SalesScreen(
     val grandTotal by remember {
         derivedStateOf { taxSummary.grandTotal }
     }
-    
+
     val totalTax by remember {
         derivedStateOf { taxSummary.totalCgst + taxSummary.totalSgst + taxSummary.totalIgst }
     }
@@ -792,28 +792,29 @@ fun SalesScreen(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // ── Save Estimate Button ─────────────────────────────────────
-                androidx.compose.material3.OutlinedButton(
-                    onClick = {
-                        showCustomerSuggestions = false
-                        lastPaymentMode = viewModel.cartPaymentMode
-                        lastCartSnap = viewModel.cartItems.toList()
-                        showCheckoutSheet = false
-                        viewModel.checkout(paymentMode = viewModel.cartPaymentMode, type = "ESTIMATE") { saleId, total ->
-                            generatedSaleId = saleId
-                            generatedTotalAmount = total
-                            generatedSaleType = "ESTIMATE"
-                            showSuccessScreen = true
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                ) {
-                    Text(
-                        text = "📄 Save as Estimate",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                    )
+                AnimatedVisibility(visible = !isUdhaarMode) {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = {
+                            showCustomerSuggestions = false
+                            lastPaymentMode = viewModel.cartPaymentMode
+                            lastCartSnap = viewModel.cartItems.toList()
+                            showCheckoutSheet = false
+                            viewModel.checkout(paymentMode = viewModel.cartPaymentMode, type = "ESTIMATE") { saleId, total ->
+                                generatedSaleId = saleId
+                                generatedTotalAmount = total
+                                generatedSaleType = "ESTIMATE"
+                                showSuccessScreen = true
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text(
+                            text = "📄 Save as Estimate",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                        )
+                    }
                 }
             }
         }
@@ -1307,7 +1308,7 @@ fun SalesScreen(
                                 shape = RoundedCornerShape(12.dp),
                                 isError = customerNameError,
                             )
-                            
+
                             // ── Autocomplete dropdown ──
                             DropdownMenu(
                                 expanded = showCustomerSuggestions && customerSuggestions.isNotEmpty(),
@@ -1418,7 +1419,7 @@ fun SalesScreen(
                                     }
                                 }
                             }
-                            
+
                             Spacer(Modifier.width(12.dp))
 
                             // Quick Charge Button
@@ -1493,7 +1494,7 @@ fun SalesSuccessScreen(
             val subtotal = cartItems.sumOf { it.item.sellPrice * it.quantity }
             val taxAmount = totalAmount - (subtotal - discount)
             val taxLine = if (taxAmount > 0.0) "Tax: ₹${String.format("%.2f", taxAmount)}\n" else ""
-            
+
             context.getString(
                 R.string.sales_invoice_template,
                 "#$saleId",

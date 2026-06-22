@@ -653,7 +653,11 @@ class StoreBookRepository(
                     all.removeAll { !it.name.lowercase().contains(q) }
                 }
                 if (category != null && category != "All") {
-                    all.removeAll { it.category != category }
+                    if (category == "Low Stock") {
+                        all.removeAll { it.quantity > it.lowStockThreshold }
+                    } else {
+                        all.removeAll { it.category != category }
+                    }
                 }
                 sortBy?.let {
                     when (it.lowercase()) {
@@ -780,11 +784,11 @@ class StoreBookRepository(
                     val cursor =
                             db.rawQuery(
                                     """
-                        SELECT ${StoreBookDbHelper.KEY_SALE_CUSTOMER_GSTIN}, ${StoreBookDbHelper.KEY_SALE_CUSTOMER_ADDRESS} 
-                        FROM ${StoreBookDbHelper.TABLE_SALES} 
-                        WHERE ${StoreBookDbHelper.KEY_SALE_CUSTOMER} = ? 
+                        SELECT ${StoreBookDbHelper.KEY_SALE_CUSTOMER_GSTIN}, ${StoreBookDbHelper.KEY_SALE_CUSTOMER_ADDRESS}
+                        FROM ${StoreBookDbHelper.TABLE_SALES}
+                        WHERE ${StoreBookDbHelper.KEY_SALE_CUSTOMER} = ?
                         AND (${StoreBookDbHelper.KEY_SALE_CUSTOMER_GSTIN} IS NOT NULL OR ${StoreBookDbHelper.KEY_SALE_CUSTOMER_ADDRESS} IS NOT NULL)
-                        ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC 
+                        ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC
                         LIMIT 1
                         """.trimIndent(),
                                     arrayOf(customerName),
@@ -1164,7 +1168,7 @@ class StoreBookRepository(
             db.endTransaction()
         }
     }
-    
+
     // --- Supplier & Purchase Operations ---
 
     suspend fun insertSupplier(supplier: Supplier): Long =

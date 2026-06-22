@@ -45,6 +45,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -133,6 +134,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
     var inputTaxRate by remember { mutableStateOf("") }
     var nameError by remember { mutableStateOf(false) }
     var priceError by remember { mutableStateOf(false) }
+    var qtyError by remember { mutableStateOf(false) }
 
     val categoriesList = listOf("Groceries", "Dairy", "Beverages", "Stationery", "Household", "Others")
     val unitsList = listOf("pcs", "kg", "g", "litre", "ml", "dozen", "box", "packet")
@@ -206,6 +208,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
         inputTaxRate = ""
         nameError = false
         priceError = false
+        qtyError = false
         showSheet = true
     }
 
@@ -223,6 +226,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
             if (item.taxRate > 0) item.taxRate.toString() else ""
         nameError = false
         priceError = false
+        qtyError = false
         showSheet = true
     }
 
@@ -525,11 +529,24 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
                         if (isLoadingItems) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                         }
                     },
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f),
+                        focusedLeadingIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+                        focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+                        cursorColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -544,6 +561,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             label = stringResource(id = R.string.inv_filter_all),
                             isSelected = selectedCategory == "All",
                             onClick = { selectedCategory = "All" },
+                            onPrimaryBg = true,
                         )
                     }
                     item {
@@ -551,6 +569,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             label = "⚠️ " + stringResource(id = R.string.inv_filter_low_stock),
                             isSelected = selectedCategory == "Low Stock",
                             onClick = { selectedCategory = "Low Stock" },
+                            onPrimaryBg = true,
                         )
                     }
                     items(categoriesList, key = { it }) { cat ->
@@ -558,6 +577,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             label = cat,
                             isSelected = selectedCategory == cat,
                             onClick = { selectedCategory = cat },
+                            onPrimaryBg = true,
                         )
                     }
                 }
@@ -664,8 +684,6 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                                 contentDescription = "Delete",
                                                 tint = MaterialTheme.colorScheme.onError,
                                             )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.onError)
                                         }
                                     }
                                 },
@@ -765,11 +783,18 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             OutlinedTextField(
                                 value = inputQty,
-                                onValueChange = { inputQty = it },
+                                onValueChange = {
+                                    inputQty = it
+                                    qtyError = false
+                                },
                                 label = { Text(stringResource(id = R.string.inv_qty_label)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f),
                                 singleLine = true,
+                                isError = qtyError,
+                                supportingText = if (qtyError) {
+                                    { Text(stringResource(id = R.string.inv_err_qty)) }
+                                } else null,
                             )
                         }
 
@@ -884,12 +909,13 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
 
                                 nameError = name.isBlank()
                                 priceError = buy == null || sell == null
-                                if (nameError || priceError || qty == null) return@Button
+                                qtyError = qty == null || qty < 0.0
+                                if (nameError || priceError || qtyError) return@Button
 
                                 if (editingItem == null) {
                                     viewModel.addItem(
                                         name,
-                                        qty,
+                                        qty!!,
                                         inputUnit,
                                         buy!!,
                                         sell!!,
@@ -902,7 +928,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                     viewModel.updateItem(
                                         editingItem!!.id,
                                         name,
-                                        qty,
+                                        qty!!,
                                         inputUnit,
                                         buy!!,
                                         sell!!,
@@ -950,7 +976,7 @@ fun InventoryItemCard(
         shape = RoundedCornerShape(20.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = if (isLowStock) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surface,
+                containerColor = if (isLowStock) Color(0xFFe47a77) else MaterialTheme.colorScheme.surface,
             ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -974,6 +1000,7 @@ fun InventoryItemCard(
                         fontSize = 16.sp,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     // Category Badge
@@ -987,7 +1014,8 @@ fun InventoryItemCard(
                             text = item.category,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
                         )
                     }
                 }
@@ -1110,14 +1138,23 @@ fun FilterChip(
     label: String,
     isSelected: Boolean,
     onClick: () -> Unit,
+    onPrimaryBg: Boolean = false,
 ) {
     val bgColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+        targetValue = if (isSelected) {
+            if (onPrimaryBg) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary
+        } else {
+            if (onPrimaryBg) Color.White.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
+        },
         animationSpec = tween(200),
         label = "chip_color",
     )
     val textColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        targetValue = if (isSelected) {
+            if (onPrimaryBg) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary
+        } else {
+            if (onPrimaryBg) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+        },
         animationSpec = tween(200),
         label = "chip_text",
     )

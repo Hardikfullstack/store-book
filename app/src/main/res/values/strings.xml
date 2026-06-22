@@ -36,7 +36,7 @@
     <string name="inv_qty_label">Current Stock Quantity</string>
     <string name="inv_unit_label">Unit of Measurement</string>
     <string name="inv_buy_price_label">Purchase Price (Buy Price) (₹)</string>
-    <string name="inv_sell_price_label">Selling Price (₹)</string>
+    <string name="inv_sell_price_label">Selling Price (Sell Price) (₹)</string>
     <string name="inv_threshold_label">Low-Stock Alert Level</string>
     <string name="inv_category_label">Product Category</string>
     <string name="inv_save_success">Item saved successfully!</string>
@@ -232,6 +232,7 @@
     <string name="inv_loading_more">Loading more…</string>
     <string name="inv_err_empty_name">Name cannot be empty</string>
     <string name="inv_err_prices">Please fill in buy and sell price.</string>
+    <string name="inv_err_qty">Please fill in Quantity</string>
     <string name="inv_sort_dynamic">Sort: %1$s</string>
     <string name="inv_all_items_loaded">All %1$d items loaded</string>
     <string name="inv_sell_prefix">Sell %1$s</string>
