@@ -58,6 +58,7 @@ import com.storebook.inventoryapp.ui.screens.storebook.DashboardScreen
 import com.storebook.inventoryapp.ui.screens.storebook.InventoryScreen
 import com.storebook.inventoryapp.ui.screens.storebook.MoreScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SalesScreen
+import com.storebook.inventoryapp.ui.screens.storebook.SplashScreen
 import com.storebook.inventoryapp.ui.screens.storebook.UdhaarScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SupplierLedgerScreen
 import com.storebook.inventoryapp.ui.theme.Poppins
@@ -157,11 +158,17 @@ fun AppNavigation() {
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = Routes.Dashboard,
+            startDestination = Routes.Splash,
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
+                    .let {
+                        if (currentRoute == "com.storebook.inventoryapp.ui.navigation.Routes.Splash") {
+                            it
+                        } else {
+                            it.padding(paddingValues)
+                        }
+                    },
             enterTransition = {
                 fadeIn(animationSpec = tween(200)) +
                     slideInHorizontally(
@@ -191,6 +198,18 @@ fun AppNavigation() {
                     )
             },
         ) {
+            // ── Splash Screen ──────────────────────────────────────────
+            composable<Routes.Splash> {
+                SplashScreen(
+                    onSplashFinished = {
+                        val destination = if (onboardingCompleted) Routes.Dashboard else Routes.Dashboard
+                        navController.navigate(destination) {
+                            popUpTo(Routes.Splash) { inclusive = true }
+                        }
+                    },
+                )
+            }
+
             composable<Routes.Dashboard> {
                 DashboardScreen(navController = navController, viewModel = storeBookViewModel)
             }

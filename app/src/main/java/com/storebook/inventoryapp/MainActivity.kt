@@ -1,9 +1,9 @@
 package com.storebook.inventoryapp
 
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -12,6 +12,10 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
@@ -19,15 +23,14 @@ import com.storebook.inventoryapp.ui.navigation.AppNavigation
 import com.storebook.inventoryapp.ui.theme.LocalAppTheme
 import com.storebook.inventoryapp.ui.theme.ManualThemeManager
 import com.storebook.inventoryapp.ui.theme.StoreBookTheme
+import com.storebook.inventoryapp.ui.theme.AppThemeMode
 import com.storebook.inventoryapp.ui.viewmodels.AppConfigViewModel
 import com.storebook.inventoryapp.utils.AnalyticsManager
 import com.storebook.inventoryapp.utils.LanguageManager
 import com.storebook.inventoryapp.utils.LocalAppConfig
-import com.storebook.inventoryapp.utils.LocalDynamicAppBrand
-import com.storebook.inventoryapp.utils.LocalDynamicAppName
+import com.storebook.inventoryapp.utils.LocalAppBrand
+import com.storebook.inventoryapp.utils.LocalAppName
 import com.storebook.inventoryapp.utils.LocaleHelper
-import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -48,10 +51,10 @@ class MainActivity : AppCompatActivity() {
         super.attachBaseContext(context)
     }
 
-    val externalPdfUri = MutableStateFlow<String?>(null)
-
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
+        var keepSplash = true
+        splashScreen.setKeepOnScreenCondition { keepSplash }
         super.onCreate(savedInstanceState)
         val languageManager = LanguageManager(this)
         lifecycleScope.launch {
@@ -74,9 +77,6 @@ class MainActivity : AppCompatActivity() {
         }
         AnalyticsManager.init(this)
         AnalyticsManager.logEventWithAction("app_open", "app", "launched")
-        PDFBoxResourceLoader.init(applicationContext)
-
-        handleIntent(intent)
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         val themeManager = ManualThemeManager.getInstance(this)
@@ -93,34 +93,44 @@ class MainActivity : AppCompatActivity() {
             val isDarkMode by themeManager.isDarkMode
             val themeMode by themeManager.themeMode
 
+            // Reset theme to INK_BLUE if free user tries to use a premium theme
+            val storebookPrefs = remember { getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE) }
+            val isPremium = remember { mutableStateOf(storebookPrefs.getBoolean("is_premium", false) || storebookPrefs.getString("user_role", "owner") == "staff") }
+
+            DisposableEffect(Unit) {
+                val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                    if (key == "is_premium" || key == "user_role") {
+                        isPremium.value = storebookPrefs.getBoolean("is_premium", false) || storebookPrefs.getString("user_role", "owner") == "staff"
+                    }
+                }
+                storebookPrefs.registerOnSharedPreferenceChangeListener(listener)
+                onDispose {
+                    storebookPrefs.unregisterOnSharedPreferenceChangeListener(listener)
+                }
+            }
+
+            LaunchedEffect(isPremium.value, themeMode) {
+                if (!isPremium.value && themeMode != AppThemeMode.INK_BLUE) {
+                    themeManager.setThemeMode(AppThemeMode.INK_BLUE)
+                }
+            }
+
             StoreBookTheme(darkTheme = isDarkMode, themeMode = themeMode) {
                 val appConfigState by appConfigViewModel.appResponse.collectAsState()
-                val dynamicAppName by appConfigViewModel.dynamicAppName.collectAsState()
-                val dynamicAppBrand by appConfigViewModel.dynamicAppBrand.collectAsState()
+                val appName by appConfigViewModel.appName.collectAsState()
+                val appBrand by appConfigViewModel.appBrand.collectAsState()
 
                 CompositionLocalProvider(
                     LocalAppConfig provides appConfigState,
-                    LocalDynamicAppName provides dynamicAppName,
-                    LocalDynamicAppBrand provides dynamicAppBrand,
+                    LocalAppName provides appName,
+                    LocalAppBrand provides appBrand,
                     LocalAppTheme provides themeManager,
                 ) {
+                    androidx.compose.runtime.LaunchedEffect(Unit) {
+                        keepSplash = false
+                    }
                     AppNavigation()
                 }
-            }
-        }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        handleIntent(intent)
-    }
-
-    private fun handleIntent(intent: Intent?) {
-        if (intent?.action == Intent.ACTION_VIEW && intent.type == "application/pdf") {
-            val uri: Uri? = intent.data
-            uri?.let {
-                externalPdfUri.value = it.toString()
             }
         }
     }

@@ -7,14 +7,6 @@ sealed class Routes(
     val string: String,
 ) {
     @Serializable
-    object Splash : Routes("splash_screen")
-
-    @Serializable
-    data class Language(
-        val isFirstTime: Boolean = false,
-    ) : Routes("language_screen")
-
-    @Serializable
     object Dashboard : Routes("dashboard_screen")
 
     @Serializable
@@ -42,10 +34,16 @@ sealed class Routes(
     object Auth : Routes("auth_screen")
     @Serializable
     object Quotations : Routes("quotations_screen")
-    
+
     @Serializable
     object InviteStaff : Routes("invite_staff_screen")
 
     @Serializable
     object SupplierLedger : Routes("supplier_ledger_screen")
+
+    @Serializable
+    object GSTReport : Routes("gst_report_screen")
+
+    @Serializable
+    object Splash : Routes("splash_screen")
 }

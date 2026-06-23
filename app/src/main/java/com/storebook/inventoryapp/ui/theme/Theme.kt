@@ -11,7 +11,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 
-enum class AppThemeMode { INK_BLUE, SUNSET_ORANGE, FOREST_GREEN, AMETHYST_PURPLE }
+enum class AppThemeMode { INK_BLUE, SUNSET_ORANGE, FOREST_GREEN, AMETHYST_PURPLE, CRIMSON_RUBY, CHARCOAL_OBSIDIAN }
 
 class ManualThemeManager(
     context: Context,
@@ -21,7 +21,13 @@ class ManualThemeManager(
     private val _isDarkMode = mutableStateOf(prefs.getBoolean(KEY_IS_DARK_MODE, false))
     val isDarkMode: State<Boolean> = _isDarkMode
 
-    private val _themeMode = mutableStateOf(AppThemeMode.valueOf(prefs.getString(KEY_THEME_MODE, AppThemeMode.INK_BLUE.name) ?: AppThemeMode.INK_BLUE.name))
+    private val _themeMode = mutableStateOf(
+        try {
+            AppThemeMode.valueOf(prefs.getString(KEY_THEME_MODE, AppThemeMode.INK_BLUE.name) ?: AppThemeMode.INK_BLUE.name)
+        } catch (e: Exception) {
+            AppThemeMode.INK_BLUE
+        }
+    )
     val themeMode: State<AppThemeMode> = _themeMode
 
     fun toggleTheme() {
@@ -273,6 +279,108 @@ private val AmethystPurpleDarkColorScheme = darkColorScheme(
     outlineVariant = SlateGray600,
 )
 
+// Crimson Ruby Mode
+private val CrimsonRubyLightColorScheme = lightColorScheme(
+    primary = CrimsonRuby700,
+    onPrimary = Color.White,
+    primaryContainer = CrimsonRuby50,
+    onPrimaryContainer = CrimsonRuby900,
+    secondary = Emerald500,
+    onSecondary = Color.White,
+    secondaryContainer = Emerald100,
+    onSecondaryContainer = Color(0xFF064E3B),
+    tertiary = CrimsonRuby300,
+    onTertiary = Color.White,
+    background = SlateWhite,
+    onBackground = SlateGray800,
+    surface = Color.White,
+    onSurface = SlateGray800,
+    surfaceVariant = SlateGray50,
+    onSurfaceVariant = SlateGray600,
+    error = Coral500,
+    onError = Color.White,
+    errorContainer = Coral100,
+    onErrorContainer = Color(0xFF7F1D1D),
+    outline = SlateGray100,
+    outlineVariant = SlateGray100,
+)
+
+private val CrimsonRubyDarkColorScheme = darkColorScheme(
+    primary = CrimsonRuby300,
+    onPrimary = CrimsonRuby900,
+    primaryContainer = CrimsonRuby700,
+    onPrimaryContainer = CrimsonRuby100,
+    secondary = Emerald400,
+    onSecondary = Color(0xFF064E3B),
+    secondaryContainer = Color(0xFF065F46),
+    onSecondaryContainer = Emerald100,
+    tertiary = CrimsonRuby300,
+    onTertiary = Color(0xFF3E2723),
+    background = DarkBackground,
+    onBackground = Color(0xFFF8FAFC),
+    surface = DarkSurface,
+    onSurface = Color(0xFFF8FAFC),
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = SlateGray400,
+    error = Coral400,
+    onError = Color(0xFF7F1D1D),
+    errorContainer = Color(0xFF7F1D1D),
+    onErrorContainer = Coral100,
+    outline = SlateGray600,
+    outlineVariant = SlateGray600,
+)
+
+// Charcoal Obsidian Mode
+private val CharcoalObsidianLightColorScheme = lightColorScheme(
+    primary = CharcoalObsidian700,
+    onPrimary = Color.White,
+    primaryContainer = CharcoalObsidian50,
+    onPrimaryContainer = CharcoalObsidian900,
+    secondary = Emerald500,
+    onSecondary = Color.White,
+    secondaryContainer = Emerald100,
+    onSecondaryContainer = Color(0xFF064E3B),
+    tertiary = CharcoalObsidian300,
+    onTertiary = Color.White,
+    background = SlateWhite,
+    onBackground = SlateGray800,
+    surface = Color.White,
+    onSurface = SlateGray800,
+    surfaceVariant = SlateGray50,
+    onSurfaceVariant = SlateGray600,
+    error = Coral500,
+    onError = Color.White,
+    errorContainer = Coral100,
+    onErrorContainer = Color(0xFF7F1D1D),
+    outline = SlateGray100,
+    outlineVariant = SlateGray100,
+)
+
+private val CharcoalObsidianDarkColorScheme = darkColorScheme(
+    primary = CharcoalObsidian300,
+    onPrimary = CharcoalObsidian900,
+    primaryContainer = CharcoalObsidian700,
+    onPrimaryContainer = CharcoalObsidian100,
+    secondary = Emerald400,
+    onSecondary = Color(0xFF064E3B),
+    secondaryContainer = Color(0xFF065F46),
+    onSecondaryContainer = Emerald100,
+    tertiary = CharcoalObsidian300,
+    onTertiary = Color(0xFF3E2723),
+    background = DarkBackground,
+    onBackground = Color(0xFFF8FAFC),
+    surface = DarkSurface,
+    onSurface = Color(0xFFF8FAFC),
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = SlateGray400,
+    error = Coral400,
+    onError = Color(0xFF7F1D1D),
+    errorContainer = Color(0xFF7F1D1D),
+    onErrorContainer = Coral100,
+    outline = SlateGray600,
+    outlineVariant = SlateGray600,
+)
+
 @Composable
 fun StoreBookTheme(
     darkTheme: Boolean = false,
@@ -285,6 +393,8 @@ fun StoreBookTheme(
         AppThemeMode.SUNSET_ORANGE -> if (darkTheme) SunsetOrangeDarkColorScheme else SunsetOrangeLightColorScheme
         AppThemeMode.FOREST_GREEN -> if (darkTheme) ForestGreenDarkColorScheme else ForestGreenLightColorScheme
         AppThemeMode.AMETHYST_PURPLE -> if (darkTheme) AmethystPurpleDarkColorScheme else AmethystPurpleLightColorScheme
+        AppThemeMode.CRIMSON_RUBY -> if (darkTheme) CrimsonRubyDarkColorScheme else CrimsonRubyLightColorScheme
+        AppThemeMode.CHARCOAL_OBSIDIAN -> if (darkTheme) CharcoalObsidianDarkColorScheme else CharcoalObsidianLightColorScheme
     }
 
     SystemBarsConfig(isDarkMode = darkTheme)

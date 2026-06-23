@@ -5,7 +5,9 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,12 +24,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
@@ -43,6 +54,7 @@ import androidx.compose.material.icons.outlined.MoneyOff
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.outlined.Restore
+import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Store
 import androidx.compose.material3.BottomSheetDefaults
@@ -75,6 +87,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -124,6 +137,7 @@ fun MoreScreen(
 
         var activeModal by remember { mutableStateOf("") }
         var showSheet by remember { mutableStateOf(false) }
+        var showThemeExpanded by remember { mutableStateOf(false) }
         var showUpgradeDialog by remember { mutableStateOf(false) }
         var showClearDataDialog by remember { mutableStateOf(false) }
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -396,15 +410,31 @@ fun MoreScreen(
                                                         title = "App Theme",
                                                         trailing = if (themeManager.isDarkMode.value) "🌙 Dark" else "☀️ Light",
                                                         onClick = {
-                                                            if (viewModel.isPremiumUser || viewModel.userRole == "staff") {
-                                                                activeModal = "THEME"
-                                                                showSheet = true
+                                                            showThemeExpanded = !showThemeExpanded
+                                                        },
+                                                )
+
+                                                // ── Inline Theme Selector ────────────────────────
+                                                AnimatedVisibility(
+                                                    visible = showThemeExpanded,
+                                                    enter = expandVertically() + fadeIn(),
+                                                    exit = shrinkVertically() + fadeOut(),
+                                                ) {
+                                                    InlineThemeCard(
+                                                        isDarkMode = themeManager.isDarkMode.value,
+                                                        themeMode = themeManager.themeMode.value,
+                                                        isPremium = (viewModel.isPremiumUser || viewModel.userRole == "staff"),
+                                                        onThemeSelected = { isDark -> themeManager.setDarkMode(isDark) },
+                                                        onThemeModeSelected = { mode ->
+                                                            if (mode == AppThemeMode.INK_BLUE || viewModel.isPremiumUser || viewModel.userRole == "staff") {
+                                                                themeManager.setThemeMode(mode)
                                                             } else {
                                                                 activeModal = "PREMIUM"
                                                                 showSheet = true
                                                             }
                                                         },
-                                                )
+                                                    )
+                                                }
                                                 HorizontalDivider(
                                                         modifier = Modifier.padding(horizontal = 16.dp)
                                                 )
@@ -601,10 +631,17 @@ fun MoreScreen(
                                                                     Modifier.padding(horizontal = 16.dp)
                                                     )
                                                     IconOptionRow(
+                                                            icon = Icons.Outlined.Receipt,
+                                                            iconBg = Color(0xFF10B981).copy(alpha = 0.12f),
+                                                            iconTint = Color(0xFF10B981),
+                                                            title = "GST Reports (GSTR-1)",
+                                                            onClick = {
+                                                                    navController.navigate(Routes.GSTReport)
+                                                            },
+                                                    )
+                                                    IconOptionRow(
                                                             icon = Icons.Outlined.Store,
-                                                            iconBg =
-                                                                    Color(0xFF8B5CF6)
-                                                                            .copy(alpha = 0.12f),
+                                                            iconBg = Color(0xFF8B5CF6).copy(alpha = 0.12f),
                                                             iconTint = Color(0xFF8B5CF6),
                                                             title = "Switch Store",
                                                             onClick = {
@@ -862,19 +899,7 @@ fun MoreScreen(
                                                         },
                                                 )
                                         }
-                                        "THEME" -> {
-                                            ThemeSheetContent(
-                                                isDarkMode = themeManager.isDarkMode.value,
-                                                themeMode = themeManager.themeMode.value,
-                                                onThemeSelected = { isDark ->
-                                                    themeManager.setDarkMode(isDark)
-                                                    // Don't close sheet immediately so they can select both Dark Mode and Color Palette
-                                                },
-                                                onThemeModeSelected = { mode ->
-                                                    themeManager.setThemeMode(mode)
-                                                }
-                                            )
-                                        }
+                                        "THEME" -> { /* Handled inline — no longer uses sheet */ }
                                         "EXPENSES" -> {
                                                 ExpenseSheetContent(
                                                         expenseAmount = expenseAmount,
@@ -1135,7 +1160,7 @@ fun MoreScreen(
                                                     fontSize = 14.sp,
                                                     color = MaterialTheme.colorScheme.primary
                                                 )
-                                                
+
                                                 if (viewModel.userStores.isNotEmpty()) {
                                                     Text("Your Associated Stores:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                                                     viewModel.userStores.forEach { sId ->
@@ -1358,30 +1383,208 @@ fun LanguageRow(
 }
 
 @Composable
-fun ThemeSheetContent(
+fun InlineThemeCard(
     isDarkMode: Boolean,
     themeMode: AppThemeMode,
+    isPremium: Boolean,
     onThemeSelected: (Boolean) -> Unit,
     onThemeModeSelected: (AppThemeMode) -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(24.dp).padding(bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+    val palettes = listOf(
+        Triple(AppThemeMode.INK_BLUE,          Color(0xFF191958), "Sapphire Blue"),
+        Triple(AppThemeMode.FOREST_GREEN,      Color(0xFF059669), "Emerald Jade"),
+        Triple(AppThemeMode.SUNSET_ORANGE,     Color(0xFFEA580C), "Sunset Amber"),
+        Triple(AppThemeMode.AMETHYST_PURPLE,   Color(0xFF7C3AED), "Royal Amethyst"),
+        Triple(AppThemeMode.CRIMSON_RUBY,      Color(0xFFBE123C), "Crimson Ruby"),
+        Triple(AppThemeMode.CHARCOAL_OBSIDIAN,  Color(0xFF374151), "Charcoal Obsidian"),
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
     ) {
-        Text("App Theme Mode", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        HorizontalDivider()
-        LanguageOptionCard("☀️ Light Mode", "light", !isDarkMode) { onThemeSelected(false) }
-        LanguageOptionCard("🌙 Dark Mode", "dark", isDarkMode) { onThemeSelected(true) }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Color Palette (Pro)", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        HorizontalDivider()
-        
-        LanguageOptionCard("🔵 Ink Blue", "blue", themeMode == AppThemeMode.INK_BLUE) { onThemeModeSelected(AppThemeMode.INK_BLUE) }
-        LanguageOptionCard("🟠 Sunset Orange", "orange", themeMode == AppThemeMode.SUNSET_ORANGE) { onThemeModeSelected(AppThemeMode.SUNSET_ORANGE) }
-        LanguageOptionCard("🟢 Forest Green", "green", themeMode == AppThemeMode.FOREST_GREEN) { onThemeModeSelected(AppThemeMode.FOREST_GREEN) }
-        LanguageOptionCard("🟣 Amethyst Purple", "purple", themeMode == AppThemeMode.AMETHYST_PURPLE) { onThemeModeSelected(AppThemeMode.AMETHYST_PURPLE) }
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            // ── Section 1: Mode Toggle ──────────────────────────────
+            Text(
+                text = "Mode",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 2.dp),
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                listOf(
+                    Triple(false, "☀️", "Light"),
+                    Triple(true,  "🌙", "Dark"),
+                ).forEach { (dark, emoji, label) ->
+                    val selected = isDarkMode == dark
+                    val bgColor by animateColorAsState(
+                        if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        animationSpec = tween(200), label = "mode_bg"
+                    )
+                    val textColor by animateColorAsState(
+                        if (selected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        animationSpec = tween(200), label = "mode_text"
+                    )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(bgColor)
+                            .clickable { onThemeSelected(dark) }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "$emoji $label",
+                            fontSize = 13.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            color = textColor,
+                        )
+                    }
+                }
+            }
+
+            // ── Section 2: Color Palette Swatches ──────────────────
+            Text(
+                text = "Color Palette",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 2.dp),
+            )
+
+            val lazyListState = rememberLazyListState()
+
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                LazyRow(
+                    state = lazyListState,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(start = 4.dp, end = 40.dp),
+                ) {
+                    items(palettes) { (mode, color, name) ->
+                        val isSelected = themeMode == mode
+                        val isLocked = !isPremium && mode != AppThemeMode.INK_BLUE
+                        val ringAlpha by animateColorAsState(
+                            if (isSelected && !isLocked) color else Color.Transparent,
+                            animationSpec = tween(250), label = "ring_${name}"
+                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.clickable { onThemeModeSelected(mode) },
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(CircleShape)
+                                    .border(BorderStroke(3.dp, ringAlpha), CircleShape)
+                                    .padding(4.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(color)
+                                ) {
+                                    if (isSelected && !isLocked) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .align(Alignment.Center),
+                                        )
+                                    } else if (isLocked) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(Color.Black.copy(alpha = 0.4f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.pdf_detail_lock),
+                                                contentDescription = "Locked",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = name,
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) color else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                // Scroll Indicator Arrow (fade gradient + chevron)
+                if (lazyListState.canScrollForward) {
+                    Box(
+                        modifier = Modifier
+                            .height(80.dp)
+                            .width(50.dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f)
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = "More colors available",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier
+                                .padding(end = 4.dp, bottom = 22.dp)
+                                .size(22.dp)
+                        )
+                    }
+                }
+            }
+        }
     }
+}
+
+@Composable
+fun ThemeSheetContent(
+    isDarkMode: Boolean,
+    themeMode: AppThemeMode,
+    isPremium: Boolean,
+    onThemeSelected: (Boolean) -> Unit,
+    onThemeModeSelected: (AppThemeMode) -> Unit,
+) {
+    // Legacy — delegates to inline card for backward compat
+    InlineThemeCard(isDarkMode, themeMode, isPremium, onThemeSelected, onThemeModeSelected)
 }
 
 @Composable

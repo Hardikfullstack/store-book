@@ -8,5 +8,5 @@ import com.storebook.inventoryapp.data.model.AppResponse
  * fetched from the API across all screens.
  */
 val LocalAppConfig = staticCompositionLocalOf<AppResponse?> { null }
-val LocalDynamicAppName = staticCompositionLocalOf<String> { "PDF Scanner & Editor" }
-val LocalDynamicAppBrand = staticCompositionLocalOf<String> { "- PDFlex" }
+val LocalAppName = staticCompositionLocalOf<String> { "StoreBook" }
+val LocalAppBrand = staticCompositionLocalOf<String> { " Kirana" }

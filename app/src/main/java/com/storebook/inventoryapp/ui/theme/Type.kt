@@ -8,13 +8,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.R
 
-// Set of Material typography styles to start with
-val DMSans =
-    FontFamily(
-        Font(R.font.dm_sans_medium, FontWeight.Medium),
-        Font(R.font.dm_sans_semibold, FontWeight.SemiBold),
-    )
-
 val Poppins =
     FontFamily(
         Font(R.font.poppins_regular, FontWeight.Normal),

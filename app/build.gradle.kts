@@ -22,7 +22,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Strip out unused languages from dependencies (saves 1-3MB)
-        resourceConfigurations.addAll(listOf("en", "it", "hi", "es", "fr", "de", "pt", "ru", "gu"))
+        resourceConfigurations.addAll(listOf("en", "hi", "gu"))
     }
 
     buildTypes {
@@ -94,12 +94,8 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:$nav_version")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
-    implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("com.google.android.gms:play-services-ads:23.0.0")
 
-    implementation(libs.pdfbox.android)
-    implementation(libs.reorderable)
-    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
     implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation(platform("com.google.firebase:firebase-bom:34.10.0"))
@@ -109,7 +105,6 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging")
     implementation("com.google.firebase:firebase-firestore")
 
-    implementation("io.github.oothp:android-pdf-viewer:3.2.0-beta06")
     implementation("com.google.android.play:review-ktx:2.0.2")
     implementation("com.google.android.play:app-update-ktx:2.1.0")
     // Google Play In-App Billing
