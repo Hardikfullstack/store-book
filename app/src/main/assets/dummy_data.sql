@@ -1,9 +1,18 @@
-PRAGMA user_version = 6;
+PRAGMA user_version = 9;
 DROP TABLE IF EXISTS items;
 DROP TABLE IF EXISTS sales;
 DROP TABLE IF EXISTS sale_items;
 DROP TABLE IF EXISTS udhaar;
 DROP TABLE IF EXISTS expenses;
+DROP TABLE IF EXISTS suppliers;
+DROP TABLE IF EXISTS purchases;
+DROP TABLE IF EXISTS purchase_items;
+DROP TABLE IF EXISTS item_batches;
+DROP INDEX IF EXISTS idx_purchases_timestamp;
+DROP INDEX IF EXISTS idx_purchases_supplier_id;
+DROP INDEX IF EXISTS idx_purchase_items_purchase_id;
+DROP INDEX IF EXISTS idx_item_batches_item_id;
+DROP INDEX IF EXISTS idx_item_batches_expiry;
 DROP TABLE IF EXISTS android_metadata;
 DROP INDEX IF EXISTS idx_items_deleted;
 DROP INDEX IF EXISTS idx_items_category;
@@ -41,6 +50,7 @@ CREATE TABLE sales (
     business_gstin TEXT,
     customer_address TEXT,
     business_address TEXT,
+    type TEXT NOT NULL DEFAULT 'SALE',
     notes TEXT,
     is_deleted INTEGER NOT NULL DEFAULT 0,
     cloud_id TEXT,
@@ -116,6 +126,69 @@ CREATE INDEX idx_udhaar_updated_at ON udhaar(updated_at);
 CREATE UNIQUE INDEX idx_expenses_cloud_id ON expenses(cloud_id) WHERE cloud_id IS NOT NULL;
 CREATE INDEX idx_expenses_is_synced ON expenses(is_synced);
 CREATE INDEX idx_expenses_updated_at ON expenses(updated_at);
+
+
+CREATE TABLE suppliers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    phone TEXT,
+    gstin TEXT,
+    address TEXT,
+    is_deleted INTEGER NOT NULL DEFAULT 0,
+    cloud_id TEXT,
+    is_synced INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE purchases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    supplier_id INTEGER NOT NULL,
+    supplier_name TEXT NOT NULL,
+    total_amount REAL NOT NULL,
+    tax_amount REAL NOT NULL DEFAULT 0.0,
+    type TEXT NOT NULL DEFAULT 'BILL',
+    timestamp INTEGER NOT NULL,
+    notes TEXT,
+    is_deleted INTEGER NOT NULL DEFAULT 0,
+    cloud_id TEXT,
+    is_synced INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE purchase_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    purchase_id INTEGER NOT NULL,
+    item_id INTEGER NOT NULL,
+    item_name TEXT NOT NULL,
+    quantity REAL NOT NULL,
+    unit TEXT NOT NULL,
+    buy_price REAL NOT NULL,
+    is_deleted INTEGER NOT NULL DEFAULT 0,
+    cloud_id TEXT,
+    is_synced INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE item_batches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id INTEGER NOT NULL,
+    batch_number TEXT,
+    expiry_date INTEGER,
+    quantity REAL NOT NULL DEFAULT 0,
+    cost_price REAL NOT NULL DEFAULT 0,
+    timestamp INTEGER NOT NULL,
+    notes TEXT,
+    cloud_id TEXT,
+    is_synced INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL DEFAULT 0,
+    is_deleted INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_purchases_timestamp ON purchases(timestamp);
+CREATE INDEX IF NOT EXISTS idx_purchases_supplier_id ON purchases(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_purchase_items_purchase_id ON purchase_items(purchase_id);
+CREATE INDEX IF NOT EXISTS idx_item_batches_item_id ON item_batches(item_id);
+CREATE INDEX IF NOT EXISTS idx_item_batches_expiry ON item_batches(expiry_date);
 
 INSERT INTO items (id, name, quantity, unit, buy_price, sell_price, low_stock_threshold, category, hsn_code, tax_rate, is_deleted, deleted_timestamp, cloud_id, is_synced, updated_at) VALUES (1, 'ITC Lights 0', 186, 'litre', 230, 237, 11, 'Cleaning', '1006', 28, 0, 0, 'adaf2443-ef49-48b4-9ee8-5b42ab3ae440', 1, 1781776923285);
 INSERT INTO items (id, name, quantity, unit, buy_price, sell_price, low_stock_threshold, category, hsn_code, tax_rate, is_deleted, deleted_timestamp, cloud_id, is_synced, updated_at) VALUES (2, 'Himalaya Washers 1', 71, 'kg', 314, 433, 18, 'Dairy', '1002', 18, 0, 0, '00e64059-5ef2-46ef-ad10-a6d99bab7aab', 1, 1781776923285);
@@ -9888,3 +9961,19 @@ INSERT INTO expenses (id, type, description, amount, timestamp, supplier_name, s
 INSERT INTO expenses (id, type, description, amount, timestamp, supplier_name, supplier_phone, is_deleted, cloud_id, is_synced, updated_at) VALUES (298, 'MAINTENANCE', 'maintenance expense for month', 8132, 1769549661900, '', '', 0, '9a157ba4-a19e-40fe-ac9d-75e92befd439', 1, 1781776923285);
 INSERT INTO expenses (id, type, description, amount, timestamp, supplier_name, supplier_phone, is_deleted, cloud_id, is_synced, updated_at) VALUES (299, 'RESTOCK', 'Restocked Colgate Headphones 113', 5180, 1776363524200, 'Bulk Supplier Ltd', '9876543210', 1, 'f1d34437-46fa-446f-b794-e001bf5f25d2', 1, 1781776923285);
 INSERT INTO expenses (id, type, description, amount, timestamp, supplier_name, supplier_phone, is_deleted, cloud_id, is_synced, updated_at) VALUES (300, 'SALARY', 'salary expense for month', 6561, 1781136203868, '', '', 0, 'c5f4dc30-313c-445e-8186-490eea056eaf', 1, 1781776923285);
+
+-- Suppliers
+INSERT INTO suppliers (id, name, phone, gstin, address, is_deleted, cloud_id, is_synced, updated_at) VALUES (1, 'Ramesh Wholesalers', '9876543210', '27AACCR9876Q1Z1', 'Mumbai, MH', 0, 'supp-cloud-1', 1, 1782123164307);
+INSERT INTO suppliers (id, name, phone, gstin, address, is_deleted, cloud_id, is_synced, updated_at) VALUES (2, 'National Distributors', '9876543211', '07AABBN1234K1Z2', 'Delhi, DL', 0, 'supp-cloud-2', 1, 1782123164307);
+
+-- Purchases
+INSERT INTO purchases (id, supplier_id, supplier_name, total_amount, tax_amount, type, timestamp, notes, is_deleted, cloud_id, is_synced, updated_at) VALUES (1, 1, 'Ramesh Wholesalers', 50000.0, 2500.0, 'BILL', 1781691164307, 'Restock bulk items', 0, 'purch-cloud-1', 1, 1782123164307);
+INSERT INTO purchases (id, supplier_id, supplier_name, total_amount, tax_amount, type, timestamp, notes, is_deleted, cloud_id, is_synced, updated_at) VALUES (2, 2, 'National Distributors', 25000.0, 1250.0, 'BILL', 1781950364307, 'Monthly supplies', 0, 'purch-cloud-2', 1, 1782123164307);
+
+-- Purchase Items
+INSERT INTO purchase_items (id, purchase_id, item_id, item_name, quantity, unit, buy_price, is_deleted, cloud_id, is_synced, updated_at) VALUES (1, 1, 1, 'Sample Item 1', 100.0, 'pcs', 50.0, 0, 'pi-cloud-1', 1, 1782123164307);
+INSERT INTO purchase_items (id, purchase_id, item_id, item_name, quantity, unit, buy_price, is_deleted, cloud_id, is_synced, updated_at) VALUES (2, 2, 2, 'Sample Item 2', 50.0, 'kg', 20.0, 0, 'pi-cloud-2', 1, 1782123164307);
+
+-- Item Batches
+INSERT INTO item_batches (id, item_id, batch_number, expiry_date, quantity, cost_price, timestamp, notes, cloud_id, is_synced, updated_at, is_deleted) VALUES (1, 1, 'BATCH-A1', 1782987164307, 50.0, 50.0, 1782123164307, 'Fresh batch', 'batch-cloud-1', 1, 1782123164307, 0);
+INSERT INTO item_batches (id, item_id, batch_number, expiry_date, quantity, cost_price, timestamp, notes, cloud_id, is_synced, updated_at, is_deleted) VALUES (2, 2, 'BATCH-B2', 1782555164307, 20.0, 20.0, 1782123164307, 'Near expiry', 'batch-cloud-2', 1, 1782123164307, 0);

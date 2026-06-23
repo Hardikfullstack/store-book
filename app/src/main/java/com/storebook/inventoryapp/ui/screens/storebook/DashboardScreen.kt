@@ -102,6 +102,7 @@ fun DashboardScreen(
     val allItems by viewModel.allItems.collectAsStateWithLifecycle()
     val lowStockItems by viewModel.lowStockItems.collectAsStateWithLifecycle()
     val salesList by viewModel.salesList.collectAsStateWithLifecycle()
+    val expensesList by viewModel.expensesList.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -137,11 +138,17 @@ fun DashboardScreen(
         remember(todaySales) {
             todaySales.sumOf { it.totalAmount }
         }
+    val todayExpenses =
+        remember(expensesList) {
+            expensesList.filter { saleDateFmt.format(Date(it.timestamp)) == todayDateStr }
+                .sumOf { it.amount }
+        }
     val todayProfit =
-        remember(todaySales) {
-            todaySales.sumOf { sale ->
+        remember(todaySales, todayExpenses) {
+            val grossProfit = todaySales.sumOf { sale ->
                 sale.items.sumOf { (it.sellPrice - it.buyPrice) * it.quantity } - sale.discountAmount
             }
+            grossProfit - todayExpenses
         }
 
     // Pull to refresh state
@@ -372,134 +379,6 @@ fun DashboardScreen(
                 }
             }
         },
-        floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End) {
-                AnimatedVisibility(
-                    visible = fabExpanded,
-                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Bottom),
-                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Bottom),
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.padding(bottom = 16.dp),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                                shadowElevation = 4.dp,
-                            ) {
-                                Text(
-                                    text = "Add Product",
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            FloatingActionButton(
-                                onClick = {
-                                    navController.navigate(Routes.Inventory) {
-                                        popUpTo<Routes.Dashboard> { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                    fabExpanded = false
-                                },
-                                modifier = Modifier.size(48.dp),
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = MaterialTheme.colorScheme.primary,
-                                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp),
-                            ) { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(24.dp)) }
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                                shadowElevation = 4.dp,
-                            ) {
-                                Text(
-                                    text = "Record Sale",
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            FloatingActionButton(
-                                onClick = {
-                                    navController.navigate(Routes.Sales) {
-                                        popUpTo<Routes.Dashboard> { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                    fabExpanded = false
-                                },
-                                modifier = Modifier.size(48.dp),
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = MaterialTheme.colorScheme.primary,
-                                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp),
-                            ) {
-                                Icon(
-                                    Icons.Default.ShoppingCart,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                )
-                            }
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                                shadowElevation = 4.dp,
-                            ) {
-                                Text(
-                                    text = "Give Udhaar",
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            FloatingActionButton(
-                                onClick = {
-                                    navController.navigate(Routes.Udhaar) {
-                                        popUpTo<Routes.Dashboard> { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                    fabExpanded = false
-                                },
-                                modifier = Modifier.size(48.dp),
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = MaterialTheme.colorScheme.primary,
-                                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp),
-                            ) {
-                                Icon(
-                                    Icons.Default.AccountCircle,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-                FloatingActionButton(
-                    onClick = { fabExpanded = !fabExpanded },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ) {
-                    Icon(
-                        if (fabExpanded) Icons.Default.Close else Icons.Default.Add,
-                        contentDescription = "Quick Actions",
-                    )
-                }
-            }
-        },
     ) { paddingValues ->
         PullToRefreshBox(
             isRefreshing = isRefreshing,
@@ -550,6 +429,42 @@ fun DashboardScreen(
                                 ),
                             shape = CircleShape,
                         )
+                    }
+                }
+
+                // Command Center - Quick Action Chips
+                item {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp),
+                    ) {
+                        item {
+                            FilterChip(
+                                selected = false,
+                                onClick = { navController.navigate(Routes.Sales) },
+                                label = { Text("New Sale", fontWeight = FontWeight.Bold) },
+                                leadingIcon = { Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                shape = RoundedCornerShape(16.dp),
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = false,
+                                onClick = { navController.navigate(Routes.Udhaar) },
+                                label = { Text("Give Udhaar", fontWeight = FontWeight.Bold) },
+                                leadingIcon = { Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                shape = RoundedCornerShape(16.dp),
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = false,
+                                onClick = { navController.navigate(Routes.Inventory) },
+                                label = { Text("Add Stock", fontWeight = FontWeight.Bold) },
+                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                shape = RoundedCornerShape(16.dp),
+                            )
+                        }
                     }
                 }
 
@@ -613,8 +528,8 @@ fun DashboardScreen(
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = item.name, 
-                                            fontWeight = FontWeight.SemiBold, 
+                                            text = item.name,
+                                            fontWeight = FontWeight.SemiBold,
                                             fontSize = 14.sp,
                                             maxLines = 1,
                                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
@@ -718,7 +633,7 @@ fun DashboardScreen(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            if (viewModel.userRole != "staff") {
+                            if (viewModel.userRoleType.hasPermission(com.storebook.inventoryapp.ui.viewmodels.AppPermission.VIEW_FINANCIALS)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1082,8 +997,8 @@ fun SaleTimelineCard(
                         ) {
                             Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                                 Text(
-                                    text = item.itemName, 
-                                    fontWeight = FontWeight.SemiBold, 
+                                    text = item.itemName,
+                                    fontWeight = FontWeight.SemiBold,
                                     fontSize = 14.sp,
                                     maxLines = 2,
                                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis

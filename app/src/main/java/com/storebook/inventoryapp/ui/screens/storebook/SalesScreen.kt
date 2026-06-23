@@ -74,6 +74,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
@@ -145,6 +148,12 @@ fun SalesScreen(
 
     var showCheckoutSheet by remember { mutableStateOf(false) }
     val checkoutSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val focusRequesterDiscount = remember { FocusRequester() }
+    val focusRequesterCustomer = remember { FocusRequester() }
+    val focusRequesterGstin = remember { FocusRequester() }
+    val focusRequesterAddress = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
 
     // O(1) cart lookup
     val cartMap by remember { derivedStateOf { viewModel.cartItems.associateBy { it.item.id } } }
@@ -313,7 +322,23 @@ fun SalesScreen(
                                 )
                             },
                             singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    val qty = editingQtyText.text.toDoubleOrNull()
+                                    if (qty != null && qty > 0.0) {
+                                        if (cartMap[item.id] == null) {
+                                            viewModel.addToCart(item, qty)
+                                        } else {
+                                            viewModel.updateCartQty(item, qty)
+                                        }
+                                    }
+                                    editingQtyItem = null
+                                }
+                            ),
                             shape = RoundedCornerShape(14.dp),
                         )
 
@@ -456,6 +481,7 @@ fun SalesScreen(
             containerColor = MaterialTheme.colorScheme.surface,
             dragHandle = { BottomSheetDefaults.DragHandle() },
         ) {
+            var showAdvancedBilling by remember { mutableStateOf(false) }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -487,8 +513,16 @@ fun SalesScreen(
                     value = if (viewModel.cartDiscount == 0.0) "" else viewModel.cartDiscount.toString(),
                     onValueChange = { viewModel.cartDiscount = it.toDoubleOrNull() ?: 0.0 },
                     label = { Text(stringResource(id = R.string.sales_discount_rupee), fontSize = 11.sp) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusRequesterCustomer.requestFocus() }
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequesterDiscount),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                 )
@@ -607,6 +641,7 @@ fun SalesScreen(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
+                                .focusRequester(focusRequesterCustomer)
                                 .onFocusChanged { state ->
                                     if (state.isFocused) {
                                         showCustomerSuggestions = true
@@ -615,6 +650,18 @@ fun SalesScreen(
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         isError = customerNameError,
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = {
+                                if (showAdvancedBilling) {
+                                    focusRequesterGstin.requestFocus()
+                                } else {
+                                    focusManager.clearFocus()
+                                }
+                            }
+                        ),
                         supportingText = {
                             Text(
                                 text = if (customerNameError) "Customer name is required for Udhaar" else " ",
@@ -707,7 +754,6 @@ fun SalesScreen(
                     }
                 }
 
-                var showAdvancedBilling by remember { mutableStateOf(false) }
                 Text(
                     text = if (showAdvancedBilling) "Hide Additional Billing Details" else "Add GSTIN & Address (Optional)",
                     color = MaterialTheme.colorScheme.primary,
@@ -728,7 +774,15 @@ fun SalesScreen(
                             value = viewModel.cartCustomerGstin,
                             onValueChange = { viewModel.cartCustomerGstin = it },
                             label = { Text("Customer GSTIN (Optional)") },
-                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusRequesterAddress.requestFocus() }
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequesterGstin),
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp),
                         )
@@ -738,7 +792,15 @@ fun SalesScreen(
                             value = viewModel.cartCustomerAddress,
                             onValueChange = { viewModel.cartCustomerAddress = it },
                             label = { Text("Customer Address (Optional)") },
-                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = { focusManager.clearFocus() }
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequesterAddress),
                             minLines = 2,
                             maxLines = 3,
                             shape = RoundedCornerShape(12.dp),

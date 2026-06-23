@@ -41,6 +41,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -58,6 +59,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -77,11 +83,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.data.repository.Item
+import com.storebook.inventoryapp.data.repository.ItemBatch
 import com.storebook.inventoryapp.data.repository.Supplier
 import com.storebook.inventoryapp.data.repository.Purchase
 import com.storebook.inventoryapp.data.repository.PurchaseItemDetail
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.ui.window.PopupProperties
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
@@ -89,6 +100,11 @@ import com.storebook.inventoryapp.utils.toRupee
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.Close
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private const val PAGE_SIZE = 50
 
@@ -132,9 +148,24 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
     var inputCategory by remember { mutableStateOf("Groceries") }
     var inputHsnCode by remember { mutableStateOf("") }
     var inputTaxRate by remember { mutableStateOf("") }
+    var inputBatchNumber by remember { mutableStateOf("") }
+    var inputExpiryDateMs by remember { mutableStateOf<Long?>(null) }
+    var showExpiryDatePicker by remember { mutableStateOf(false) }
     var nameError by remember { mutableStateOf(false) }
     var priceError by remember { mutableStateOf(false) }
     var qtyError by remember { mutableStateOf(false) }
+    var buyPriceError by remember { mutableStateOf(false) }
+    var sellPriceError by remember { mutableStateOf(false) }
+
+    val focusRequesterName = remember { FocusRequester() }
+    val focusRequesterQty = remember { FocusRequester() }
+    val focusRequesterBuyPrice = remember { FocusRequester() }
+    val focusRequesterSellPrice = remember { FocusRequester() }
+    val focusRequesterThreshold = remember { FocusRequester() }
+    val focusRequesterHsn = remember { FocusRequester() }
+    val focusRequesterTax = remember { FocusRequester() }
+    val focusRequesterBatch = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
 
     val categoriesList = listOf("Groceries", "Dairy", "Beverages", "Stationery", "Household", "Others")
     val unitsList = listOf("pcs", "kg", "g", "litre", "ml", "dozen", "box", "packet")
@@ -206,9 +237,13 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
         inputCategory = "Groceries"
         inputHsnCode = ""
         inputTaxRate = ""
+        inputBatchNumber = ""
+        inputExpiryDateMs = null
         nameError = false
         priceError = false
         qtyError = false
+        buyPriceError = false
+        sellPriceError = false
         showSheet = true
     }
 
@@ -224,9 +259,13 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
         inputHsnCode = item.hsnCode ?: ""
         inputTaxRate =
             if (item.taxRate > 0) item.taxRate.toString() else ""
+        inputBatchNumber = ""
+        inputExpiryDateMs = null
         nameError = false
-        priceError = false
         qtyError = false
+        buyPriceError = false
+        sellPriceError = false
+        priceError = false
         showSheet = true
     }
 
@@ -263,6 +302,27 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
         var selectedSupplier by remember { mutableStateOf<Supplier?>(null) }
         var supplierSearchText by remember { mutableStateOf("") }
         var showSupplierDropdown by remember { mutableStateOf(false) }
+        var refillBatchNumber by remember { mutableStateOf("") }
+        var refillExpiryDateMs by remember { mutableStateOf<Long?>(null) }
+        var showRefillDatePicker by remember { mutableStateOf(false) }
+        val dateFormatter = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+
+        // Expiry Date Picker for Refill
+        if (showRefillDatePicker) {
+            val datePickerState = rememberDatePickerState(initialSelectedDateMillis = refillExpiryDateMs ?: System.currentTimeMillis())
+            DatePickerDialog(
+                onDismissRequest = { showRefillDatePicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        refillExpiryDateMs = datePickerState.selectedDateMillis
+                        showRefillDatePicker = false
+                    }) { Text("OK") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showRefillDatePicker = false }) { Text("Cancel") }
+                }
+            ) { DatePicker(state = datePickerState) }
+        }
 
         val filteredSuppliers = remember(suppliers, supplierSearchText) {
             if (supplierSearchText.isBlank()) {
@@ -440,6 +500,20 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             )
                         )
                         viewModel.addPurchase(purchase) {
+                            // Log a batch record if batch number or expiry is provided
+                            if (refillBatchNumber.isNotBlank() || refillExpiryDateMs != null) {
+                                viewModel.addItemBatch(
+                                    ItemBatch(
+                                        itemId = refillItem.id,
+                                        batchNumber = refillBatchNumber.trim().takeIf { it.isNotBlank() },
+                                        expiryDate = refillExpiryDateMs,
+                                        quantity = addedQty,
+                                        costPrice = finalBuyPrice,
+                                        timestamp = System.currentTimeMillis(),
+                                        notes = "Refill for ${refillItem.name}"
+                                    )
+                                )
+                            }
                             android.widget.Toast.makeText(context, "Stock refilled & purchase logged!", android.widget.Toast.LENGTH_SHORT).show()
                         }
                     }
@@ -648,42 +722,151 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         ) { item ->
                             val isLowStock = item.quantity <= item.lowStockThreshold
 
-                            // Swipe-to-delete — triggers dialog or direct delete
+                            // Both swipe directions: right=quick restock options, left=delete
                             val dismissState = rememberSwipeToDismissBoxState()
 
                             LaunchedEffect(dismissState.currentValue) {
-                                if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-                                    if (shouldSkipInventoryDeleteConfirm(context)) {
-                                        performDelete(item)
-                                    } else {
-                                        pendingDeleteItem = item
+                                when (dismissState.currentValue) {
+                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                        // Do nothing in LaunchedEffect to let the swipe box stay open
+                                        // so the user can interact with the presets in backgroundContent
                                     }
-                                    // Snap back so it visually resets
-                                    dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+                                    SwipeToDismissBoxValue.EndToStart -> {
+                                        if (shouldSkipInventoryDeleteConfirm(context)) {
+                                            performDelete(item)
+                                        } else {
+                                            pendingDeleteItem = item
+                                        }
+                                        dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+                                    }
+                                    else -> {}
                                 }
                             }
 
                             SwipeToDismissBox(
                                 state = dismissState,
-                                enableDismissFromStartToEnd = false,
+                                enableDismissFromStartToEnd = true,
                                 backgroundContent = {
-                                    Box(
-                                        modifier =
-                                            Modifier
+                                    val direction = dismissState.dismissDirection
+                                    if (direction == SwipeToDismissBoxValue.StartToEnd) {
+                                        // Swipe right = quick restock presets (green)
+                                        Box(
+                                            modifier = Modifier
                                                 .fillMaxSize()
                                                 .clip(RoundedCornerShape(20.dp))
-                                                .background(MaterialTheme.colorScheme.error),
-                                        contentAlignment = Alignment.CenterEnd,
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(end = 20.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
+                                                .background(androidx.compose.ui.graphics.Color(0xFF2F9E44)),
+                                            contentAlignment = Alignment.CenterStart,
                                         ) {
-                                            Icon(
-                                                Icons.Default.Delete,
-                                                contentDescription = "Delete",
-                                                tint = MaterialTheme.colorScheme.onError,
-                                            )
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(Icons.Default.Add, contentDescription = "Restock", tint = androidx.compose.ui.graphics.Color.White)
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text("Restock", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                                }
+
+                                                // Presets
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                ) {
+                                                    val presets = listOf(5, 10, 50)
+                                                    presets.forEach { preset ->
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .clip(RoundedCornerShape(12.dp))
+                                                                .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.2f))
+                                                                .clickable {
+                                                                    scope.launch {
+                                                                        val purchase = Purchase(
+                                                                            supplierId = 0L,
+                                                                            supplierName = viewModel.lastRestockSupplierName.ifBlank { "Cash / Anonymous" },
+                                                                            totalAmount = item.buyPrice * preset,
+                                                                            taxAmount = (item.buyPrice * preset) * (item.taxRate / 100.0),
+                                                                            type = "BILL",
+                                                                            timestamp = System.currentTimeMillis(),
+                                                                            notes = "Quick +$preset restock",
+                                                                            items = listOf(
+                                                                                PurchaseItemDetail(
+                                                                                    purchaseId = 0L,
+                                                                                    itemId = item.id,
+                                                                                    itemName = item.name,
+                                                                                    quantity = preset.toDouble(),
+                                                                                    unit = item.unit,
+                                                                                    buyPrice = item.buyPrice
+                                                                                )
+                                                                            )
+                                                                        )
+                                                                        viewModel.addPurchase(purchase) {}
+                                                                        android.widget.Toast.makeText(context, "+$preset ${item.name} restocked", android.widget.Toast.LENGTH_SHORT).show()
+                                                                        dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+                                                                    }
+                                                                }
+                                                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                                            contentAlignment = Alignment.Center,
+                                                        ) {
+                                                            Text("+$preset", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp)
+                                                        }
+                                                    }
+
+                                                    // Custom button
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(12.dp))
+                                                            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.2f))
+                                                            .clickable {
+                                                                quickRefillItem = item
+                                                                scope.launch {
+                                                                    dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+                                                                }
+                                                            }
+                                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                                        contentAlignment = Alignment.Center,
+                                                    ) {
+                                                        Text("Custom", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                                    }
+
+                                                    // Cancel button
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(CircleShape)
+                                                            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.15f))
+                                                            .clickable {
+                                                                scope.launch {
+                                                                    dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+                                                                }
+                                                            }
+                                                            .padding(6.dp),
+                                                        contentAlignment = Alignment.Center,
+                                                    ) {
+                                                        Icon(Icons.Default.Close, contentDescription = "Cancel", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(16.dp))
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        // Swipe left = delete (red)
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .fillMaxSize()
+                                                    .clip(RoundedCornerShape(20.dp))
+                                                    .background(MaterialTheme.colorScheme.error),
+                                            contentAlignment = Alignment.CenterEnd,
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(end = 20.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Delete,
+                                                    contentDescription = "Delete",
+                                                    tint = MaterialTheme.colorScheme.onError,
+                                                )
+                                            }
                                         }
                                     }
                                 },
@@ -751,6 +934,10 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 .padding(bottom = 32.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
+                        LaunchedEffect(Unit) {
+                            focusRequesterName.requestFocus()
+                        }
+
                         Text(
                             text =
                                 if (editingItem == null) {
@@ -769,9 +956,17 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 nameError = false
                             },
                             label = { Text(stringResource(id = R.string.inv_name_label)) },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequesterName),
                             singleLine = true,
                             isError = nameError,
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusRequesterQty.requestFocus() }
+                            ),
                             supportingText =
                                 if (nameError) {
                                     { Text(stringResource(id = R.string.inv_err_empty_name)) }
@@ -788,8 +983,22 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                     qtyError = false
                                 },
                                 label = { Text(stringResource(id = R.string.inv_qty_label)) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.weight(1f),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Decimal,
+                                    imeAction = ImeAction.Next
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onNext = {
+                                        if (viewModel.userRole != "staff") {
+                                            focusRequesterBuyPrice.requestFocus()
+                                        } else {
+                                            focusRequesterSellPrice.requestFocus()
+                                        }
+                                    }
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .focusRequester(focusRequesterQty),
                                 singleLine = true,
                                 isError = qtyError,
                                 supportingText = if (qtyError) {
@@ -820,33 +1029,48 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                     value = inputBuyPrice,
                                     onValueChange = {
                                         inputBuyPrice = it
-                                        priceError = false
+                                        buyPriceError = false
                                     },
                                     label = { Text(stringResource(id = R.string.inv_buy_price_label)) },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                    modifier = Modifier.weight(1f),
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Decimal,
+                                        imeAction = ImeAction.Next
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onNext = { focusRequesterSellPrice.requestFocus() }
+                                    ),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .focusRequester(focusRequesterBuyPrice),
                                     singleLine = true,
-                                    isError = priceError,
+                                    isError = buyPriceError,
+                                    supportingText = if (buyPriceError) {
+                                        { Text("Enter valid buy price") }
+                                    } else null
                                 )
                             }
                             OutlinedTextField(
                                 value = inputSellPrice,
                                 onValueChange = {
                                     inputSellPrice = it
-                                    priceError = false
+                                    sellPriceError = false
                                 },
                                 label = { Text(stringResource(id = R.string.inv_sell_price_label)) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.weight(1f),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Decimal,
+                                    imeAction = ImeAction.Next
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onNext = { focusRequesterThreshold.requestFocus() }
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .focusRequester(focusRequesterSellPrice),
                                 singleLine = true,
-                                isError = priceError,
-                            )
-                        }
-                        if (priceError) {
-                            Text(
-                                stringResource(id = R.string.inv_err_prices),
-                                color = MaterialTheme.colorScheme.error,
-                                fontSize = 12.sp,
+                                isError = sellPriceError,
+                                supportingText = if (sellPriceError) {
+                                    { Text("Enter valid sell price") }
+                                } else null
                             )
                         }
 
@@ -873,8 +1097,16 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             value = inputThreshold,
                             onValueChange = { inputThreshold = it },
                             label = { Text(stringResource(id = R.string.inv_threshold_label)) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusRequesterHsn.requestFocus() }
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequesterThreshold),
                             singleLine = true,
                         )
 
@@ -884,59 +1116,164 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 value = inputHsnCode,
                                 onValueChange = { inputHsnCode = it },
                                 label = { Text("HSN/SAC Code") },
-                                modifier = Modifier.weight(1f),
+                                keyboardOptions = KeyboardOptions(
+                                    imeAction = ImeAction.Next
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onNext = { focusRequesterTax.requestFocus() }
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .focusRequester(focusRequesterHsn),
                                 singleLine = true,
                             )
                             OutlinedTextField(
                                 value = inputTaxRate,
                                 onValueChange = { inputTaxRate = it },
                                 label = { Text("Tax Rate (%)") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.weight(1f),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Decimal,
+                                    imeAction = ImeAction.Next
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onNext = { focusRequesterBatch.requestFocus() }
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .focusRequester(focusRequesterTax),
                                 singleLine = true,
                             )
                         }
+
+                        // ── Batch & Expiry Tracking (Optional) ───────────────
+                        val sheetDateFormatter = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+
+                        // Expiry Date Picker for Add/Edit sheet
+                        if (showExpiryDatePicker) {
+                            val dpState = rememberDatePickerState(initialSelectedDateMillis = inputExpiryDateMs ?: System.currentTimeMillis())
+                            DatePickerDialog(
+                                onDismissRequest = { showExpiryDatePicker = false },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        inputExpiryDateMs = dpState.selectedDateMillis
+                                        showExpiryDatePicker = false
+                                    }) { Text("OK") }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showExpiryDatePicker = false }) { Text("Cancel") }
+                                }
+                            ) { DatePicker(state = dpState) }
+                        }
+
+                        Text(
+                            text = "Batch & Expiry Tracking (Optional)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        OutlinedTextField(
+                            value = inputBatchNumber,
+                            onValueChange = { inputBatchNumber = it },
+                            label = { Text("Batch / Lot Number") },
+                            placeholder = { Text("e.g. MFG-2024-B1") },
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = { focusManager.clearFocus() }
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequesterBatch),
+                            singleLine = true,
+                        )
+                        OutlinedTextField(
+                            value = inputExpiryDateMs?.let { sheetDateFormatter.format(Date(it)) } ?: "",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Expiry Date") },
+                            placeholder = { Text("Tap calendar icon to set") },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = false,
+                            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                            ),
+                            trailingIcon = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (inputExpiryDateMs != null) {
+                                        TextButton(onClick = { inputExpiryDateMs = null }) {
+                                            Text("Clear", fontSize = 11.sp)
+                                        }
+                                    }
+                                    IconButton(onClick = { showExpiryDatePicker = true }) {
+                                        Icon(Icons.Default.CalendarToday, contentDescription = "Pick Expiry Date")
+                                    }
+                                }
+                            }
+                        )
 
                         Button(
                             onClick = {
                                 val name = inputName.trim()
                                 val qty = inputQty.toDoubleOrNull()
-                                val buy = inputBuyPrice.toDoubleOrNull()
+                                val buy = if (viewModel.userRole == "staff") (inputSellPrice.toDoubleOrNull() ?: 0.0) else inputBuyPrice.toDoubleOrNull()
                                 val sell = inputSellPrice.toDoubleOrNull()
                                 val threshold = inputThreshold.toDoubleOrNull() ?: 5.0
                                 val hsn = inputHsnCode.trim().takeIf { it.isNotBlank() }
                                 val tax = inputTaxRate.toDoubleOrNull() ?: 0.0
+                                val batchNum = inputBatchNumber.trim().takeIf { it.isNotBlank() }
+                                val expiryMs = inputExpiryDateMs
 
                                 nameError = name.isBlank()
+                                buyPriceError = viewModel.userRole != "staff" && buy == null
+                                sellPriceError = sell == null
+
+                                if (nameError || qtyError || buyPriceError || sellPriceError) return@Button
                                 priceError = buy == null || sell == null
                                 qtyError = qty == null || qty < 0.0
-                                if (nameError || priceError || qtyError) return@Button
+                                if (nameError || qtyError || priceError || buyPriceError || sellPriceError) return@Button
 
                                 if (editingItem == null) {
                                     viewModel.addItem(
-                                        name,
-                                        qty!!,
-                                        inputUnit,
-                                        buy!!,
-                                        sell!!,
-                                        threshold,
-                                        inputCategory,
-                                        hsn,
-                                        tax,
-                                    )
+                                        name, qty!!, inputUnit, buy!!, sell!!, threshold,
+                                        inputCategory, hsn, tax,
+                                    ) { newItemId ->
+                                        // Log a batch record if batch or expiry info was provided
+                                        if (batchNum != null || expiryMs != null) {
+                                            viewModel.addItemBatch(
+                                                ItemBatch(
+                                                    itemId = newItemId,
+                                                    batchNumber = batchNum,
+                                                    expiryDate = expiryMs,
+                                                    quantity = qty!!,
+                                                    costPrice = buy!!,
+                                                    timestamp = System.currentTimeMillis(),
+                                                    notes = "Initial stock batch"
+                                                )
+                                            )
+                                        }
+                                    }
                                 } else {
                                     viewModel.updateItem(
-                                        editingItem!!.id,
-                                        name,
-                                        qty!!,
-                                        inputUnit,
-                                        buy!!,
-                                        sell!!,
-                                        threshold,
-                                        inputCategory,
-                                        hsn,
-                                        tax,
+                                        editingItem!!.id, name, qty!!, inputUnit, buy!!, sell!!,
+                                        threshold, inputCategory, hsn, tax,
                                     )
+                                    // Also log a batch if expiry info was provided during edit
+                                    if (batchNum != null || expiryMs != null) {
+                                        viewModel.addItemBatch(
+                                            ItemBatch(
+                                                itemId = editingItem!!.id,
+                                                batchNumber = batchNum,
+                                                expiryDate = expiryMs,
+                                                quantity = qty,
+                                                costPrice = buy!!,
+                                                timestamp = System.currentTimeMillis(),
+                                                notes = "Batch logged on edit"
+                                            )
+                                        )
+                                    }
                                 }
                                 showSheet = false
                                 android.widget.Toast

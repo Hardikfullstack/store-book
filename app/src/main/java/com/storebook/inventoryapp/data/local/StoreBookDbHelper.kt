@@ -9,7 +9,7 @@ class StoreBookDbHelper(
     val storeId: String
 ) : SQLiteOpenHelper(context, "storebook_${storeId}.db", null, DATABASE_VERSION) {
     companion object {
-        const val DATABASE_VERSION = 8
+        const val DATABASE_VERSION = 9
 
         // Table Names
         const val TABLE_ITEMS = "items"
@@ -20,6 +20,7 @@ class StoreBookDbHelper(
         const val TABLE_SUPPLIERS = "suppliers"
         const val TABLE_PURCHASES = "purchases"
         const val TABLE_PURCHASE_ITEMS = "purchase_items"
+        const val TABLE_ITEM_BATCHES = "item_batches"
 
         // Common Column Names
         const val KEY_ID = "id"
@@ -226,6 +227,23 @@ class StoreBookDbHelper(
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_purchases_timestamp ON ${TABLE_PURCHASES}(${KEY_TIMESTAMP})")
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_purchases_supplier_id ON ${TABLE_PURCHASES}(supplier_id)")
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_purchase_items_purchase_id ON ${TABLE_PURCHASE_ITEMS}(purchase_id)")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS $TABLE_ITEM_BATCHES (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+            "item_id INTEGER NOT NULL," +
+            "batch_number TEXT," +
+            "expiry_date INTEGER," +
+            "quantity REAL NOT NULL DEFAULT 0," +
+            "cost_price REAL NOT NULL DEFAULT 0," +
+            "timestamp INTEGER NOT NULL," +
+            "notes TEXT," +
+            "cloud_id TEXT," +
+            "is_synced INTEGER NOT NULL DEFAULT 0," +
+            "updated_at INTEGER NOT NULL DEFAULT 0," +
+            "is_deleted INTEGER NOT NULL DEFAULT 0)"
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_item_batches_item_id ON $TABLE_ITEM_BATCHES(item_id)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_item_batches_expiry ON $TABLE_ITEM_BATCHES(expiry_date)")
 
         // Sync indexes
         val tables = listOf(
@@ -348,6 +366,26 @@ class StoreBookDbHelper(
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_${table}_is_synced ON $table(is_synced)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_${table}_updated_at ON $table(updated_at)")
             }
+        }
+        if (oldVersion < 9) {
+            // Phase 4: Add item_batches table for expiry & batch tracking
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS $TABLE_ITEM_BATCHES (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "item_id INTEGER NOT NULL," +
+                "batch_number TEXT," +
+                "expiry_date INTEGER," +
+                "quantity REAL NOT NULL DEFAULT 0," +
+                "cost_price REAL NOT NULL DEFAULT 0," +
+                "timestamp INTEGER NOT NULL," +
+                "notes TEXT," +
+                "cloud_id TEXT," +
+                "is_synced INTEGER NOT NULL DEFAULT 0," +
+                "updated_at INTEGER NOT NULL DEFAULT 0," +
+                "is_deleted INTEGER NOT NULL DEFAULT 0)"
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_item_batches_item_id ON $TABLE_ITEM_BATCHES(item_id)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_item_batches_expiry ON $TABLE_ITEM_BATCHES(expiry_date)")
         }
     }
 }

@@ -5,18 +5,34 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoneyOff
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.outlined.Home
@@ -24,20 +40,26 @@ import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -60,10 +82,11 @@ import com.storebook.inventoryapp.ui.screens.storebook.MoreScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SalesScreen
 import com.storebook.inventoryapp.ui.screens.storebook.UdhaarScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SupplierLedgerScreen
+import com.storebook.inventoryapp.ui.screens.storebook.GSTReportScreen
 import com.storebook.inventoryapp.ui.theme.Poppins
 
 data class BottomNavTab(
-    val route: String,
+    val route: Any,
     val icon: ImageVector,
     val selectedIcon: ImageVector,
     val labelRes: Int,
@@ -91,31 +114,31 @@ fun AppNavigation() {
         remember {
             listOf(
                 BottomNavTab(
-                    "com.storebook.inventoryapp.ui.navigation.Routes.Dashboard",
+                    Routes.Dashboard,
                     Icons.Outlined.Home,
                     Icons.Filled.Home,
                     R.string.tab_dashboard,
                 ),
                 BottomNavTab(
-                    "com.storebook.inventoryapp.ui.navigation.Routes.Inventory",
+                    Routes.Inventory,
                     @Suppress("DEPRECATION") Icons.Outlined.List,
                     @Suppress("DEPRECATION") Icons.Filled.List,
                     R.string.tab_inventory,
                 ),
                 BottomNavTab(
-                    "com.storebook.inventoryapp.ui.navigation.Routes.Sales",
+                    Routes.Sales,
                     Icons.Outlined.ShoppingCart,
                     Icons.Filled.ShoppingCart,
                     R.string.tab_sales,
                 ),
                 BottomNavTab(
-                    "com.storebook.inventoryapp.ui.navigation.Routes.Udhaar",
+                    Routes.Udhaar,
                     Icons.Outlined.Book,
                     Icons.Filled.Book,
                     R.string.tab_udhaar,
                 ),
                 BottomNavTab(
-                    "com.storebook.inventoryapp.ui.navigation.Routes.More",
+                    Routes.More,
                     Icons.Outlined.Menu,
                     Icons.Filled.Menu,
                     R.string.tab_more,
@@ -133,7 +156,72 @@ fun AppNavigation() {
                 "com.storebook.inventoryapp.ui.navigation.Routes.Sales",
             )
 
+    var speedDialExpanded by remember { mutableStateOf(false) }
+    // Quick Expense dialog state
+    var showQuickExpense by remember { mutableStateOf(false) }
+    var quickExpenseAmount by remember { mutableStateOf("") }
+    var quickExpenseDesc by remember { mutableStateOf("") }
+
+    // Quick Expense mini-dialog
+    if (showQuickExpense) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showQuickExpense = false },
+            title = { Text("Log Expense", style = MaterialTheme.typography.titleMedium) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    androidx.compose.material3.OutlinedTextField(
+                        value = quickExpenseAmount,
+                        onValueChange = { quickExpenseAmount = it },
+                        label = { Text("Amount (₹)") },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                    )
+                    androidx.compose.material3.OutlinedTextField(
+                        value = quickExpenseDesc,
+                        onValueChange = { quickExpenseDesc = it },
+                        label = { Text("Description") },
+                        singleLine = true,
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.Button(onClick = {
+                    val amt = quickExpenseAmount.toDoubleOrNull()
+                    if (amt != null && quickExpenseDesc.isNotBlank()) {
+                        storeBookViewModel.logOverheadExpense(quickExpenseDesc.trim(), amt)
+                        quickExpenseAmount = ""
+                        quickExpenseDesc = ""
+                        showQuickExpense = false
+                    }
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showQuickExpense = false }) { Text("Cancel") }
+            }
+        )
+    }
+
     Scaffold(
+        floatingActionButton = {
+            if (showBottomBar && currentRoute != "com.storebook.inventoryapp.ui.navigation.Routes.Inventory") {
+                SpeedDialFab(
+                    expanded = speedDialExpanded,
+                    onToggle = { speedDialExpanded = !speedDialExpanded },
+                    onNewSale = {
+                        speedDialExpanded = false
+                        navController.navigate(Routes.Sales)
+                    },
+                    onRestock = {
+                        speedDialExpanded = false
+                        navController.navigate(Routes.Inventory)
+                    },
+                    onExpense = {
+                        speedDialExpanded = false
+                        showQuickExpense = true
+                    },
+                )
+            }
+        },
         bottomBar = {
             if (showBottomBar) {
                 ModernBottomNavBar(
@@ -141,13 +229,19 @@ fun AppNavigation() {
                     currentRoute = currentRoute,
                     cartCount = storeBookViewModel.cartItems.size,
                     onTabSelected = { tab ->
-                        if (tab.route != currentRoute) {
-                            navController.navigate(tab.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                        val routeName = tab.route::class.qualifiedName
+                        val startDest = navController.graph.findStartDestination()
+                        if (routeName != currentRoute) {
+                            try {
+                                navController.navigate(tab.route) {
+                                    popUpTo(startDest.id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = tab.route != Routes.Dashboard
                                 }
-                                launchSingleTop = true
-                                restoreState = true
+                            } catch (e: Exception) {
+                                android.util.Log.e("AppNav", "Navigation error", e)
                             }
                         }
                     },
@@ -268,6 +362,76 @@ fun AppNavigation() {
                     onBack = { navController.popBackStack() }
                 )
             }
+            composable<Routes.GSTReport> {
+                GSTReportScreen(
+                    navController = navController,
+                    viewModel = storeBookViewModel
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SpeedDialFab(
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onNewSale: () -> Unit,
+    onRestock: () -> Unit,
+    onExpense: () -> Unit,
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (expanded) 45f else 0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "fab_rotation"
+    )
+    val actions = listOf(
+        Triple(Icons.Filled.ShoppingCart, "New Sale", onNewSale),
+        Triple(Icons.Filled.Inventory, "Restock", onRestock),
+        Triple(Icons.Filled.MoneyOff, "Expense", onExpense),
+    )
+    Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
+        actions.forEachIndexed { i, (icon, label, action) ->
+            AnimatedVisibility(
+                visible = expanded,
+                enter = scaleIn(animationSpec = tween(100 + i * 40)) + fadeIn(),
+                exit = scaleOut(animationSpec = tween(80)) + fadeOut(),
+            ) {
+                Row(
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 10.dp),
+                ) {
+                    // Label
+                    Card(
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        elevation = CardDefaults.cardElevation(2.dp),
+                    ) {
+                        Text(label, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), style = MaterialTheme.typography.bodySmall)
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    SmallFloatingActionButton(
+                        onClick = action,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        shape = CircleShape,
+                    ) { Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp)) }
+                }
+            }
+        }
+        FloatingActionButton(
+            onClick = onToggle,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            shape = CircleShape,
+        ) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = "Quick Actions",
+                modifier = Modifier
+                    .size(26.dp)
+                    .then(Modifier.graphicsLayer { rotationZ = rotation })
+            )
         }
     }
 }
@@ -284,7 +448,7 @@ private fun ModernBottomNavBar(
         tonalElevation = 0.dp,
     ) {
         tabs.forEach { tab ->
-            val isSelected = currentRoute == tab.route
+            val isSelected = currentRoute == tab.route::class.qualifiedName
             val scale by animateFloatAsState(
                 targetValue = if (isSelected) 1.1f else 1.0f,
                 animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),

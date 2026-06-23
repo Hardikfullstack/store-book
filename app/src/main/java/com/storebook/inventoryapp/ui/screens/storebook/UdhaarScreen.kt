@@ -55,9 +55,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -765,6 +771,19 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                 var nameError by remember { mutableStateOf(false) }
                 var amountError by remember { mutableStateOf(false) }
 
+                val focusRequesterName = remember { FocusRequester() }
+                val focusRequesterAmount = remember { FocusRequester() }
+                val focusRequesterNotes = remember { FocusRequester() }
+                val focusManager = LocalFocusManager.current
+
+                LaunchedEffect(Unit) {
+                    if (selectedCustomer != null) {
+                        focusRequesterAmount.requestFocus()
+                    } else {
+                        focusRequesterName.requestFocus()
+                    }
+                }
+
                 androidx.compose.ui.window.Dialog(onDismissRequest = { showDialog = false }) {
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(8.dp),
@@ -827,9 +846,17 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     },
                                     label = { Text(if (nameError) "Valid Name Required" else "Customer Name") },
                                     isError = nameError,
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .focusRequester(focusRequesterName),
                                     singleLine = true,
                                     shape = RoundedCornerShape(12.dp),
+                                    keyboardOptions = KeyboardOptions(
+                                        imeAction = ImeAction.Next
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onNext = { focusRequesterAmount.requestFocus() }
+                                    ),
                                 )
                             } else {
                                 Text(
@@ -857,8 +884,16 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     )
                                 },
                                 isError = amountError,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Next
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onNext = { focusRequesterNotes.requestFocus() }
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequesterAmount),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                             )
@@ -867,7 +902,15 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                 value = inputNotes,
                                 onValueChange = { inputNotes = it },
                                 label = { Text(stringResource(id = R.string.udh_desc_note)) },
-                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = KeyboardOptions(
+                                    imeAction = ImeAction.Done
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onDone = { focusManager.clearFocus() }
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequesterNotes),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                             )
@@ -961,7 +1004,7 @@ fun UdhaarCustomerCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         val isZero = kotlin.math.abs(bal.netBalance) < 0.01
-        
+
         Row(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -995,8 +1038,8 @@ fun UdhaarCustomerCard(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = bal.customerName, 
-                    fontWeight = FontWeight.Bold, 
+                    text = bal.customerName,
+                    fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis

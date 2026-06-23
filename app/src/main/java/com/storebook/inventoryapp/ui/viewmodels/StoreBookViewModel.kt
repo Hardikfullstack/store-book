@@ -22,12 +22,48 @@ import com.storebook.inventoryapp.data.repository.Supplier
 import com.storebook.inventoryapp.data.repository.Purchase
 import com.storebook.inventoryapp.data.repository.PurchaseItemDetail
 import com.storebook.inventoryapp.data.repository.SupplierBalance
+import com.storebook.inventoryapp.data.repository.ItemBatch
 import com.storebook.inventoryapp.data.sync.FirestoreSyncManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+enum class AppPermission {
+    VIEW_FINANCIALS,
+    MANAGE_STAFF,
+    MANAGE_BUSINESS_SETTINGS,
+    VIEW_REPORTS,
+    MANAGE_INVENTORY,
+    RECORD_SALES,
+    MANAGE_PREMIUM
+}
+
+enum class UserRole(val permissions: Set<AppPermission>) {
+    OWNER(AppPermission.values().toSet()),
+    MANAGER(setOf(
+        AppPermission.VIEW_FINANCIALS,
+        AppPermission.VIEW_REPORTS,
+        AppPermission.MANAGE_INVENTORY,
+        AppPermission.RECORD_SALES
+    )),
+    BILLER(setOf(
+        AppPermission.RECORD_SALES
+    ));
+
+    fun hasPermission(permission: AppPermission): Boolean = permissions.contains(permission)
+
+    companion object {
+        fun fromString(role: String): UserRole {
+            return try {
+                valueOf(role.uppercase())
+            } catch (e: Exception) {
+                if (role.lowercase() == "staff") BILLER else OWNER
+            }
+        }
+    }
+}
 
 class StoreBookViewModel(
         application: Application,
@@ -45,6 +81,9 @@ class StoreBookViewModel(
         private set
 
     var userRole: String by mutableStateOf(prefs.getString("user_role", "owner") ?: "owner")
+        private set
+
+    var userRoleType: UserRole by mutableStateOf(UserRole.fromString(prefs.getString("user_role", "owner") ?: "owner"))
         private set
 
     var repository = StoreBookRepository(application.applicationContext, activeStoreId)
@@ -117,6 +156,9 @@ class StoreBookViewModel(
     private val _supplierBalances = MutableStateFlow<List<SupplierBalance>>(emptyList())
     val supplierBalances: StateFlow<List<SupplierBalance>> = _supplierBalances
 
+    private val _nearExpiryBatches = MutableStateFlow<List<ItemBatch>>(emptyList())
+    val nearExpiryBatches: StateFlow<List<ItemBatch>> = _nearExpiryBatches
+
     // Cart / Checkout State
     var cartItems by mutableStateOf<List<CartItem>>(emptyList())
         private set
@@ -126,7 +168,20 @@ class StoreBookViewModel(
     var cartCustomerGstin by mutableStateOf("")
     var cartCustomerAddress by mutableStateOf("")
     var cartNotes by mutableStateOf("")
-    var cartPaymentMode by mutableStateOf("Cash")
+    // Smart default: restore last used payment mode across sessions
+    var cartPaymentMode by mutableStateOf(prefs.getString("last_payment_mode", "Cash") ?: "Cash")
+    // Smart default: restore last restock supplier
+    var lastRestockSupplierName by mutableStateOf(prefs.getString("last_restock_supplier", "") ?: "")
+        private set
+
+    fun saveLastPaymentMode(mode: String) {
+        cartPaymentMode = mode
+        prefs.edit().putString("last_payment_mode", mode).apply()
+    }
+    fun saveLastRestockSupplier(name: String) {
+        lastRestockSupplierName = name
+        prefs.edit().putString("last_restock_supplier", name).apply()
+    }
 
     var convertingQuotationId by mutableStateOf<Long?>(null)
         private set
@@ -200,10 +255,11 @@ class StoreBookViewModel(
 
     fun refreshUserState() {
         userRole = prefs.getString("user_role", "owner") ?: "owner"
+        userRoleType = UserRole.fromString(userRole)
         val playPremium = billingManager.state.value.isProUnlocked
         val webPremium = prefs.getBoolean("is_premium", false)
-        isPremiumUser = playPremium || webPremium || userRole == "staff"
-        
+        isPremiumUser = playPremium || webPremium || userRole == "staff" || userRoleType == UserRole.BILLER
+
         val newStoreId = prefs.getString("active_store_id", "default") ?: "default"
         if (newStoreId != activeStoreId) {
             switchStore(newStoreId)
@@ -219,13 +275,13 @@ class StoreBookViewModel(
     fun switchStore(newStoreId: String) {
         activeStoreId = newStoreId
         prefs.edit().putString("active_store_id", newStoreId).apply()
-        
+
         val stores = prefs.getStringSet("user_stores", setOf("default"))?.toMutableSet() ?: mutableSetOf("default")
         if (!stores.contains(newStoreId)) {
             stores.add(newStoreId)
             prefs.edit().putStringSet("user_stores", stores).apply()
         }
-        
+
         userStores = prefs.getStringSet("user_stores", setOf("default"))?.toList() ?: listOf("default")
         repository = StoreBookRepository(getApplication(), newStoreId)
         viewModelScope.launch {
@@ -270,6 +326,7 @@ class StoreBookViewModel(
             _suppliers.value = repository.getSuppliers()
             _purchases.value = repository.getPurchases()
             _supplierBalances.value = repository.getSupplierBalances()
+            _nearExpiryBatches.value = repository.getNearExpiryBatches(30)
 
             if (triggerSync) {
                 triggerSync()
@@ -346,6 +403,7 @@ class StoreBookViewModel(
             category: String,
             hsnCode: String? = null,
             taxRate: Double = 0.0,
+            onResult: (Long) -> Unit = {},
     ) {
         viewModelScope.launch {
             val item =
@@ -360,8 +418,9 @@ class StoreBookViewModel(
                             hsnCode = hsnCode,
                             taxRate = taxRate,
                     )
-            repository.insertItem(item)
+            val newId = repository.insertItem(item)
             loadAllData()
+            onResult(newId)
         }
     }
 
@@ -884,6 +943,51 @@ class StoreBookViewModel(
         }
     }
 
+    // --- GST Report Generation ---
+    suspend fun generateGSTR1Csv(startTs: Long, endTs: Long): String =
+        withContext(Dispatchers.IO) {
+            val sales = repository.getSalesByDateRange(startTs, endTs)
+            val sb = StringBuilder()
+            sb.appendLine("GSTIN of Recipient,Recipient Name,Invoice No,Invoice Date,Invoice Value (₹),Place of Supply,Taxable Value (₹),Rate (%),IGST (₹),CGST (₹),SGST (₹)")
+            var inv = 1
+            for (sale in sales) {
+                val taxable = sale.totalAmount / 1.18 // approximate if no per-item tax stored
+                val taxAmt  = sale.totalAmount - taxable
+                val cgst    = taxAmt / 2
+                val sgst    = taxAmt / 2
+                val date    = java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault()).format(java.util.Date(sale.timestamp))
+                val gstin   = sale.customerGstin ?: ""
+                val cust    = (sale.customerName ?: "Consumer").replace(",", " ")
+                sb.appendLine("$gstin,$cust,INV${inv.toString().padStart(4,'0')},$date,${String.format("%.2f", sale.totalAmount)},29,${String.format("%.2f", taxable)},18,0.00,${String.format("%.2f", cgst)},${String.format("%.2f", sgst)}")
+                inv++
+            }
+            sb.toString()
+        }
+
+    suspend fun getExpensesByDateRange(startTs: Long, endTs: Long): List<com.storebook.inventoryapp.data.repository.ExpenseEntry> =
+        withContext(Dispatchers.IO) {
+            repository.getExpenses().filter { it.timestamp in startTs..endTs }
+        }
+
+    // --- Item Batch Operations (Phase 4) ---
+    fun addItemBatch(batch: ItemBatch, onResult: (Long) -> Unit = {}) {
+        viewModelScope.launch {
+            val id = repository.insertItemBatch(batch)
+            _nearExpiryBatches.value = repository.getNearExpiryBatches(30)
+            onResult(id)
+        }
+    }
+
+    suspend fun getBatchesForItem(itemId: Long): List<ItemBatch> =
+        repository.getBatchesForItem(itemId)
+
+    fun removeItemBatch(batchId: Long) {
+        viewModelScope.launch {
+            repository.deleteItemBatch(batchId)
+            _nearExpiryBatches.value = repository.getNearExpiryBatches(30)
+        }
+    }
+
     suspend fun createStaffAccount(username: String, pin: String): Boolean {
         return withContext(Dispatchers.IO) {
             try {
@@ -897,13 +1001,13 @@ class StoreBookViewModel(
                         "ownerId": "$ownerId"
                     }
                 """.trimIndent()
-                
+
                 val body = okhttp3.RequestBody.create("application/json; charset=utf-8".toMediaTypeOrNull(), json)
                 val request = okhttp3.Request.Builder()
                     .url("http://10.0.2.2:3000/api/staff/invite")
                     .post(body)
                     .build()
-                
+
                 val response = client.newCall(request).execute()
                 response.isSuccessful
             } catch (e: Exception) {

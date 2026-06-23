@@ -119,6 +119,17 @@ data class SupplierBalance(
         val lastTransactionTime: Long,
 ) : Serializable
 
+data class ItemBatch(
+        val id: Long = 0,
+        val itemId: Long,
+        val batchNumber: String? = null,
+        val expiryDate: Long? = null,   // epoch millis; null = no expiry
+        val quantity: Double,
+        val costPrice: Double,
+        val timestamp: Long,
+        val notes: String? = null,
+) : Serializable
+
 // --- Repository ---
 class StoreBookRepository(
         private val context: Context,
@@ -1422,5 +1433,100 @@ class StoreBookRepository(
         } finally {
             db.endTransaction()
         }
+    }
+
+    // --- Item Batch Operations (Phase 4) ---
+
+    suspend fun insertItemBatch(batch: ItemBatch): Long = withContext(Dispatchers.IO) {
+        val db = dbHelper.writableDatabase
+        val cv = ContentValues().apply {
+            put("item_id", batch.itemId)
+            put("batch_number", batch.batchNumber)
+            put("expiry_date", batch.expiryDate)
+            put("quantity", batch.quantity)
+            put("cost_price", batch.costPrice)
+            put("timestamp", batch.timestamp)
+            put("notes", batch.notes)
+            put("is_synced", 0)
+            put("updated_at", System.currentTimeMillis())
+            put("is_deleted", 0)
+        }
+        db.insertWithOnConflict(StoreBookDbHelper.TABLE_ITEM_BATCHES, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    suspend fun getBatchesForItem(itemId: Long): List<ItemBatch> = withContext(Dispatchers.IO) {
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT * FROM ${StoreBookDbHelper.TABLE_ITEM_BATCHES} WHERE item_id = ? AND is_deleted = 0 ORDER BY expiry_date ASC",
+            arrayOf(itemId.toString())
+        )
+        val list = mutableListOf<ItemBatch>()
+        cursor.use { c ->
+            val colId = c.getColumnIndexOrThrow("id")
+            val colItemId = c.getColumnIndexOrThrow("item_id")
+            val colBatch = c.getColumnIndexOrThrow("batch_number")
+            val colExpiry = c.getColumnIndexOrThrow("expiry_date")
+            val colQty = c.getColumnIndexOrThrow("quantity")
+            val colCost = c.getColumnIndexOrThrow("cost_price")
+            val colTs = c.getColumnIndexOrThrow("timestamp")
+            val colNotes = c.getColumnIndexOrThrow("notes")
+            while (c.moveToNext()) {
+                list.add(ItemBatch(
+                    id = c.getLong(colId),
+                    itemId = c.getLong(colItemId),
+                    batchNumber = c.getString(colBatch),
+                    expiryDate = if (c.isNull(colExpiry)) null else c.getLong(colExpiry),
+                    quantity = c.getDouble(colQty),
+                    costPrice = c.getDouble(colCost),
+                    timestamp = c.getLong(colTs),
+                    notes = c.getString(colNotes),
+                ))
+            }
+        }
+        list
+    }
+
+    /** Returns batches expiring within the next [daysAhead] days */
+    suspend fun getNearExpiryBatches(daysAhead: Int = 30): List<ItemBatch> = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        val cutoff = now + daysAhead.toLong() * 24 * 60 * 60 * 1000
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT * FROM ${StoreBookDbHelper.TABLE_ITEM_BATCHES} WHERE is_deleted = 0 AND expiry_date IS NOT NULL AND expiry_date BETWEEN ? AND ? ORDER BY expiry_date ASC",
+            arrayOf(now.toString(), cutoff.toString())
+        )
+        val list = mutableListOf<ItemBatch>()
+        cursor.use { c ->
+            val colId = c.getColumnIndexOrThrow("id")
+            val colItemId = c.getColumnIndexOrThrow("item_id")
+            val colBatch = c.getColumnIndexOrThrow("batch_number")
+            val colExpiry = c.getColumnIndexOrThrow("expiry_date")
+            val colQty = c.getColumnIndexOrThrow("quantity")
+            val colCost = c.getColumnIndexOrThrow("cost_price")
+            val colTs = c.getColumnIndexOrThrow("timestamp")
+            val colNotes = c.getColumnIndexOrThrow("notes")
+            while (c.moveToNext()) {
+                list.add(ItemBatch(
+                    id = c.getLong(colId),
+                    itemId = c.getLong(colItemId),
+                    batchNumber = c.getString(colBatch),
+                    expiryDate = if (c.isNull(colExpiry)) null else c.getLong(colExpiry),
+                    quantity = c.getDouble(colQty),
+                    costPrice = c.getDouble(colCost),
+                    timestamp = c.getLong(colTs),
+                    notes = c.getString(colNotes),
+                ))
+            }
+        }
+        list
+    }
+
+    suspend fun deleteItemBatch(batchId: Long) = withContext(Dispatchers.IO) {
+        val db = dbHelper.writableDatabase
+        val cv = ContentValues().apply {
+            put("is_deleted", 1)
+            put("updated_at", System.currentTimeMillis())
+        }
+        db.update(StoreBookDbHelper.TABLE_ITEM_BATCHES, cv, "id = ?", arrayOf(batchId.toString()))
     }
 }
