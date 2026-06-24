@@ -69,6 +69,11 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -83,6 +88,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -1014,6 +1020,9 @@ fun MoreScreen(
                                                 var gstinInput by remember {
                                                         mutableStateOf(viewModel.businessGstin)
                                                 }
+                                                val focusRequesterGstin = remember { FocusRequester() }
+                                                val focusRequesterAddress = remember { FocusRequester() }
+                                                val focusManager = LocalFocusManager.current
                                                 Column(
                                                         modifier =
                                                                 Modifier.fillMaxWidth()
@@ -1039,6 +1048,8 @@ fun MoreScreen(
                                                                 label = {
                                                                         Text("Store Owner's Name")
                                                                 },
+                                                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                                                                keyboardActions = KeyboardActions(onNext = { focusRequesterGstin.requestFocus() }),
                                                                 modifier = Modifier.fillMaxWidth(),
                                                                 singleLine = true,
                                                                 shape = RoundedCornerShape(12.dp),
@@ -1049,7 +1060,9 @@ fun MoreScreen(
                                                                 label = {
                                                                         Text("Store Owner's GSTIN")
                                                                 },
-                                                                modifier = Modifier.fillMaxWidth(),
+                                                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                                                                keyboardActions = KeyboardActions(onNext = { focusRequesterAddress.requestFocus() }),
+                                                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterGstin),
                                                                 singleLine = true,
                                                                 shape = RoundedCornerShape(12.dp),
                                                         )
@@ -1068,7 +1081,9 @@ fun MoreScreen(
                                                                                 "Store Owner's Address"
                                                                         )
                                                                 },
-                                                                modifier = Modifier.fillMaxWidth(),
+                                                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                                                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterAddress),
                                                                 minLines = 2,
                                                                 maxLines = 4,
                                                                 shape = RoundedCornerShape(12.dp),
@@ -1390,6 +1405,7 @@ fun InlineThemeCard(
     onThemeSelected: (Boolean) -> Unit,
     onThemeModeSelected: (AppThemeMode) -> Unit,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val palettes = listOf(
         Triple(AppThemeMode.INK_BLUE,          Color(0xFF191958), "Sapphire Blue"),
         Triple(AppThemeMode.FOREST_GREEN,      Color(0xFF059669), "Emerald Jade"),
@@ -1489,9 +1505,19 @@ fun InlineThemeCard(
                             if (isSelected && !isLocked) color else Color.Transparent,
                             animationSpec = tween(250), label = "ring_${name}"
                         )
+                        val interactionSource = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.clickable { onThemeModeSelected(mode) },
+                            modifier = if (isLocked) {
+                                Modifier.clickable(
+                                    interactionSource = interactionSource,
+                                    indication = null
+                                ) {
+                                    android.widget.Toast.makeText(context, "Only available for Pro users", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Modifier.clickable { onThemeModeSelected(mode) }
+                            },
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
@@ -1597,6 +1623,8 @@ fun ExpenseSheetContent(
         expensesHistory: List<ExpenseEntry>,
 ) {
         val dateFmt = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+        val focusRequesterDesc = remember { FocusRequester() }
+        val focusManager = LocalFocusManager.current
         Column(
                 modifier =
                         Modifier.fillMaxWidth()
@@ -1618,7 +1646,11 @@ fun ExpenseSheetContent(
                                 onValueChange = onAmountChange,
                                 label = { Text(stringResource(id = R.string.exp_amount_label)) },
                                 keyboardOptions =
-                                        KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        KeyboardOptions(
+                                                keyboardType = KeyboardType.Number,
+                                                imeAction = ImeAction.Next
+                                        ),
+                                keyboardActions = KeyboardActions(onNext = { focusRequesterDesc.requestFocus() }),
                                 modifier = Modifier.weight(1f),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
@@ -1627,7 +1659,9 @@ fun ExpenseSheetContent(
                                 value = expenseDesc,
                                 onValueChange = onDescChange,
                                 label = { Text(stringResource(id = R.string.exp_desc_label)) },
-                                modifier = Modifier.weight(1.5f),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                modifier = Modifier.weight(1.5f).focusRequester(focusRequesterDesc),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                         )
@@ -1865,6 +1899,11 @@ fun RestockSheetContent(
         onPhoneChange: (String) -> Unit,
         onSave: () -> Unit,
 ) {
+        val focusRequesterCost = remember { androidx.compose.ui.focus.FocusRequester() }
+        val focusRequesterSupplier = remember { androidx.compose.ui.focus.FocusRequester() }
+        val focusRequesterPhone = remember { androidx.compose.ui.focus.FocusRequester() }
+        val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+
         Column(
                 modifier =
                         Modifier.fillMaxWidth()
@@ -1931,7 +1970,13 @@ fun RestockSheetContent(
                                 onValueChange = onQtyChange,
                                 label = { Text(stringResource(id = R.string.exp_restock_qty)) },
                                 keyboardOptions =
-                                        KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        KeyboardOptions(
+                                                keyboardType = KeyboardType.Number,
+                                                imeAction = androidx.compose.ui.text.input.ImeAction.Next
+                                        ),
+                                keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                                        onNext = { focusRequesterCost.requestFocus() }
+                                ),
                                 modifier = Modifier.weight(1f),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
@@ -1941,8 +1986,14 @@ fun RestockSheetContent(
                                 onValueChange = onCostChange,
                                 label = { Text(stringResource(id = R.string.exp_cost_price)) },
                                 keyboardOptions =
-                                        KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.weight(1f),
+                                        KeyboardOptions(
+                                                keyboardType = KeyboardType.Number,
+                                                imeAction = androidx.compose.ui.text.input.ImeAction.Next
+                                        ),
+                                keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                                        onNext = { focusRequesterSupplier.requestFocus() }
+                                ),
+                                modifier = Modifier.weight(1f).focusRequester(focusRequesterCost),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                         )
@@ -1952,7 +2003,11 @@ fun RestockSheetContent(
                         value = restockSupplier,
                         onValueChange = onSupplierChange,
                         label = { Text(stringResource(id = R.string.exp_supplier_label)) },
-                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Next),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                                onNext = { focusRequesterPhone.requestFocus() }
+                        ),
+                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterSupplier),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                 )
@@ -1960,8 +2015,14 @@ fun RestockSheetContent(
                         value = restockPhone,
                         onValueChange = onPhoneChange,
                         label = { Text(stringResource(id = R.string.exp_supplier_phone)) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Phone,
+                                imeAction = androidx.compose.ui.text.input.ImeAction.Done
+                        ),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                                onDone = { focusManager.clearFocus() }
+                        ),
+                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterPhone),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                 )

@@ -189,7 +189,7 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
 
             // ── Tagline ───────────────────────────────────────────────────
             Text(
-                text = "Business Leader",
+                text = "Smart Dukaan · Saaf Hisaab",
                 fontFamily = Poppins,
                 fontWeight = FontWeight.Medium,
                 fontSize = 13.sp,

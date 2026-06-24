@@ -144,6 +144,71 @@ fun DashboardScreen(
             }
         }
 
+<<<<<<< HEAD
+=======
+    // 7-day trend calculations for Net Sales, Purchases, and Expenses
+    val last7DaysData = remember(salesList, purchasesList, expensesList) {
+        val format = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+        val days = (0..6).map { offset ->
+            val cal = Calendar.getInstance()
+            cal.add(Calendar.DAY_OF_YEAR, -offset)
+            format.format(cal.time)
+        }.reversed() // [day-6, day-5, ..., today]
+
+        // Sales per day
+        val salesPerDay = days.associateWith { dayStr ->
+            salesList.filter { saleDateFmt.format(Date(it.timestamp)) == dayStr }.sumOf { it.totalAmount }
+        }
+
+        // Purchases per day
+        val purchasesPerDay = days.associateWith { dayStr ->
+            purchasesList.filter { saleDateFmt.format(Date(it.timestamp)) == dayStr }.sumOf { it.totalAmount }
+        }
+
+        // Expenses per day
+        val expensesPerDay = days.associateWith { dayStr ->
+            expensesList.filter { saleDateFmt.format(Date(it.timestamp)) == dayStr }.sumOf { it.amount }
+        }
+
+        Triple(
+            days.map { salesPerDay[it] ?: 0.0 },
+            days.map { purchasesPerDay[it] ?: 0.0 },
+            days.map { expensesPerDay[it] ?: 0.0 }
+        )
+    }
+
+    val salesTrend = last7DaysData.first
+    val salesSumFirstHalf = salesTrend.take(3).sum()
+    val salesSumSecondHalf = salesTrend.takeLast(3).sum()
+    val salesIndicatorColor = when {
+        salesSumSecondHalf > salesSumFirstHalf -> Color(0xFF2E7D32) // Positive Growth (Green)
+        salesSumSecondHalf < salesSumFirstHalf -> Color(0xFFC62828) // Declining (Red)
+        else -> Color(0xFFF57C00) // Stable/Neutral (Yellow)
+    }
+    val salesIndicatorLabel = when {
+        salesSumSecondHalf > salesSumFirstHalf -> "Strong Sales Growth"
+        salesSumSecondHalf < salesSumFirstHalf -> "Declining Sales Volume"
+        else -> "Stable Sales Performance"
+    }
+
+    val purchasesIndicatorColor = Color(0xFFF57C00) // Stable (Yellow)
+    val purchasesIndicatorLabel = "Stock Inflow: Normal"
+
+    val expensesSum = last7DaysData.third.sum()
+    val salesSum = last7DaysData.first.sum()
+    val ratio = if (salesSum > 0) expensesSum / salesSum else 0.0
+    val expensesIndicatorColor = when {
+        ratio > 0.20 -> Color(0xFFC62828) // High Expenses (Red)
+        ratio > 0.05 -> Color(0xFFF57C00) // Moderate Expenses (Yellow)
+        else -> Color(0xFF2E7D32) // Low Expenses (Green)
+    }
+    val expensesIndicatorLabel = when {
+        ratio > 0.20 -> "High Overhead Expenses"
+        ratio > 0.05 -> "Moderate Overhead Expenses"
+        else -> "Optimal Low Expenses"
+    }
+
+>>>>>>> 5679363 (all textfield keybord next click set, inventory filter change and ui dark mode)
     // Pull to refresh state
     var isRefreshing by remember { mutableStateOf(false) }
 
@@ -152,9 +217,18 @@ fun DashboardScreen(
     var quickRefillItem by remember { mutableStateOf<Item?>(null) }
     var fabExpanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+<<<<<<< HEAD
     LaunchedEffect(viewModel.lastSaleId, viewModel.lastSaleTime) {
         if (viewModel.lastSaleId != null) {
             val elapsed = (System.currentTimeMillis() - viewModel.lastSaleTime) / 1000
+=======
+
+    val currentLastSaleId = viewModel.lastSaleId
+    val currentLastSaleTime = viewModel.lastSaleTime
+    LaunchedEffect(currentLastSaleId, currentLastSaleTime) {
+        if (currentLastSaleId != null) {
+            val elapsed = (System.currentTimeMillis() - currentLastSaleTime) / 1000
+>>>>>>> 5679363 (all textfield keybord next click set, inventory filter change and ui dark mode)
             undoSecondsLeft = (30 - elapsed).toInt().coerceAtLeast(0)
             while (undoSecondsLeft > 0) {
                 delay(1000)
@@ -305,7 +379,7 @@ fun DashboardScreen(
                                     .clip(RoundedCornerShape(20.dp))
                                     .background(
                                         if (viewModel.isPremiumUser) {
-                                            Gold200.copy(alpha = 0.25f)
+                                            Gold400
                                         } else {
                                             (if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary).copy(alpha = 0.15f)
                                         },
@@ -316,7 +390,11 @@ fun DashboardScreen(
                                 text = if (viewModel.isPremiumUser) "★ PRO" else "FREE",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Black,
+<<<<<<< HEAD
                                 color = if (viewModel.isPremiumUser) Gold400 else if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
+=======
+                                color = if (viewModel.isPremiumUser) Color(0xFF452E00) else MaterialTheme.colorScheme.onPrimary,
+>>>>>>> 5679363 (all textfield keybord next click set, inventory filter change and ui dark mode)
                             )
                         }
 
@@ -888,6 +966,130 @@ fun DashboardScreen(
 }
 
 @Composable
+<<<<<<< HEAD
+=======
+fun SparklineMetricCard(
+    title: String,
+    totalValue: String,
+    trendData: List<Double>,
+    indicatorColor: Color,
+    indicatorLabel: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Header: Title & Total Value
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column {
+                    Text(
+                        text = title,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = totalValue,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // Sparkline (Mini Line Chart)
+                Box(
+                    modifier = Modifier
+                        .width(90.dp)
+                        .height(36.dp)
+                        .padding(top = 4.dp)
+                ) {
+                    if (trendData.size >= 2) {
+                        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                            val maxVal = trendData.maxOrNull()?.toFloat() ?: 0f
+                            val minVal = trendData.minOrNull()?.toFloat() ?: 0f
+                            val range = if (maxVal - minVal == 0f) 1f else maxVal - minVal
+
+                            val width = size.width
+                            val height = size.height
+                            val path = androidx.compose.ui.graphics.Path()
+
+                            trendData.forEachIndexed { index, value ->
+                                val x = index * (width / (trendData.size - 1))
+                                // Invert Y because canvas (0,0) is top-left
+                                val y = height - ((value.toFloat() - minVal) / range) * height
+                                if (index == 0) {
+                                    path.moveTo(x, y)
+                                } else {
+                                    path.lineTo(x, y)
+                                }
+                            }
+
+                            drawPath(
+                                path = path,
+                                color = indicatorColor,
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                    width = 2.dp.toPx(),
+                                    pathEffect = null,
+                                    cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                                    join = androidx.compose.ui.graphics.StrokeJoin.Round
+                                )
+                            )
+                        }
+                    } else {
+                        // Empty/stable straight line sparkline
+                        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                            drawLine(
+                                color = indicatorColor,
+                                start = androidx.compose.ui.geometry.Offset(0f, size.height / 2),
+                                end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2),
+                                strokeWidth = 2.dp.toPx()
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Traffic Light Indicator below
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Traffic light indicator: a solid circle/dot
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(indicatorColor)
+                )
+                Text(
+                    text = indicatorLabel,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = indicatorColor
+                )
+            }
+        }
+    }
+}
+
+@Composable
+>>>>>>> 5679363 (all textfield keybord next click set, inventory filter change and ui dark mode)
 fun AnimatedMetricCard(
     title: String,
     value: String,
