@@ -281,16 +281,13 @@ fun MoreScreen(
                                                                         ),
                                                                 fontWeight = FontWeight.ExtraBold,
                                                                 fontSize = 18.sp,
-                                                                color = if (com.storebook.inventoryapp.ui.theme.isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
+                                                                color = MaterialTheme.colorScheme.onPrimary,
                                                         )
                                                         Text(
                                                                 text =
                                                                         "${allItems.size} items · ${salesList.size} total sales",
                                                                 fontSize = 12.sp,
-                                                                color =
-                                                                        (if (com.storebook.inventoryapp.ui.theme.isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary).copy(
-                                                                                alpha = 0.7f
-                                                                        ),
+                                                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                                                         )
                                                 }
                                         }

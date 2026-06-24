@@ -353,7 +353,7 @@ fun DashboardScreen(
                         Text(
                             text = greeting,
                             fontSize = 12.sp,
-                            color = if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
                             fontWeight = FontWeight.Medium,
                             letterSpacing = 0.2.sp,
                         )
@@ -365,15 +365,14 @@ fun DashboardScreen(
                                     MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 24.sp,
-                                        fontFamily = Inter,
                                     ),
-                                color = if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
+                                color = MaterialTheme.colorScheme.onPrimary,
                             )
                         }
                         Text(
                             text = stringResource(id = R.string.dash_subtitle),
                             fontSize = 11.sp,
-                            color = if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
                             fontWeight = FontWeight.Medium,
                         )
                     }
@@ -391,7 +390,7 @@ fun DashboardScreen(
                                         if (viewModel.isPremiumUser) {
                                             Gold200.copy(alpha = 0.25f)
                                         } else {
-                                            (if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary).copy(alpha = 0.15f)
+                                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
                                         },
                                     ).clickable { navController.navigate(Routes.PremiumPlans) }
                                     .padding(horizontal = 14.dp, vertical = 7.dp),
@@ -400,7 +399,7 @@ fun DashboardScreen(
                                 text = if (viewModel.isPremiumUser) "★ PRO" else "FREE",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Black,
-                                color = if (viewModel.isPremiumUser) Gold400 else if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
+                                color = if (viewModel.isPremiumUser) Gold400 else MaterialTheme.colorScheme.onPrimary,
                             )
                         }
 
@@ -433,7 +432,7 @@ fun DashboardScreen(
                                 Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background((if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary).copy(alpha = 0.15f))
+                                    .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f))
                                     .clickable {
                                         if (currentUser == null) {
                                             navController.navigate(Routes.Auth)
@@ -450,7 +449,7 @@ fun DashboardScreen(
                         ) {
                             Text(
                                 text = avatarLetter,
-                                color = if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                             )
