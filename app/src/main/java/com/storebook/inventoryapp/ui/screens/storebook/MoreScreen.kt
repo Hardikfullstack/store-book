@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -87,6 +88,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -1483,14 +1485,17 @@ fun LanguageRow(
 fun InlineThemeCard(
     isDarkMode: Boolean,
     themeMode: AppThemeMode,
+    isPremium: Boolean,
     onThemeSelected: (Boolean) -> Unit,
     onThemeModeSelected: (AppThemeMode) -> Unit,
 ) {
     val palettes = listOf(
-        Triple(AppThemeMode.INK_BLUE,       Color(0xFF3B5BDB), "Ink Blue"),
-        Triple(AppThemeMode.SUNSET_ORANGE,  Color(0xFFE8590C), "Sunset"),
-        Triple(AppThemeMode.FOREST_GREEN,   Color(0xFF2F9E44), "Forest"),
-        Triple(AppThemeMode.AMETHYST_PURPLE,Color(0xFF7048E8), "Amethyst"),
+        Triple(AppThemeMode.INK_BLUE,          Color(0xFF191958), "Sapphire Blue"),
+        Triple(AppThemeMode.FOREST_GREEN,      Color(0xFF059669), "Emerald Jade"),
+        Triple(AppThemeMode.SUNSET_ORANGE,     Color(0xFFEA580C), "Sunset Amber"),
+        Triple(AppThemeMode.AMETHYST_PURPLE,   Color(0xFF7C3AED), "Royal Amethyst"),
+        Triple(AppThemeMode.CRIMSON_RUBY,      Color(0xFFBE123C), "Crimson Ruby"),
+        Triple(AppThemeMode.CHARCOAL_OBSIDIAN,  Color(0xFF374151), "Charcoal Obsidian"),
     )
 
     Card(
@@ -1564,52 +1569,103 @@ fun InlineThemeCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 2.dp),
             )
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(horizontal = 4.dp),
+
+            val lazyListState = rememberLazyListState()
+
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.CenterEnd
             ) {
-                items(palettes) { (mode, color, name) ->
-                    val isSelected = themeMode == mode
-                    val ringAlpha by animateColorAsState(
-                        if (isSelected) color else Color.Transparent,
-                        animationSpec = tween(250), label = "ring_${name}"
-                    )
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable { onThemeModeSelected(mode) },
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(52.dp)
-                                .clip(CircleShape)
-                                .border(BorderStroke(3.dp, ringAlpha), CircleShape)
-                                .padding(4.dp),
+                LazyRow(
+                    state = lazyListState,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(start = 4.dp, end = 40.dp),
+                ) {
+                    items(palettes) { (mode, color, name) ->
+                        val isSelected = themeMode == mode
+                        val isLocked = !isPremium && mode != AppThemeMode.INK_BLUE
+                        val ringAlpha by animateColorAsState(
+                            if (isSelected && !isLocked) color else Color.Transparent,
+                            animationSpec = tween(250), label = "ring_${name}"
+                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.clickable { onThemeModeSelected(mode) },
                         ) {
                             Box(
+                                contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(52.dp)
                                     .clip(CircleShape)
-                                    .background(color)
+                                    .border(BorderStroke(3.dp, ringAlpha), CircleShape)
+                                    .padding(4.dp),
                             ) {
-                                if (isSelected) {
-                                    Icon(
-                                        imageVector = Icons.Default.Star,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier
-                                            .size(16.dp)
-                                            .align(Alignment.Center),
-                                    )
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(color)
+                                ) {
+                                    if (isSelected && !isLocked) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .align(Alignment.Center),
+                                        )
+                                    } else if (isLocked) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(Color.Black.copy(alpha = 0.4f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.pdf_detail_lock),
+                                                contentDescription = "Locked",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = name,
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) color else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = name,
-                            fontSize = 11.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) color else MaterialTheme.colorScheme.onSurfaceVariant,
+                    }
+                }
+
+                // Scroll Indicator Arrow (fade gradient + chevron)
+                if (lazyListState.canScrollForward) {
+                    Box(
+                        modifier = Modifier
+                            .height(80.dp)
+                            .width(50.dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f)
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = "More colors available",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier
+                                .padding(end = 4.dp, bottom = 22.dp)
+                                .size(22.dp)
                         )
                     }
                 }
@@ -1622,11 +1678,12 @@ fun InlineThemeCard(
 fun ThemeSheetContent(
     isDarkMode: Boolean,
     themeMode: AppThemeMode,
+    isPremium: Boolean,
     onThemeSelected: (Boolean) -> Unit,
     onThemeModeSelected: (AppThemeMode) -> Unit,
 ) {
     // Legacy — delegates to inline card for backward compat
-    InlineThemeCard(isDarkMode, themeMode, onThemeSelected, onThemeModeSelected)
+    InlineThemeCard(isDarkMode, themeMode, isPremium, onThemeSelected, onThemeModeSelected)
 }
 
 @Composable

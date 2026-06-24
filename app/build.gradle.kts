@@ -22,7 +22,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Strip out unused languages from dependencies (saves 1-3MB)
-        resourceConfigurations.addAll(listOf("en", "it", "hi", "es", "fr", "de", "pt", "ru", "gu"))
+        resourceConfigurations.addAll(listOf("en", "hi", "gu"))
     }
 
     buildTypes {

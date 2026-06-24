@@ -21,19 +21,6 @@ data class LanguageItem(
     val iconResId: Int,
 )
 
-fun getSupportedLanguages(): List<LanguageItem> =
-    listOf(
-        LanguageItem("en", "English", "English", R.drawable.language_ic_english),
-        LanguageItem("it", "Italian", "Italiano", R.drawable.language_ic_italian),
-        LanguageItem("hi", "Hindi", "हिन्दी", R.drawable.language_ic_hindi),
-        LanguageItem("gu", "Gujarati", "ગુજરાતી", R.drawable.language_ic_hindi),
-        LanguageItem("es", "Spanish", "Español", R.drawable.language_ic_spanish),
-        LanguageItem("fr", "French", "Français", R.drawable.language_ic_french),
-        LanguageItem("de", "German", "Deutsch", R.drawable.language_ic_german),
-        LanguageItem("pt", "Portuguese", "Português", R.drawable.language_ic_portuguese),
-        LanguageItem("ru", "Russian", "Русский", R.drawable.language_ic_russian),
-    )
-
 class LanguageManager(
     private val context: Context,
 ) {

@@ -26,19 +26,19 @@ class AppConfigViewModel(
     private val API_PACKAGE_NAME = "StoreBook"
     private val _appResponse = MutableStateFlow<AppResponse?>(loadCachedResponse())
     val appResponse: StateFlow<AppResponse?> = _appResponse
-    private val _dynamicAppName =
+    private val _appName =
         MutableStateFlow(
             _appResponse.value?.result?.app_name
-                ?: prefs.getString("dynamic_app_name", defaultAppName) ?: defaultAppName,
+                ?: prefs.getString("app_name", defaultAppName) ?: defaultAppName,
         )
-    val dynamicAppName: StateFlow<String> = _dynamicAppName
+    val appName: StateFlow<String> = _appName
 
-    private val _dynamicAppBrand =
+    private val _appBrand =
         MutableStateFlow(
             _appResponse.value?.result?.extra_data_7_message
-                ?: prefs.getString("dynamic_app_brand", defaultAppBrand) ?: defaultAppBrand,
+                ?: prefs.getString("app_brand", defaultAppBrand) ?: defaultAppBrand,
         )
-    val dynamicAppBrand: StateFlow<String> = _dynamicAppBrand
+    val appBrand: StateFlow<String> = _appBrand
 
     init {
         fetchAppData()
@@ -56,10 +56,10 @@ class AppConfigViewModel(
     }
 
     private fun loadCachedResponse(): AppResponse? {
-        val cachedName = prefs.getString("dynamic_app_name", null)
+        val cachedName = prefs.getString("app_name", null)
         val cachedMaintenance = prefs.getString("maintenance_on_off", null)
         val cachedVersion = prefs.getString("latest_version_message", null)
-        val cachedBrand = prefs.getString("dynamic_app_brand", null)
+        val cachedBrand = prefs.getString("app_brand", null)
         val cachedOffline = prefs.getString("offline_on_off", null)
 
         return if (cachedName != null ||
@@ -102,14 +102,14 @@ class AppConfigViewModel(
 
                         // 1. App name
                         result.app_name?.let {
-                            editor.putString("dynamic_app_name", it)
-                            _dynamicAppName.value = it
+                            editor.putString("app_name", it)
+                            _appName.value = it
                         }
 
-                        // 2. App brand (PDFlex)
+                        // 2. App brand
                         result.extra_data_7_message?.let {
-                            editor.putString("dynamic_app_brand", it)
-                            _dynamicAppBrand.value = it
+                            editor.putString("app_brand", it)
+                            _appBrand.value = it
                         }
 
                         // 2. Maintenance ON/OFF

@@ -4,13 +4,13 @@ import androidx.compose.ui.graphics.Color
 
 // === StoreBook Brand Palette ===
 
-// Ink Blue — modern vibrant indigo/iris
-val InkBlue900 = Color(0xFF1E1B4B)
-val InkBlue700 = Color(0xFF4338CA)
-val InkBlue500 = Color(0xFF6366F1)
-val InkBlue300 = Color(0xFF818CF8)
-val InkBlue100 = Color(0xFFC7D2FE)
-val InkBlue50 = Color(0xFFEEF2FF)
+// Ink Blue (Sapphire Blue) — matching app icon/brand color (0xFF191958)
+val InkBlue900 = Color(0xFF0D0D36)
+val InkBlue700 = Color(0xFF191958)
+val InkBlue500 = Color(0xFF32328C)
+val InkBlue300 = Color(0xFF5A5AD4)
+val InkBlue100 = Color(0xFFC6C6F2)
+val InkBlue50 = Color(0xFFECECFB)
 
 // Saffron — modern amber/gold
 val Saffron500 = Color(0xFFF59E0B)
@@ -47,26 +47,42 @@ val Gold200 = Color(0xFFFDE68A)
 // WhatsApp green
 val WhatsAppGreen = Color(0xFF22C55E)
 
-// Sunset Orange Mode
+// Sunset Orange Mode - Premium Copper Amber
 val SunsetOrange900 = Color(0xFF7C2D12)
-val SunsetOrange700 = Color(0xFFC2410C)
+val SunsetOrange700 = Color(0xFFEA580C)
 val SunsetOrange500 = Color(0xFFF97316)
 val SunsetOrange300 = Color(0xFFFDBA74)
 val SunsetOrange100 = Color(0xFFFFEDD5)
-val SunsetOrange50 = Color(0xFFFFF7ED)
+val SunsetOrange50 = Color(0xFFFFF8F1)
 
-// Forest Green Mode
-val ForestGreen900 = Color(0xFF14532D)
-val ForestGreen700 = Color(0xFF15803D)
-val ForestGreen500 = Color(0xFF22C55E)
-val ForestGreen300 = Color(0xFF86EFAC)
-val ForestGreen100 = Color(0xFFDCFCE7)
-val ForestGreen50 = Color(0xFFF0FDF4)
+// Forest Green (Emerald Jade) Mode
+val ForestGreen900 = Color(0xFF064E3B)
+val ForestGreen700 = Color(0xFF059669)
+val ForestGreen500 = Color(0xFF10B981)
+val ForestGreen300 = Color(0xFF6EE7B7)
+val ForestGreen100 = Color(0xFFD1FAE5)
+val ForestGreen50 = Color(0xFFECFDF5)
 
-// Amethyst Purple Mode
+// Amethyst Purple Mode - Premium Royal Amethyst
 val AmethystPurple900 = Color(0xFF4C1D95)
-val AmethystPurple700 = Color(0xFF7E22CE)
-val AmethystPurple500 = Color(0xFFA855F7)
-val AmethystPurple300 = Color(0xFFD8B4FE)
-val AmethystPurple100 = Color(0xFFF3E8FF)
-val AmethystPurple50 = Color(0xFFFAF5FF)
+val AmethystPurple700 = Color(0xFF7C3AED)
+val AmethystPurple500 = Color(0xFF8B5CF6)
+val AmethystPurple300 = Color(0xFFC4B5FD)
+val AmethystPurple100 = Color(0xFFEDE9FE)
+val AmethystPurple50 = Color(0xFFF5F3FF)
+
+// Crimson Ruby Mode
+val CrimsonRuby900 = Color(0xFF881337)
+val CrimsonRuby700 = Color(0xFFBE123C)
+val CrimsonRuby500 = Color(0xFFF43F5E)
+val CrimsonRuby300 = Color(0xFFFDA4AF)
+val CrimsonRuby100 = Color(0xFFFFE4E6)
+val CrimsonRuby50 = Color(0xFFFFF1F2)
+
+// Charcoal Obsidian Mode
+val CharcoalObsidian900 = Color(0xFF111827)
+val CharcoalObsidian700 = Color(0xFF374151)
+val CharcoalObsidian500 = Color(0xFF6B7280)
+val CharcoalObsidian300 = Color(0xFFD1D5DB)
+val CharcoalObsidian100 = Color(0xFFF3F4F6)
+val CharcoalObsidian50 = Color(0xFFF9FAFB)
