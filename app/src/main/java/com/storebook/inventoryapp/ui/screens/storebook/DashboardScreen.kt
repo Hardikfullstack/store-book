@@ -192,9 +192,9 @@ fun DashboardScreen(
     val salesSumFirstHalf = salesTrend.take(3).sum()
     val salesSumSecondHalf = salesTrend.takeLast(3).sum()
     val salesIndicatorColor = when {
-        salesSumSecondHalf > salesSumFirstHalf -> Color(0xFF2E7D32) // Positive Growth (Green)
-        salesSumSecondHalf < salesSumFirstHalf -> Color(0xFFC62828) // Declining (Red)
-        else -> Color(0xFFF57C00) // Stable/Neutral (Yellow)
+        salesSumSecondHalf > salesSumFirstHalf -> MaterialTheme.colorScheme.tertiary // Positive Growth (Green)
+        salesSumSecondHalf < salesSumFirstHalf -> MaterialTheme.colorScheme.error // Declining (Red)
+        else -> MaterialTheme.colorScheme.secondary // Stable/Neutral (Yellow)
     }
     val salesIndicatorLabel = when {
         salesSumSecondHalf > salesSumFirstHalf -> "Strong Sales Growth"
@@ -202,16 +202,16 @@ fun DashboardScreen(
         else -> "Stable Sales Performance"
     }
 
-    val purchasesIndicatorColor = Color(0xFFF57C00) // Stable (Yellow)
+    val purchasesIndicatorColor = MaterialTheme.colorScheme.secondary // Stable (Yellow)
     val purchasesIndicatorLabel = "Stock Inflow: Normal"
 
     val expensesSum = last7DaysData.third.sum()
     val salesSum = last7DaysData.first.sum()
     val ratio = if (salesSum > 0) expensesSum / salesSum else 0.0
     val expensesIndicatorColor = when {
-        ratio > 0.20 -> Color(0xFFC62828) // High Expenses (Red)
-        ratio > 0.05 -> Color(0xFFF57C00) // Moderate Expenses (Yellow)
-        else -> Color(0xFF2E7D32) // Low Expenses (Green)
+        ratio > 0.20 -> MaterialTheme.colorScheme.error // High Expenses (Red)
+        ratio > 0.05 -> MaterialTheme.colorScheme.secondary // Moderate Expenses (Yellow)
+        else -> MaterialTheme.colorScheme.tertiary // Low Expenses (Green)
     }
     val expensesIndicatorLabel = when {
         ratio > 0.20 -> "High Overhead Expenses"
@@ -1018,22 +1018,18 @@ fun AnimatedMetricCard(
 ) {
     val isDark = isSystemInDarkTheme()
     val iconBgColor =
-        remember(emoji, isDark) {
-            when (emoji) {
-                "💰" -> if (isDark) Color(0xFF312E81) else Color(0xFFEEF2FF)
-                "📈" -> if (isDark) Color(0xFF064E3B) else Color(0xFFD1FAE5)
-                "🛒" -> if (isDark) Color(0xFF78350F) else Color(0xFFFEF3C7)
-                else -> if (isDark) Color(0xFF7F1D1D) else Color(0xFFFEE2E2)
-            }
+        when (emoji) {
+            "💰" -> MaterialTheme.colorScheme.primaryContainer
+            "📈" -> MaterialTheme.colorScheme.tertiaryContainer
+            "🛒" -> MaterialTheme.colorScheme.secondaryContainer
+            else -> MaterialTheme.colorScheme.errorContainer
         }
     val iconColor =
-        remember(emoji, isDark) {
-            when (emoji) {
-                "💰" -> if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5)
-                "📈" -> if (isDark) Color(0xFF34D399) else Color(0xFF059669)
-                "🛒" -> if (isDark) Color(0xFFFBBF24) else Color(0xFFD97706)
-                else -> if (isDark) Color(0xFFF87171) else Color(0xFFDC2626)
-            }
+        when (emoji) {
+            "💰" -> MaterialTheme.colorScheme.onPrimaryContainer
+            "📈" -> MaterialTheme.colorScheme.onTertiaryContainer
+            "🛒" -> MaterialTheme.colorScheme.onSecondaryContainer
+            else -> MaterialTheme.colorScheme.onErrorContainer
         }
 
     Card(

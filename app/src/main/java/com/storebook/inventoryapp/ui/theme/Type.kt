@@ -30,7 +30,7 @@ val Typography =
     Typography(
         displayLarge =
             TextStyle(
-                fontFamily = Inter,
+                fontFamily = Poppins,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 32.sp,
                 lineHeight = 40.sp,
@@ -38,7 +38,7 @@ val Typography =
             ),
         displayMedium =
             TextStyle(
-                fontFamily = Inter,
+                fontFamily = Poppins,
                 fontWeight = FontWeight.Bold,
                 fontSize = 28.sp,
                 lineHeight = 36.sp,
@@ -46,7 +46,7 @@ val Typography =
             ),
         displaySmall =
             TextStyle(
-                fontFamily = Inter,
+                fontFamily = Poppins,
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp,
                 lineHeight = 32.sp,
@@ -54,7 +54,7 @@ val Typography =
             ),
         headlineLarge =
             TextStyle(
-                fontFamily = Inter,
+                fontFamily = Poppins,
                 fontWeight = FontWeight.Bold,
                 fontSize = 22.sp,
                 lineHeight = 28.sp,
@@ -62,7 +62,7 @@ val Typography =
             ),
         headlineMedium =
             TextStyle(
-                fontFamily = Inter,
+                fontFamily = Poppins,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 20.sp,
                 lineHeight = 26.sp,
@@ -70,7 +70,7 @@ val Typography =
             ),
         headlineSmall =
             TextStyle(
-                fontFamily = Inter,
+                fontFamily = Poppins,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 18.sp,
                 lineHeight = 24.sp,
@@ -78,7 +78,7 @@ val Typography =
             ),
         titleLarge =
             TextStyle(
-                fontFamily = Inter,
+                fontFamily = Poppins,
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
                 lineHeight = 26.sp,
@@ -86,7 +86,7 @@ val Typography =
             ),
         titleMedium =
             TextStyle(
-                fontFamily = Inter,
+                fontFamily = Poppins,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 16.sp,
                 lineHeight = 22.sp,
@@ -94,7 +94,7 @@ val Typography =
             ),
         titleSmall =
             TextStyle(
-                fontFamily = Inter,
+                fontFamily = Poppins,
                 fontWeight = FontWeight.Medium,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,

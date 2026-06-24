@@ -172,7 +172,7 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
     val totalPurchasesIgst = remember(purchasesSummaries) { purchasesSummaries.sumOfBigDecimal { it.totalIgst.toBigDecimal() }.toDouble() }
     val totalPurchasesTax = (totalPurchasesCgst.toBigDecimal() + totalPurchasesSgst.toBigDecimal() + totalPurchasesIgst.toBigDecimal()).toDouble()
 
-    val gradientBrush = Brush.verticalGradient(listOf(InkBlue700, InkBlue500))
+    val gradientBrush = Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary))
 
     Scaffold(
         topBar = {
@@ -189,11 +189,11 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onPrimary)
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("GST Compliance Reports", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White)
-                        Text(activeReportType.subtitle, fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
+                        Text("GST Compliance Reports", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onPrimary)
+                        Text(activeReportType.subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f))
                     }
                     IconButton(onClick = {
                         val monthName = monthNames[selectedMonth]
@@ -204,7 +204,7 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                             GSTReportType.DETAILED -> viewModel.exportGstdetailedExcel(context, startTs, endTs, "Detailed_GST_${monthName}_$selectedYear")
                         }
                     }) {
-                        Icon(Icons.Default.Share, contentDescription = "Export Excel", tint = Color.White)
+                        Icon(Icons.Default.Share, contentDescription = "Export Excel", tint = MaterialTheme.colorScheme.onPrimary)
                     }
                 }
             }
@@ -214,7 +214,7 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(SlateGray50)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // 1. Report Selector Toggles
             Row(
@@ -229,8 +229,8 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                     Card(
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) InkBlue700 else Color.White,
-                            contentColor = if (isSelected) Color.White else SlateGray600
+                            containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         elevation = CardDefaults.cardElevation(if (isSelected) 4.dp else 1.dp),
                         modifier = Modifier
@@ -249,7 +249,7 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
             // 2. Period Navigation Calendar Card
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(2.dp),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -274,12 +274,12 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                             "${monthNames[selectedMonth]} $selectedYear",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
-                            color = SlateGray800
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             "Reporting Period",
                             fontSize = 11.sp,
-                            color = SlateGray400
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                     }
                     IconButton(onClick = {
@@ -299,7 +299,7 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = InkBlue700)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
             } else {
                 LazyColumn(
@@ -314,9 +314,9 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                             GSTReportType.GSTR1 -> {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        SummaryBlock("Total Sales", "₹${"%,.2f".format(totalSalesValue)}", InkBlue500, Modifier.weight(1f))
-                                        SummaryBlock("Taxable Value", "₹${"%,.2f".format(totalSalesTaxable)}", Emerald500, Modifier.weight(1f))
-                                        SummaryBlock("Total Tax Liability", "₹${"%,.2f".format(totalSalesTax)}", Saffron500, Modifier.weight(1f))
+                                        SummaryBlock("Total Sales", "₹${"%,.2f".format(totalSalesValue)}", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                                        SummaryBlock("Taxable Value", "₹${"%,.2f".format(totalSalesTaxable)}", MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
+                                        SummaryBlock("Total Tax Liability", "₹${"%,.2f".format(totalSalesTax)}", MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
                                     }
                                     TaxBreakupCard(totalSalesCgst, totalSalesSgst, totalSalesIgst)
                                 }
@@ -324,9 +324,9 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                             GSTReportType.GSTR2 -> {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        SummaryBlock("Total Purchases", "₹${"%,.2f".format(totalPurchasesValue)}", InkBlue500, Modifier.weight(1f))
-                                        SummaryBlock("Taxable Value", "₹${"%,.2f".format(totalPurchasesTaxable)}", Emerald500, Modifier.weight(1f))
-                                        SummaryBlock("Total ITC", "₹${"%,.2f".format(totalPurchasesTax)}", Saffron500, Modifier.weight(1f))
+                                        SummaryBlock("Total Purchases", "₹${"%,.2f".format(totalPurchasesValue)}", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                                        SummaryBlock("Taxable Value", "₹${"%,.2f".format(totalPurchasesTaxable)}", MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
+                                        SummaryBlock("Total ITC", "₹${"%,.2f".format(totalPurchasesTax)}", MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
                                     }
                                     TaxBreakupCard(totalPurchasesCgst, totalPurchasesSgst, totalPurchasesIgst)
                                 }
@@ -334,14 +334,14 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                             GSTReportType.GSTR3B -> {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        SummaryBlock("Outward Tax Liability", "₹${"%,.2f".format(totalSalesTax)}", Coral500, Modifier.weight(1f))
-                                        SummaryBlock("Eligible ITC", "₹${"%,.2f".format(totalPurchasesTax)}", Emerald500, Modifier.weight(1f))
+                                        SummaryBlock("Outward Tax Liability", "₹${"%,.2f".format(totalSalesTax)}", MaterialTheme.colorScheme.error, Modifier.weight(1f))
+                                        SummaryBlock("Eligible ITC", "₹${"%,.2f".format(totalPurchasesTax)}", MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
                                     }
                                     val netPayable = totalSalesTax - totalPurchasesTax
                                     Card(
                                         shape = RoundedCornerShape(12.dp),
                                         colors = CardDefaults.cardColors(
-                                            containerColor = if (netPayable >= 0) Coral100 else Emerald100
+                                            containerColor = if (netPayable >= 0) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer
                                         )
                                     ) {
                                         Row(
@@ -355,20 +355,20 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                                                 Text(
                                                     if (netPayable >= 0) "Net Tax Payable" else "ITC Carry Forward",
                                                     fontWeight = FontWeight.Bold,
-                                                    color = if (netPayable >= 0) Coral500 else Emerald500,
+                                                    color = if (netPayable >= 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
                                                     fontSize = 14.sp
                                                 )
                                                 Text(
                                                     "Consolidated GSTR-3B balance",
                                                     fontSize = 11.sp,
-                                                    color = SlateGray600
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                             Text(
                                                 "₹${"%,.2f".format(Math.abs(netPayable))}",
                                                 fontWeight = FontWeight.Black,
                                                 fontSize = 20.sp,
-                                                color = if (netPayable >= 0) Coral500 else Emerald500
+                                                color = if (netPayable >= 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
                                             )
                                         }
                                     }
@@ -376,8 +376,8 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                             }
                             GSTReportType.DETAILED -> {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    SummaryBlock("Total Taxable Value", "₹${"%,.2f".format(totalSalesTaxable + totalPurchasesTaxable)}", InkBlue500, Modifier.weight(1f))
-                                    SummaryBlock("Consolidated GST", "₹${"%,.2f".format(totalSalesTax + totalPurchasesTax)}", Saffron500, Modifier.weight(1f))
+                                    SummaryBlock("Total Taxable Value", "₹${"%,.2f".format(totalSalesTaxable + totalPurchasesTaxable)}", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                                    SummaryBlock("Consolidated GST", "₹${"%,.2f".format(totalSalesTax + totalPurchasesTax)}", MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
                                 }
                             }
                         }
@@ -394,7 +394,7 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                             },
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
-                            color = SlateGray800,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
@@ -508,14 +508,14 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                     item {
                         Card(
                             shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = SlateGray100),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                             modifier = Modifier.padding(vertical = 12.dp)
                         ) {
                             Text(
                                 text = "ℹ️ Styled reports are generated inside context cache. Exported files can be shared securely via standard FileProvider.",
                                 modifier = Modifier.padding(12.dp),
                                 fontSize = 11.sp,
-                                color = SlateGray600,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -537,7 +537,7 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = InkBlue700),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
                 shape = RoundedCornerShape(12.dp),
                 contentPadding = PaddingValues(vertical = 14.dp)
             ) {
@@ -555,7 +555,7 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
 private fun SummaryBlock(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Card(
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(2.dp),
         modifier = modifier
     ) {
@@ -580,7 +580,7 @@ private fun SummaryBlock(label: String, value: String, color: Color, modifier: M
             Text(
                 text = label,
                 fontSize = 10.sp,
-                color = SlateGray600,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 softWrap = false
@@ -593,7 +593,7 @@ private fun SummaryBlock(label: String, value: String, color: Color, modifier: M
 private fun TaxBreakupCard(cgst: Double, sgst: Double, igst: Double) {
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(1.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -619,7 +619,7 @@ private fun RowScope.TaxColumn(label: String, amount: Double) {
         Text(
             text = label,
             fontSize = 10.sp,
-            color = SlateGray400,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
             maxLines = 1,
             softWrap = false
         )
@@ -629,7 +629,7 @@ private fun RowScope.TaxColumn(label: String, amount: Double) {
             text = textValue,
             fontWeight = FontWeight.Bold,
             fontSize = fontSize,
-            color = SlateGray800,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             softWrap = false
         )
@@ -648,7 +648,7 @@ private fun TransactionItemRow(
     val dateFmt = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(1.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -664,7 +664,7 @@ private fun TransactionItemRow(
                     text = title,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    color = SlateGray800,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     softWrap = false
                 )
@@ -674,7 +674,7 @@ private fun TransactionItemRow(
                         onClick = {},
                         label = { Text(subtitle, fontSize = 10.sp, maxLines = 1, softWrap = false) },
                         colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = if (isSale) InkBlue50 else SlateGray100
+                            containerColor = if (isSale) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
                         ),
                         border = null,
                         modifier = Modifier.height(20.dp)
@@ -683,7 +683,7 @@ private fun TransactionItemRow(
                     Text(
                         text = dateFmt.format(Date(date)),
                         fontSize = 11.sp,
-                        color = SlateGray400,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         maxLines = 1,
                         softWrap = false
                     )
@@ -694,14 +694,14 @@ private fun TransactionItemRow(
                     text = "₹${"%,.2f".format(amount)}",
                     fontWeight = FontWeight.Black,
                     fontSize = 14.sp,
-                    color = SlateGray800,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     softWrap = false
                 )
                 Text(
                     text = "Tax: ₹${"%,.2f".format(tax)}",
                     fontSize = 11.sp,
-                    color = Saffron500,
+                    color = MaterialTheme.colorScheme.secondary,
                     maxLines = 1,
                     softWrap = false
                 )
@@ -721,7 +721,7 @@ private fun SectionBreakdownCard(
 ) {
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(1.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -730,12 +730,12 @@ private fun SectionBreakdownCard(
                 text = sectionTitle,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp,
-                color = InkBlue700,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 maxLines = 1,
                 softWrap = false
             )
             Spacer(Modifier.height(10.dp))
-            HorizontalDivider(color = SlateGray100)
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             Spacer(Modifier.height(8.dp))
 
             BreakdownRow("Taxable Value", taxable)
@@ -751,7 +751,7 @@ private fun SectionBreakdownCard(
                     text = "Total Tax Component",
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
-                    color = SlateGray800,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     softWrap = false
                 )
@@ -759,7 +759,7 @@ private fun SectionBreakdownCard(
                     text = "₹${"%,.2f".format(totalTax)}",
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
-                    color = Saffron500,
+                    color = MaterialTheme.colorScheme.secondary,
                     maxLines = 1,
                     softWrap = false
                 )
@@ -779,14 +779,14 @@ private fun BreakdownRow(label: String, value: Double) {
         Text(
             text = label,
             fontSize = 12.sp,
-            color = SlateGray600,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             softWrap = false
         )
         Text(
             text = "₹${"%,.2f".format(value)}",
             fontSize = 12.sp,
-            color = SlateGray800,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             softWrap = false
         )
@@ -798,7 +798,7 @@ private fun DetailedBreakupRow(row: DetailedRowData) {
     val dateFmt = remember { SimpleDateFormat("dd/MM", Locale.getDefault()) }
     Card(
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(1.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -812,7 +812,7 @@ private fun DetailedBreakupRow(row: DetailedRowData) {
                     Text(
                         text = dateFmt.format(Date(row.date)),
                         fontSize = 11.sp,
-                        color = SlateGray400,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         maxLines = 1,
                         softWrap = false
                     )
@@ -821,7 +821,7 @@ private fun DetailedBreakupRow(row: DetailedRowData) {
                         text = row.txnId,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
-                        color = SlateGray800,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         softWrap = false
                     )
@@ -830,8 +830,8 @@ private fun DetailedBreakupRow(row: DetailedRowData) {
                         onClick = {},
                         label = { Text(row.type, fontSize = 9.sp, maxLines = 1, softWrap = false) },
                         colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = if (row.type == "Sale") InkBlue50 else Saffron300.copy(alpha = 0.2f),
-                            labelColor = if (row.type == "Sale") InkBlue700 else Saffron500
+                            containerColor = if (row.type == "Sale") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f),
+                            labelColor = if (row.type == "Sale") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.secondary
                         ),
                         border = null,
                         modifier = Modifier.height(18.dp)
@@ -841,13 +841,13 @@ private fun DetailedBreakupRow(row: DetailedRowData) {
                     text = "₹${"%,.2f".format(row.taxable + row.tax)}",
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
-                    color = SlateGray800,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     softWrap = false
                 )
             }
             Spacer(Modifier.height(6.dp))
-            HorizontalDivider(color = SlateGray50)
+            HorizontalDivider(color = MaterialTheme.colorScheme.background)
             Spacer(Modifier.height(6.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -856,14 +856,14 @@ private fun DetailedBreakupRow(row: DetailedRowData) {
                         text = row.item,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 12.sp,
-                        color = SlateGray800,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         softWrap = false
                     )
                     Text(
                         text = "Party: ${row.party}",
                         fontSize = 10.sp,
-                        color = SlateGray600,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         softWrap = false
                     )
@@ -872,14 +872,14 @@ private fun DetailedBreakupRow(row: DetailedRowData) {
                     Text(
                         text = "Taxable: ₹${"%,.2f".format(row.taxable)}",
                         fontSize = 11.sp,
-                        color = SlateGray600,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         softWrap = false
                     )
                     Text(
                         text = "Tax: ₹${"%,.2f".format(row.tax)} (${row.taxRate}%)",
                         fontSize = 11.sp,
-                        color = Saffron500,
+                        color = MaterialTheme.colorScheme.secondary,
                         maxLines = 1,
                         softWrap = false
                     )
@@ -900,7 +900,7 @@ private fun EmptyReportState(message: String) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("📋", fontSize = 48.sp)
             Spacer(Modifier.height(12.dp))
-            Text(message, color = SlateGray400, fontSize = 14.sp)
+            Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), fontSize = 14.sp)
         }
     }
 }

@@ -839,9 +839,9 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                             ) {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Icon(Icons.Default.Add, contentDescription = "Restock", tint = androidx.compose.ui.graphics.Color.White)
+                                                    Icon(Icons.Default.Add, contentDescription = "Restock", tint = MaterialTheme.colorScheme.onPrimary)
                                                     Spacer(modifier = Modifier.width(6.dp))
-                                                    Text("Restock", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                                    Text("Restock", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                                 }
 
                                                 // Presets
@@ -854,7 +854,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                                         Box(
                                                             modifier = Modifier
                                                                 .clip(RoundedCornerShape(12.dp))
-                                                                .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.2f))
+                                                                .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
                                                                 .clickable {
                                                                     scope.launch {
                                                                         val purchase = Purchase(
@@ -884,7 +884,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                                                 .padding(horizontal = 10.dp, vertical = 6.dp),
                                                             contentAlignment = Alignment.Center,
                                                         ) {
-                                                            Text("+$preset", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp)
+                                                            Text("+$preset", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Black, fontSize = 12.sp)
                                                         }
                                                     }
 
@@ -892,7 +892,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                                     Box(
                                                         modifier = Modifier
                                                             .clip(RoundedCornerShape(12.dp))
-                                                            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.2f))
+                                                            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
                                                             .clickable {
                                                                 quickRefillItem = item
                                                                 scope.launch {
@@ -902,14 +902,14 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                                             .padding(horizontal = 10.dp, vertical = 6.dp),
                                                         contentAlignment = Alignment.Center,
                                                     ) {
-                                                        Text("Custom", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                                        Text("Custom", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                                     }
 
                                                     // Cancel button
                                                     Box(
                                                         modifier = Modifier
                                                             .clip(CircleShape)
-                                                            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.15f))
+                                                            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f))
                                                             .clickable {
                                                                 scope.launch {
                                                                     dismissState.snapTo(SwipeToDismissBoxValue.Settled)
@@ -918,7 +918,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                                             .padding(6.dp),
                                                         contentAlignment = Alignment.Center,
                                                     ) {
-                                                        Icon(Icons.Default.Close, contentDescription = "Cancel", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(16.dp))
+                                                        Icon(Icons.Default.Close, contentDescription = "Cancel", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
                                                     }
                                                 }
                                             }
@@ -1584,7 +1584,7 @@ fun FilterChip(
         targetValue = if (isSelected) {
             if (onPrimaryBg) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary
         } else {
-            if (onPrimaryBg) Color.White.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
+            if (onPrimaryBg) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
         },
         animationSpec = tween(200),
         label = "chip_color",

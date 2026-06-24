@@ -263,7 +263,7 @@ fun MoreScreen(
                                                                 Modifier.size(52.dp)
                                                                         .clip(CircleShape)
                                                                         .background(
-                                                                                Color.White.copy(
+                                                                                MaterialTheme.colorScheme.onPrimary.copy(
                                                                                         alpha =
                                                                                                 0.15f
                                                                                 )
@@ -344,13 +344,13 @@ fun MoreScreen(
                                                                 text = if (viewModel.isPremiumUser) "Manage Pro Subscription" else stringResource(id = R.string.more_pro_plans),
                                                                 fontWeight = FontWeight.Bold,
                                                                 fontSize = 15.sp,
-                                                                color = Color(0xFFB8860B),
+                                                                color = MaterialTheme.colorScheme.secondary,
                                                         )
                                                         Text(
                                                                 text = if (viewModel.isPremiumUser) "View your active plan details" else stringResource(id = R.string.more_pro_desc),
                                                                 fontSize = 12.sp,
                                                                 color =
-                                                                        Color(0xFFB8860B)
+                                                                        MaterialTheme.colorScheme.secondary
                                                                                 .copy(
                                                                                         alpha =
                                                                                                 0.75f
@@ -514,9 +514,9 @@ fun MoreScreen(
                                                 IconOptionRow(
                                                         icon = Icons.Outlined.LocalShipping,
                                                         iconBg =
-                                                                Color(0xFF7C3AED)
+                                                                MaterialTheme.colorScheme.primary
                                                                         .copy(alpha = 0.12f),
-                                                        iconTint = Color(0xFF7C3AED),
+                                                        iconTint = MaterialTheme.colorScheme.primary,
                                                         title =
                                                                 stringResource(
                                                                         id =
@@ -536,9 +536,9 @@ fun MoreScreen(
                                                 IconOptionRow(
                                                         icon = Icons.Outlined.Share,
                                                         iconBg =
-                                                                Color(0xFF0EA5E9)
+                                                                MaterialTheme.colorScheme.primary
                                                                         .copy(alpha = 0.12f),
-                                                        iconTint = Color(0xFF0EA5E9),
+                                                        iconTint = MaterialTheme.colorScheme.primary,
                                                         title =
                                                                 stringResource(
                                                                         id =
@@ -559,9 +559,9 @@ fun MoreScreen(
                                                 IconOptionRow(
                                                         icon = Icons.Outlined.DownloadForOffline,
                                                         iconBg =
-                                                                Color(0xFF0EA5E9)
+                                                                MaterialTheme.colorScheme.primary
                                                                         .copy(alpha = 0.12f),
-                                                        iconTint = Color(0xFF0EA5E9),
+                                                        iconTint = MaterialTheme.colorScheme.primary,
                                                         title =
                                                                 stringResource(
                                                                         id =
@@ -593,9 +593,9 @@ fun MoreScreen(
                                                     IconOptionRow(
                                                             icon = Icons.Outlined.Store,
                                                             iconBg =
-                                                                    Color(0xFF10B981)
+                                                                    MaterialTheme.colorScheme.tertiary
                                                                             .copy(alpha = 0.12f),
-                                                            iconTint = Color(0xFF10B981),
+                                                            iconTint = MaterialTheme.colorScheme.tertiary,
                                                             title = "Business Settings",
                                                             onClick = {
                                                                     activeModal = "BUSINESS"
@@ -609,9 +609,9 @@ fun MoreScreen(
                                                     IconOptionRow(
                                                             icon = Icons.Outlined.Person,
                                                             iconBg =
-                                                                    Color(0xFF3B82F6)
+                                                                    MaterialTheme.colorScheme.primary
                                                                             .copy(alpha = 0.12f),
-                                                            iconTint = Color(0xFF3B82F6),
+                                                            iconTint = MaterialTheme.colorScheme.primary,
                                                             title = "Invite Staff",
                                                             onClick = {
                                                                     navController.navigate(Routes.InviteStaff)
@@ -624,9 +624,9 @@ fun MoreScreen(
                                                     IconOptionRow(
                                                             icon = Icons.Outlined.LocalShipping,
                                                             iconBg =
-                                                                    Color(0xFFF59E0B)
+                                                                    MaterialTheme.colorScheme.secondary
                                                                             .copy(alpha = 0.12f),
-                                                            iconTint = Color(0xFFF59E0B),
+                                                            iconTint = MaterialTheme.colorScheme.secondary,
                                                             title = "Supplier Ledger",
                                                             onClick = {
                                                                     navController.navigate(Routes.SupplierLedger)
@@ -638,8 +638,8 @@ fun MoreScreen(
                                                     )
                                                     IconOptionRow(
                                                             icon = Icons.Outlined.Receipt,
-                                                            iconBg = Color(0xFF10B981).copy(alpha = 0.12f),
-                                                            iconTint = Color(0xFF10B981),
+                                                            iconBg = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
+                                                            iconTint = MaterialTheme.colorScheme.tertiary,
                                                             title = "GST Reports (GSTR-1)",
                                                             onClick = {
                                                                     navController.navigate(Routes.GSTReport)
@@ -647,8 +647,8 @@ fun MoreScreen(
                                                     )
                                                     IconOptionRow(
                                                             icon = Icons.Outlined.Store,
-                                                            iconBg = Color(0xFF8B5CF6).copy(alpha = 0.12f),
-                                                            iconTint = Color(0xFF8B5CF6),
+                                                            iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                                                            iconTint = MaterialTheme.colorScheme.secondary,
                                                             title = "Switch Store",
                                                             onClick = {
                                                                     activeModal = "SWITCH_STORE"
@@ -689,12 +689,12 @@ fun MoreScreen(
                                                                         Icons.AutoMirrored.Outlined
                                                                                 .ExitToApp,
                                                                 iconBg =
-                                                                        Color(0xFFEF4444)
+                                                                        MaterialTheme.colorScheme.error
                                                                                 .copy(
                                                                                         alpha =
                                                                                                 0.12f
                                                                                 ),
-                                                                iconTint = Color(0xFFEF4444),
+                                                                iconTint = MaterialTheme.colorScheme.error,
                                                                 title = "Logout",
                                                                 onClick = {
                                                                         showLogoutConfirmation = true
@@ -709,9 +709,9 @@ fun MoreScreen(
                                                 IconOptionRow(
                                                         icon = Icons.Outlined.Restore,
                                                         iconBg =
-                                                                Color(0xFFEF4444)
+                                                                MaterialTheme.colorScheme.error
                                                                         .copy(alpha = 0.12f),
-                                                        iconTint = Color(0xFFEF4444),
+                                                        iconTint = MaterialTheme.colorScheme.error,
                                                         title = "Seed Dummy Data",
                                                         onClick = {
                                                                 viewModel.seedDummyData()
@@ -732,9 +732,9 @@ fun MoreScreen(
                                                 IconOptionRow(
                                                         icon = Icons.Outlined.Restore,
                                                         iconBg =
-                                                                Color(0xFFEF4444)
+                                                                MaterialTheme.colorScheme.error
                                                                         .copy(alpha = 0.12f),
-                                                        iconTint = Color(0xFFEF4444),
+                                                        iconTint = MaterialTheme.colorScheme.error,
                                                         title = "Clear Local Data",
                                                         onClick = {
                                                                 showClearDataDialog = true
@@ -796,7 +796,7 @@ fun MoreScreen(
                 if (showLogoutConfirmation) {
                     androidx.compose.material3.AlertDialog(
                         onDismissRequest = { showLogoutConfirmation = false },
-                        icon = { Icon(Icons.AutoMirrored.Outlined.ExitToApp, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(36.dp)) },
+                        icon = { Icon(Icons.AutoMirrored.Outlined.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(36.dp)) },
                         title = { Text("Logout Confirmation", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
                         text = {
                             if (viewModel.isPremiumUser) {
@@ -818,10 +818,10 @@ fun MoreScreen(
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text("Logout", fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("Logout", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                             }
                         },
                         dismissButton = {
@@ -837,7 +837,7 @@ fun MoreScreen(
                 if (showClearDataDialog) {
                     androidx.compose.material3.AlertDialog(
                         onDismissRequest = { showClearDataDialog = false },
-                        icon = { Icon(Icons.Outlined.Restore, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(36.dp)) },
+                        icon = { Icon(Icons.Outlined.Restore, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(36.dp)) },
                         title = { Text("Clear Local Data?", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
                         text = { Text("This will permanently delete all your local inventory, sales, Udhaar, and expense data from this device. Are you absolutely sure?", textAlign = TextAlign.Center) },
                         confirmButton = {
@@ -848,10 +848,10 @@ fun MoreScreen(
                                     android.widget.Toast.makeText(context, "Local data cleared successfully", android.widget.Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text("Yes, Delete All Data", fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("Yes, Delete All Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                             }
                         },
                         dismissButton = {
@@ -1491,12 +1491,12 @@ fun InlineThemeCard(
     onThemeModeSelected: (AppThemeMode) -> Unit,
 ) {
     val palettes = listOf(
-        Triple(AppThemeMode.INK_BLUE,          Color(0xFF191958), "Sapphire Blue"),
-        Triple(AppThemeMode.FOREST_GREEN,      Color(0xFF059669), "Emerald Jade"),
-        Triple(AppThemeMode.SUNSET_ORANGE,     Color(0xFFEA580C), "Sunset Amber"),
-        Triple(AppThemeMode.AMETHYST_PURPLE,   Color(0xFF7C3AED), "Royal Amethyst"),
-        Triple(AppThemeMode.CRIMSON_RUBY,      Color(0xFFBE123C), "Crimson Ruby"),
-        Triple(AppThemeMode.CHARCOAL_OBSIDIAN,  Color(0xFF374151), "Charcoal Obsidian"),
+        Triple(AppThemeMode.INK_BLUE,          com.storebook.inventoryapp.ui.theme.InkBlue700, "Sapphire Blue"),
+        Triple(AppThemeMode.FOREST_GREEN,      com.storebook.inventoryapp.ui.theme.ForestGreen700, "Emerald Jade"),
+        Triple(AppThemeMode.SUNSET_ORANGE,     com.storebook.inventoryapp.ui.theme.SunsetOrange700, "Sunset Amber"),
+        Triple(AppThemeMode.AMETHYST_PURPLE,   com.storebook.inventoryapp.ui.theme.AmethystPurple700, "Royal Amethyst"),
+        Triple(AppThemeMode.CRIMSON_RUBY,      com.storebook.inventoryapp.ui.theme.CrimsonRuby700, "Crimson Ruby"),
+        Triple(AppThemeMode.CHARCOAL_OBSIDIAN, com.storebook.inventoryapp.ui.theme.CharcoalObsidian700, "Charcoal Obsidian"),
     )
 
     Card(
@@ -1611,7 +1611,7 @@ fun InlineThemeCard(
                                         Icon(
                                             imageVector = Icons.Default.Star,
                                             contentDescription = null,
-                                            tint = Color.White,
+                                            tint = MaterialTheme.colorScheme.onPrimary,
                                             modifier = Modifier
                                                 .size(16.dp)
                                                 .align(Alignment.Center),
@@ -1620,13 +1620,13 @@ fun InlineThemeCard(
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .background(Color.Black.copy(alpha = 0.4f)),
+                                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 painter = painterResource(id = R.drawable.pdf_detail_lock),
                                                 contentDescription = "Locked",
-                                                tint = Color.White,
+                                                tint = MaterialTheme.colorScheme.onPrimary,
                                                 modifier = Modifier.size(14.dp)
                                             )
                                         }
