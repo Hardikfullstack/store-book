@@ -22,7 +22,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Strip out unused languages from dependencies (saves 1-3MB)
-        resourceConfigurations.addAll(listOf("en", "hi", "gu"))
+        androidResources {
+            localeFilters += listOf("en", "hi", "gu")
+        }
     }
 
     buildTypes {
@@ -60,6 +62,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.material)
 
     // 2. Compose UI (Material 3)
     implementation(libs.androidx.compose.ui)
@@ -71,6 +74,7 @@ dependencies {
     implementation(libs.androidx.compose.animation)
     implementation(libs.androidx.compose.runtime)
     implementation("androidx.compose.material:material-icons-core")
+    implementation("androidx.compose.material:material-icons-extended")
 
     // 3. Lifecycle & Navigation
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -92,18 +96,18 @@ dependencies {
     implementation(libs.retrofit.serialization)
     implementation(libs.okhttp.logging)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.google.accompanist.permissions)
-    implementation(libs.google.play.services.ads)
-    implementation(libs.google.play.services.mlkit.document-scanner)
-    implementation(libs.google.play.services.code.scanner)
+    implementation(libs.accompanist.permissions)
+    implementation(libs.play.ads)
+    implementation(libs.play.scanner.mlkit)
+    implementation(libs.play.scanner.code)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.pdfbox.android)
     implementation(libs.android.pdf.viewer)
     implementation(libs.reorderable)
-    implementation(libs.google.play.review.ktx)
-    implementation(libs.google.play.app.update-ktx)
-    implementation(libs.android.billing.ktx)
-    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.play.review)
+    implementation(libs.play.update)
+    implementation(libs.android.billing)
+    implementation(libs.androidx.work.ktx)
     implementation(libs.lottie.compose)
     implementation(libs.poi)
     implementation(libs.poi.ooxml)

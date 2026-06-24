@@ -64,7 +64,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
+
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -430,6 +430,7 @@ fun MoreScreen(
                                                     InlineThemeCard(
                                                         isDarkMode = themeManager.isDarkMode.value,
                                                         themeMode = themeManager.themeMode.value,
+                                                        isPremium = viewModel.isPremiumUser,
                                                         onThemeSelected = { isDark -> themeManager.setDarkMode(isDark) },
                                                         onThemeModeSelected = { mode -> themeManager.setThemeMode(mode) },
                                                     )
@@ -1999,11 +2000,7 @@ fun RestockSheetContent(
                                 },
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                                 modifier =
-                                        Modifier.menuAnchor(
-                                                        type =
-                                                                ExposedDropdownMenuAnchorType
-                                                                        .PrimaryNotEditable
-                                                )
+                                        Modifier.menuAnchor()
                                                 .fillMaxWidth(),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
