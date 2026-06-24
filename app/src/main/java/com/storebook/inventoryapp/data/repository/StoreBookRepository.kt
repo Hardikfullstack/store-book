@@ -358,7 +358,15 @@ class StoreBookRepository(
 
                         // Update quantity in items table only if it's a real sale
                         if (type != "ESTIMATE") {
-                            val newQty = cartItem.item.quantity - cartItem.quantity
+                            val qtyCursor = db.rawQuery("SELECT ${StoreBookDbHelper.KEY_ITEM_QTY} FROM ${StoreBookDbHelper.TABLE_ITEMS} WHERE ${StoreBookDbHelper.KEY_ID} = ?", arrayOf(cartItem.item.id.toString()))
+                            var currentQty = 0.0
+                            qtyCursor.use {
+                                if (it.moveToFirst()) currentQty = it.getDouble(0)
+                            }
+                            if (currentQty < cartItem.quantity) {
+                                throw Exception("Stock oversell error: Not enough stock for ${cartItem.item.name}")
+                            }
+                            val newQty = currentQty - cartItem.quantity
                             val itemUpdateValues =
                                     ContentValues().apply {
                                         put(StoreBookDbHelper.KEY_ITEM_QTY, newQty)
@@ -610,41 +618,44 @@ class StoreBookRepository(
                 }
                 if (salesList.isEmpty()) return@withContext emptyList()
                 val saleIds = salesList.map { it.id }
-                val placeholders = saleIds.joinToString(",") { "?" }
-                val itemsCursor =
-                        db.rawQuery(
-                                "SELECT * FROM ${StoreBookDbHelper.TABLE_SALE_ITEMS} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND ${StoreBookDbHelper.KEY_SI_SALE_ID} IN ($placeholders)",
-                                saleIds.map { it.toString() }.toTypedArray(),
-                        )
                 val itemsBySaleId = mutableMapOf<Long, MutableList<SaleItemDetail>>()
-                itemsCursor.use { ic ->
-                    val siSaleId = ic.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SI_SALE_ID)
-                    val siItemId = ic.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SI_ITEM_ID)
-                    val siItemName = ic.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SI_ITEM_NAME)
-                    val siUnit = ic.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SI_UNIT)
-                    val siQty = ic.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SI_QTY)
-                    val siSell = ic.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SI_SELL_PRICE)
-                    val siBuy = ic.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SI_BUY_PRICE)
-                    while (ic.moveToNext()) {
-                        val saleId = ic.getLong(siSaleId)
-                        itemsBySaleId
-                                .computeIfAbsent(saleId) { mutableListOf() }
-                                .add(
-                                        SaleItemDetail(
-                                                id =
-                                                        ic.getLong(
-                                                                ic.getColumnIndexOrThrow(
-                                                                        StoreBookDbHelper.KEY_ID
-                                                                )
-                                                        ),
-                                                itemId = ic.getLong(siItemId),
-                                                itemName = ic.getString(siItemName),
-                                                quantity = ic.getDouble(siQty),
-                                                unit = ic.getString(siUnit),
-                                                sellPrice = ic.getDouble(siSell),
-                                                buyPrice = ic.getDouble(siBuy),
-                                        ),
-                                )
+                
+                saleIds.chunked(500).forEach { chunk ->
+                    val placeholders = chunk.joinToString(",") { "?" }
+                    val itemsCursor =
+                            db.rawQuery(
+                                    "SELECT * FROM ${StoreBookDbHelper.TABLE_SALE_ITEMS} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND ${StoreBookDbHelper.KEY_SI_SALE_ID} IN ($placeholders)",
+                                    chunk.map { it.toString() }.toTypedArray(),
+                            )
+                    itemsCursor.use { ic ->
+                        val siSaleId = ic.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SI_SALE_ID)
+                        val siItemId = ic.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SI_ITEM_ID)
+                        val siItemName = ic.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SI_ITEM_NAME)
+                        val siUnit = ic.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SI_UNIT)
+                        val siQty = ic.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SI_QTY)
+                        val siSell = ic.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SI_SELL_PRICE)
+                        val siBuy = ic.getColumnIndexOrThrow(StoreBookDbHelper.KEY_SI_BUY_PRICE)
+                        while (ic.moveToNext()) {
+                            val saleId = ic.getLong(siSaleId)
+                            itemsBySaleId
+                                    .computeIfAbsent(saleId) { mutableListOf() }
+                                    .add(
+                                            SaleItemDetail(
+                                                    id =
+                                                            ic.getLong(
+                                                                    ic.getColumnIndexOrThrow(
+                                                                            StoreBookDbHelper.KEY_ID
+                                                                    )
+                                                            ),
+                                                    itemId = ic.getLong(siItemId),
+                                                    itemName = ic.getString(siItemName),
+                                                    quantity = ic.getDouble(siQty),
+                                                    unit = ic.getString(siUnit),
+                                                    sellPrice = ic.getDouble(siSell),
+                                                    buyPrice = ic.getDouble(siBuy),
+                                            ),
+                                    )
+                        }
                     }
                 }
                 salesList.map { sale -> sale.copy(items = itemsBySaleId[sale.id] ?: emptyList()) }
@@ -658,28 +669,46 @@ class StoreBookRepository(
             offset: Int = 0,
     ): List<Item> =
             withContext(Dispatchers.IO) {
-                val all = getActiveItems().toMutableList()
+                val db = dbHelper.readableDatabase
+                val conditions = mutableListOf("${StoreBookDbHelper.KEY_ITEM_IS_DELETED} = 0")
+                val args = mutableListOf<String>()
+
                 if (!search.isNullOrBlank()) {
-                    val q = search.lowercase()
-                    all.removeAll { !it.name.lowercase().contains(q) }
+                    conditions.add("LOWER(${StoreBookDbHelper.KEY_ITEM_NAME}) LIKE ?")
+                    args.add("%${search.lowercase()}%")
                 }
+
                 if (category != null && category != "All") {
                     if (category == "Low Stock") {
-                        all.removeAll { it.quantity > it.lowStockThreshold }
+                        conditions.add("${StoreBookDbHelper.KEY_ITEM_QTY} <= ${StoreBookDbHelper.KEY_ITEM_THRESHOLD}")
                     } else {
-                        all.removeAll { it.category != category }
+                        conditions.add("${StoreBookDbHelper.KEY_ITEM_CATEGORY} = ?")
+                        args.add(category)
                     }
                 }
-                sortBy?.let {
-                    when (it.lowercase()) {
-                        "name" -> all.sortBy { item -> item.name.lowercase() }
-                        "price" -> all.sortByDescending { item -> item.sellPrice }
-                        "qty" -> all.sortBy { item -> item.quantity }
+
+                val orderClause = when (sortBy?.lowercase()) {
+                    "name" -> "LOWER(${StoreBookDbHelper.KEY_ITEM_NAME}) ASC"
+                    "price" -> "${StoreBookDbHelper.KEY_ITEM_SELL_PRICE} DESC"
+                    "qty" -> "${StoreBookDbHelper.KEY_ITEM_QTY} ASC"
+                    else -> "${StoreBookDbHelper.KEY_ID} DESC"
+                }
+
+                val whereClause = conditions.joinToString(" AND ")
+                val limitClause = if (limit == Int.MAX_VALUE) "" else " LIMIT $limit OFFSET $offset"
+
+                val cursor = db.rawQuery(
+                    "SELECT * FROM ${StoreBookDbHelper.TABLE_ITEMS} WHERE $whereClause ORDER BY $orderClause$limitClause",
+                    args.toTypedArray()
+                )
+
+                val items = mutableListOf<Item>()
+                cursor.use { c ->
+                    while (c.moveToNext()) {
+                        items.add(cursorToItem(c))
                     }
                 }
-                val safeOffset = offset.coerceIn(0, all.size)
-                val safeEnd = (safeOffset + limit).coerceAtMost(all.size)
-                all.subList(safeOffset, safeEnd)
+                items
             }
 
     // --- Udhaar Operations ---
@@ -690,7 +719,7 @@ class StoreBookRepository(
                 val values =
                         ContentValues().apply {
                             put(StoreBookDbHelper.KEY_UDHAAR_CUSTOMER, entry.customerName)
-                            put(StoreBookDbHelper.KEY_UDHAAR_AMOUNT, entry.amount)
+                            put(StoreBookDbHelper.KEY_UDHAAR_AMOUNT, entry.amount.coerceAtLeast(0.0))
                             put(StoreBookDbHelper.KEY_UDHAAR_TYPE, entry.type)
                             put(StoreBookDbHelper.KEY_TIMESTAMP, entry.timestamp)
                             put(StoreBookDbHelper.KEY_NOTES, entry.notes)
@@ -1282,6 +1311,141 @@ class StoreBookRepository(
                 } finally {
                     db.endTransaction()
                 }
+            }
+
+    suspend fun getPurchasesByDateRange(startTs: Long, endTs: Long): List<Purchase> =
+            withContext(Dispatchers.IO) {
+                val purchasesList = mutableListOf<Purchase>()
+                val db = dbHelper.readableDatabase
+                val cursor = db.rawQuery(
+                    "SELECT * FROM ${StoreBookDbHelper.TABLE_PURCHASES} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND ${StoreBookDbHelper.KEY_TIMESTAMP} BETWEEN ? AND ? ORDER BY ${StoreBookDbHelper.KEY_TIMESTAMP} DESC",
+                    arrayOf(startTs.toString(), endTs.toString())
+                )
+                cursor.use { c ->
+                    val colId = c.getColumnIndexOrThrow("id")
+                    val colSuppId = c.getColumnIndexOrThrow("supplier_id")
+                    val colSuppName = c.getColumnIndexOrThrow("supplier_name")
+                    val colTotal = c.getColumnIndexOrThrow("total_amount")
+                    val colTax = c.getColumnIndexOrThrow("tax_amount")
+                    val colType = c.getColumnIndexOrThrow("type")
+                    val colTs = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_TIMESTAMP)
+                    val colNotes = c.getColumnIndexOrThrow(StoreBookDbHelper.KEY_NOTES)
+
+                    while (c.moveToNext()) {
+                        purchasesList.add(
+                            Purchase(
+                                id = c.getLong(colId),
+                                supplierId = c.getLong(colSuppId),
+                                supplierName = c.getString(colSuppName),
+                                totalAmount = c.getDouble(colTotal),
+                                taxAmount = c.getDouble(colTax),
+                                type = c.getString(colType),
+                                timestamp = c.getLong(colTs),
+                                notes = c.getString(colNotes),
+                                items = emptyList()
+                            )
+                        )
+                    }
+                }
+
+                if (purchasesList.isEmpty()) return@withContext emptyList()
+
+                val purchaseIds = purchasesList.map { it.id }
+                val placeholders = purchaseIds.joinToString(",") { "?" }
+                val itemsCursor = db.rawQuery(
+                    "SELECT * FROM ${StoreBookDbHelper.TABLE_PURCHASE_ITEMS} WHERE ${StoreBookDbHelper.KEY_IS_DELETED} = 0 AND purchase_id IN ($placeholders)",
+                    purchaseIds.map { it.toString() }.toTypedArray()
+                )
+
+                val itemsByPurchaseId = mutableMapOf<Long, MutableList<PurchaseItemDetail>>()
+                itemsCursor.use { ic ->
+                    val piId = ic.getColumnIndexOrThrow("id")
+                    val piPurchaseId = ic.getColumnIndexOrThrow("purchase_id")
+                    val piItemId = ic.getColumnIndexOrThrow("item_id")
+                    val piItemName = ic.getColumnIndexOrThrow("item_name")
+                    val piQty = ic.getColumnIndexOrThrow("quantity")
+                    val piUnit = ic.getColumnIndexOrThrow("unit")
+                    val piPrice = ic.getColumnIndexOrThrow("buy_price")
+
+                    while (ic.moveToNext()) {
+                        val pId = ic.getLong(piPurchaseId)
+                        itemsByPurchaseId.computeIfAbsent(pId) { mutableListOf() }.add(
+                            PurchaseItemDetail(
+                                id = ic.getLong(piId),
+                                purchaseId = pId,
+                                itemId = ic.getLong(piItemId),
+                                itemName = ic.getString(piItemName),
+                                quantity = ic.getDouble(piQty),
+                                unit = ic.getString(piUnit),
+                                buyPrice = ic.getDouble(piPrice)
+                            )
+                        )
+                    }
+                }
+
+                purchasesList.map { p -> p.copy(items = itemsByPurchaseId[p.id] ?: emptyList()) }
+            }
+
+    suspend fun getAllSuppliersMap(): Map<Long, Supplier> =
+            withContext(Dispatchers.IO) {
+                val map = mutableMapOf<Long, Supplier>()
+                val db = dbHelper.readableDatabase
+                val cursor = db.rawQuery("SELECT * FROM ${StoreBookDbHelper.TABLE_SUPPLIERS}", null)
+                cursor.use { c ->
+                    val colId = c.getColumnIndexOrThrow("id")
+                    val colName = c.getColumnIndexOrThrow("name")
+                    val colPhone = c.getColumnIndexOrThrow("phone")
+                    val colGstin = c.getColumnIndexOrThrow("gstin")
+                    val colAddr = c.getColumnIndexOrThrow("address")
+                    while (c.moveToNext()) {
+                        val id = c.getLong(colId)
+                        map[id] = Supplier(
+                            id = id,
+                            name = c.getString(colName),
+                            phone = c.getString(colPhone),
+                            gstin = c.getString(colGstin),
+                            address = c.getString(colAddr)
+                        )
+                    }
+                }
+                map
+            }
+
+    suspend fun getAllItemsMap(): Map<Long, Item> =
+            withContext(Dispatchers.IO) {
+                val map = mutableMapOf<Long, Item>()
+                val db = dbHelper.readableDatabase
+                val cursor = db.rawQuery("SELECT * FROM ${StoreBookDbHelper.TABLE_ITEMS}", null)
+                cursor.use { c ->
+                    val colId = c.getColumnIndexOrThrow("id")
+                    val colName = c.getColumnIndexOrThrow("name")
+                    val colQty = c.getColumnIndexOrThrow("quantity")
+                    val colUnit = c.getColumnIndexOrThrow("unit")
+                    val colBuy = c.getColumnIndexOrThrow("buy_price")
+                    val colSell = c.getColumnIndexOrThrow("sell_price")
+                    val colLow = c.getColumnIndexOrThrow("low_stock_threshold")
+                    val colCat = c.getColumnIndexOrThrow("category")
+                    val colPhoto = c.getColumnIndexOrThrow("photo_path")
+                    val colHsn = c.getColumnIndexOrThrow("hsn_code")
+                    val colTax = c.getColumnIndexOrThrow("tax_rate")
+                    while (c.moveToNext()) {
+                        val id = c.getLong(colId)
+                        map[id] = Item(
+                            id = id,
+                            name = c.getString(colName),
+                            quantity = c.getDouble(colQty),
+                            unit = c.getString(colUnit),
+                            buyPrice = c.getDouble(colBuy),
+                            sellPrice = c.getDouble(colSell),
+                            lowStockThreshold = c.getDouble(colLow),
+                            category = c.getString(colCat) ?: "",
+                            photoPath = c.getString(colPhoto),
+                            hsnCode = c.getString(colHsn),
+                            taxRate = c.getDouble(colTax)
+                        )
+                    }
+                }
+                map
             }
 
     suspend fun getPurchases(): List<Purchase> =

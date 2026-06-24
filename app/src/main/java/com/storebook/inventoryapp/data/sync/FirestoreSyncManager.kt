@@ -10,6 +10,7 @@ import com.storebook.inventoryapp.data.local.StoreBookDbHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 class FirestoreSyncManager(
@@ -18,6 +19,8 @@ class FirestoreSyncManager(
     private val prefs = context.applicationContext.getSharedPreferences("storebook_prefs", Context.MODE_PRIVATE)
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    private var syncJob = kotlinx.coroutines.SupervisorJob()
+    private var syncScope = kotlinx.coroutines.CoroutineScope(Dispatchers.IO + syncJob)
 
     suspend fun syncAllData() =
         withContext(Dispatchers.IO) {
@@ -315,7 +318,7 @@ class FirestoreSyncManager(
             // Check if exists locally
             val localCursor =
                 db.rawQuery(
-                    "SELECT ${StoreBookDbHelper.KEY_ID}, ${StoreBookDbHelper.KEY_UPDATED_AT} FROM $tableName WHERE ${StoreBookDbHelper.KEY_CLOUD_ID} = ?",
+                    "SELECT ${StoreBookDbHelper.KEY_ID}, ${StoreBookDbHelper.KEY_UPDATED_AT}, ${StoreBookDbHelper.KEY_IS_SYNCED} FROM $tableName WHERE ${StoreBookDbHelper.KEY_CLOUD_ID} = ?",
                     arrayOf(remoteCloudId),
                 )
 
@@ -325,7 +328,8 @@ class FirestoreSyncManager(
 
             if (localCursor.moveToFirst()) {
                 val localUpdatedAt = localCursor.getLong(1)
-                if (remoteUpdatedAt > localUpdatedAt) {
+                val isSynced = localCursor.getInt(2)
+                if (isSynced == 1 && remoteUpdatedAt > localUpdatedAt) {
                     shouldUpdate = true
                     localIdToUpdate = localCursor.getLong(0)
                 }
@@ -459,72 +463,77 @@ class FirestoreSyncManager(
                     }
 
                     if (snapshots != null) {
-                        var localDbUpdated = false
+                        syncScope.launch {
+                            var localDbUpdated = false
 
-                        for (change in snapshots.documentChanges) {
-                            if (change.type == com.google.firebase.firestore.DocumentChange.Type.ADDED ||
-                                change.type == com.google.firebase.firestore.DocumentChange.Type.MODIFIED
-                            ) {
-                                val doc = change.document
-                                val remoteCloudId = doc.getString("cloud_id") ?: doc.id
-                                val remoteUpdatedAt = doc.getLong("updated_at") ?: 0L
+                            for (change in snapshots.documentChanges) {
+                                if (change.type == com.google.firebase.firestore.DocumentChange.Type.ADDED ||
+                                    change.type == com.google.firebase.firestore.DocumentChange.Type.MODIFIED
+                                ) {
+                                    val doc = change.document
+                                    val remoteCloudId = doc.getString("cloud_id") ?: doc.id
+                                    val remoteUpdatedAt = doc.getLong("updated_at") ?: 0L
 
-                                val localCursor = db.rawQuery(
-                                    "SELECT ${StoreBookDbHelper.KEY_ID}, ${StoreBookDbHelper.KEY_UPDATED_AT} FROM $tableName WHERE ${StoreBookDbHelper.KEY_CLOUD_ID} = ?",
-                                    arrayOf(remoteCloudId)
-                                )
+                                    val localCursor = db.rawQuery(
+                                        "SELECT ${StoreBookDbHelper.KEY_ID}, ${StoreBookDbHelper.KEY_UPDATED_AT}, ${StoreBookDbHelper.KEY_IS_SYNCED} FROM $tableName WHERE ${StoreBookDbHelper.KEY_CLOUD_ID} = ?",
+                                        arrayOf(remoteCloudId)
+                                    )
 
-                                var shouldInsert = false
-                                var shouldUpdate = false
-                                var localIdToUpdate = -1L
+                                    var shouldInsert = false
+                                    var shouldUpdate = false
+                                    var localIdToUpdate = -1L
 
-                                if (localCursor.moveToFirst()) {
-                                    val localUpdatedAt = localCursor.getLong(1)
-                                    if (remoteUpdatedAt > localUpdatedAt) {
-                                        shouldUpdate = true
-                                        localIdToUpdate = localCursor.getLong(0)
+                                    if (localCursor.moveToFirst()) {
+                                        val localUpdatedAt = localCursor.getLong(1)
+                                        val isSynced = localCursor.getInt(2)
+                                        if (isSynced == 1 && remoteUpdatedAt > localUpdatedAt) {
+                                            shouldUpdate = true
+                                            localIdToUpdate = localCursor.getLong(0)
+                                        }
+                                    } else {
+                                        shouldInsert = true
                                     }
-                                } else {
-                                    shouldInsert = true
-                                }
-                                localCursor.close()
+                                    localCursor.close()
 
-                                if (shouldInsert || shouldUpdate) {
-                                    val cv = ContentValues().apply {
-                                        put(StoreBookDbHelper.KEY_CLOUD_ID, remoteCloudId)
-                                        put(StoreBookDbHelper.KEY_UPDATED_AT, remoteUpdatedAt)
-                                        put(StoreBookDbHelper.KEY_IS_SYNCED, 1)
-                                        put(StoreBookDbHelper.KEY_IS_DELETED, doc.getLong("is_deleted")?.toInt() ?: 0)
+                                    if (shouldInsert || shouldUpdate) {
+                                        val cv = ContentValues().apply {
+                                            put(StoreBookDbHelper.KEY_CLOUD_ID, remoteCloudId)
+                                            put(StoreBookDbHelper.KEY_UPDATED_AT, remoteUpdatedAt)
+                                            put(StoreBookDbHelper.KEY_IS_SYNCED, 1)
+                                            put(StoreBookDbHelper.KEY_IS_DELETED, doc.getLong("is_deleted")?.toInt() ?: 0)
 
-                                        for (col in columns) {
-                                            val value = doc.get(col)
-                                            when (value) {
-                                                is Long -> put(col, value)
-                                                is Double -> put(col, value)
-                                                is String -> put(col, value)
+                                            for (col in columns) {
+                                                val value = doc.get(col)
+                                                when (value) {
+                                                    is Long -> put(col, value)
+                                                    is Double -> put(col, value)
+                                                    is String -> put(col, value)
+                                                }
                                             }
                                         }
-                                    }
 
-                                    if (shouldInsert) {
-                                        db.insert(tableName, null, cv)
-                                        localDbUpdated = true
-                                    } else if (shouldUpdate) {
-                                        db.update(
-                                            tableName,
-                                            cv,
-                                            "${StoreBookDbHelper.KEY_ID} = ?",
-                                            arrayOf(localIdToUpdate.toString())
-                                        )
-                                        localDbUpdated = true
+                                        if (shouldInsert) {
+                                            db.insert(tableName, null, cv)
+                                            localDbUpdated = true
+                                        } else if (shouldUpdate) {
+                                            db.update(
+                                                tableName,
+                                                cv,
+                                                "${StoreBookDbHelper.KEY_ID} = ?",
+                                                arrayOf(localIdToUpdate.toString())
+                                            )
+                                            localDbUpdated = true
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        if (localDbUpdated) {
-                            Log.i("SyncManager", "Local database updated from real-time changes on $tableName")
-                            onDataChangedCallback?.invoke()
+                            if (localDbUpdated) {
+                                Log.i("SyncManager", "Local database updated from real-time changes on $tableName")
+                                withContext(Dispatchers.Main) {
+                                    onDataChangedCallback?.invoke()
+                                }
+                            }
                         }
                     }
                 }
@@ -533,6 +542,9 @@ class FirestoreSyncManager(
     }
 
     fun stopRealtimeSync() {
+        syncJob.cancel()
+        syncJob = kotlinx.coroutines.SupervisorJob()
+        syncScope = kotlinx.coroutines.CoroutineScope(Dispatchers.IO + syncJob)
         for (listener in listeners) {
             listener.remove()
         }

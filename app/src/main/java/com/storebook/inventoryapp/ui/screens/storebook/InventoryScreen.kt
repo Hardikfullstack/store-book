@@ -29,10 +29,13 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
@@ -93,6 +96,7 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.SelectableDates
 import androidx.compose.ui.window.PopupProperties
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
@@ -108,6 +112,17 @@ import java.util.Locale
 
 private const val PAGE_SIZE = 50
 
+@OptIn(ExperimentalMaterial3Api::class)
+object FutureSelectableDates : SelectableDates {
+    override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+        val todayStart = System.currentTimeMillis() - 24 * 60 * 60 * 1000
+        return utcTimeMillis >= todayStart
+    }
+    override fun isSelectableYear(year: Int): Boolean {
+        return year >= java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 fun InventoryScreen(viewModel: StoreBookViewModel) {
@@ -121,11 +136,13 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
 
     // ── Infinite-scroll page state ────────────────────────────────────────────
     var displayedItems by remember { mutableStateOf<List<Item>>(emptyList()) }
+    var filterMode by rememberSaveable { mutableStateOf("All") } // "All" or "NearExpiry"
     var hasMoreItems by remember { mutableStateOf(true) }
     var isLoadingMore by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     val filteredItems by viewModel.filteredItems.collectAsStateWithLifecycle()
+    val nearExpiryItems by viewModel.nearExpiryItems.collectAsStateWithLifecycle()
     val isLoadingItems by viewModel.isLoadingItems.collectAsStateWithLifecycle()
     val suppliers by viewModel.suppliers.collectAsStateWithLifecycle()
 
@@ -151,6 +168,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
     var inputBatchNumber by remember { mutableStateOf("") }
     var inputExpiryDateMs by remember { mutableStateOf<Long?>(null) }
     var showExpiryDatePicker by remember { mutableStateOf(false) }
+    var showAdvancedOptions by remember { mutableStateOf(false) }
     var nameError by remember { mutableStateOf(false) }
     var priceError by remember { mutableStateOf(false) }
     var qtyError by remember { mutableStateOf(false) }
@@ -175,6 +193,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
         viewModel.loadFilteredItems(searchQ, selectedCategory, sortBy)
     }
 
+
     // ── Debounce search + category/sort changes → trigger DB query ────────────
     LaunchedEffect(searchQ, selectedCategory, sortBy) {
         snapshotFlow { Triple(searchQ, selectedCategory, sortBy) }
@@ -186,10 +205,11 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
             }
     }
 
-    // ── Update displayedItems when first page arrives from VM ─────────────────
-    LaunchedEffect(filteredItems) {
-        displayedItems = filteredItems
-        hasMoreItems = filteredItems.size >= PAGE_SIZE
+    // ── Update displayedItems based on filter mode ────────────────────────────────
+    LaunchedEffect(filterMode, filteredItems, nearExpiryItems) {
+        displayedItems = if (filterMode == "NearExpiry") nearExpiryItems else filteredItems
+        // NearExpiry view shows all items, no pagination
+        hasMoreItems = filterMode != "NearExpiry" && displayedItems.size >= PAGE_SIZE
     }
 
     // ── Infinite scroll trigger — load next page when near bottom ─────────────
@@ -239,6 +259,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
         inputTaxRate = ""
         inputBatchNumber = ""
         inputExpiryDateMs = null
+        showAdvancedOptions = false
         nameError = false
         priceError = false
         qtyError = false
@@ -261,6 +282,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
             if (item.taxRate > 0) item.taxRate.toString() else ""
         inputBatchNumber = ""
         inputExpiryDateMs = null
+        showAdvancedOptions = item.hsnCode != null || item.taxRate > 0
         nameError = false
         qtyError = false
         buyPriceError = false
@@ -309,13 +331,21 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
 
         // Expiry Date Picker for Refill
         if (showRefillDatePicker) {
-            val datePickerState = rememberDatePickerState(initialSelectedDateMillis = refillExpiryDateMs ?: System.currentTimeMillis())
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = refillExpiryDateMs ?: System.currentTimeMillis(),
+                selectableDates = FutureSelectableDates
+            )
             DatePickerDialog(
                 onDismissRequest = { showRefillDatePicker = false },
                 confirmButton = {
                     TextButton(onClick = {
-                        refillExpiryDateMs = datePickerState.selectedDateMillis
-                        showRefillDatePicker = false
+                        val selected = datePickerState.selectedDateMillis
+                        if (selected != null && selected < System.currentTimeMillis() - 24 * 60 * 60 * 1000) {
+                            android.widget.Toast.makeText(context, "Expiry date cannot be in the past", android.widget.Toast.LENGTH_SHORT).show()
+                        } else {
+                            refillExpiryDateMs = selected
+                            showRefillDatePicker = false
+                        }
                     }) { Text("OK") }
                 },
                 dismissButton = {
@@ -477,8 +507,17 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
             },
             confirmButton = {
                 Button(onClick = {
-                    val addedQty = addQtyInput.toDoubleOrNull() ?: 0.0
-                    val finalBuyPrice = buyPriceInput.toDoubleOrNull() ?: refillItem.buyPrice
+                    val addedQty = addQtyInput.toDoubleOrNull()
+                    val finalBuyPrice = if (viewModel.userRole == "staff") refillItem.buyPrice else buyPriceInput.toDoubleOrNull()
+
+                    if (addedQty == null || addedQty <= 0.0) {
+                        android.widget.Toast.makeText(context, "Please enter a valid positive quantity", android.widget.Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (finalBuyPrice == null || finalBuyPrice < 0.0) {
+                        android.widget.Toast.makeText(context, "Please enter a valid buy price", android.widget.Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
                     if (addedQty > 0) {
                         val purchase = Purchase(
                             supplierId = selectedSupplier?.id ?: 0L,
@@ -650,7 +689,20 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         FilterChip(
                             label = cat,
                             isSelected = selectedCategory == cat,
-                            onClick = { selectedCategory = cat },
+                            onClick = { 
+                                selectedCategory = cat
+                                filterMode = "All"
+                            },
+                            onPrimaryBg = true,
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            label = "🕒 Expiring ≤30d${if (nearExpiryItems.isNotEmpty()) " (${nearExpiryItems.size})" else ""}",
+                            isSelected = filterMode == "NearExpiry",
+                            onClick = {
+                                filterMode = if (filterMode == "NearExpiry") "All" else "NearExpiry"
+                            },
                             onPrimaryBg = true,
                         )
                     }
@@ -690,20 +742,44 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
 
                 displayedItems.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("📦", fontSize = 48.sp)
-                            Spacer(modifier = Modifier.height(8.dp))
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(32.dp)
+                        ) {
+                            Text("📦✨", fontSize = 72.sp)
+                            Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text =
-                                    if (searchQ.isBlank() && selectedCategory == "All") {
-                                        "No items yet.\nTap + to add your first item."
-                                    } else {
-                                        stringResource(id = R.string.search_no_results)
-                                    },
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                text = if (searchQ.isBlank() && selectedCategory == "All" && filterMode == "All") {
+                                    "No stock yet?\nYour first item is just a tap away!"
+                                } else {
+                                    stringResource(id = R.string.search_no_results)
+                                },
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                 textAlign = TextAlign.Center,
-                                fontSize = 14.sp,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                lineHeight = 22.sp
                             )
+                            if (searchQ.isBlank() && selectedCategory == "All" && filterMode == "All") {
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Add here ",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = "↘️",
+                                        fontSize = 24.sp
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -983,6 +1059,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                     qtyError = false
                                 },
                                 label = { Text(stringResource(id = R.string.inv_qty_label)) },
+                                suffix = { Text(inputUnit) },
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Decimal,
                                     imeAction = ImeAction.Next
@@ -1032,6 +1109,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                         buyPriceError = false
                                     },
                                     label = { Text(stringResource(id = R.string.inv_buy_price_label)) },
+                                    prefix = { Text("₹ ") },
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Decimal,
                                         imeAction = ImeAction.Next
@@ -1056,6 +1134,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                     sellPriceError = false
                                 },
                                 label = { Text(stringResource(id = R.string.inv_sell_price_label)) },
+                                prefix = { Text("₹ ") },
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Decimal,
                                     imeAction = ImeAction.Next
@@ -1074,35 +1153,23 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             )
                         }
 
-                        // Category picker chips
-                        Column {
-                            Text(
-                                stringResource(id = R.string.inv_category_label),
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(categoriesList, key = { it }) { c ->
-                                    FilterChip(
-                                        label = c,
-                                        isSelected = inputCategory == c,
-                                        onClick = { inputCategory = c },
-                                    )
-                                }
-                            }
-                        }
-
                         OutlinedTextField(
                             value = inputThreshold,
                             onValueChange = { inputThreshold = it },
                             label = { Text(stringResource(id = R.string.inv_threshold_label)) },
+                            suffix = { Text(inputUnit) },
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Decimal,
                                 imeAction = ImeAction.Next
                             ),
                             keyboardActions = KeyboardActions(
-                                onNext = { focusRequesterHsn.requestFocus() }
+                                onNext = {
+                                    if (showAdvancedOptions) {
+                                        focusRequesterHsn.requestFocus()
+                                    } else {
+                                        focusManager.clearFocus()
+                                    }
+                                }
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1110,53 +1177,47 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             singleLine = true,
                         )
 
-                        // Taxes & HSN
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedTextField(
-                                value = inputHsnCode,
-                                onValueChange = { inputHsnCode = it },
-                                label = { Text("HSN/SAC Code") },
-                                keyboardOptions = KeyboardOptions(
-                                    imeAction = ImeAction.Next
-                                ),
-                                keyboardActions = KeyboardActions(
-                                    onNext = { focusRequesterTax.requestFocus() }
-                                ),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .focusRequester(focusRequesterHsn),
-                                singleLine = true,
+                        // Advanced Options Accordion Toggle
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showAdvancedOptions = !showAdvancedOptions }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = if (showAdvancedOptions) "Hide Advanced Options" else "Show Advanced Options (HSN, Tax, Batch)",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
-                            OutlinedTextField(
-                                value = inputTaxRate,
-                                onValueChange = { inputTaxRate = it },
-                                label = { Text("Tax Rate (%)") },
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Decimal,
-                                    imeAction = ImeAction.Next
-                                ),
-                                keyboardActions = KeyboardActions(
-                                    onNext = { focusRequesterBatch.requestFocus() }
-                                ),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .focusRequester(focusRequesterTax),
-                                singleLine = true,
+                            Icon(
+                                imageVector = if (showAdvancedOptions) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
 
-                        // ── Batch & Expiry Tracking (Optional) ───────────────
                         val sheetDateFormatter = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
 
                         // Expiry Date Picker for Add/Edit sheet
                         if (showExpiryDatePicker) {
-                            val dpState = rememberDatePickerState(initialSelectedDateMillis = inputExpiryDateMs ?: System.currentTimeMillis())
+                            val dpState = rememberDatePickerState(
+                                initialSelectedDateMillis = inputExpiryDateMs ?: System.currentTimeMillis(),
+                                selectableDates = FutureSelectableDates
+                            )
                             DatePickerDialog(
                                 onDismissRequest = { showExpiryDatePicker = false },
                                 confirmButton = {
                                     TextButton(onClick = {
-                                        inputExpiryDateMs = dpState.selectedDateMillis
-                                        showExpiryDatePicker = false
+                                        val selected = dpState.selectedDateMillis
+                                        if (selected != null && selected < System.currentTimeMillis() - 24 * 60 * 60 * 1000) {
+                                            android.widget.Toast.makeText(context, "Expiry date cannot be in the past", android.widget.Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            inputExpiryDateMs = selected
+                                            showExpiryDatePicker = false
+                                        }
                                     }) { Text("OK") }
                                 },
                                 dismissButton = {
@@ -1165,54 +1226,96 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             ) { DatePicker(state = dpState) }
                         }
 
-                        Text(
-                            text = "Batch & Expiry Tracking (Optional)",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        OutlinedTextField(
-                            value = inputBatchNumber,
-                            onValueChange = { inputBatchNumber = it },
-                            label = { Text("Batch / Lot Number") },
-                            placeholder = { Text("e.g. MFG-2024-B1") },
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Done
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = { focusManager.clearFocus() }
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .focusRequester(focusRequesterBatch),
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            value = inputExpiryDateMs?.let { sheetDateFormatter.format(Date(it)) } ?: "",
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Expiry Date") },
-                            placeholder = { Text("Tap calendar icon to set") },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = false,
-                            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                            ),
-                            trailingIcon = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    if (inputExpiryDateMs != null) {
-                                        TextButton(onClick = { inputExpiryDateMs = null }) {
-                                            Text("Clear", fontSize = 11.sp)
+                        AnimatedVisibility(visible = showAdvancedOptions) {
+                            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                // Taxes & HSN
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    OutlinedTextField(
+                                        value = inputHsnCode,
+                                        onValueChange = { inputHsnCode = it },
+                                        label = { Text("HSN/SAC Code") },
+                                        keyboardOptions = KeyboardOptions(
+                                            imeAction = ImeAction.Next
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onNext = { focusRequesterTax.requestFocus() }
+                                        ),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .focusRequester(focusRequesterHsn),
+                                        singleLine = true,
+                                    )
+                                    OutlinedTextField(
+                                        value = inputTaxRate,
+                                        onValueChange = { inputTaxRate = it },
+                                        label = { Text("Tax Rate (%)") },
+                                        suffix = { Text("%") },
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Decimal,
+                                            imeAction = ImeAction.Next
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onNext = { focusRequesterBatch.requestFocus() }
+                                        ),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .focusRequester(focusRequesterTax),
+                                        singleLine = true,
+                                    )
+                                }
+
+                                Text(
+                                    text = "Batch & Expiry Tracking (Optional)",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+
+                                OutlinedTextField(
+                                    value = inputBatchNumber,
+                                    onValueChange = { inputBatchNumber = it },
+                                    label = { Text("Batch / Lot Number") },
+                                    placeholder = { Text("e.g. MFG-2024-B1") },
+                                    keyboardOptions = KeyboardOptions(
+                                        imeAction = ImeAction.Done
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onDone = { focusManager.clearFocus() }
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .focusRequester(focusRequesterBatch),
+                                    singleLine = true,
+                                )
+
+                                OutlinedTextField(
+                                    value = inputExpiryDateMs?.let { sheetDateFormatter.format(Date(it)) } ?: "",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Expiry Date") },
+                                    placeholder = { Text("Tap calendar icon to set") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    enabled = false,
+                                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                    ),
+                                    trailingIcon = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            if (inputExpiryDateMs != null) {
+                                                TextButton(onClick = { inputExpiryDateMs = null }) {
+                                                    Text("Clear", fontSize = 11.sp)
+                                                }
+                                            }
+                                            IconButton(onClick = { showExpiryDatePicker = true }) {
+                                                Icon(Icons.Default.CalendarToday, contentDescription = "Pick Expiry Date")
+                                            }
                                         }
                                     }
-                                    IconButton(onClick = { showExpiryDatePicker = true }) {
-                                        Icon(Icons.Default.CalendarToday, contentDescription = "Pick Expiry Date")
-                                    }
-                                }
+                                )
                             }
-                        )
+                        }
 
                         Button(
                             onClick = {
@@ -1227,12 +1330,12 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 val expiryMs = inputExpiryDateMs
 
                                 nameError = name.isBlank()
-                                buyPriceError = viewModel.userRole != "staff" && buy == null
-                                sellPriceError = sell == null
+                                buyPriceError = viewModel.userRole != "staff" && (buy == null || buy < 0.0)
+                                sellPriceError = sell == null || sell <= 0.0
+                                qtyError = qty == null || qty < 0.0
 
                                 if (nameError || qtyError || buyPriceError || sellPriceError) return@Button
-                                priceError = buy == null || sell == null
-                                qtyError = qty == null || qty < 0.0
+                                priceError = buy == null || sell == null || buy < 0.0 || sell <= 0.0
                                 if (nameError || qtyError || priceError || buyPriceError || sellPriceError) return@Button
 
                                 if (editingItem == null) {

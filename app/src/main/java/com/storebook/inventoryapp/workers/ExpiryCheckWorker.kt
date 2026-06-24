@@ -49,6 +49,10 @@ class ExpiryCheckWorker(
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
 
-        manager.notify(1001, notification)
+        try {
+            manager.notify(System.currentTimeMillis().toInt(), notification)
+        } catch (e: SecurityException) {
+            // Missing POST_NOTIFICATIONS permission
+        }
     }
 }

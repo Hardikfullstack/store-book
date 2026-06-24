@@ -34,8 +34,20 @@ fun ProBillingView(
     onDismiss: () -> Unit,
 ) {
     val ctx = LocalContext.current
-    val activity = ctx as? Activity
+    val activity = remember(ctx) {
+        var context = ctx
+        while (context is android.content.ContextWrapper) {
+            if (context is Activity) return@remember context
+            context = context.baseContext
+        }
+        null
+    }
     val billingManager = remember { PlayBillingManager(ctx.applicationContext) }
+    DisposableEffect(billingManager) {
+        onDispose {
+            billingManager.endConnection()
+        }
+    }
     val billingState by billingManager.state.collectAsState()
 
     val auth = remember { com.google.firebase.auth.FirebaseAuth.getInstance() }

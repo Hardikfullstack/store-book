@@ -1,15 +1,18 @@
 package com.storebook.inventoryapp.ui.screens.storebook
 
-import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,15 +25,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import androidx.navigation.NavController
+import com.storebook.inventoryapp.data.billing.BillingEngine
+import com.storebook.inventoryapp.data.repository.Item
+import com.storebook.inventoryapp.data.repository.CartItem
 import com.storebook.inventoryapp.data.repository.Sale
+import com.storebook.inventoryapp.data.repository.Purchase
+import com.storebook.inventoryapp.data.repository.Supplier
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
+import com.storebook.inventoryapp.utils.toBigDecimal
+import com.storebook.inventoryapp.utils.sumOfBigDecimal
 import kotlinx.coroutines.launch
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+
+enum class GSTReportType(val title: String, val subtitle: String) {
+    GSTR1("GSTR-1", "Sales / Outward Supplies"),
+    GSTR2("GSTR-2", "Purchases / Inward Supplies"),
+    GSTR3B("GSTR-3B", "Consolidated Summary"),
+    DETAILED("Detailed GST", "Item-wise Breakup")
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,8 +59,11 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
     var selectedYear by remember { mutableIntStateOf(now.get(Calendar.YEAR)) }
 
     val monthNames = remember {
-        listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+        listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
     }
+
+    // Selected Report Type State
+    var activeReportType by remember { mutableStateOf(GSTReportType.GSTR1) }
 
     // Computed date range for selected month
     val (startTs, endTs) = remember(selectedMonth, selectedYear) {
@@ -54,35 +72,105 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
         cal.set(Calendar.MILLISECOND, 0)
         val start = cal.timeInMillis
         cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
-        cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59); cal.set(Calendar.SECOND, 59)
+        cal.set(Calendar.HOUR_OF_DAY, 23)
+        cal.set(Calendar.MINUTE, 59)
+        cal.set(Calendar.SECOND, 59)
         Pair(start, cal.timeInMillis)
     }
 
     var sales by remember { mutableStateOf<List<Sale>>(emptyList()) }
-    var totalTaxable by remember { mutableDoubleStateOf(0.0) }
-    var totalTax by remember { mutableDoubleStateOf(0.0) }
-    var totalRevenue by remember { mutableDoubleStateOf(0.0) }
+    var purchases by remember { mutableStateOf<List<Purchase>>(emptyList()) }
+    var suppliersMap by remember { mutableStateOf<Map<Long, Supplier>>(emptyMap()) }
+    var allItemsMap by remember { mutableStateOf<Map<Long, Item>>(emptyMap()) }
     var isLoading by remember { mutableStateOf(false) }
-    var csvContent by remember { mutableStateOf("") }
 
     LaunchedEffect(startTs, endTs) {
         isLoading = true
-        csvContent = viewModel.generateGSTR1Csv(startTs, endTs)
-        // Parse back totals from csvContent lines (skip header)
-        val lines = csvContent.lines().drop(1).filter { it.isNotBlank() }
-        totalRevenue = lines.sumOf { line ->
-            line.split(",").getOrNull(4)?.toDoubleOrNull() ?: 0.0
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val fetchedSales = viewModel.repository.getSalesByDateRange(startTs, endTs)
+            val fetchedPurchases = viewModel.repository.getPurchasesByDateRange(startTs, endTs)
+            val fetchedSuppliers = viewModel.repository.getAllSuppliersMap()
+            val fetchedItems = viewModel.repository.getAllItemsMap()
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                sales = fetchedSales
+                purchases = fetchedPurchases
+                suppliersMap = fetchedSuppliers
+                allItemsMap = fetchedItems
+                isLoading = false
+            }
         }
-        totalTaxable = lines.sumOf { line ->
-            line.split(",").getOrNull(6)?.toDoubleOrNull() ?: 0.0
-        }
-        totalTax = totalRevenue - totalTaxable
-        // Re-fetch sales for display
-        sales = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            viewModel.repository.getSalesByDateRange(startTs, endTs)
-        }
-        isLoading = false
     }
+
+    // Business details
+    val businessGstin = viewModel.businessGstin
+
+    // Calculate active tax summaries for Sales
+    val salesSummaries = remember(sales, businessGstin, allItemsMap) {
+        sales.map { sale ->
+            val cartItems = sale.items.map { saleItem ->
+                val actualItem = allItemsMap[saleItem.itemId] ?: Item(
+                    id = saleItem.itemId,
+                    name = saleItem.itemName,
+                    quantity = 0.0,
+                    unit = saleItem.unit,
+                    buyPrice = saleItem.buyPrice,
+                    sellPrice = saleItem.sellPrice,
+                    lowStockThreshold = 0.0,
+                    category = ""
+                )
+                CartItem(item = actualItem.copy(sellPrice = saleItem.sellPrice), quantity = saleItem.quantity)
+            }
+            BillingEngine.calculateInvoiceTaxes(
+                cartItems = cartItems,
+                totalDiscount = sale.discountAmount,
+                businessGstin = businessGstin,
+                customerGstin = sale.customerGstin
+            )
+        }
+    }
+
+    // Calculate active tax summaries for Purchases
+    val purchasesSummaries = remember(purchases, businessGstin, suppliersMap, allItemsMap) {
+        purchases.map { purchase ->
+            val supplier = suppliersMap[purchase.supplierId]
+            val supplierGstin = supplier?.gstin ?: ""
+            val cartItems = purchase.items.map { pi ->
+                val actualItem = allItemsMap[pi.itemId] ?: Item(
+                    id = pi.itemId,
+                    name = pi.itemName,
+                    quantity = 0.0,
+                    unit = pi.unit,
+                    buyPrice = pi.buyPrice,
+                    sellPrice = pi.buyPrice,
+                    lowStockThreshold = 0.0,
+                    category = ""
+                )
+                CartItem(item = actualItem.copy(sellPrice = pi.buyPrice), quantity = pi.quantity)
+            }
+            BillingEngine.calculateInvoiceTaxes(
+                cartItems = cartItems,
+                totalDiscount = 0.0,
+                businessGstin = businessGstin,
+                customerGstin = supplierGstin
+            )
+        }
+    }
+
+    // GSTR-1 Sales Totals
+    val totalSalesValue = remember(sales) { sales.sumOfBigDecimal { it.totalAmount.toBigDecimal() }.toDouble() }
+    val totalSalesTaxable = remember(salesSummaries) { salesSummaries.sumOfBigDecimal { it.netTaxableAmount.toBigDecimal() }.toDouble() }
+    val totalSalesCgst = remember(salesSummaries) { salesSummaries.sumOfBigDecimal { it.totalCgst.toBigDecimal() }.toDouble() }
+    val totalSalesSgst = remember(salesSummaries) { salesSummaries.sumOfBigDecimal { it.totalSgst.toBigDecimal() }.toDouble() }
+    val totalSalesIgst = remember(salesSummaries) { salesSummaries.sumOfBigDecimal { it.totalIgst.toBigDecimal() }.toDouble() }
+    val totalSalesTax = (totalSalesCgst.toBigDecimal() + totalSalesSgst.toBigDecimal() + totalSalesIgst.toBigDecimal()).toDouble()
+
+    // GSTR-2 Purchases Totals
+    val totalPurchasesValue = remember(purchases) { purchases.sumOfBigDecimal { it.totalAmount.toBigDecimal() }.toDouble() }
+    val totalPurchasesTaxable = remember(purchasesSummaries) { purchasesSummaries.sumOfBigDecimal { it.netTaxableAmount.toBigDecimal() }.toDouble() }
+    val totalPurchasesCgst = remember(purchasesSummaries) { purchasesSummaries.sumOfBigDecimal { it.totalCgst.toBigDecimal() }.toDouble() }
+    val totalPurchasesSgst = remember(purchasesSummaries) { purchasesSummaries.sumOfBigDecimal { it.totalSgst.toBigDecimal() }.toDouble() }
+    val totalPurchasesIgst = remember(purchasesSummaries) { purchasesSummaries.sumOfBigDecimal { it.totalIgst.toBigDecimal() }.toDouble() }
+    val totalPurchasesTax = (totalPurchasesCgst.toBigDecimal() + totalPurchasesSgst.toBigDecimal() + totalPurchasesIgst.toBigDecimal()).toDouble()
 
     val gradientBrush = Brush.verticalGradient(listOf(InkBlue700, InkBlue500))
 
@@ -104,157 +192,696 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("GST Reports", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White)
-                        Text("GSTR-1 Summary", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
+                        Text("GST Compliance Reports", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White)
+                        Text(activeReportType.subtitle, fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
                     }
                     IconButton(onClick = {
-                        scope.launch {
-                            // Write CSV to cache and share
-                            val file = File(context.cacheDir, "GSTR1_${monthNames[selectedMonth]}_$selectedYear.csv")
-                            file.writeText(csvContent)
-                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/csv"
-                                putExtra(Intent.EXTRA_STREAM, uri)
-                                putExtra(Intent.EXTRA_SUBJECT, "GSTR-1 ${monthNames[selectedMonth]} $selectedYear")
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
-                            context.startActivity(Intent.createChooser(intent, "Share GSTR-1"))
+                        val monthName = monthNames[selectedMonth]
+                        when (activeReportType) {
+                            GSTReportType.GSTR1 -> viewModel.exportGSTR1Excel(context, startTs, endTs, "GSTR1_${monthName}_$selectedYear")
+                            GSTReportType.GSTR2 -> viewModel.exportGSTR2Excel(context, startTs, endTs, "GSTR2_${monthName}_$selectedYear")
+                            GSTReportType.GSTR3B -> viewModel.exportGSTR3BExcel(context, startTs, endTs, "GSTR3B_${monthName}_$selectedYear")
+                            GSTReportType.DETAILED -> viewModel.exportGstdetailedExcel(context, startTs, endTs, "Detailed_GST_${monthName}_$selectedYear")
                         }
                     }) {
-                        Icon(Icons.Default.Share, contentDescription = "Export CSV", tint = Color.White)
+                        Icon(Icons.Default.Share, contentDescription = "Export Excel", tint = Color.White)
                     }
                 }
             }
         }
     ) { padding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .background(SlateGray50)
         ) {
-            // Month navigator
-            item {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(2.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+            // 1. Report Selector Toggles
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                GSTReportType.values().forEach { type ->
+                    val isSelected = activeReportType == type
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) InkBlue700 else Color.White,
+                            contentColor = if (isSelected) Color.White else SlateGray600
+                        ),
+                        elevation = CardDefaults.cardElevation(if (isSelected) 4.dp else 1.dp),
+                        modifier = Modifier
+                            .clickable { activeReportType = type }
                     ) {
-                        IconButton(onClick = {
-                            if (selectedMonth == 0) { selectedMonth = 11; selectedYear-- }
-                            else selectedMonth--
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Prev")
-                        }
                         Text(
-                            "${monthNames[selectedMonth]} $selectedYear",
-                            fontWeight = FontWeight.Bold, fontSize = 18.sp,
-                            textAlign = TextAlign.Center
+                            text = type.title,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
                         )
-                        IconButton(onClick = {
-                            if (selectedMonth == 11) { selectedMonth = 0; selectedYear++ }
-                            else selectedMonth++
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next")
-                        }
                     }
                 }
             }
 
-            // Summary cards
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    GSTSummaryCard("Total Sales", "₹${"%,.2f".format(totalRevenue)}", InkBlue500, Modifier.weight(1f))
-                    GSTSummaryCard("Taxable Value", "₹${"%,.2f".format(totalTaxable)}", Emerald500, Modifier.weight(1f))
-                    GSTSummaryCard("Total Tax", "₹${"%,.2f".format(totalTax)}", Saffron500, Modifier.weight(1f))
-                }
-            }
-
-            // Table header
-            item {
-                Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = InkBlue700)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Customer", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, modifier = Modifier.weight(2f))
-                        Text("Date", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, modifier = Modifier.weight(1.5f), textAlign = TextAlign.Center)
-                        Text("Amount", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, modifier = Modifier.weight(1.5f), textAlign = TextAlign.End)
-                        Text("Tax (18%)", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, modifier = Modifier.weight(1.5f), textAlign = TextAlign.End)
+            // 2. Period Navigation Calendar Card
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(2.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = {
+                        if (selectedMonth == 0) {
+                            selectedMonth = 11; selectedYear--
+                        } else selectedMonth--
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous Month")
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "${monthNames[selectedMonth]} $selectedYear",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = SlateGray800
+                        )
+                        Text(
+                            "Reporting Period",
+                            fontSize = 11.sp,
+                            color = SlateGray400
+                        )
+                    }
+                    IconButton(onClick = {
+                        if (selectedMonth == 11) {
+                            selectedMonth = 0; selectedYear++
+                        } else selectedMonth++
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next Month")
                     }
                 }
             }
 
             if (isLoading) {
-                item {
-                    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-            } else if (sales.isEmpty()) {
-                item {
-                    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("📋", fontSize = 40.sp)
-                            Spacer(Modifier.height(8.dp))
-                            Text("No sales in ${monthNames[selectedMonth]} $selectedYear", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = InkBlue700)
                 }
             } else {
-                val dateFmt = SimpleDateFormat("dd MMM", Locale.getDefault())
-                items(sales, key = { it.id }) { sale ->
-                    val tax = sale.totalAmount - (sale.totalAmount / 1.18)
-                    Card(
-                        shape = RoundedCornerShape(10.dp),
-                        elevation = CardDefaults.cardElevation(1.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // 3. Render Summaries
+                    item {
+                        when (activeReportType) {
+                            GSTReportType.GSTR1 -> {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        SummaryBlock("Total Sales", "₹${"%,.2f".format(totalSalesValue)}", InkBlue500, Modifier.weight(1f))
+                                        SummaryBlock("Taxable Value", "₹${"%,.2f".format(totalSalesTaxable)}", Emerald500, Modifier.weight(1f))
+                                        SummaryBlock("Total Tax Liability", "₹${"%,.2f".format(totalSalesTax)}", Saffron500, Modifier.weight(1f))
+                                    }
+                                    TaxBreakupCard(totalSalesCgst, totalSalesSgst, totalSalesIgst)
+                                }
+                            }
+                            GSTReportType.GSTR2 -> {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        SummaryBlock("Total Purchases", "₹${"%,.2f".format(totalPurchasesValue)}", InkBlue500, Modifier.weight(1f))
+                                        SummaryBlock("Taxable Value", "₹${"%,.2f".format(totalPurchasesTaxable)}", Emerald500, Modifier.weight(1f))
+                                        SummaryBlock("Total ITC", "₹${"%,.2f".format(totalPurchasesTax)}", Saffron500, Modifier.weight(1f))
+                                    }
+                                    TaxBreakupCard(totalPurchasesCgst, totalPurchasesSgst, totalPurchasesIgst)
+                                }
+                            }
+                            GSTReportType.GSTR3B -> {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        SummaryBlock("Outward Tax Liability", "₹${"%,.2f".format(totalSalesTax)}", Coral500, Modifier.weight(1f))
+                                        SummaryBlock("Eligible ITC", "₹${"%,.2f".format(totalPurchasesTax)}", Emerald500, Modifier.weight(1f))
+                                    }
+                                    val netPayable = totalSalesTax - totalPurchasesTax
+                                    Card(
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (netPayable >= 0) Coral100 else Emerald100
+                                        )
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column {
+                                                Text(
+                                                    if (netPayable >= 0) "Net Tax Payable" else "ITC Carry Forward",
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (netPayable >= 0) Coral500 else Emerald500,
+                                                    fontSize = 14.sp
+                                                )
+                                                Text(
+                                                    "Consolidated GSTR-3B balance",
+                                                    fontSize = 11.sp,
+                                                    color = SlateGray600
+                                                )
+                                            }
+                                            Text(
+                                                "₹${"%,.2f".format(Math.abs(netPayable))}",
+                                                fontWeight = FontWeight.Black,
+                                                fontSize = 20.sp,
+                                                color = if (netPayable >= 0) Coral500 else Emerald500
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            GSTReportType.DETAILED -> {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    SummaryBlock("Total Taxable Value", "₹${"%,.2f".format(totalSalesTaxable + totalPurchasesTaxable)}", InkBlue500, Modifier.weight(1f))
+                                    SummaryBlock("Consolidated GST", "₹${"%,.2f".format(totalSalesTax + totalPurchasesTax)}", Saffron500, Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+
+                    // 4. Section Preview Headers
+                    item {
+                        Text(
+                            text = when (activeReportType) {
+                                GSTReportType.GSTR1 -> "Sales Invoices (${sales.size})"
+                                GSTReportType.GSTR2 -> "Purchase Bills (${purchases.size})"
+                                GSTReportType.GSTR3B -> "Sectional Breakdown"
+                                GSTReportType.DETAILED -> "Detailed Transaction Breakdown"
+                            },
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = SlateGray800,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+
+                    // 5. Render Lists / Tables
+                    when (activeReportType) {
+                        GSTReportType.GSTR1 -> {
+                            if (sales.isEmpty()) {
+                                item { EmptyReportState("No sales found for this month.") }
+                            } else {
+                                items(sales, key = { it.id }) { sale ->
+                                    val idx = sales.indexOf(sale)
+                                    val summary = salesSummaries.getOrNull(idx)
+                                    TransactionItemRow(
+                                        title = sale.customerName ?: "Cash Customer",
+                                        subtitle = "INV${sale.id.toString().padStart(5, '0')}",
+                                        date = sale.timestamp,
+                                        amount = sale.totalAmount,
+                                        tax = (summary?.totalCgst ?: 0.0) + (summary?.totalSgst ?: 0.0) + (summary?.totalIgst ?: 0.0),
+                                        isSale = true
+                                    )
+                                }
+                            }
+                        }
+                        GSTReportType.GSTR2 -> {
+                            if (purchases.isEmpty()) {
+                                item { EmptyReportState("No purchases found for this month.") }
+                            } else {
+                                items(purchases, key = { it.id }) { purchase ->
+                                    val idx = purchases.indexOf(purchase)
+                                    val summary = purchasesSummaries.getOrNull(idx)
+                                    TransactionItemRow(
+                                        title = purchase.supplierName,
+                                        subtitle = "PUR${purchase.id.toString().padStart(5, '0')}",
+                                        date = purchase.timestamp,
+                                        amount = purchase.totalAmount,
+                                        tax = (summary?.totalCgst ?: 0.0) + (summary?.totalSgst ?: 0.0) + (summary?.totalIgst ?: 0.0),
+                                        isSale = false
+                                    )
+                                }
+                            }
+                        }
+                        GSTReportType.GSTR3B -> {
+                            item {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    SectionBreakdownCard("1. Outward Supplies (Sales Liability)", totalSalesTaxable, totalSalesCgst, totalSalesSgst, totalSalesIgst, totalSalesTax)
+                                    SectionBreakdownCard("2. Inward Supplies (Eligible ITC)", totalPurchasesTaxable, totalPurchasesCgst, totalPurchasesSgst, totalPurchasesIgst, totalPurchasesTax)
+                                    SectionBreakdownCard(
+                                        "3. Net Tax Summary",
+                                        totalSalesTaxable - totalPurchasesTaxable,
+                                        totalSalesCgst - totalPurchasesCgst,
+                                        totalSalesSgst - totalPurchasesSgst,
+                                        totalSalesIgst - totalPurchasesIgst,
+                                        totalSalesTax - totalPurchasesTax
+                                    )
+                                }
+                            }
+                        }
+                        GSTReportType.DETAILED -> {
+                            val detailedRows = mutableListOf<DetailedRowData>()
+                            sales.forEachIndexed { sIdx, sale ->
+                                val summary = salesSummaries.getOrNull(sIdx)
+                                summary?.itemDetails?.forEach { detail ->
+                                    detailedRows.add(
+                                        DetailedRowData(
+                                            date = sale.timestamp,
+                                            txnId = "INV${sale.id.padStart(5)}",
+                                            type = "Sale",
+                                            party = sale.customerName ?: "Cash Customer",
+                                            item = detail.cartItem.item.name,
+                                            hsn = detail.cartItem.item.hsnCode ?: "-",
+                                            taxRate = detail.cartItem.item.taxRate,
+                                            qty = detail.cartItem.quantity,
+                                            taxable = detail.netAmountBeforeTax,
+                                            tax = detail.totalTaxAmount
+                                        )
+                                    )
+                                }
+                            }
+                            purchases.forEachIndexed { pIdx, purchase ->
+                                val summary = purchasesSummaries.getOrNull(pIdx)
+                                summary?.itemDetails?.forEach { detail ->
+                                    detailedRows.add(
+                                        DetailedRowData(
+                                            date = purchase.timestamp,
+                                            txnId = "PUR${purchase.id.toString().padStart(5, '0')}",
+                                            type = "Purchase",
+                                            party = purchase.supplierName,
+                                            item = detail.cartItem.item.name,
+                                            hsn = detail.cartItem.item.hsnCode ?: "-",
+                                            taxRate = detail.cartItem.item.taxRate,
+                                            qty = detail.cartItem.quantity,
+                                            taxable = detail.netAmountBeforeTax,
+                                            tax = detail.totalTaxAmount
+                                        )
+                                    )
+                                }
+                            }
+
+                            if (detailedRows.isEmpty()) {
+                                item { EmptyReportState("No transactions found for detailed breakup.") }
+                            } else {
+                                items(detailedRows) { row ->
+                                    DetailedBreakupRow(row)
+                                }
+                            }
+                        }
+                    }
+
+                    // Disclaimer / Note
+                    item {
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = SlateGray100),
+                            modifier = Modifier.padding(vertical = 12.dp)
                         ) {
                             Text(
-                                sale.customerName ?: "Consumer",
-                                modifier = Modifier.weight(2f), fontSize = 13.sp, maxLines = 1
-                            )
-                            Text(
-                                dateFmt.format(Date(sale.timestamp)),
-                                modifier = Modifier.weight(1.5f), fontSize = 12.sp,
-                                textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                "₹${"%,.2f".format(sale.totalAmount)}",
-                                modifier = Modifier.weight(1.5f), fontSize = 12.sp,
-                                textAlign = TextAlign.End, fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                "₹${"%,.2f".format(tax)}",
-                                modifier = Modifier.weight(1.5f), fontSize = 12.sp,
-                                textAlign = TextAlign.End, color = Saffron500
+                                text = "ℹ️ Styled reports are generated inside context cache. Exported files can be shared securely via standard FileProvider.",
+                                modifier = Modifier.padding(12.dp),
+                                fontSize = 11.sp,
+                                color = SlateGray600,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
                 }
             }
 
-            // Note
-            item {
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
+            // 6. Sticky Bottom Share Action Button
+            Button(
+                onClick = {
+                    val monthName = monthNames[selectedMonth]
+                    when (activeReportType) {
+                        GSTReportType.GSTR1 -> viewModel.exportGSTR1Excel(context, startTs, endTs, "GSTR1_${monthName}_$selectedYear")
+                        GSTReportType.GSTR2 -> viewModel.exportGSTR2Excel(context, startTs, endTs, "GSTR2_${monthName}_$selectedYear")
+                        GSTReportType.GSTR3B -> viewModel.exportGSTR3BExcel(context, startTs, endTs, "GSTR3B_${monthName}_$selectedYear")
+                        GSTReportType.DETAILED -> viewModel.exportGstdetailedExcel(context, startTs, endTs, "Detailed_GST_${monthName}_$selectedYear")
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = InkBlue700),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(vertical = 14.dp)
+            ) {
+                Icon(Icons.Default.FileDownload, contentDescription = "Export")
+                Spacer(Modifier.width(8.dp))
+                Text("Export ${activeReportType.title} Excel Report", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            }
+        }
+    }
+}
+
+// Sub-components
+
+@Composable
+private fun SummaryBlock(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            val fontSize = when {
+                value.length > 12 -> 11.sp
+                value.length > 9 -> 13.sp
+                else -> 15.sp
+            }
+            Text(
+                text = value,
+                fontWeight = FontWeight.Black,
+                fontSize = fontSize,
+                color = color,
+                maxLines = 1,
+                softWrap = false
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = label,
+                fontSize = 10.sp,
+                color = SlateGray600,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                softWrap = false
+            )
+        }
+    }
+}
+
+@Composable
+private fun TaxBreakupCard(cgst: Double, sgst: Double, igst: Double) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(1.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            TaxColumn("CGST", cgst)
+            TaxColumn("SGST", sgst)
+            TaxColumn("IGST", igst)
+        }
+    }
+}
+
+@Composable
+private fun RowScope.TaxColumn(label: String, amount: Double) {
+    Column(
+        modifier = Modifier.weight(1f),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            color = SlateGray400,
+            maxLines = 1,
+            softWrap = false
+        )
+        val textValue = "₹${"%,.2f".format(amount)}"
+        val fontSize = if (textValue.length > 10) 10.sp else 12.sp
+        Text(
+            text = textValue,
+            fontWeight = FontWeight.Bold,
+            fontSize = fontSize,
+            color = SlateGray800,
+            maxLines = 1,
+            softWrap = false
+        )
+    }
+}
+
+@Composable
+private fun TransactionItemRow(
+    title: String,
+    subtitle: String,
+    date: Long,
+    amount: Double,
+    tax: Double,
+    isSale: Boolean
+) {
+    val dateFmt = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(1.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = SlateGray800,
+                    maxLines = 1,
+                    softWrap = false
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SuggestionChip(
+                        onClick = {},
+                        label = { Text(subtitle, fontSize = 10.sp, maxLines = 1, softWrap = false) },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = if (isSale) InkBlue50 else SlateGray100
+                        ),
+                        border = null,
+                        modifier = Modifier.height(20.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
                     Text(
-                        "ℹ️ Tax calculated @18% flat rate. Use Share (↗) to export GSTR-1 CSV for filing. Per-item HSN rates are used where available.",
-                        modifier = Modifier.padding(12.dp),
+                        text = dateFmt.format(Date(date)),
+                        fontSize = 11.sp,
+                        color = SlateGray400,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "₹${"%,.2f".format(amount)}",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 14.sp,
+                    color = SlateGray800,
+                    maxLines = 1,
+                    softWrap = false
+                )
+                Text(
+                    text = "Tax: ₹${"%,.2f".format(tax)}",
+                    fontSize = 11.sp,
+                    color = Saffron500,
+                    maxLines = 1,
+                    softWrap = false
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionBreakdownCard(
+    sectionTitle: String,
+    taxable: Double,
+    cgst: Double,
+    sgst: Double,
+    igst: Double,
+    totalTax: Double
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(1.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = sectionTitle,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                color = InkBlue700,
+                maxLines = 1,
+                softWrap = false
+            )
+            Spacer(Modifier.height(10.dp))
+            HorizontalDivider(color = SlateGray100)
+            Spacer(Modifier.height(8.dp))
+
+            BreakdownRow("Taxable Value", taxable)
+            BreakdownRow("CGST Amount", cgst)
+            BreakdownRow("SGST Amount", sgst)
+            BreakdownRow("IGST Amount", igst)
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Total Tax Component",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = SlateGray800,
+                    maxLines = 1,
+                    softWrap = false
+                )
+                Text(
+                    text = "₹${"%,.2f".format(totalTax)}",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = Saffron500,
+                    maxLines = 1,
+                    softWrap = false
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BreakdownRow(label: String, value: Double) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = SlateGray600,
+            maxLines = 1,
+            softWrap = false
+        )
+        Text(
+            text = "₹${"%,.2f".format(value)}",
+            fontSize = 12.sp,
+            color = SlateGray800,
+            maxLines = 1,
+            softWrap = false
+        )
+    }
+}
+
+@Composable
+private fun DetailedBreakupRow(row: DetailedRowData) {
+    val dateFmt = remember { SimpleDateFormat("dd/MM", Locale.getDefault()) }
+    Card(
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(1.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = dateFmt.format(Date(row.date)),
+                        fontSize = 11.sp,
+                        color = SlateGray400,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = row.txnId,
+                        fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = SlateGray800,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    SuggestionChip(
+                        onClick = {},
+                        label = { Text(row.type, fontSize = 9.sp, maxLines = 1, softWrap = false) },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = if (row.type == "Sale") InkBlue50 else Saffron300.copy(alpha = 0.2f),
+                            labelColor = if (row.type == "Sale") InkBlue700 else Saffron500
+                        ),
+                        border = null,
+                        modifier = Modifier.height(18.dp)
+                    )
+                }
+                Text(
+                    text = "₹${"%,.2f".format(row.taxable + row.tax)}",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = SlateGray800,
+                    maxLines = 1,
+                    softWrap = false
+                )
+            }
+            Spacer(Modifier.height(6.dp))
+            HorizontalDivider(color = SlateGray50)
+            Spacer(Modifier.height(6.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text(
+                        text = row.item,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        color = SlateGray800,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                    Text(
+                        text = "Party: ${row.party}",
+                        fontSize = 10.sp,
+                        color = SlateGray600,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "Taxable: ₹${"%,.2f".format(row.taxable)}",
+                        fontSize = 11.sp,
+                        color = SlateGray600,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                    Text(
+                        text = "Tax: ₹${"%,.2f".format(row.tax)} (${row.taxRate}%)",
+                        fontSize = 11.sp,
+                        color = Saffron500,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
@@ -263,19 +890,34 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
 }
 
 @Composable
-private fun GSTSummaryCard(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
-    Card(
-        shape = RoundedCornerShape(14.dp),
-        elevation = CardDefaults.cardElevation(2.dp),
-        modifier = modifier
+private fun EmptyReportState(message: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 48.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(value, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = color)
-            Spacer(Modifier.height(4.dp))
-            Text(label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("📋", fontSize = 48.sp)
+            Spacer(Modifier.height(12.dp))
+            Text(message, color = SlateGray400, fontSize = 14.sp)
         }
     }
 }
+
+private fun Long.padStart(len: Int): String {
+    return this.toString().padStart(len, '0')
+}
+
+data class DetailedRowData(
+    val date: Long,
+    val txnId: String,
+    val type: String,
+    val party: String,
+    val item: String,
+    val hsn: String,
+    val taxRate: Double,
+    val qty: Double,
+    val taxable: Double,
+    val tax: Double
+)

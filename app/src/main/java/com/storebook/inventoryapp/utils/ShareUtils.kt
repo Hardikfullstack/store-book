@@ -22,9 +22,14 @@ object ShareUtils {
             Intent(Intent.ACTION_SEND).apply {
                 type = "application/pdf"
                 putExtra(Intent.EXTRA_STREAM, uri)
+                clipData = android.content.ClipData.newRawUri("", uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-        context.startActivity(Intent.createChooser(intent, "Share PDF"))
+        val chooserIntent = Intent.createChooser(intent, "Share PDF").apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(chooserIntent)
     }
 
     fun openPdf(
@@ -35,6 +40,7 @@ object ShareUtils {
         val intent =
             Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/pdf")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
         try {
@@ -77,6 +83,7 @@ object ShareUtils {
                 val intent =
                     Intent(Intent.ACTION_VIEW).apply {
                         setDataAndType(folderUri, "vnd.android.document/directory")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
                 context.startActivity(intent)
@@ -86,6 +93,7 @@ object ShareUtils {
                 val intent =
                     Intent(Intent.ACTION_VIEW).apply {
                         setDataAndType(uri, "vnd.android.document/directory")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
                 context.startActivity(intent)
@@ -98,6 +106,7 @@ object ShareUtils {
                 val intent =
                     Intent(Intent.ACTION_VIEW).apply {
                         setDataAndType(uri, "resource/folder")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
                 context.startActivity(intent)
@@ -109,6 +118,7 @@ object ShareUtils {
                     val intent =
                         Intent(Intent.ACTION_VIEW).apply {
                             setDataAndType(uri, "*/*")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
                     context.startActivity(intent)

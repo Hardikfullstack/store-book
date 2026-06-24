@@ -69,6 +69,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -103,11 +108,12 @@ fun DashboardScreen(
     val lowStockItems by viewModel.lowStockItems.collectAsStateWithLifecycle()
     val salesList by viewModel.salesList.collectAsStateWithLifecycle()
     val expensesList by viewModel.expensesList.collectAsStateWithLifecycle()
+    val purchasesList by viewModel.purchases.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     // Greeting based on time of day
-    val hourOfDay = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
+    val hourOfDay = remember(System.currentTimeMillis() / (3600 * 1000)) { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
     val greetingStr =
         when {
             hourOfDay < 12 -> stringResource(R.string.dash_greeting_morning)
@@ -151,22 +157,93 @@ fun DashboardScreen(
             grossProfit - todayExpenses
         }
 
+    // 7-day trend calculations for Net Sales, Purchases, and Expenses
+    val last7DaysData = remember(salesList, purchasesList, expensesList) {
+        val format = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+        val days = (0..6).map { offset ->
+            val cal = Calendar.getInstance()
+            cal.add(Calendar.DAY_OF_YEAR, -offset)
+            format.format(cal.time)
+        }.reversed() // [day-6, day-5, ..., today]
+        
+        // Sales per day
+        val salesPerDay = days.associateWith { dayStr ->
+            salesList.filter { saleDateFmt.format(Date(it.timestamp)) == dayStr }.sumOf { it.totalAmount }
+        }
+        
+        // Purchases per day
+        val purchasesPerDay = days.associateWith { dayStr ->
+            purchasesList.filter { saleDateFmt.format(Date(it.timestamp)) == dayStr }.sumOf { it.totalAmount }
+        }
+        
+        // Expenses per day
+        val expensesPerDay = days.associateWith { dayStr ->
+            expensesList.filter { saleDateFmt.format(Date(it.timestamp)) == dayStr }.sumOf { it.amount }
+        }
+        
+        Triple(
+            days.map { salesPerDay[it] ?: 0.0 },
+            days.map { purchasesPerDay[it] ?: 0.0 },
+            days.map { expensesPerDay[it] ?: 0.0 }
+        )
+    }
+
+    val salesTrend = last7DaysData.first
+    val salesSumFirstHalf = salesTrend.take(3).sum()
+    val salesSumSecondHalf = salesTrend.takeLast(3).sum()
+    val salesIndicatorColor = when {
+        salesSumSecondHalf > salesSumFirstHalf -> Color(0xFF2E7D32) // Positive Growth (Green)
+        salesSumSecondHalf < salesSumFirstHalf -> Color(0xFFC62828) // Declining (Red)
+        else -> Color(0xFFF57C00) // Stable/Neutral (Yellow)
+    }
+    val salesIndicatorLabel = when {
+        salesSumSecondHalf > salesSumFirstHalf -> "Strong Sales Growth"
+        salesSumSecondHalf < salesSumFirstHalf -> "Declining Sales Volume"
+        else -> "Stable Sales Performance"
+    }
+
+    val purchasesIndicatorColor = Color(0xFFF57C00) // Stable (Yellow)
+    val purchasesIndicatorLabel = "Stock Inflow: Normal"
+
+    val expensesSum = last7DaysData.third.sum()
+    val salesSum = last7DaysData.first.sum()
+    val ratio = if (salesSum > 0) expensesSum / salesSum else 0.0
+    val expensesIndicatorColor = when {
+        ratio > 0.20 -> Color(0xFFC62828) // High Expenses (Red)
+        ratio > 0.05 -> Color(0xFFF57C00) // Moderate Expenses (Yellow)
+        else -> Color(0xFF2E7D32) // Low Expenses (Green)
+    }
+    val expensesIndicatorLabel = when {
+        ratio > 0.20 -> "High Overhead Expenses"
+        ratio > 0.05 -> "Moderate Overhead Expenses"
+        else -> "Optimal Low Expenses"
+    }
+
     // Pull to refresh state
     var isRefreshing by remember { mutableStateOf(false) }
 
     // Undo last sale countdown
     var undoSecondsLeft by remember { mutableStateOf(0) }
+    var undoJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var quickRefillItem by remember { mutableStateOf<Item?>(null) }
     var fabExpanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    LaunchedEffect(viewModel.lastSaleId, viewModel.lastSaleTime) {
-        if (viewModel.lastSaleId != null) {
-            val elapsed = (System.currentTimeMillis() - viewModel.lastSaleTime) / 1000
+    
+    val currentLastSaleId = viewModel.lastSaleId
+    val currentLastSaleTime = viewModel.lastSaleTime
+    LaunchedEffect(currentLastSaleId, currentLastSaleTime) {
+        if (currentLastSaleId != null) {
+            val elapsed = (System.currentTimeMillis() - currentLastSaleTime) / 1000
             undoSecondsLeft = (30 - elapsed).toInt().coerceAtLeast(0)
             while (undoSecondsLeft > 0) {
-                delay(1000)
+                kotlinx.coroutines.delay(1000)
                 undoSecondsLeft--
             }
+            if (undoSecondsLeft == 0) {
+                viewModel.clearLastSaleId()
+            }
+        } else {
+            undoSecondsLeft = 0
         }
     }
 
@@ -338,11 +415,14 @@ fun DashboardScreen(
                             remember(currentUser) {
                                 val phone = currentUser?.phoneNumber
                                 if (phone != null && phone.length > 3) {
-                                    phone
-                                        .replace("+91", "")
-                                        .trim()
-                                        .take(1)
-                                        .uppercase()
+                                    val digits = phone.filter { it.isDigit() }
+                                    if (digits.isNotEmpty()) {
+                                        // Skip the country code if possible by taking last 10, then first
+                                        val mainNumber = if (digits.length >= 10) digits.takeLast(10) else digits
+                                        mainNumber.take(1).uppercase()
+                                    } else {
+                                        "S"
+                                    }
                                 } else {
                                     "S"
                                 }
@@ -634,25 +714,30 @@ fun DashboardScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             if (viewModel.userRoleType.hasPermission(com.storebook.inventoryapp.ui.viewmodels.AppPermission.VIEW_FINANCIALS)) {
-                                Row(
+                                SparklineMetricCard(
+                                    title = "Net Sales (Last 7 Days)",
+                                    totalValue = last7DaysData.first.sum().toRupee(),
+                                    trendData = last7DaysData.first,
+                                    indicatorColor = salesIndicatorColor,
+                                    indicatorLabel = salesIndicatorLabel,
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                ) {
-                                    AnimatedMetricCard(
-                                        title = stringResource(id = R.string.dash_today_revenue),
-                                        value = todayRevenue.toRupee(),
-                                        gradient = Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)),
-                                        emoji = "💰",
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    AnimatedMetricCard(
-                                        title = stringResource(id = R.string.dash_today_profit),
-                                        value = todayProfit.toRupee(),
-                                        gradient = Brush.linearGradient(listOf(Color(0xFF059669), Emerald500)),
-                                        emoji = "📈",
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                }
+                                )
+                                SparklineMetricCard(
+                                    title = "Purchases (Last 7 Days)",
+                                    totalValue = last7DaysData.second.sum().toRupee(),
+                                    trendData = last7DaysData.second,
+                                    indicatorColor = purchasesIndicatorColor,
+                                    indicatorLabel = purchasesIndicatorLabel,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                SparklineMetricCard(
+                                    title = "Expenses (Last 7 Days)",
+                                    totalValue = last7DaysData.third.sum().toRupee(),
+                                    trendData = last7DaysData.third,
+                                    indicatorColor = expensesIndicatorColor,
+                                    indicatorLabel = expensesIndicatorLabel,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -797,6 +882,127 @@ fun DashboardScreen(
                 }
 
                 item { Spacer(modifier = Modifier.height(16.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+fun SparklineMetricCard(
+    title: String,
+    totalValue: String,
+    trendData: List<Double>,
+    indicatorColor: Color,
+    indicatorLabel: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Header: Title & Total Value
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column {
+                    Text(
+                        text = title,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = totalValue,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                
+                // Sparkline (Mini Line Chart)
+                Box(
+                    modifier = Modifier
+                        .width(90.dp)
+                        .height(36.dp)
+                        .padding(top = 4.dp)
+                ) {
+                    if (trendData.size >= 2) {
+                        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                            val maxVal = trendData.maxOrNull()?.toFloat() ?: 0f
+                            val minVal = trendData.minOrNull()?.toFloat() ?: 0f
+                            val range = if (maxVal - minVal == 0f) 1f else maxVal - minVal
+                            
+                            val width = size.width
+                            val height = size.height
+                            val path = androidx.compose.ui.graphics.Path()
+                            
+                            trendData.forEachIndexed { index, value ->
+                                val x = index * (width / (trendData.size - 1))
+                                // Invert Y because canvas (0,0) is top-left
+                                val y = height - ((value.toFloat() - minVal) / range) * height
+                                if (index == 0) {
+                                    path.moveTo(x, y)
+                                } else {
+                                    path.lineTo(x, y)
+                                }
+                            }
+                            
+                            drawPath(
+                                path = path,
+                                color = indicatorColor,
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                    width = 2.dp.toPx(),
+                                    pathEffect = null,
+                                    cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                                    join = androidx.compose.ui.graphics.StrokeJoin.Round
+                                )
+                            )
+                        }
+                    } else {
+                        // Empty/stable straight line sparkline
+                        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                            drawLine(
+                                color = indicatorColor,
+                                start = androidx.compose.ui.geometry.Offset(0f, size.height / 2),
+                                end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2),
+                                strokeWidth = 2.dp.toPx()
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            // Traffic Light Indicator below
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Traffic light indicator: a solid circle/dot
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(indicatorColor)
+                )
+                Text(
+                    text = indicatorLabel,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = indicatorColor
+                )
             }
         }
     }

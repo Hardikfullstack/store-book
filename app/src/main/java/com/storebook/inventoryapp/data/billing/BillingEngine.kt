@@ -1,6 +1,8 @@
 package com.storebook.inventoryapp.data.billing
 
 import com.storebook.inventoryapp.data.repository.CartItem
+import java.math.BigDecimal
+import java.math.RoundingMode
 import kotlin.math.max
 import kotlin.math.min
 
@@ -73,72 +75,82 @@ object BillingEngine {
     ): InvoiceTaxSummary {
         val taxType = determineTaxType(businessGstin, customerGstin)
 
-        var subTotal = 0.0
+        var subTotal = BigDecimal.ZERO
         for (item in cartItems) {
-            subTotal += (item.item.sellPrice * item.quantity)
+            val price = BigDecimal(item.item.sellPrice.toString())
+            val qty = BigDecimal(item.quantity.toString())
+            subTotal = subTotal.add(price.multiply(qty))
         }
 
-        val actualDiscount = min(totalDiscount, subTotal)
-        val netTaxableAmount = max(0.0, subTotal - actualDiscount)
+        val discount = BigDecimal(totalDiscount.toString())
+        val actualDiscount = if (discount.compareTo(subTotal) > 0) subTotal else discount
+        val netTaxableAmount = subTotal.subtract(actualDiscount)
 
         // If subtotal is 0, nothing to calculate
-        if (subTotal <= 0.0) {
+        if (subTotal.compareTo(BigDecimal.ZERO) <= 0) {
             return InvoiceTaxSummary(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, emptyList())
         }
 
-        var totalCgst = 0.0
-        var totalSgst = 0.0
-        var totalIgst = 0.0
+        var totalCgst = BigDecimal.ZERO
+        var totalSgst = BigDecimal.ZERO
+        var totalIgst = BigDecimal.ZERO
         val itemDetails = mutableListOf<ItemTaxDetails>()
 
-        for (cartItem in cartItems) {
-            val itemGross = cartItem.item.sellPrice * cartItem.quantity
-            // Proportion of discount applied to this item
-            val itemDiscountRatio = if (subTotal > 0) itemGross / subTotal else 0.0
-            val itemDiscount = actualDiscount * itemDiscountRatio
-            val itemNetTaxable = max(0.0, itemGross - itemDiscount)
+        val scale = 4 // Intermediate calculation precision
+        val roundMode = RoundingMode.HALF_UP
 
-            val taxRate = cartItem.item.taxRate
-            var cgst = 0.0
-            var sgst = 0.0
-            var igst = 0.0
+        for (cartItem in cartItems) {
+            val itemGross = BigDecimal(cartItem.item.sellPrice.toString()).multiply(BigDecimal(cartItem.quantity.toString()))
+            val itemDiscountRatio = if (subTotal.compareTo(BigDecimal.ZERO) > 0) {
+                itemGross.divide(subTotal, scale, roundMode)
+            } else {
+                BigDecimal.ZERO
+            }
+            val itemDiscount = actualDiscount.multiply(itemDiscountRatio)
+            val itemNetTaxable = itemGross.subtract(itemDiscount).max(BigDecimal.ZERO)
+
+            val taxRate = BigDecimal(cartItem.item.taxRate.toString())
+            var cgst = BigDecimal.ZERO
+            var sgst = BigDecimal.ZERO
+            var igst = BigDecimal.ZERO
 
             if (taxType == TaxType.INTRASTATE) {
-                cgst = itemNetTaxable * (taxRate / 2) / 100.0
-                sgst = itemNetTaxable * (taxRate / 2) / 100.0
+                val halfRate = taxRate.divide(BigDecimal("2"), scale, roundMode)
+                cgst = itemNetTaxable.multiply(halfRate).divide(BigDecimal("100"), scale, roundMode)
+                sgst = itemNetTaxable.multiply(halfRate).divide(BigDecimal("100"), scale, roundMode)
             } else {
-                igst = itemNetTaxable * taxRate / 100.0
+                igst = itemNetTaxable.multiply(taxRate).divide(BigDecimal("100"), scale, roundMode)
             }
 
-            val itemTotalTax = cgst + sgst + igst
+            val itemTotalTax = cgst.add(sgst).add(igst)
 
-            totalCgst += cgst
-            totalSgst += sgst
-            totalIgst += igst
+            totalCgst = totalCgst.add(cgst)
+            totalSgst = totalSgst.add(sgst)
+            totalIgst = totalIgst.add(igst)
 
             itemDetails.add(
                 ItemTaxDetails(
                     cartItem = cartItem,
-                    netAmountBeforeTax = itemNetTaxable,
-                    cgstAmount = cgst,
-                    sgstAmount = sgst,
-                    igstAmount = igst,
-                    totalTaxAmount = itemTotalTax,
-                    totalAmountWithTax = itemNetTaxable + itemTotalTax,
+                    netAmountBeforeTax = itemNetTaxable.setScale(2, roundMode).toDouble(),
+                    cgstAmount = cgst.setScale(2, roundMode).toDouble(),
+                    sgstAmount = sgst.setScale(2, roundMode).toDouble(),
+                    igstAmount = igst.setScale(2, roundMode).toDouble(),
+                    totalTaxAmount = itemTotalTax.setScale(2, roundMode).toDouble(),
+                    totalAmountWithTax = itemNetTaxable.add(itemTotalTax).setScale(2, roundMode).toDouble(),
                 ),
             )
         }
 
-        val grandTotal = netTaxableAmount + totalCgst + totalSgst + totalIgst
+        val grandTotal = netTaxableAmount.add(totalCgst).add(totalSgst).add(totalIgst)
 
         return InvoiceTaxSummary(
-            subTotal = subTotal,
-            totalDiscount = actualDiscount,
-            netTaxableAmount = netTaxableAmount,
-            totalCgst = totalCgst,
-            totalSgst = totalSgst,
-            totalIgst = totalIgst,
-            grandTotal = grandTotal,
+            subTotal = subTotal.setScale(2, roundMode).toDouble(),
+            totalDiscount = actualDiscount.setScale(2, roundMode).toDouble(),
+            netTaxableAmount = netTaxableAmount.setScale(2, roundMode).toDouble(),
+            totalCgst = totalCgst.setScale(2, roundMode).toDouble(),
+            totalSgst = totalSgst.setScale(2, roundMode).toDouble(),
+            totalIgst = totalIgst.setScale(2, roundMode).toDouble(),
+            grandTotal = grandTotal.setScale(2, roundMode).toDouble(),
             itemDetails = itemDetails,
         )
     }

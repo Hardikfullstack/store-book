@@ -78,6 +78,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -111,6 +113,7 @@ fun SalesScreen(
     val allItems by viewModel.allItems.collectAsStateWithLifecycle()
     val udhaarBalances by viewModel.udhaarBalances.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
 
     val scanner = remember {
         val options = com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions.Builder()
@@ -168,6 +171,10 @@ fun SalesScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.loadAllData(false)
+    }
+
     // Undo last sale countdown
     var undoSecondsLeft by remember { mutableStateOf(0) }
     LaunchedEffect(viewModel.lastSaleId, viewModel.lastSaleTime) {
@@ -213,6 +220,7 @@ fun SalesScreen(
 
     if (showSuccessScreen) {
         androidx.activity.compose.BackHandler(enabled = showSuccessScreen) {
+            viewModel.clearCart()
             showSuccessScreen = false
         }
         SalesSuccessScreen(
@@ -223,6 +231,7 @@ fun SalesScreen(
             paymentMode = lastPaymentMode,
             isEstimate = generatedSaleType == "ESTIMATE",
             onBack = {
+                viewModel.clearCart()
                 showSuccessScreen = false
             },
         )
@@ -511,7 +520,7 @@ fun SalesScreen(
 
                 OutlinedTextField(
                     value = if (viewModel.cartDiscount == 0.0) "" else viewModel.cartDiscount.toString(),
-                    onValueChange = { viewModel.cartDiscount = it.toDoubleOrNull() ?: 0.0 },
+                    onValueChange = { viewModel.cartDiscount = (it.toDoubleOrNull() ?: 0.0).coerceAtMost(taxSummary.subTotal) },
                     label = { Text(stringResource(id = R.string.sales_discount_rupee), fontSize = 11.sp) },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal,
@@ -1192,13 +1201,10 @@ fun SalesScreen(
                                                         .fillMaxHeight()
                                                         .width(36.dp)
                                                         .clickable {
-                                                            val curr = cartMap[item.id]
-                                                            curr?.let {
-                                                                viewModel.updateCartQty(
-                                                                    item,
-                                                                    it.quantity - step,
-                                                                )
+                                                            if (viewModel.isHapticFeedbackEnabled) {
+                                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                             }
+                                                            viewModel.changeCartQtyRelative(item, -step)
                                                         },
                                                 contentAlignment = Alignment.Center,
                                             ) {
@@ -1240,13 +1246,10 @@ fun SalesScreen(
                                                         .fillMaxHeight()
                                                         .width(36.dp)
                                                         .clickable {
-                                                            val curr = cartMap[item.id]
-                                                            curr?.let {
-                                                                viewModel.updateCartQty(
-                                                                    item,
-                                                                    it.quantity + step,
-                                                                )
+                                                            if (viewModel.isHapticFeedbackEnabled) {
+                                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                             }
+                                                            viewModel.changeCartQtyRelative(item, step)
                                                         },
                                                 contentAlignment = Alignment.Center,
                                             ) {
@@ -1264,6 +1267,12 @@ fun SalesScreen(
                                                 Modifier
                                                     .clip(RoundedCornerShape(18.dp))
                                                     .background(MaterialTheme.colorScheme.primaryContainer)
+                                                    .clickable {
+                                                        if (viewModel.isHapticFeedbackEnabled) {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        }
+                                                        viewModel.addToCart(item, step)
+                                                    }
                                                     .padding(horizontal = 14.dp, vertical = 8.dp),
                                         ) {
                                             Text(

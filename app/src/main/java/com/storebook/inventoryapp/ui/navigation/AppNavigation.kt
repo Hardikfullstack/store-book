@@ -40,6 +40,9 @@ import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.LibraryAdd
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -219,6 +222,18 @@ fun AppNavigation() {
                         speedDialExpanded = false
                         showQuickExpense = true
                     },
+                    onAddParty = {
+                        speedDialExpanded = false
+                        navController.navigate(Routes.Udhaar)
+                    },
+                    onBulkRestock = {
+                        speedDialExpanded = false
+                        navController.navigate(Routes.Inventory)
+                    },
+                    onQuickBill = {
+                        speedDialExpanded = false
+                        navController.navigate(Routes.Sales)
+                    },
                 )
             }
         },
@@ -379,6 +394,9 @@ fun SpeedDialFab(
     onNewSale: () -> Unit,
     onRestock: () -> Unit,
     onExpense: () -> Unit,
+    onAddParty: () -> Unit,
+    onBulkRestock: () -> Unit,
+    onQuickBill: () -> Unit,
 ) {
     val rotation by animateFloatAsState(
         targetValue = if (expanded) 45f else 0f,
@@ -389,6 +407,9 @@ fun SpeedDialFab(
         Triple(Icons.Filled.ShoppingCart, "New Sale", onNewSale),
         Triple(Icons.Filled.Inventory, "Restock", onRestock),
         Triple(Icons.Filled.MoneyOff, "Expense", onExpense),
+        Triple(Icons.Filled.PersonAdd, "Add Party", onAddParty),
+        Triple(Icons.Filled.LibraryAdd, "Bulk Restock", onBulkRestock),
+        Triple(Icons.Filled.ReceiptLong, "Quick Bill", onQuickBill),
     )
     Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
         actions.forEachIndexed { i, (icon, label, action) ->

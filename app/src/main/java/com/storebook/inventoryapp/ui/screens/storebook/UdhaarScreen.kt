@@ -132,14 +132,9 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
     val dateFmt = remember { SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()) }
     val lastDateFmt = remember { SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()) }
 
-    val repository =
-        remember(viewModel.activeStoreId) {
-            com.storebook.inventoryapp.data.repository
-                .StoreBookRepository(context.applicationContext, viewModel.activeStoreId)
-        }
     val fetchLedger: (String) -> Unit = { name ->
         coroutineScope.launch {
-            ledgerEntries = repository.getCustomerLedger(name)
+            ledgerEntries = viewModel.repository.getCustomerLedger(name)
         }
     }
 
@@ -289,14 +284,38 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
         ) {
             if (balances.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("📒", fontSize = 48.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(32.dp)
+                    ) {
+                        Text("📒✨", fontSize = 72.sp)
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = stringResource(id = R.string.udh_empty),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            text = "No udhaar accounts yet?\nYour first customer is just a tap away!",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             textAlign = TextAlign.Center,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 22.sp
                         )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Add Party ",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "↘️",
+                                fontSize = 24.sp
+                            )
+                        }
                     }
                 }
             } else if (filteredBalances.isEmpty()) {
@@ -954,7 +973,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                         if (showCustomerLedgerSheet && selectedCustomer != null) {
                                             fetchLedger(selectedCustomer!!.customerName)
                                             coroutineScope.launch {
-                                                val updatedList = repository.getUdhaarBalances()
+                                                val updatedList = viewModel.repository.getUdhaarBalances()
                                                 selectedCustomer =
                                                     updatedList.find {
                                                         it.customerName ==

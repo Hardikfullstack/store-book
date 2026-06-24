@@ -60,6 +60,7 @@ import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -138,6 +139,7 @@ fun MoreScreen(
         var showThemeExpanded by remember { mutableStateOf(false) }
         var showUpgradeDialog by remember { mutableStateOf(false) }
         var showClearDataDialog by remember { mutableStateOf(false) }
+        var showLogoutConfirmation by remember { mutableStateOf(false) }
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         val themeManager = com.storebook.inventoryapp.ui.theme.appThemeManager
 
@@ -573,6 +575,12 @@ fun MoreScreen(
                                                                 )
                                                         },
                                                 )
+                                                Text(
+                                                        text = "Format: ID,Item Name,Stock Quantity,Unit,Buy Price,Sell Price,Alert Threshold,Category,HSN Code,Tax Rate",
+                                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                        modifier = Modifier.padding(start = 54.dp, bottom = 8.dp, end = 16.dp)
+                                                )
                                                 HorizontalDivider(
                                                         modifier =
                                                                 Modifier.padding(horizontal = 16.dp)
@@ -686,31 +694,7 @@ fun MoreScreen(
                                                                 iconTint = Color(0xFFEF4444),
                                                                 title = "Logout",
                                                                 onClick = {
-                                                                        auth.signOut()
-                                                                        currentUser = null
-                                                                        val prefs =
-                                                                                context.getSharedPreferences(
-                                                                                        "storebook_prefs",
-                                                                                        android.content
-                                                                                                .Context
-                                                                                                .MODE_PRIVATE
-                                                                                )
-                                                                        prefs.edit()
-                                                                                .remove(
-                                                                                        "current_store_id"
-                                                                                )
-                                                                                .remove(
-                                                                                        "is_premium"
-                                                                                )
-                                                                                .apply()
-                                                                        navController.navigate(
-                                                                                Routes.Auth
-                                                                        ) {
-                                                                                popUpTo(0) {
-                                                                                        inclusive =
-                                                                                                true
-                                                                                }
-                                                                        }
+                                                                        showLogoutConfirmation = true
                                                                 },
                                                         )
                                                 }
@@ -799,6 +783,47 @@ fun MoreScreen(
                         dismissButton = {
                             androidx.compose.material3.TextButton(onClick = { showUpgradeDialog = false }, modifier = Modifier.fillMaxWidth()) {
                                 Text("Maybe Later", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        },
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(20.dp)
+                    )
+                }
+
+                if (showLogoutConfirmation) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { showLogoutConfirmation = false },
+                        icon = { Icon(Icons.AutoMirrored.Outlined.ExitToApp, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(36.dp)) },
+                        title = { Text("Logout Confirmation", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
+                        text = {
+                            if (viewModel.isPremiumUser) {
+                                Text("Are you sure you want to logout? Your data is securely backed up to the cloud.", textAlign = TextAlign.Center)
+                            } else {
+                                Text("WARNING: You are on the free tier. Your sales, purchases, and inventory data are stored locally on this device and NOT synced to the cloud. Logging out or switching accounts may result in permanent data loss. Consider upgrading to Pro to save your data safely.", textAlign = TextAlign.Center)
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    showLogoutConfirmation = false
+                                    auth.signOut()
+                                    currentUser = null
+                                    val prefs = context.getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE)
+                                    prefs.edit().remove("current_store_id").remove("is_premium").apply()
+                                    navController.navigate(Routes.Auth) {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Logout", fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        },
+                        dismissButton = {
+                            androidx.compose.material3.TextButton(onClick = { showLogoutConfirmation = false }, modifier = Modifier.fillMaxWidth()) {
+                                Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         },
                         containerColor = MaterialTheme.colorScheme.surface,
@@ -1068,11 +1093,64 @@ fun MoreScreen(
                                                                 maxLines = 4,
                                                                 shape = RoundedCornerShape(12.dp),
                                                         )
+                                                        var currencyInput by remember {
+                                                                mutableStateOf(viewModel.businessCurrency)
+                                                        }
+                                                        var showCurrencyDropdown by remember {
+                                                                mutableStateOf(false)
+                                                        }
+                                                        Box(modifier = Modifier.fillMaxWidth()) {
+                                                            OutlinedTextField(
+                                                                value = when (currencyInput) {
+                                                                    "INR" -> "Indian Rupee (₹)"
+                                                                    "USD" -> "US Dollar ($)"
+                                                                    "EUR" -> "Euro (€)"
+                                                                    "GBP" -> "British Pound (£)"
+                                                                    "JPY" -> "Japanese Yen (¥)"
+                                                                    "CNY" -> "Chinese Yuan (元)"
+                                                                    else -> currencyInput
+                                                                },
+                                                                onValueChange = {},
+                                                                readOnly = true,
+                                                                label = { Text("Business Currency") },
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                shape = RoundedCornerShape(12.dp)
+                                                            )
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .matchParentSize()
+                                                                    .clickable { showCurrencyDropdown = true }
+                                                            )
+                                                            DropdownMenu(
+                                                                expanded = showCurrencyDropdown,
+                                                                onDismissRequest = { showCurrencyDropdown = false }
+                                                            ) {
+                                                                listOf(
+                                                                    "INR" to "Indian Rupee (₹)",
+                                                                    "USD" to "US Dollar ($)",
+                                                                    "EUR" to "Euro (€)",
+                                                                    "GBP" to "British Pound (£)",
+                                                                    "JPY" to "Japanese Yen (¥)",
+                                                                    "CNY" to "Chinese Yuan (元)"
+                                                                ).forEach { (code, label) ->
+                                                                    DropdownMenuItem(
+                                                                        text = { Text(label) },
+                                                                        onClick = {
+                                                                            currencyInput = code
+                                                                            showCurrencyDropdown = false
+                                                                        }
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
                                                         var useThermalPrinter by remember {
                                                                 mutableStateOf(
                                                                         context.getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE)
                                                                                 .getBoolean("use_thermal_printer", false)
                                                                 )
+                                                        }
+                                                        var useHapticFeedback by remember {
+                                                                mutableStateOf(viewModel.isHapticFeedbackEnabled)
                                                         }
                                                         Row(
                                                                 modifier = Modifier.fillMaxWidth().clickable { useThermalPrinter = !useThermalPrinter }.padding(vertical = 4.dp),
@@ -1088,23 +1166,47 @@ fun MoreScreen(
                                                                         onCheckedChange = { useThermalPrinter = it }
                                                                 )
                                                         }
+                                                        Row(
+                                                                modifier = Modifier.fillMaxWidth().clickable { useHapticFeedback = !useHapticFeedback }.padding(vertical = 4.dp),
+                                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                                verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                                Column(modifier = Modifier.weight(1f)) {
+                                                                        Text("Enable Haptic Feedback", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                                                        Text("Provide tactile vibration on item additions/updates", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                                }
+                                                                androidx.compose.material3.Switch(
+                                                                        checked = useHapticFeedback,
+                                                                        onCheckedChange = { useHapticFeedback = it }
+                                                                )
+                                                        }
                                                         Button(
                                                                 onClick = {
+                                                                        val trimmedGstin = gstinInput.trim().uppercase()
+                                                                        if (trimmedGstin.isNotEmpty() && !trimmedGstin.matches(Regex("\\d{2}[A-Z]{5}\\d{4}[A-Z]{1}[A-Z\\d]{1}[Z]{1}[A-Z\\d]{1}"))) {
+                                                                                android.widget.Toast.makeText(context, "Invalid GSTIN format (e.g. 22AAAAA0000A1Z5)", android.widget.Toast.LENGTH_SHORT).show()
+                                                                                return@Button
+                                                                        }
                                                                         context.getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE)
                                                                                 .edit()
                                                                                 .putBoolean("use_thermal_printer", useThermalPrinter)
                                                                                 .apply()
+                                                                        viewModel.updateHapticFeedbackEnabled(useHapticFeedback)
                                                                         viewModel
                                                                                 .updateBusinessName(
                                                                                         nameInput
                                                                                 )
                                                                         viewModel
                                                                                 .updateBusinessGstin(
-                                                                                        gstinInput
+                                                                                        trimmedGstin
                                                                                 )
                                                                         viewModel
                                                                                 .updateBusinessAddress(
                                                                                         addressInput
+                                                                                )
+                                                                        viewModel
+                                                                                .updateBusinessCurrency(
+                                                                                        currencyInput
                                                                                 )
                                                                         showSheet = false
                                                                         android.widget.Toast
