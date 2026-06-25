@@ -60,6 +60,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -174,6 +175,30 @@ fun AppNavigation() {
     val focusRequesterDesc = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
+    // Quick Sale state
+    var showQuickSale by remember { mutableStateOf(false) }
+    var quickSaleAmount by remember { mutableStateOf("") }
+    var quickSaleCustomer by remember { mutableStateOf("") }
+    var quickSaleCustomerExpanded by remember { mutableStateOf(false) }
+
+    // Quick Restock state
+    var showQuickRestock by remember { mutableStateOf(false) }
+    var quickRestockName by remember { mutableStateOf("") }
+    var quickRestockQty by remember { mutableStateOf("") }
+    var quickRestockPrice by remember { mutableStateOf("") }
+    var quickRestockNameExpanded by remember { mutableStateOf(false) }
+    var selectedRestockItemId by remember { mutableStateOf<Long?>(null) }
+
+    // Quick Add Party state
+    var showQuickParty by remember { mutableStateOf(false) }
+    var quickPartyName by remember { mutableStateOf("") }
+    var quickPartyAmount by remember { mutableStateOf("") }
+    var quickPartyType by remember { mutableStateOf("CREDIT") }
+    var quickPartyNameExpanded by remember { mutableStateOf(false) }
+
+    val customerSuggestions by storeBookViewModel.customerSuggestions.collectAsState()
+    val allItems by storeBookViewModel.allItems.collectAsState()
+
     // Quick Expense mini-dialog
     if (showQuickExpense) {
         androidx.compose.material3.AlertDialog(
@@ -220,6 +245,233 @@ fun AppNavigation() {
         )
     }
 
+    if (showQuickSale) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showQuickSale = false },
+            title = { Text("Quick Cash Sale", style = MaterialTheme.typography.titleMedium) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box {
+                        androidx.compose.material3.OutlinedTextField(
+                            value = quickSaleCustomer,
+                            onValueChange = {
+                                quickSaleCustomer = it
+                                storeBookViewModel.updateCustomerSearch(it)
+                                quickSaleCustomerExpanded = it.isNotBlank()
+                            },
+                            label = { Text("Customer Name (Optional)") },
+                            singleLine = true,
+                        )
+                        com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
+                            expanded = quickSaleCustomerExpanded,
+                            onDismissRequest = { quickSaleCustomerExpanded = false },
+                            suggestions = customerSuggestions,
+                            itemText = { it },
+                            onSuggestionSelected = { name ->
+                                quickSaleCustomer = name
+                                quickSaleCustomerExpanded = false
+                            },
+                            avatarColor = MaterialTheme.colorScheme.primary,
+                            avatarTextColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                    androidx.compose.material3.OutlinedTextField(
+                        value = quickSaleAmount,
+                        onValueChange = { quickSaleAmount = it },
+                        label = { Text("Total Amount (₹)") },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.Button(onClick = {
+                    val amt = quickSaleAmount.toDoubleOrNull()
+                    if (amt != null && amt > 0) {
+                        storeBookViewModel.clearCart()
+                        val dummyItem = com.storebook.inventoryapp.data.repository.Item(
+                            id = 0L,
+                            name = "Quick Sale",
+                            quantity = 0.0,
+                            unit = "pcs",
+                            buyPrice = 0.0,
+                            sellPrice = amt,
+                            lowStockThreshold = 0.0,
+                            category = "General"
+                        )
+                        storeBookViewModel.addToCart(dummyItem, 1.0)
+                        if (quickSaleCustomer.isNotBlank()) {
+                            storeBookViewModel.cartCustomerName = quickSaleCustomer.trim()
+                        }
+                        storeBookViewModel.checkout(paymentMode = "Cash", type = "SALE") { _, _ -> }
+                        quickSaleCustomer = ""
+                        quickSaleAmount = ""
+                        showQuickSale = false
+                    }
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showQuickSale = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (showQuickRestock) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showQuickRestock = false },
+            title = { Text("Quick Add Item", style = MaterialTheme.typography.titleMedium) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box {
+                        androidx.compose.material3.OutlinedTextField(
+                            value = quickRestockName,
+                            onValueChange = {
+                                quickRestockName = it
+                                selectedRestockItemId = null
+                                quickRestockNameExpanded = it.isNotBlank()
+                            },
+                            label = { Text("Item Name") },
+                            singleLine = true,
+                        )
+                        val filteredItems = allItems.filter { it.name.contains(quickRestockName, ignoreCase = true) }.take(5)
+                        com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
+                            expanded = quickRestockNameExpanded,
+                            onDismissRequest = { quickRestockNameExpanded = false },
+                            suggestions = filteredItems,
+                            itemText = { it.name },
+                            onSuggestionSelected = { item ->
+                                quickRestockName = item.name
+                                selectedRestockItemId = item.id
+                                quickRestockPrice = item.sellPrice.toString()
+                                quickRestockNameExpanded = false
+                            },
+                            avatarColor = MaterialTheme.colorScheme.secondary,
+                            avatarTextColor = MaterialTheme.colorScheme.onSecondary
+                        )
+                    }
+                    androidx.compose.material3.OutlinedTextField(
+                        value = quickRestockQty,
+                        onValueChange = { quickRestockQty = it },
+                        label = { Text("Stock Quantity") },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                    )
+                    androidx.compose.material3.OutlinedTextField(
+                        value = quickRestockPrice,
+                        onValueChange = { quickRestockPrice = it },
+                        label = { Text("Sale Price (₹)") },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.Button(onClick = {
+                    val qty = quickRestockQty.toDoubleOrNull() ?: 0.0
+                    val price = quickRestockPrice.toDoubleOrNull() ?: 0.0
+                    if (quickRestockName.isNotBlank() && price > 0.0) {
+                        if (selectedRestockItemId != null) {
+                            storeBookViewModel.logRestockItem(
+                                itemId = selectedRestockItemId!!,
+                                quantity = qty,
+                                costPrice = price,
+                                supplier = null,
+                                phone = null
+                            )
+                        } else {
+                            storeBookViewModel.addItem(
+                                name = quickRestockName.trim(),
+                                quantity = qty,
+                                unit = "pcs",
+                                buyPrice = price,
+                                sellPrice = price,
+                                threshold = 1.0,
+                                category = "General"
+                            )
+                        }
+                        quickRestockName = ""
+                        quickRestockQty = ""
+                        quickRestockPrice = ""
+                        selectedRestockItemId = null
+                        showQuickRestock = false
+                    }
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showQuickRestock = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (showQuickParty) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showQuickParty = false },
+            title = { Text("Log Party Balance", style = MaterialTheme.typography.titleMedium) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box {
+                        androidx.compose.material3.OutlinedTextField(
+                            value = quickPartyName,
+                            onValueChange = {
+                                quickPartyName = it
+                                storeBookViewModel.updateCustomerSearch(it)
+                                quickPartyNameExpanded = it.isNotBlank()
+                            },
+                            label = { Text("Party Name") },
+                            singleLine = true,
+                        )
+                        com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
+                            expanded = quickPartyNameExpanded,
+                            onDismissRequest = { quickPartyNameExpanded = false },
+                            suggestions = customerSuggestions,
+                            itemText = { it },
+                            onSuggestionSelected = { name ->
+                                quickPartyName = name
+                                quickPartyNameExpanded = false
+                            },
+                            avatarColor = com.storebook.inventoryapp.ui.theme.Coral500.copy(alpha = 0.12f),
+                            avatarTextColor = com.storebook.inventoryapp.ui.theme.Coral500
+                        )
+                    }
+                    androidx.compose.material3.OutlinedTextField(
+                        value = quickPartyAmount,
+                        onValueChange = { quickPartyAmount = it },
+                        label = { Text("Amount (₹)") },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                    )
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        androidx.compose.material3.FilterChip(
+                            selected = quickPartyType == "CREDIT",
+                            onClick = { quickPartyType = "CREDIT" },
+                            label = { Text("Given (Due)") }
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        androidx.compose.material3.FilterChip(
+                            selected = quickPartyType == "PAYMENT",
+                            onClick = { quickPartyType = "PAYMENT" },
+                            label = { Text("Got (Advance)") }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.Button(onClick = {
+                    val amt = quickPartyAmount.toDoubleOrNull()
+                    if (amt != null && quickPartyName.isNotBlank()) {
+                        storeBookViewModel.recordUdhaarEntry(quickPartyName.trim(), amt, quickPartyType, "Quick Entry")
+                        quickPartyName = ""
+                        quickPartyAmount = ""
+                        showQuickParty = false
+                    }
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showQuickParty = false }) { Text("Cancel") }
+            }
+        )
+    }
+
     Scaffold(
         floatingActionButton = {
             if (showBottomBar && currentRoute != "com.storebook.inventoryapp.ui.navigation.Routes.Inventory") {
@@ -228,11 +480,11 @@ fun AppNavigation() {
                     onToggle = { speedDialExpanded = !speedDialExpanded },
                     onNewSale = {
                         speedDialExpanded = false
-                        navController.navigate(Routes.Sales)
+                        showQuickSale = true
                     },
                     onRestock = {
                         speedDialExpanded = false
-                        navController.navigate(Routes.Inventory)
+                        showQuickRestock = true
                     },
                     onExpense = {
                         speedDialExpanded = false
@@ -240,15 +492,7 @@ fun AppNavigation() {
                     },
                     onAddParty = {
                         speedDialExpanded = false
-                        navController.navigate(Routes.Udhaar)
-                    },
-                    onBulkRestock = {
-                        speedDialExpanded = false
-                        navController.navigate(Routes.Inventory)
-                    },
-                    onQuickBill = {
-                        speedDialExpanded = false
-                        navController.navigate(Routes.Sales)
+                        showQuickParty = true
                     },
                 )
             }
@@ -429,8 +673,6 @@ fun SpeedDialFab(
     onRestock: () -> Unit,
     onExpense: () -> Unit,
     onAddParty: () -> Unit,
-    onBulkRestock: () -> Unit,
-    onQuickBill: () -> Unit,
 ) {
     val rotation by animateFloatAsState(
         targetValue = if (expanded) 45f else 0f,
@@ -442,8 +684,6 @@ fun SpeedDialFab(
         Triple(Icons.Filled.Inventory, "Restock", onRestock),
         Triple(Icons.Filled.MoneyOff, "Expense", onExpense),
         Triple(Icons.Filled.PersonAdd, "Add Party", onAddParty),
-        Triple(Icons.Filled.LibraryAdd, "Bulk Restock", onBulkRestock),
-        Triple(Icons.Filled.ReceiptLong, "Quick Bill", onQuickBill),
     )
     Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
         actions.forEachIndexed { i, (icon, label, action) ->
@@ -467,8 +707,8 @@ fun SpeedDialFab(
                     Spacer(Modifier.width(8.dp))
                     SmallFloatingActionButton(
                         onClick = action,
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                         shape = CircleShape,
                     ) { Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp)) }
                 }

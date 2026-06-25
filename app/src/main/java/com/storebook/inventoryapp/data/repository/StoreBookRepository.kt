@@ -357,7 +357,7 @@ class StoreBookRepository(
                         db.insert(StoreBookDbHelper.TABLE_SALE_ITEMS, null, saleItemValues)
 
                         // Update quantity in items table only if it's a real sale
-                        if (type != "ESTIMATE") {
+                        if (type != "ESTIMATE" && cartItem.item.id != 0L) {
                             val qtyCursor = db.rawQuery("SELECT ${StoreBookDbHelper.KEY_ITEM_QTY} FROM ${StoreBookDbHelper.TABLE_ITEMS} WHERE ${StoreBookDbHelper.KEY_ID} = ?", arrayOf(cartItem.item.id.toString()))
                             var currentQty = 0.0
                             qtyCursor.use {
@@ -619,7 +619,7 @@ class StoreBookRepository(
                 if (salesList.isEmpty()) return@withContext emptyList()
                 val saleIds = salesList.map { it.id }
                 val itemsBySaleId = mutableMapOf<Long, MutableList<SaleItemDetail>>()
-                
+
                 saleIds.chunked(500).forEach { chunk ->
                     val placeholders = chunk.joinToString(",") { "?" }
                     val itemsCursor =

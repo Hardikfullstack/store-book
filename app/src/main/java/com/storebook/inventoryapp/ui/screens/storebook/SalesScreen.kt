@@ -682,86 +682,35 @@ fun SalesScreen(
                     )
 
                     // ── Autocomplete dropdown ──
-                    DropdownMenu(
-                        expanded = showCustomerSuggestions && customerSuggestions.isNotEmpty(),
+                    com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
+                        expanded = showCustomerSuggestions,
                         onDismissRequest = { showCustomerSuggestions = false },
-                        properties = PopupProperties(focusable = false),
-                        modifier =
-                            Modifier
-                                .fillMaxWidth(0.9f)
-                                .heightIn(max = 240.dp)
-                                .background(MaterialTheme.colorScheme.surface),
-                    ) {
-                        customerSuggestions.forEachIndexed { index, name ->
-                            androidx.compose.material3.DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                    ) {
-                                        Box(
-                                            modifier =
-                                                Modifier
-                                                    .size(30.dp)
-                                                    .clip(CircleShape)
-                                                    .background(
-                                                        if (isUdhaarMode) {
-                                                            Coral500.copy(alpha = 0.12f)
-                                                        } else {
-                                                            MaterialTheme.colorScheme.primary
-                                                        },
-                                                    ),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Text(
-                                                name.firstOrNull()?.uppercase() ?: "?",
-                                                fontWeight = FontWeight.Black,
-                                                fontSize = 13.sp,
-                                                color =
-                                                    if (isUdhaarMode) {
-                                                        Coral500
-                                                    } else {
-                                                        MaterialTheme.colorScheme.onPrimary
-                                                    },
-                                            )
-                                        }
-
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = name,
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 14.sp,
-                                            )
-                                            if (isUdhaarMode) {
-                                                val bal = udhaarBalances.find { it.customerName == name }
-                                                if (bal != null && bal.netBalance > 0) {
-                                                    Text(
-                                                        text =
-                                                            stringResource(
-                                                                id = R.string.sales_current_due,
-                                                                bal.netBalance.toRupee(),
-                                                            ),
-                                                        fontSize = 10.sp,
-                                                        color = Coral500,
-                                                        fontWeight = FontWeight.Bold,
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                onClick = {
-                                    viewModel.selectCustomer(name)
-                                    showCustomerSuggestions = false
-                                    customerNameError = false
-                                },
-                            )
-                            if (index < customerSuggestions.lastIndex) {
-                                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        suggestions = customerSuggestions,
+                        itemText = { it },
+                        onSuggestionSelected = { name ->
+                            viewModel.selectCustomer(name)
+                            showCustomerSuggestions = false
+                            customerNameError = false
+                        },
+                        avatarColor = if (isUdhaarMode) Coral500.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary,
+                        avatarTextColor = if (isUdhaarMode) Coral500 else MaterialTheme.colorScheme.onPrimary,
+                        additionalContent = { name ->
+                            if (isUdhaarMode) {
+                                val bal = udhaarBalances.find { it.customerName == name }
+                                if (bal != null && bal.netBalance > 0) {
+                                    Text(
+                                        text = stringResource(
+                                            id = R.string.sales_current_due,
+                                            bal.netBalance.toRupee(),
+                                        ),
+                                        fontSize = 10.sp,
+                                        color = Coral500,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
                             }
                         }
-                    }
+                    )
                 }
 
                 Text(
