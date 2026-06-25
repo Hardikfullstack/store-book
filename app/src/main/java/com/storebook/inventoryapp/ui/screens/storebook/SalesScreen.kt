@@ -77,6 +77,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -974,8 +976,14 @@ fun SalesScreen(
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
-                        IconButton(onClick = {
-                            scanner.startScan()
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (searchQ.isNotEmpty()) {
+                                IconButton(onClick = { searchQ = "" }) {
+                                    Icon(Icons.Rounded.Cancel, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            IconButton(onClick = {
+                                scanner.startScan()
                                 .addOnSuccessListener { barcode: com.google.mlkit.vision.barcode.common.Barcode ->
                                     val code = barcode.rawValue
                                     if (!code.isNullOrBlank()) {
@@ -1000,6 +1008,7 @@ fun SalesScreen(
                                 }
                         }) {
                             Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan Barcode")
+                        }
                         }
                     },
                     singleLine = true,

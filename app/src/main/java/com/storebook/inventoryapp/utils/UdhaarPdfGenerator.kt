@@ -79,7 +79,7 @@ object UdhaarPdfGenerator {
 
         try {
             val file = File(context.cacheDir, "Statement_${customerName.replace(" ", "_")}.pdf")
-            document.writeTo(FileOutputStream(file))
+            FileOutputStream(file).use { document.writeTo(it) }
             document.close()
             return file
         } catch (e: Exception) {

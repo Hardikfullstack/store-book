@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -64,6 +65,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -71,6 +76,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -139,6 +145,11 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
     }
 
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+
+    androidx.compose.runtime.LaunchedEffect(searchQ) {
+        listState.scrollToItem(0)
+    }
 
     Scaffold(
         snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
@@ -218,7 +229,12 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                         .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Text("💰", fontSize = 20.sp)
+                                 Icon(
+                                    painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_rupee),
+                                    contentDescription = null,
+                                    tint = Color.Unspecified,
+                                    modifier = Modifier.size(28.dp)
+                                )
                             }
                             Spacer(modifier = Modifier.width(14.dp))
                             Column {
@@ -264,6 +280,13 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                     placeholder = { Text(stringResource(id = R.string.udh_search_hint)) },
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQ.isNotEmpty()) {
+                            IconButton(onClick = { searchQ = "" }) {
+                                Icon(Icons.Rounded.Cancel, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onPrimary)
+                            }
+                        }
+                    },
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
                     colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
@@ -296,8 +319,21 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                         verticalArrangement = Arrangement.Center,
                         modifier = Modifier.padding(32.dp)
                     ) {
-                        Text("📒✨", fontSize = 72.sp)
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Book,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(50.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(24.dp))
                         Text(
                             text = "No udhaar accounts yet?\nYour first customer is just a tap away!",
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
@@ -318,9 +354,11 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                            Text(
-                                text = "↘️",
-                                fontSize = 24.sp
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp).rotate(45f)
                             )
                         }
                     }
@@ -328,8 +366,21 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
             } else if (filteredBalances.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("🔍", fontSize = 48.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = stringResource(id = R.string.udh_no_results, searchQ),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
@@ -339,6 +390,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                 }
             } else {
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
@@ -978,13 +1030,13 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                         showDialog = false
 
                                         if (showCustomerLedgerSheet && selectedCustomer != null) {
-                                            fetchLedger(selectedCustomer!!.customerName)
+                                            val currentCustomerName = selectedCustomer!!.customerName
+                                            fetchLedger(currentCustomerName)
                                             coroutineScope.launch {
                                                 val updatedList = viewModel.repository.getUdhaarBalances()
                                                 selectedCustomer =
                                                     updatedList.find {
-                                                        it.customerName ==
-                                                            selectedCustomer!!.customerName
+                                                        it.customerName == currentCustomerName
                                                     }
                                             }
                                         }

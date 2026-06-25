@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterList
@@ -80,6 +81,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -110,6 +112,8 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Inventory
+import androidx.compose.material.icons.rounded.Cancel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -666,6 +670,11 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                                 Spacer(modifier = Modifier.width(8.dp))
                             }
+                            if (searchQ.isNotEmpty()) {
+                                IconButton(onClick = { searchQ = "" }) {
+                                    Icon(Icons.Rounded.Cancel, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onPrimary)
+                                }
+                            }
                             Box(
                                 modifier = Modifier
                                     .clip(CircleShape)
@@ -699,52 +708,6 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                     ),
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Category Filter Chips
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(end = 8.dp),
-                ) {
-                    item {
-                        FilterChip(
-                            label = stringResource(id = R.string.inv_filter_all),
-                            isSelected = selectedCategory == "All",
-                            onClick = { selectedCategory = "All" },
-                            onPrimaryBg = true,
-                        )
-                    }
-                    item {
-                        FilterChip(
-                            label = "⚠️ " + stringResource(id = R.string.inv_filter_low_stock),
-                            isSelected = selectedCategory == "Low Stock",
-                            onClick = { selectedCategory = "Low Stock" },
-                            onPrimaryBg = true,
-                        )
-                    }
-                    items(categoriesList, key = { it }) { cat ->
-                        FilterChip(
-                            label = cat,
-                            isSelected = selectedCategory == cat,
-                            onClick = {
-                                selectedCategory = cat
-                                filterMode = "All"
-                            },
-                            onPrimaryBg = true,
-                        )
-                    }
-                    item {
-                        FilterChip(
-                            label = "🕒 Expiring ≤30d${if (nearExpiryItems.isNotEmpty()) " (${nearExpiryItems.size})" else ""}",
-                            isSelected = filterMode == "NearExpiry",
-                            onClick = {
-                                filterMode = if (filterMode == "NearExpiry") "All" else "NearExpiry"
-                            },
-                            onPrimaryBg = true,
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(6.dp))
             }
         },
         floatingActionButton = {
@@ -785,8 +748,21 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             verticalArrangement = Arrangement.Center,
                             modifier = Modifier.padding(32.dp)
                         ) {
-                            Text("📦✨", fontSize = 72.sp)
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                androidx.compose.material3.Icon(
+                                    imageVector = androidx.compose.material.icons.Icons.Outlined.Inventory,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(50.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(24.dp))
                             Text(
                                 text = if (searchQ.isBlank() && selectedCategory == "All" && filterMode == "All") {
                                     "No stock yet?\nYour first item is just a tap away!"
@@ -812,9 +788,11 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
-                                    Text(
-                                        text = "↘️",
-                                        fontSize = 24.sp
+                                   Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp).rotate(45f)
                                     )
                                 }
                             }

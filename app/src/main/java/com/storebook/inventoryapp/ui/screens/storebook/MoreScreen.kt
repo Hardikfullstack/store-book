@@ -42,21 +42,24 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.CloudSync
-import androidx.compose.material.icons.outlined.DownloadForOffline
 import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.LocalShipping
-import androidx.compose.material.icons.outlined.MoneyOff
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.PieChart
-import androidx.compose.material.icons.outlined.Restore
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.Receipt
-import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.Store
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.RequestQuote
+import androidx.compose.material.icons.outlined.Inventory
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.SettingsSuggest
+import androidx.compose.material.icons.outlined.GroupAdd
+import androidx.compose.material.icons.outlined.AssignmentInd
+import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -75,6 +78,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -89,7 +94,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -275,7 +279,14 @@ fun MoreScreen(
                                                                                 )
                                                                         ),
                                                         contentAlignment = Alignment.Center,
-                                                ) { Text("🏪", fontSize = 26.sp) }
+                                                ) {
+                                                        Icon(
+                                                            painter = painterResource(id = R.drawable.ic_store),
+                                                            contentDescription = "Shop Icon",
+                                                            tint = MaterialTheme.colorScheme.onPrimary,
+                                                            modifier = Modifier.size(30.dp)
+                                                        )
+                                                }
                                                 Spacer(modifier = Modifier.width(14.dp))
                                                 Column {
                                                         Text(
@@ -335,7 +346,7 @@ fun MoreScreen(
                                                         contentAlignment = Alignment.Center,
                                                 ) {
                                                         Icon(
-                                                                Icons.Default.Star,
+                                                                painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_star),
                                                                 contentDescription = null,
                                                                 tint = Gold400,
                                                                 modifier = Modifier.size(24.dp),
@@ -395,9 +406,9 @@ fun MoreScreen(
                                                                 ),
                                                         trailing =
                                                                 when (currentLang) {
-                                                                        "hi" -> "🇮🇳 हिंदी"
-                                                                        "gu" -> "🪁 ગુજ"
-                                                                        else -> "🌐 English"
+                                                                        "hi" -> "🇮हिंदी"
+                                                                        "gu" -> "ગુજ"
+                                                                        else -> "English"
                                                                 },
                                                         onClick = {
                                                                 activeModal = "LANGUAGES"
@@ -409,11 +420,12 @@ fun MoreScreen(
                                                                 Modifier.padding(horizontal = 16.dp)
                                                 )
                                                 IconOptionRow(
-                                                        icon = Icons.Default.Star,
-                                                        iconBg = Gold400.copy(alpha = 0.12f),
-                                                        iconTint = Gold400,
+                                                        icon = Icons.Outlined.Palette,
+                                                        iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                                                        iconTint = MaterialTheme.colorScheme.secondary,
                                                         title = "App Theme",
-                                                        trailing = if (themeManager.isDarkMode.value) "🌙 Dark" else "☀️ Light",
+                                                        trailing = if (themeManager.isDarkMode.value) "Dark" else "Light",
+                                                        trailingIconRes = if (themeManager.isDarkMode.value) R.drawable.ic_dark_mode else R.drawable.ic_light_mode,
                                                         onClick = {
                                                             if (viewModel.isPremiumUser || viewModel.userRoleType.hasPermission(com.storebook.inventoryapp.ui.viewmodels.AppPermission.MANAGE_PREMIUM) || viewModel.userRole == "staff") {
                                                                 showThemeExpanded = !showThemeExpanded
@@ -463,7 +475,7 @@ fun MoreScreen(
                                                 )
 
                                                 IconOptionRow(
-                                                        icon = Icons.Outlined.Checklist,
+                                                        icon = Icons.Outlined.Analytics,
                                                         iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                                                         iconTint = MaterialTheme.colorScheme.primary,
                                                         title = "Sales Analytics",
@@ -479,7 +491,7 @@ fun MoreScreen(
                                                 )
 
                                                 IconOptionRow(
-                                                        icon = Icons.Outlined.Store,
+                                                        icon = Icons.Outlined.RequestQuote,
                                                         iconBg = Emerald500.copy(alpha = 0.12f),
                                                         iconTint = Emerald500,
                                                         title = "Quotations & Estimates",
@@ -495,7 +507,7 @@ fun MoreScreen(
                                                 )
 
                                                 IconOptionRow(
-                                                        icon = Icons.Outlined.MoneyOff,
+                                                        icon = Icons.Outlined.AccountBalanceWallet,
                                                         iconBg = Coral500.copy(alpha = 0.12f),
                                                         iconTint = Coral500,
                                                         title =
@@ -515,7 +527,7 @@ fun MoreScreen(
                                                 )
 
                                                 IconOptionRow(
-                                                        icon = Icons.Outlined.LocalShipping,
+                                                        icon = Icons.Outlined.Inventory,
                                                         iconBg =
                                                                 MaterialTheme.colorScheme.primary
                                                                         .copy(alpha = 0.12f),
@@ -537,7 +549,7 @@ fun MoreScreen(
                                                 )
 
                                                 IconOptionRow(
-                                                        icon = Icons.Outlined.Share,
+                                                        icon = Icons.Outlined.FileDownload,
                                                         iconBg =
                                                                 MaterialTheme.colorScheme.primary
                                                                         .copy(alpha = 0.12f),
@@ -560,7 +572,7 @@ fun MoreScreen(
                                                 )
 
                                                 IconOptionRow(
-                                                        icon = Icons.Outlined.DownloadForOffline,
+                                                        icon = Icons.Outlined.FileUpload,
                                                         iconBg =
                                                                 MaterialTheme.colorScheme.primary
                                                                         .copy(alpha = 0.12f),
@@ -594,7 +606,7 @@ fun MoreScreen(
 
                                                 if (viewModel.userRoleType.hasPermission(com.storebook.inventoryapp.ui.viewmodels.AppPermission.MANAGE_BUSINESS_SETTINGS)) {
                                                     IconOptionRow(
-                                                            icon = Icons.Outlined.Store,
+                                                            icon = Icons.Outlined.SettingsSuggest,
                                                             iconBg =
                                                                     MaterialTheme.colorScheme.tertiary
                                                                             .copy(alpha = 0.12f),
@@ -610,7 +622,7 @@ fun MoreScreen(
                                                                     Modifier.padding(horizontal = 16.dp)
                                                     )
                                                     IconOptionRow(
-                                                            icon = Icons.Outlined.Person,
+                                                            icon = Icons.Outlined.GroupAdd,
                                                             iconBg =
                                                                     MaterialTheme.colorScheme.primary
                                                                             .copy(alpha = 0.12f),
@@ -625,7 +637,7 @@ fun MoreScreen(
                                                                     Modifier.padding(horizontal = 16.dp)
                                                     )
                                                     IconOptionRow(
-                                                            icon = Icons.Outlined.LocalShipping,
+                                                            icon = Icons.Outlined.AssignmentInd,
                                                             iconBg =
                                                                     MaterialTheme.colorScheme.secondary
                                                                             .copy(alpha = 0.12f),
@@ -649,7 +661,7 @@ fun MoreScreen(
                                                             },
                                                     )
                                                     IconOptionRow(
-                                                            icon = Icons.Outlined.Store,
+                                                            icon = Icons.Outlined.SwapHoriz,
                                                             iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
                                                             iconTint = MaterialTheme.colorScheme.secondary,
                                                             title = "Switch Store",
@@ -710,7 +722,7 @@ fun MoreScreen(
                                                 )
 
                                                 IconOptionRow(
-                                                        icon = Icons.Outlined.Restore,
+                                                        icon = Icons.Outlined.Storage,
                                                         iconBg =
                                                                 MaterialTheme.colorScheme.error
                                                                         .copy(alpha = 0.12f),
@@ -733,7 +745,7 @@ fun MoreScreen(
                                                 )
 
                                                 IconOptionRow(
-                                                        icon = Icons.Outlined.Restore,
+                                                        icon = Icons.Outlined.DeleteOutline,
                                                         iconBg =
                                                                 MaterialTheme.colorScheme.error
                                                                         .copy(alpha = 0.12f),
@@ -1334,6 +1346,7 @@ fun IconOptionRow(
         iconTint: Color,
         title: String,
         trailing: String? = null,
+        trailingIconRes: Int? = null,
         onClick: () -> Unit,
 ) {
         Row(
@@ -1347,22 +1360,38 @@ fun IconOptionRow(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                                 modifier =
-                                        Modifier.size(38.dp)
-                                                .clip(RoundedCornerShape(10.dp))
-                                                .background(iconBg),
+                                        Modifier.size(42.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(
+                                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                                                )
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                                    shape = RoundedCornerShape(12.dp)
+                                                ),
                                 contentAlignment = Alignment.Center,
                         ) {
                                 Icon(
                                         imageVector = icon,
                                         contentDescription = null,
-                                        tint = iconTint,
-                                        modifier = Modifier.size(20.dp)
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
                                 )
                         }
                         Spacer(modifier = Modifier.width(14.dp))
-                        Text(text = title, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                        Text(text = title, fontWeight = FontWeight.Medium, fontSize = 15.sp)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (trailingIconRes != null) {
+                                Icon(
+                                        painter = androidx.compose.ui.res.painterResource(id = trailingIconRes),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                        }
                         if (trailing != null) {
                                 Text(
                                         text = trailing,
@@ -1416,16 +1445,18 @@ fun LanguageSheetContent(
                         fontWeight = FontWeight.Bold
                 )
                 HorizontalDivider()
-                LanguageOptionCard("🌐 English", "en", currentLang == "en", onLanguageSelected)
+                LanguageOptionCard("English", "en", R.drawable.ic_english, currentLang == "en", onLanguageSelected)
                 LanguageOptionCard(
-                        "🇮🇳 हिंदी (Hindi)",
+                        "हिंदी (Hindi)",
                         "hi",
+                        R.drawable.ic_hindi,
                         currentLang == "hi",
                         onLanguageSelected
                 )
                 LanguageOptionCard(
-                        "🪁 ગુજરાતી (Gujarati)",
+                        "ગુજરાતી (Gujarati)",
                         "gu",
+                        R.drawable.ic_gujarati,
                         currentLang == "gu",
                         onLanguageSelected
                 )
@@ -1436,6 +1467,7 @@ fun LanguageSheetContent(
 fun LanguageOptionCard(
         label: String,
         code: String,
+        iconRes: Int,
         active: Boolean,
         onSelect: (String) -> Unit,
 ) {
@@ -1456,11 +1488,20 @@ fun LanguageOptionCard(
                         ),
         ) {
                 Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp).fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                 ) {
-                        Text(label, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                        painter = androidx.compose.ui.res.painterResource(id = iconRes),
+                                        contentDescription = null,
+                                        tint = androidx.compose.material3.LocalContentColor.current,
+                                        modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(label, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
                         if (active) {
                                 Box(
                                         modifier =
@@ -1471,11 +1512,11 @@ fun LanguageOptionCard(
                                                         ),
                                         contentAlignment = Alignment.Center,
                                 ) {
-                                        Text(
-                                                "✓",
-                                                color = MaterialTheme.colorScheme.onPrimary,
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Black
+                                        Icon(
+                                                imageVector = Icons.Filled.Check,
+                                                contentDescription = "Selected",
+                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                                modifier = Modifier.size(16.dp)
                                         )
                                 }
                         }
@@ -1483,16 +1524,6 @@ fun LanguageOptionCard(
         }
 }
 
-// Legacy LanguageRow - kept for compatibility
-@Composable
-fun LanguageRow(
-        label: String,
-        code: String,
-        active: Boolean,
-        onSelect: (String) -> Unit,
-) {
-        LanguageOptionCard(label, code, active, onSelect)
-}
 
 @Composable
 fun InlineThemeCard(
@@ -1543,8 +1574,8 @@ fun InlineThemeCard(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 listOf(
-                    Triple(false, "☀️", "Light"),
-                    Triple(true,  "🌙", "Dark"),
+                    Triple(false, R.drawable.ic_light_mode, "Light"),
+                    Triple(true,  R.drawable.ic_dark_mode, "Dark"),
                 ).forEach { (dark, emoji, label) ->
                     val selected = isDarkMode == dark
                     val bgColor by animateColorAsState(
@@ -1565,12 +1596,24 @@ fun InlineThemeCard(
                             .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = "$emoji $label",
-                            fontSize = 13.sp,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                            color = textColor,
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(id = emoji as Int),
+                                contentDescription = null,
+                                tint = textColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = label as String,
+                                fontSize = 13.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                color = textColor,
+                            )
+                        }
                     }
                 }
             }
@@ -1902,17 +1945,17 @@ fun ReportsSheetContent(
                                         text =
                                                 if (netProfit >= 0) {
                                                         "🎉 " +
-                                                                stringResource(
-                                                                        id =
-                                                                                R.string
-                                                                                        .rep_net_profit_label
+                                                        stringResource(
+                                                                id =
+                                                                        R.string
+                                                                                .rep_net_profit_label
                                                                 )
                                                 } else {
                                                         "⚠️ " +
-                                                                stringResource(
-                                                                        id =
-                                                                                R.string
-                                                                                        .rep_net_loss_label
+                                                        stringResource(
+                                                                id =
+                                                                        R.string
+                                                                                .rep_net_loss_label
                                                                 )
                                                 },
                                         fontWeight = FontWeight.Bold,
