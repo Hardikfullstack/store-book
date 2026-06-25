@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -29,10 +30,13 @@ fun InviteStaffScreen(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    
+
     var staffUsername by remember { mutableStateOf("") }
     var staffPassword by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+
+    val focusRequesterPassword = remember { androidx.compose.ui.focus.FocusRequester() }
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
     Scaffold(
         topBar = {
@@ -68,7 +72,7 @@ fun InviteStaffScreen(
                     .padding(16.dp),
                 tint = MaterialTheme.colorScheme.onPrimary
             )
-            
+
             Text(
                 "Create Staff Account",
                 fontSize = 24.sp,
@@ -86,6 +90,8 @@ fun InviteStaffScreen(
                 value = staffUsername,
                 onValueChange = { staffUsername = it },
                 label = { Text("Staff Username") },
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Next),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onNext = { focusRequesterPassword.requestFocus() }),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp)
@@ -95,7 +101,12 @@ fun InviteStaffScreen(
                 value = staffPassword,
                 onValueChange = { staffPassword = it },
                 label = { Text("Staff Password (Pin)") },
-                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword,
+                    imeAction = androidx.compose.ui.text.input.ImeAction.Done
+                ),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { focusManager.clearFocus() }),
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterPassword),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp)
             )

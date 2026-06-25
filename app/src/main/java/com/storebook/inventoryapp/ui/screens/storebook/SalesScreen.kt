@@ -660,15 +660,16 @@ fun SalesScreen(
                         shape = RoundedCornerShape(12.dp),
                         isError = customerNameError,
                         keyboardOptions = KeyboardOptions(
-                            imeAction = ImeAction.Next
+                            imeAction = if (showAdvancedBilling) ImeAction.Next else ImeAction.Done
                         ),
                         keyboardActions = KeyboardActions(
                             onNext = {
                                 if (showAdvancedBilling) {
                                     focusRequesterGstin.requestFocus()
-                                } else {
-                                    focusManager.clearFocus()
                                 }
+                            },
+                            onDone = {
+                                focusManager.clearFocus()
                             }
                         ),
                         supportingText = {
@@ -1447,84 +1448,80 @@ fun SalesScreen(
                             }
                         }
 
-                        // Payment Modes + Quick Charge
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            // Scrollable Chips
-                            Row(
-                                modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                paymentModes.forEach { mode ->
-                                    val isSelected = viewModel.cartPaymentMode == mode
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(16.dp))
-                                            .background(
-                                                when {
-                                                    isSelected && mode == "Udhaar" -> Coral500
-                                                    isSelected && mode == "Estimate" -> androidx.compose.ui.graphics.Color(0xFF607D8B)
-                                                    isSelected -> MaterialTheme.colorScheme.primary
-                                                    else -> MaterialTheme.colorScheme.surfaceVariant
-                                                }
-                                            )
-                                            .clickable {
-                                                viewModel.cartPaymentMode = mode
-                                                if (mode == "Udhaar") {
-                                                    showCheckoutSheet = true
-                                                }
+                        // Payment Modes
+                        Row(
+                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            paymentModes.forEach { mode ->
+                                val isSelected = viewModel.cartPaymentMode == mode
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(
+                                            when {
+                                                isSelected && mode == "Udhaar" -> Coral500
+                                                isSelected && mode == "Estimate" -> androidx.compose.ui.graphics.Color(0xFF607D8B)
+                                                isSelected -> MaterialTheme.colorScheme.primary
+                                                else -> MaterialTheme.colorScheme.surfaceVariant
                                             }
-                                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                                    ) {
-                                        Text(
-                                            text = when (mode) {
-                                                "Udhaar" -> "📒 Udhaar"
-                                                "Cash" -> "💵 Cash"
-                                                "UPI" -> "📱 UPI"
-                                                "Estimate" -> "📄 Estimate"
-                                                else -> mode
-                                            },
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                    }
+                                        .clickable {
+                                            viewModel.cartPaymentMode = mode
+                                            if (mode == "Udhaar") {
+                                                showCheckoutSheet = true
+                                            }
+                                        }
+                                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                                ) {
+                                    Text(
+                                        text = when (mode) {
+                                            "Udhaar" -> "📒 Udhaar"
+                                            "Cash" -> "💵 Cash"
+                                            "UPI" -> "📱 UPI"
+                                            "Estimate" -> "📄 Estimate"
+                                            else -> mode
+                                        },
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
+                        }
 
-                            Spacer(Modifier.width(12.dp))
-
-                            // Quick Charge Button
-                            Button(
-                                onClick = {
-                                    if (viewModel.cartPaymentMode == "Udhaar" && viewModel.cartCustomerName.trim().isBlank()) {
-                                        showCheckoutSheet = true
-                                    } else {
-                                        lastPaymentMode = viewModel.cartPaymentMode
-                                        lastCartSnap = viewModel.cartItems.toList()
-                                        val type = if (viewModel.cartPaymentMode == "Estimate") "ESTIMATE" else "SALE"
-                                        viewModel.checkout(paymentMode = if(type == "ESTIMATE") "Cash" else viewModel.cartPaymentMode, type = type) { saleId, total ->
-                                            generatedSaleId = saleId
-                                            generatedTotalAmount = total
-                                            generatedSaleType = type
-                                            showSuccessScreen = true
-                                        }
+                        // Quick Charge Button
+                        Button(
+                            onClick = {
+                                if (viewModel.cartPaymentMode == "Udhaar" && viewModel.cartCustomerName.trim().isBlank()) {
+                                    showCheckoutSheet = true
+                                } else {
+                                    lastPaymentMode = viewModel.cartPaymentMode
+                                    lastCartSnap = viewModel.cartItems.toList()
+                                    val type = if (viewModel.cartPaymentMode == "Estimate") "ESTIMATE" else "SALE"
+                                    viewModel.checkout(paymentMode = if(type == "ESTIMATE") "Cash" else viewModel.cartPaymentMode, type = type) { saleId, total ->
+                                        generatedSaleId = saleId
+                                        generatedTotalAmount = total
+                                        generatedSaleType = type
+                                        showSuccessScreen = true
                                     }
-                                },
-                                modifier = Modifier.height(48.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = when (viewModel.cartPaymentMode) {
-                                        "Udhaar" -> Coral500
-                                        "Estimate" -> androidx.compose.ui.graphics.Color(0xFF607D8B)
-                                        else -> MaterialTheme.colorScheme.primary
-                                    }
-                                )
-                            ) {
-                                Text(
-                                    text = if (viewModel.cartPaymentMode == "Estimate") "Save" else "Charge",
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = when (viewModel.cartPaymentMode) {
+                                    "Udhaar" -> Coral500
+                                    "Estimate" -> androidx.compose.ui.graphics.Color(0xFF607D8B)
+                                    else -> MaterialTheme.colorScheme.primary
+                                }
+                            )
+                        ) {
+                            Text(
+                                text = if (viewModel.cartPaymentMode == "Estimate") "Save Estimate" else "Charge ${grandTotal.toRupee()}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
                         }
                     }
                 }

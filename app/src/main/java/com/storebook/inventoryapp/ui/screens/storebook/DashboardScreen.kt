@@ -165,22 +165,22 @@ fun DashboardScreen(
             cal.add(Calendar.DAY_OF_YEAR, -offset)
             format.format(cal.time)
         }.reversed() // [day-6, day-5, ..., today]
-        
+
         // Sales per day
         val salesPerDay = days.associateWith { dayStr ->
             salesList.filter { saleDateFmt.format(Date(it.timestamp)) == dayStr }.sumOf { it.totalAmount }
         }
-        
+
         // Purchases per day
         val purchasesPerDay = days.associateWith { dayStr ->
             purchasesList.filter { saleDateFmt.format(Date(it.timestamp)) == dayStr }.sumOf { it.totalAmount }
         }
-        
+
         // Expenses per day
         val expensesPerDay = days.associateWith { dayStr ->
             expensesList.filter { saleDateFmt.format(Date(it.timestamp)) == dayStr }.sumOf { it.amount }
         }
-        
+
         Triple(
             days.map { salesPerDay[it] ?: 0.0 },
             days.map { purchasesPerDay[it] ?: 0.0 },
@@ -219,6 +219,8 @@ fun DashboardScreen(
         else -> "Optimal Low Expenses"
     }
 
+
+
     // Pull to refresh state
     var isRefreshing by remember { mutableStateOf(false) }
 
@@ -228,7 +230,7 @@ fun DashboardScreen(
     var quickRefillItem by remember { mutableStateOf<Item?>(null) }
     var fabExpanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    
+
     val currentLastSaleId = viewModel.lastSaleId
     val currentLastSaleTime = viewModel.lastSaleTime
     LaunchedEffect(currentLastSaleId, currentLastSaleTime) {
@@ -388,7 +390,7 @@ fun DashboardScreen(
                                     .clip(RoundedCornerShape(20.dp))
                                     .background(
                                         if (viewModel.isPremiumUser) {
-                                            Gold200.copy(alpha = 0.25f)
+                                            Gold400
                                         } else {
                                             MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
                                         },
@@ -926,7 +928,7 @@ fun SparklineMetricCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
-                
+
                 // Sparkline (Mini Line Chart)
                 Box(
                     modifier = Modifier
@@ -939,11 +941,11 @@ fun SparklineMetricCard(
                             val maxVal = trendData.maxOrNull()?.toFloat() ?: 0f
                             val minVal = trendData.minOrNull()?.toFloat() ?: 0f
                             val range = if (maxVal - minVal == 0f) 1f else maxVal - minVal
-                            
+
                             val width = size.width
                             val height = size.height
                             val path = androidx.compose.ui.graphics.Path()
-                            
+
                             trendData.forEachIndexed { index, value ->
                                 val x = index * (width / (trendData.size - 1))
                                 // Invert Y because canvas (0,0) is top-left
@@ -954,7 +956,7 @@ fun SparklineMetricCard(
                                     path.lineTo(x, y)
                                 }
                             }
-                            
+
                             drawPath(
                                 path = path,
                                 color = indicatorColor,
@@ -979,11 +981,11 @@ fun SparklineMetricCard(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
             Spacer(modifier = Modifier.height(10.dp))
-            
+
             // Traffic Light Indicator below
             Row(
                 verticalAlignment = Alignment.CenterVertically,

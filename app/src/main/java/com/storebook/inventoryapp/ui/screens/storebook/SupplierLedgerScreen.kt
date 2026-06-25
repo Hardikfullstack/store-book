@@ -64,6 +64,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -92,32 +93,38 @@ fun SupplierLedgerScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    
+
     val supplierBalances by viewModel.supplierBalances.collectAsStateWithLifecycle()
     val purchases by viewModel.purchases.collectAsStateWithLifecycle()
-    
+
     var searchQ by remember { mutableStateOf("") }
     var selectedSupplierBalance by remember { mutableStateOf<SupplierBalance?>(null) }
-    
+
     // Bottom Sheet states
     var showSupplierDetailSheet by remember { mutableStateOf(false) }
     var showAddSupplierSheet by remember { mutableStateOf(false) }
     var showAddPaymentDialog by remember { mutableStateOf(false) }
     var editingSupplier by remember { mutableStateOf<Supplier?>(null) }
-    
+
     // Add/Edit Supplier Form Fields
     var supplierName by remember { mutableStateOf("") }
     var supplierPhone by remember { mutableStateOf("") }
     var supplierGstin by remember { mutableStateOf("") }
     var supplierAddress by remember { mutableStateOf("") }
     var formError by remember { mutableStateOf(false) }
-    
+
     // Payment fields
     var paymentAmount by remember { mutableStateOf("") }
     var paymentNotes by remember { mutableStateOf("") }
-    
+
+    val focusRequesterPhone = remember { androidx.compose.ui.focus.FocusRequester() }
+    val focusRequesterGstin = remember { androidx.compose.ui.focus.FocusRequester() }
+    val focusRequesterAddress = remember { androidx.compose.ui.focus.FocusRequester() }
+    val focusRequesterNotes = remember { androidx.compose.ui.focus.FocusRequester() }
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+
     val dateFmt = remember { SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()) }
-    
+
     val filteredBalances by remember {
         derivedStateOf {
             if (searchQ.isBlank()) {
@@ -127,16 +134,16 @@ fun SupplierLedgerScreen(
             }
         }
     }
-    
+
     val totalPayable by remember {
         derivedStateOf {
             supplierBalances.filter { it.netBalance > 0 }.sumOf { it.netBalance }
         }
     }
-    
+
     val supplierDetailSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val addSupplierSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    
+
     fun openAddSupplier() {
         editingSupplier = null
         supplierName = ""
@@ -146,7 +153,7 @@ fun SupplierLedgerScreen(
         formError = false
         showAddSupplierSheet = true
     }
-    
+
     fun openEditSupplier(supplier: SupplierBalance) {
         editingSupplier = Supplier(
             id = supplier.supplierId,
@@ -198,9 +205,9 @@ fun SupplierLedgerScreen(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(10.dp))
-                
+
                 // Search Bar
                 OutlinedTextField(
                     value = searchQ,
@@ -210,6 +217,19 @@ fun SupplierLedgerScreen(
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                        focusedLeadingIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                        focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                        cursorColor = MaterialTheme.colorScheme.onPrimary,
+                    )
                 )
             }
         },
@@ -273,7 +293,7 @@ fun SupplierLedgerScreen(
                         }
                     }
                 }
-                
+
                 if (filteredBalances.isEmpty()) {
                     item {
                         Box(
@@ -296,7 +316,7 @@ fun SupplierLedgerScreen(
                 } else {
                     items(filteredBalances, key = { it.supplierId }) { supplier ->
                         val initial = supplier.supplierName.take(2).uppercase()
-                        
+
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -351,7 +371,7 @@ fun SupplierLedgerScreen(
                                         }
                                     }
                                 }
-                                
+
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
                                         text = if (supplier.netBalance > 0) "Payable" else if (supplier.netBalance < 0) "Advance" else "Settled",
@@ -370,14 +390,14 @@ fun SupplierLedgerScreen(
                     }
                 }
             }
-            
+
             // ── Supplier Detail Bottom Sheet ────────────────────────────────────
             if (showSupplierDetailSheet && selectedSupplierBalance != null) {
                 val supplier = selectedSupplierBalance!!
                 val supplierPurchases = remember(purchases, supplier.supplierId) {
                     purchases.filter { it.supplierId == supplier.supplierId }
                 }
-                
+
                 ModalBottomSheet(
                     onDismissRequest = { showSupplierDetailSheet = false },
                     sheetState = supplierDetailSheetState,
@@ -425,7 +445,7 @@ fun SupplierLedgerScreen(
                                     }
                                 }
                             }
-                            
+
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 IconButton(onClick = {
                                     openEditSupplier(supplier)
@@ -442,9 +462,9 @@ fun SupplierLedgerScreen(
                                 }
                             }
                         }
-                        
+
                         Spacer(modifier = Modifier.height(16.dp))
-                        
+
                         // Balance Card
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -472,7 +492,7 @@ fun SupplierLedgerScreen(
                                         color = if (supplier.netBalance > 0) Coral500 else if (supplier.netBalance < 0) Emerald500 else MaterialTheme.colorScheme.onSurface
                                     )
                                 }
-                                
+
                                 Button(
                                     onClick = { showAddPaymentDialog = true },
                                     colors = ButtonDefaults.buttonColors(
@@ -484,7 +504,7 @@ fun SupplierLedgerScreen(
                                 }
                             }
                         }
-                        
+
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
                             text = "Transaction History",
@@ -493,7 +513,7 @@ fun SupplierLedgerScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -519,7 +539,7 @@ fun SupplierLedgerScreen(
                             } else {
                                 items(supplierPurchases, key = { it.id }) { purchase ->
                                     val isBill = purchase.type == "BILL"
-                                    
+
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(12.dp),
@@ -577,7 +597,7 @@ fun SupplierLedgerScreen(
                     }
                 }
             }
-            
+
             // ── Add/Edit Supplier Sheet ─────────────────────────────────────────
             if (showAddSupplierSheet) {
                 ModalBottomSheet(
@@ -600,7 +620,7 @@ fun SupplierLedgerScreen(
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
-                        
+
                         OutlinedTextField(
                             value = supplierName,
                             onValueChange = {
@@ -608,6 +628,8 @@ fun SupplierLedgerScreen(
                                 formError = false
                             },
                             label = { Text("Supplier Name") },
+                            keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Next),
+                            keyboardActions = androidx.compose.foundation.text.KeyboardActions(onNext = { focusRequesterPhone.requestFocus() }),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             isError = formError,
@@ -615,32 +637,40 @@ fun SupplierLedgerScreen(
                                 { Text("Supplier name cannot be empty") }
                             } else null
                         )
-                        
+
                         OutlinedTextField(
                             value = supplierPhone,
                             onValueChange = { supplierPhone = it },
                             label = { Text("Phone Number") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Phone,
+                                imeAction = androidx.compose.ui.text.input.ImeAction.Next
+                            ),
+                            keyboardActions = androidx.compose.foundation.text.KeyboardActions(onNext = { focusRequesterGstin.requestFocus() }),
+                            modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterPhone),
                             singleLine = true
                         )
-                        
+
                         OutlinedTextField(
                             value = supplierGstin,
                             onValueChange = { supplierGstin = it },
                             label = { Text("GSTIN") },
-                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Next),
+                            keyboardActions = androidx.compose.foundation.text.KeyboardActions(onNext = { focusRequesterAddress.requestFocus() }),
+                            modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterGstin),
                             singleLine = true
                         )
-                        
+
                         OutlinedTextField(
                             value = supplierAddress,
                             onValueChange = { supplierAddress = it },
                             label = { Text("Address") },
-                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
+                            keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { focusManager.clearFocus() }),
+                            modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterAddress),
                             maxLines = 3
                         )
-                        
+
                         Button(
                             onClick = {
                                 val name = supplierName.trim()
@@ -648,7 +678,7 @@ fun SupplierLedgerScreen(
                                     formError = true
                                     return@Button
                                 }
-                                
+
                                 if (editingSupplier == null) {
                                     viewModel.addSupplier(
                                         name = name,
@@ -683,11 +713,11 @@ fun SupplierLedgerScreen(
                     }
                 }
             }
-            
+
             // ── Record Supplier Payment Dialog ──────────────────────────────────
             if (showAddPaymentDialog && selectedSupplierBalance != null) {
                 val supplier = selectedSupplierBalance!!
-                
+
                 AlertDialog(
                     onDismissRequest = { showAddPaymentDialog = false },
                     title = {
@@ -705,16 +735,22 @@ fun SupplierLedgerScreen(
                                 value = paymentAmount,
                                 onValueChange = { paymentAmount = it },
                                 label = { Text("Amount Paid") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Decimal,
+                                    imeAction = androidx.compose.ui.text.input.ImeAction.Next
+                                ),
+                                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onNext = { focusRequesterNotes.requestFocus() }),
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
-                            
+
                             OutlinedTextField(
                                 value = paymentNotes,
                                 onValueChange = { paymentNotes = it },
                                 label = { Text("Notes (e.g. Bank Ref, Cash, etc.)") },
-                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
+                                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterNotes),
                                 singleLine = true
                             )
                         }

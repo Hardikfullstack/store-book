@@ -26,6 +26,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Home
@@ -166,6 +171,9 @@ fun AppNavigation() {
     var quickExpenseAmount by remember { mutableStateOf("") }
     var quickExpenseDesc by remember { mutableStateOf("") }
 
+    val focusRequesterDesc = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+
     // Quick Expense mini-dialog
     if (showQuickExpense) {
         androidx.compose.material3.AlertDialog(
@@ -178,13 +186,20 @@ fun AppNavigation() {
                         onValueChange = { quickExpenseAmount = it },
                         label = { Text("Amount (₹)") },
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(onNext = { focusRequesterDesc.requestFocus() }),
                     )
                     androidx.compose.material3.OutlinedTextField(
                         value = quickExpenseDesc,
                         onValueChange = { quickExpenseDesc = it },
                         label = { Text("Description") },
                         singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                        modifier = androidx.compose.ui.Modifier.focusRequester(focusRequesterDesc)
                     )
                 }
             },

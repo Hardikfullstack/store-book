@@ -31,9 +31,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
@@ -67,6 +70,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -109,6 +113,7 @@ import androidx.compose.material.icons.filled.Close
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.material3.HorizontalDivider
 
 private const val PAGE_SIZE = 50
 
@@ -133,6 +138,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
     var searchQ by rememberSaveable { mutableStateOf("") }
     var selectedCategory by rememberSaveable { mutableStateOf("All") }
     var sortBy by rememberSaveable { mutableStateOf("Name") }
+    var showFilterSheet by remember { mutableStateOf(false) }
 
     // ── Infinite-scroll page state ────────────────────────────────────────────
     var displayedItems by remember { mutableStateOf<List<Item>>(emptyList()) }
@@ -327,7 +333,9 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
         var refillBatchNumber by remember { mutableStateOf("") }
         var refillExpiryDateMs by remember { mutableStateOf<Long?>(null) }
         var showRefillDatePicker by remember { mutableStateOf(false) }
-        val dateFormatter = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+        val focusRequesterBuyPrice = remember { FocusRequester() }
+        val focusRequesterSupplier = remember { FocusRequester() }
+        val focusManager = LocalFocusManager.current
 
         // Expiry Date Picker for Refill
         if (showRefillDatePicker) {
@@ -388,7 +396,13 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         value = addQtyInput,
                         onValueChange = { addQtyInput = it },
                         label = { Text("Add Quantity") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(onNext = {
+                            if (viewModel.userRole != "staff") focusRequesterBuyPrice.requestFocus() else focusRequesterSupplier.requestFocus()
+                        }),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -424,8 +438,12 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             value = buyPriceInput,
                             onValueChange = { buyPriceInput = it },
                             label = { Text("Buy Price (Per ${refillItem.unit})") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(onNext = { focusRequesterSupplier.requestFocus() }),
+                            modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterBuyPrice),
                             singleLine = true
                         )
                     }
@@ -447,7 +465,9 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                     showSupplierDropdown = true
                                 },
                                 placeholder = { Text("Search or type new supplier...") },
-                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterSupplier),
                                 singleLine = true,
                                 trailingIcon = {
                                     TextButton(onClick = { showSupplierDropdown = !showSupplierDropdown }) {
@@ -641,8 +661,25 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
-                        if (isLoadingItems) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 8.dp)) {
+                            if (isLoadingItems) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(if (selectedCategory != "All" || filterMode != "All") MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f) else Color.Transparent)
+                                    .clickable { showFilterSheet = true }
+                                    .padding(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.FilterList,
+                                    contentDescription = "Filters",
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
                     },
                     singleLine = true,
@@ -652,12 +689,12 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
-                        focusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f),
-                        focusedLeadingIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
-                        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
-                        focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
-                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+                        focusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                        focusedLeadingIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                        focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                         cursorColor = MaterialTheme.colorScheme.onPrimary,
                     ),
                 )
@@ -689,7 +726,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         FilterChip(
                             label = cat,
                             isSelected = selectedCategory == cat,
-                            onClick = { 
+                            onClick = {
                                 selectedCategory = cat
                                 filterMode = "All"
                             },
@@ -707,6 +744,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         )
                     }
                 }
+                Spacer(modifier = Modifier.height(6.dp))
             }
         },
         floatingActionButton = {
@@ -830,8 +868,8 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                             modifier = Modifier
                                                 .fillMaxSize()
                                                 .clip(RoundedCornerShape(20.dp))
-                                                .background(androidx.compose.ui.graphics.Color(0xFF2F9E44)),
-                                            contentAlignment = Alignment.CenterStart,
+                                                .background(MaterialTheme.colorScheme.error),
+                                            contentAlignment = Alignment.CenterEnd,
                                         ) {
                                             Row(
                                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -985,6 +1023,92 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                     textAlign = TextAlign.Center,
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Premium Filter Bottom Sheet ──────────────────────────────────────────
+            if (showFilterSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showFilterSheet = false },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    dragHandle = { BottomSheetDefaults.DragHandle() }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .padding(bottom = 32.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            "Filters & Categories",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Text(
+                            "Quick Filters",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                label = stringResource(id = R.string.inv_filter_all),
+                                isSelected = selectedCategory == "All" && filterMode == "All",
+                                onClick = {
+                                    selectedCategory = "All"
+                                    filterMode = "All"
+                                    showFilterSheet = false
+                                }
+                            )
+                            FilterChip(
+                                label = "⚠️ " + stringResource(id = R.string.inv_filter_low_stock),
+                                isSelected = selectedCategory == "Low Stock",
+                                onClick = {
+                                    selectedCategory = "Low Stock"
+                                    showFilterSheet = false
+                                }
+                            )
+                            FilterChip(
+                                label = "🕒 Expiring ≤30d${if (nearExpiryItems.isNotEmpty()) " (${nearExpiryItems.size})" else ""}",
+                                isSelected = filterMode == "NearExpiry",
+                                onClick = {
+                                    filterMode = if (filterMode == "NearExpiry") "All" else "NearExpiry"
+                                    showFilterSheet = false
+                                }
+                            )
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                        Text(
+                            "All Categories",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            categoriesList.forEach { cat ->
+                                FilterChip(
+                                    label = cat,
+                                    isSelected = selectedCategory == cat,
+                                    onClick = {
+                                        selectedCategory = cat
+                                        filterMode = "All"
+                                        showFilterSheet = false // Auto-close on selection
+                                    }
                                 )
                             }
                         }
@@ -1416,7 +1540,7 @@ fun InventoryItemCard(
         shape = RoundedCornerShape(20.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = if (isLowStock) Color(0xFFe47a77) else MaterialTheme.colorScheme.surface,
+                containerColor = if (isLowStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.surface,
             ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -1463,7 +1587,7 @@ fun InventoryItemCard(
                     text = "${formatQty(item.quantity)} ${item.unit}",
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 16.sp,
-                    color = if (isLowStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                    color = if (isLowStock) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onSurface,
                 )
             }
 
@@ -1475,17 +1599,21 @@ fun InventoryItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                val labelColor = if (isLowStock) MaterialTheme.colorScheme.onError.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
+                val sellValueColor = if (isLowStock) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.primary
+
                 Column {
                     if (userRole != "staff") {
                         Text(
                             text = "Buy Price",
                             fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = labelColor
                         )
                         Text(
                             text = stringResource(id = R.string.inv_buy_prefix, item.buyPrice.toRupee()),
                             fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
+                            color = if (isLowStock) MaterialTheme.colorScheme.onError else Color.Unspecified
                         )
                     }
                 }
@@ -1493,13 +1621,13 @@ fun InventoryItemCard(
                     Text(
                         text = "Sell Price",
                         fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = labelColor
                     )
                     Text(
                         text = stringResource(id = R.string.inv_sell_prefix, item.sellPrice.toRupee()),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = sellValueColor
                     )
                 }
             }
@@ -1523,7 +1651,9 @@ fun InventoryItemCard(
                     }
                 val profitAbs = (item.sellPrice - item.buyPrice)
                 val marginColor =
-                    if (margin >= 15) {
+                    if (isLowStock) {
+                        MaterialTheme.colorScheme.onError
+                    } else if (margin >= 15) {
                         Emerald500
                     } else {
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
@@ -1537,7 +1667,7 @@ fun InventoryItemCard(
                     Text(
                         text = "Profit/ Margin",
                         fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (isLowStock) MaterialTheme.colorScheme.onError.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = "$marginStr / ${profitAbs.toRupee()} Per ${item.unit}",
