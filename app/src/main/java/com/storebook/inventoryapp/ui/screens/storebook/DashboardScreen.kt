@@ -67,10 +67,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-<<<<<<< Updated upstream
-=======
 import androidx.compose.material3.HorizontalDivider
->>>>>>> Stashed changes
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -103,11 +100,13 @@ fun DashboardScreen(
     val allItems by viewModel.allItems.collectAsStateWithLifecycle()
     val lowStockItems by viewModel.lowStockItems.collectAsStateWithLifecycle()
     val salesList by viewModel.salesList.collectAsStateWithLifecycle()
+    val expensesList by viewModel.expensesList.collectAsStateWithLifecycle()
+    val purchasesList by viewModel.purchases.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     // Greeting based on time of day
-    val hourOfDay = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
+    val hourOfDay = remember(System.currentTimeMillis() / (3600 * 1000)) { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
     val greetingStr =
         when {
             hourOfDay < 12 -> stringResource(R.string.dash_greeting_morning)
@@ -138,15 +137,19 @@ fun DashboardScreen(
         remember(todaySales) {
             todaySales.sumOf { it.totalAmount }
         }
+    val todayExpenses =
+        remember(expensesList) {
+            expensesList.filter { saleDateFmt.format(Date(it.timestamp)) == todayDateStr }
+                .sumOf { it.amount }
+        }
     val todayProfit =
-        remember(todaySales) {
-            todaySales.sumOf { sale ->
+        remember(todaySales, todayExpenses) {
+            val grossProfit = todaySales.sumOf { sale ->
                 sale.items.sumOf { (it.sellPrice - it.buyPrice) * it.quantity } - sale.discountAmount
             }
+            grossProfit - todayExpenses
         }
 
-<<<<<<< HEAD
-=======
     // 7-day trend calculations for Net Sales, Purchases, and Expenses
     val last7DaysData = remember(salesList, purchasesList, expensesList) {
         val format = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
@@ -182,9 +185,9 @@ fun DashboardScreen(
     val salesSumFirstHalf = salesTrend.take(3).sum()
     val salesSumSecondHalf = salesTrend.takeLast(3).sum()
     val salesIndicatorColor = when {
-        salesSumSecondHalf > salesSumFirstHalf -> Color(0xFF2E7D32) // Positive Growth (Green)
-        salesSumSecondHalf < salesSumFirstHalf -> Color(0xFFC62828) // Declining (Red)
-        else -> Color(0xFFF57C00) // Stable/Neutral (Yellow)
+        salesSumSecondHalf > salesSumFirstHalf -> MaterialTheme.colorScheme.tertiary // Positive Growth (Green)
+        salesSumSecondHalf < salesSumFirstHalf -> MaterialTheme.colorScheme.error // Declining (Red)
+        else -> MaterialTheme.colorScheme.secondary // Stable/Neutral (Yellow)
     }
     val salesIndicatorLabel = when {
         salesSumSecondHalf > salesSumFirstHalf -> "Strong Sales Growth"
@@ -192,16 +195,16 @@ fun DashboardScreen(
         else -> "Stable Sales Performance"
     }
 
-    val purchasesIndicatorColor = Color(0xFFF57C00) // Stable (Yellow)
+    val purchasesIndicatorColor = MaterialTheme.colorScheme.secondary // Stable (Yellow)
     val purchasesIndicatorLabel = "Stock Inflow: Normal"
 
     val expensesSum = last7DaysData.third.sum()
     val salesSum = last7DaysData.first.sum()
     val ratio = if (salesSum > 0) expensesSum / salesSum else 0.0
     val expensesIndicatorColor = when {
-        ratio > 0.20 -> Color(0xFFC62828) // High Expenses (Red)
-        ratio > 0.05 -> Color(0xFFF57C00) // Moderate Expenses (Yellow)
-        else -> Color(0xFF2E7D32) // Low Expenses (Green)
+        ratio > 0.20 -> MaterialTheme.colorScheme.error // High Expenses (Red)
+        ratio > 0.05 -> MaterialTheme.colorScheme.secondary // Moderate Expenses (Yellow)
+        else -> MaterialTheme.colorScheme.tertiary // Low Expenses (Green)
     }
     val expensesIndicatorLabel = when {
         ratio > 0.20 -> "High Overhead Expenses"
@@ -209,32 +212,33 @@ fun DashboardScreen(
         else -> "Optimal Low Expenses"
     }
 
->>>>>>> 5679363 (all textfield keybord next click set, inventory filter change and ui dark mode)
+
+
     // Pull to refresh state
     var isRefreshing by remember { mutableStateOf(false) }
 
     // Undo last sale countdown
     var undoSecondsLeft by remember { mutableStateOf(0) }
+    var undoJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var quickRefillItem by remember { mutableStateOf<Item?>(null) }
     var fabExpanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-<<<<<<< HEAD
-    LaunchedEffect(viewModel.lastSaleId, viewModel.lastSaleTime) {
-        if (viewModel.lastSaleId != null) {
-            val elapsed = (System.currentTimeMillis() - viewModel.lastSaleTime) / 1000
-=======
 
     val currentLastSaleId = viewModel.lastSaleId
     val currentLastSaleTime = viewModel.lastSaleTime
     LaunchedEffect(currentLastSaleId, currentLastSaleTime) {
         if (currentLastSaleId != null) {
             val elapsed = (System.currentTimeMillis() - currentLastSaleTime) / 1000
->>>>>>> 5679363 (all textfield keybord next click set, inventory filter change and ui dark mode)
             undoSecondsLeft = (30 - elapsed).toInt().coerceAtLeast(0)
             while (undoSecondsLeft > 0) {
-                delay(1000)
+                kotlinx.coroutines.delay(1000)
                 undoSecondsLeft--
             }
+            if (undoSecondsLeft == 0) {
+                viewModel.clearLastSaleId()
+            }
+        } else {
+            undoSecondsLeft = 0
         }
     }
 
@@ -344,7 +348,7 @@ fun DashboardScreen(
                         Text(
                             text = greeting,
                             fontSize = 12.sp,
-                            color = if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
                             fontWeight = FontWeight.Medium,
                             letterSpacing = 0.2.sp,
                         )
@@ -356,15 +360,14 @@ fun DashboardScreen(
                                     MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 24.sp,
-                                        fontFamily = Inter,
                                     ),
-                                color = if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
+                                color = MaterialTheme.colorScheme.onPrimary,
                             )
                         }
                         Text(
                             text = stringResource(id = R.string.dash_subtitle),
                             fontSize = 11.sp,
-                            color = if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
                             fontWeight = FontWeight.Medium,
                         )
                     }
@@ -382,7 +385,7 @@ fun DashboardScreen(
                                         if (viewModel.isPremiumUser) {
                                             Gold400
                                         } else {
-                                            (if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary).copy(alpha = 0.15f)
+                                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
                                         },
                                     ).clickable { navController.navigate(Routes.PremiumPlans) }
                                     .padding(horizontal = 14.dp, vertical = 7.dp),
@@ -391,15 +394,7 @@ fun DashboardScreen(
                                 text = if (viewModel.isPremiumUser) "★ PRO" else "FREE",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Black,
-<<<<<<< Updated upstream
-<<<<<<< HEAD
-                                color = if (viewModel.isPremiumUser) Gold400 else if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
-=======
                                 color = if (viewModel.isPremiumUser) Color(0xFF452E00) else MaterialTheme.colorScheme.onPrimary,
->>>>>>> 5679363 (all textfield keybord next click set, inventory filter change and ui dark mode)
-=======
-                                color = if (viewModel.isPremiumUser) Color(0xFF452E00) else MaterialTheme.colorScheme.onPrimary,
->>>>>>> Stashed changes
                             )
                         }
 
@@ -414,11 +409,14 @@ fun DashboardScreen(
                             remember(currentUser) {
                                 val phone = currentUser?.phoneNumber
                                 if (phone != null && phone.length > 3) {
-                                    phone
-                                        .replace("+91", "")
-                                        .trim()
-                                        .take(1)
-                                        .uppercase()
+                                    val digits = phone.filter { it.isDigit() }
+                                    if (digits.isNotEmpty()) {
+                                        // Skip the country code if possible by taking last 10, then first
+                                        val mainNumber = if (digits.length >= 10) digits.takeLast(10) else digits
+                                        mainNumber.take(1).uppercase()
+                                    } else {
+                                        "S"
+                                    }
                                 } else {
                                     "S"
                                 }
@@ -429,7 +427,7 @@ fun DashboardScreen(
                                 Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background((if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary).copy(alpha = 0.15f))
+                                    .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f))
                                     .clickable {
                                         if (currentUser == null) {
                                             navController.navigate(Routes.Auth)
@@ -446,140 +444,12 @@ fun DashboardScreen(
                         ) {
                             Text(
                                 text = avatarLetter,
-                                color = if (isAppDarkMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                             )
                         }
                     }
-                }
-            }
-        },
-        floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End) {
-                AnimatedVisibility(
-                    visible = fabExpanded,
-                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Bottom),
-                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Bottom),
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.padding(bottom = 16.dp),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                                shadowElevation = 4.dp,
-                            ) {
-                                Text(
-                                    text = "Add Product",
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            FloatingActionButton(
-                                onClick = {
-                                    navController.navigate(Routes.Inventory) {
-                                        popUpTo<Routes.Dashboard> { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                    fabExpanded = false
-                                },
-                                modifier = Modifier.size(48.dp),
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = MaterialTheme.colorScheme.primary,
-                                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp),
-                            ) { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(24.dp)) }
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                                shadowElevation = 4.dp,
-                            ) {
-                                Text(
-                                    text = "Record Sale",
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            FloatingActionButton(
-                                onClick = {
-                                    navController.navigate(Routes.Sales) {
-                                        popUpTo<Routes.Dashboard> { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                    fabExpanded = false
-                                },
-                                modifier = Modifier.size(48.dp),
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = MaterialTheme.colorScheme.primary,
-                                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp),
-                            ) {
-                                Icon(
-                                    Icons.Default.ShoppingCart,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                )
-                            }
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                                shadowElevation = 4.dp,
-                            ) {
-                                Text(
-                                    text = "Give Udhaar",
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            FloatingActionButton(
-                                onClick = {
-                                    navController.navigate(Routes.Udhaar) {
-                                        popUpTo<Routes.Dashboard> { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                    fabExpanded = false
-                                },
-                                modifier = Modifier.size(48.dp),
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = MaterialTheme.colorScheme.primary,
-                                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp),
-                            ) {
-                                Icon(
-                                    Icons.Default.AccountCircle,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-                FloatingActionButton(
-                    onClick = { fabExpanded = !fabExpanded },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ) {
-                    Icon(
-                        if (fabExpanded) Icons.Default.Close else Icons.Default.Add,
-                        contentDescription = "Quick Actions",
-                    )
                 }
             }
         },
@@ -633,6 +503,42 @@ fun DashboardScreen(
                                 ),
                             shape = CircleShape,
                         )
+                    }
+                }
+
+                // Command Center - Quick Action Chips
+                item {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp),
+                    ) {
+                        item {
+                            FilterChip(
+                                selected = false,
+                                onClick = { navController.navigate(Routes.Sales) },
+                                label = { Text("New Sale", fontWeight = FontWeight.Bold) },
+                                leadingIcon = { Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                shape = RoundedCornerShape(16.dp),
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = false,
+                                onClick = { navController.navigate(Routes.Udhaar) },
+                                label = { Text("Give Udhaar", fontWeight = FontWeight.Bold) },
+                                leadingIcon = { Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                shape = RoundedCornerShape(16.dp),
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = false,
+                                onClick = { navController.navigate(Routes.Inventory) },
+                                label = { Text("Add Stock", fontWeight = FontWeight.Bold) },
+                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                shape = RoundedCornerShape(16.dp),
+                            )
+                        }
                     }
                 }
 
@@ -801,26 +707,31 @@ fun DashboardScreen(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            if (viewModel.userRole != "staff") {
-                                Row(
+                            if (viewModel.userRoleType.hasPermission(com.storebook.inventoryapp.ui.viewmodels.AppPermission.VIEW_FINANCIALS)) {
+                                SparklineMetricCard(
+                                    title = "Net Sales (Last 7 Days)",
+                                    totalValue = last7DaysData.first.sum().toRupee(),
+                                    trendData = last7DaysData.first,
+                                    indicatorColor = salesIndicatorColor,
+                                    indicatorLabel = salesIndicatorLabel,
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                ) {
-                                    AnimatedMetricCard(
-                                        title = stringResource(id = R.string.dash_today_revenue),
-                                        value = todayRevenue.toRupee(),
-                                        gradient = Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)),
-                                        emoji = "💰",
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    AnimatedMetricCard(
-                                        title = stringResource(id = R.string.dash_today_profit),
-                                        value = todayProfit.toRupee(),
-                                        gradient = Brush.linearGradient(listOf(Color(0xFF059669), Emerald500)),
-                                        emoji = "📈",
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                }
+                                )
+                                SparklineMetricCard(
+                                    title = "Purchases (Last 7 Days)",
+                                    totalValue = last7DaysData.second.sum().toRupee(),
+                                    trendData = last7DaysData.second,
+                                    indicatorColor = purchasesIndicatorColor,
+                                    indicatorLabel = purchasesIndicatorLabel,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                SparklineMetricCard(
+                                    title = "Expenses (Last 7 Days)",
+                                    totalValue = last7DaysData.third.sum().toRupee(),
+                                    trendData = last7DaysData.third,
+                                    indicatorColor = expensesIndicatorColor,
+                                    indicatorLabel = expensesIndicatorLabel,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -999,8 +910,6 @@ fun DashboardScreen(
 }
 
 @Composable
-<<<<<<< HEAD
-=======
 fun SparklineMetricCard(
     title: String,
     totalValue: String,
@@ -1122,7 +1031,6 @@ fun SparklineMetricCard(
 }
 
 @Composable
->>>>>>> 5679363 (all textfield keybord next click set, inventory filter change and ui dark mode)
 fun AnimatedMetricCard(
     title: String,
     value: String,
@@ -1130,29 +1038,6 @@ fun AnimatedMetricCard(
     iconContent: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-<<<<<<< Updated upstream
-    val isDark = isSystemInDarkTheme()
-    val iconBgColor =
-        remember(emoji, isDark) {
-            when (emoji) {
-                "💰" -> if (isDark) Color(0xFF312E81) else Color(0xFFEEF2FF)
-                "📈" -> if (isDark) Color(0xFF064E3B) else Color(0xFFD1FAE5)
-                "🛒" -> if (isDark) Color(0xFF78350F) else Color(0xFFFEF3C7)
-                else -> if (isDark) Color(0xFF7F1D1D) else Color(0xFFFEE2E2)
-            }
-        }
-    val iconColor =
-        remember(emoji, isDark) {
-            when (emoji) {
-                "💰" -> if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5)
-                "📈" -> if (isDark) Color(0xFF34D399) else Color(0xFF059669)
-                "🛒" -> if (isDark) Color(0xFFFBBF24) else Color(0xFFD97706)
-                else -> if (isDark) Color(0xFFF87171) else Color(0xFFDC2626)
-            }
-        }
-
-=======
->>>>>>> Stashed changes
     Card(
         modifier =
             modifier
