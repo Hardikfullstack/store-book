@@ -251,7 +251,8 @@ fun AppNavigation() {
             title = { Text("Quick Cash Sale", style = MaterialTheme.typography.titleMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box {
+                    androidx.compose.foundation.layout.BoxWithConstraints {
+                        val boxWidth = maxWidth
                         androidx.compose.material3.OutlinedTextField(
                             value = quickSaleCustomer,
                             onValueChange = {
@@ -263,6 +264,7 @@ fun AppNavigation() {
                             singleLine = true,
                         )
                         com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
+                            modifier = Modifier.width(boxWidth),
                             expanded = quickSaleCustomerExpanded,
                             onDismissRequest = { quickSaleCustomerExpanded = false },
                             suggestions = customerSuggestions,
@@ -322,7 +324,8 @@ fun AppNavigation() {
             title = { Text("Quick Add Item", style = MaterialTheme.typography.titleMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box {
+                    androidx.compose.foundation.layout.BoxWithConstraints {
+                        val boxWidth = maxWidth
                         androidx.compose.material3.OutlinedTextField(
                             value = quickRestockName,
                             onValueChange = {
@@ -335,6 +338,7 @@ fun AppNavigation() {
                         )
                         val filteredItems = allItems.filter { it.name.contains(quickRestockName, ignoreCase = true) }.take(5)
                         com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
+                            modifier = Modifier.width(boxWidth),
                             expanded = quickRestockNameExpanded,
                             onDismissRequest = { quickRestockNameExpanded = false },
                             suggestions = filteredItems,
@@ -409,7 +413,8 @@ fun AppNavigation() {
             title = { Text("Log Party Balance", style = MaterialTheme.typography.titleMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box {
+                    androidx.compose.foundation.layout.BoxWithConstraints {
+                        val boxWidth = maxWidth
                         androidx.compose.material3.OutlinedTextField(
                             value = quickPartyName,
                             onValueChange = {
@@ -421,6 +426,7 @@ fun AppNavigation() {
                             singleLine = true,
                         )
                         com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
+                            modifier = Modifier.width(boxWidth),
                             expanded = quickPartyNameExpanded,
                             onDismissRequest = { quickPartyNameExpanded = false },
                             suggestions = customerSuggestions,

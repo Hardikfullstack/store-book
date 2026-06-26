@@ -23,14 +23,14 @@ fun <T> StoreBookAutocompleteDropdown(
     onSuggestionSelected: (T) -> Unit,
     avatarColor: Color,
     avatarTextColor: Color,
+    modifier: Modifier = Modifier,
     additionalContent: @Composable ((T) -> Unit)? = null
 ) {
     DropdownMenu(
         expanded = expanded && suggestions.isNotEmpty(),
         onDismissRequest = onDismissRequest,
         properties = PopupProperties(focusable = false),
-        modifier = Modifier
-            .fillMaxWidth(0.85f)
+        modifier = modifier
             .background(MaterialTheme.colorScheme.surface)
     ) {
         suggestions.take(5).forEach { item ->
@@ -39,6 +39,7 @@ fun <T> StoreBookAutocompleteDropdown(
             DropdownMenuItem(
                 text = {
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
@@ -56,12 +57,14 @@ fun <T> StoreBookAutocompleteDropdown(
                             )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = text,
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 2,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                             additionalContent?.invoke(item)
                         }

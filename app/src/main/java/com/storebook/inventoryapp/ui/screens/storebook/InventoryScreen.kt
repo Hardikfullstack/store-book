@@ -142,6 +142,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
     var searchQ by rememberSaveable { mutableStateOf("") }
     var selectedCategory by rememberSaveable { mutableStateOf("All") }
     var sortBy by rememberSaveable { mutableStateOf("Name") }
+    var sortDescending by rememberSaveable { mutableStateOf(false) }
     var showFilterSheet by remember { mutableStateOf(false) }
 
     // ── Infinite-scroll page state ────────────────────────────────────────────
@@ -200,18 +201,19 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
 
     // ── Initial load ──────────────────────────────────────────────────────────
     LaunchedEffect(Unit) {
-        viewModel.loadFilteredItems(searchQ, selectedCategory, sortBy)
+        viewModel.loadFilteredItems(searchQ, selectedCategory, sortBy + if (sortDescending) "_DESC" else "_ASC")
     }
 
 
     // ── Debounce search + category/sort changes → trigger DB query ────────────
-    LaunchedEffect(searchQ, selectedCategory, sortBy) {
-        snapshotFlow { Triple(searchQ, selectedCategory, sortBy) }
+    LaunchedEffect(searchQ, selectedCategory, sortBy, sortDescending) {
+        snapshotFlow { "$searchQ|$selectedCategory|$sortBy|$sortDescending" }
             .debounce(300L)
             .distinctUntilChanged()
-            .collect { (q, cat, sort) ->
+            .collect { _ ->
                 hasMoreItems = true
-                viewModel.loadFilteredItems(q, cat, sort)
+                val actualSortBy = sortBy + if (sortDescending) "_DESC" else "_ASC"
+                viewModel.loadFilteredItems(searchQ, selectedCategory, actualSortBy)
             }
     }
 
@@ -240,7 +242,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
             viewModel.loadMoreItems(
                 search = searchQ,
                 category = selectedCategory,
-                sortBy = sortBy,
+                sortBy = sortBy + if (sortDescending) "_DESC" else "_ASC",
                 currentSize = displayedItems.size,
                 pageSize = PAGE_SIZE,
             ) { more ->
@@ -624,34 +626,50 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                     }
 
                     // Sort toggle chip
-                    Box(
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(MaterialTheme.colorScheme.onPrimary)
-                                .clickable {
-                                    sortBy =
-                                        when (sortBy) {
-                                            "Name" -> "Qty"
-                                            "Qty" -> "Price"
-                                            else -> "Name"
-                                        }
-                                }.padding(horizontal = 12.dp, vertical = 6.dp),
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.onPrimary),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text =
-                                stringResource(
+                        Box(
+                            modifier = Modifier
+                                .clickable {
+                                    sortBy = when (sortBy) {
+                                        "Name" -> "Qty"
+                                        "Qty" -> "Price"
+                                        else -> "Name"
+                                    }
+                                }
+                                .padding(start = 12.dp, top = 6.dp, bottom = 6.dp, end = 6.dp)
+                        ) {
+                            Text(
+                                text = stringResource(
                                     id = R.string.inv_sort_dynamic,
                                     when (sortBy) {
                                         "Qty" -> "Stock"
                                         "Price" -> "Price"
                                         else -> "Name"
-                                    },
+                                    }
                                 ),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        
+                        Box(
+                            modifier = Modifier
+                                .clickable { sortDescending = !sortDescending }
+                                .padding(start = 6.dp, top = 6.dp, bottom = 6.dp, end = 12.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (sortDescending) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                                contentDescription = "Sort Order",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
 
@@ -1064,6 +1082,54 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                     showFilterSheet = false
                                 }
                             )
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                        Text(
+                            "Sort By",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            FilterChip(
+                                label = "Name",
+                                isSelected = sortBy == "Name",
+                                onClick = { sortBy = "Name" }
+                            )
+                            FilterChip(
+                                label = "Stock",
+                                isSelected = sortBy == "Qty",
+                                onClick = { sortBy = "Qty" }
+                            )
+                            FilterChip(
+                                label = "Price",
+                                isSelected = sortBy == "Price",
+                                onClick = { sortBy = "Price" }
+                            )
+                            
+                            Spacer(modifier = Modifier.weight(1f))
+                            
+                            // Asc/Desc toggle
+                            IconButton(
+                                onClick = { sortDescending = !sortDescending },
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .size(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (sortDescending) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                                    contentDescription = if (sortDescending) "Descending" else "Ascending",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
 
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))

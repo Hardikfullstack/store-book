@@ -615,7 +615,8 @@ fun SalesScreen(
                 }
 
                 // ── Customer Name with Autocomplete ────────────────────
-                Box(modifier = Modifier.fillMaxWidth()) {
+                androidx.compose.foundation.layout.BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val boxWidth = maxWidth
                     OutlinedTextField(
                         value = viewModel.cartCustomerName,
                         onValueChange = { name ->
@@ -685,6 +686,7 @@ fun SalesScreen(
 
                     // ── Autocomplete dropdown ──
                     com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
+                        modifier = Modifier.width(boxWidth),
                         expanded = showCustomerSuggestions,
                         onDismissRequest = { showCustomerSuggestions = false },
                         suggestions = customerSuggestions,

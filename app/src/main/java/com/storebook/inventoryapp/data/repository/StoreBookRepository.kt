@@ -688,6 +688,12 @@ class StoreBookRepository(
                 }
 
                 val orderClause = when (sortBy?.lowercase()) {
+                    "name_asc" -> "LOWER(${StoreBookDbHelper.KEY_ITEM_NAME}) ASC"
+                    "name_desc" -> "LOWER(${StoreBookDbHelper.KEY_ITEM_NAME}) DESC"
+                    "price_asc" -> "${StoreBookDbHelper.KEY_ITEM_SELL_PRICE} ASC"
+                    "price_desc" -> "${StoreBookDbHelper.KEY_ITEM_SELL_PRICE} DESC"
+                    "qty_asc" -> "${StoreBookDbHelper.KEY_ITEM_QTY} ASC"
+                    "qty_desc" -> "${StoreBookDbHelper.KEY_ITEM_QTY} DESC"
                     "name" -> "LOWER(${StoreBookDbHelper.KEY_ITEM_NAME}) ASC"
                     "price" -> "${StoreBookDbHelper.KEY_ITEM_SELL_PRICE} DESC"
                     "qty" -> "${StoreBookDbHelper.KEY_ITEM_QTY} ASC"
