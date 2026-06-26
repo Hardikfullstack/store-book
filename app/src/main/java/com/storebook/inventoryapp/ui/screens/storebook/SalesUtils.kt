@@ -1,4 +1,11 @@
 package com.storebook.inventoryapp.ui.screens.storebook
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Balance
+import androidx.compose.material.icons.outlined.WaterDrop
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.material.icons.outlined.Numbers
+import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
  * Returns the +/- step size for a given unit of measurement.
@@ -38,12 +45,12 @@ fun formatQty(qty: Double): String {
 /**
  * Emoji label for each unit type — shown as item avatar in the sales list.
  */
-fun unitEmoji(unit: String): String =
+fun unitIcon(unit: String): ImageVector =
     when (unit.lowercase().trim()) {
-        "kg", "kgs", "kilogram", "kilograms", "g", "gram", "grams" -> "⚖️"
-        "litre", "liter", "l", "litres", "liters", "ml", "milliliter", "millilitre" -> "🧴"
-        "dozen" -> "📦"
-        "box" -> "📦"
-        "packet", "pack" -> "🛍️"
-        else -> "🔢"
+        "kg", "kgs", "kilogram", "kilograms", "g", "gram", "grams" -> Icons.Outlined.Balance
+        "litre", "liter", "l", "litres", "liters", "ml", "milliliter", "millilitre" -> Icons.Outlined.WaterDrop
+        "dozen" -> Icons.Outlined.Inventory2
+        "box" -> Icons.Outlined.Inventory2
+        "packet", "pack" -> Icons.Outlined.ShoppingBag
+        else -> Icons.Outlined.Numbers
     }

@@ -250,7 +250,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     text = "${totalOutstanding.toRupee()}",
                                     fontSize = 26.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.error,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     fontFamily = Poppins,
                                 )
                             }

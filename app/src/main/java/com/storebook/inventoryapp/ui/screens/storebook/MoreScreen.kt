@@ -43,6 +43,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
@@ -79,6 +81,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -321,8 +324,7 @@ fun MoreScreen(
                                                                 vertical = 10.dp
                                                         )
                                                         .clickable {
-                                                                activeModal = "PREMIUM"
-                                                                showSheet = true
+                                                                navController.navigate(Routes.PremiumPlans)
                                                         },
                                         colors =
                                                 CardDefaults.cardColors(
@@ -406,7 +408,7 @@ fun MoreScreen(
                                                                 ),
                                                         trailing =
                                                                 when (currentLang) {
-                                                                        "hi" -> "🇮हिंदी"
+                                                                        "hi" -> "हिंदी"
                                                                         "gu" -> "ગુજ"
                                                                         else -> "English"
                                                                 },
@@ -430,8 +432,7 @@ fun MoreScreen(
                                                             if (viewModel.isPremiumUser || viewModel.userRoleType.hasPermission(com.storebook.inventoryapp.ui.viewmodels.AppPermission.MANAGE_PREMIUM) || viewModel.userRole == "staff") {
                                                                 showThemeExpanded = !showThemeExpanded
                                                             } else {
-                                                                activeModal = "PREMIUM"
-                                                                showSheet = true
+                                                                navController.navigate(Routes.PremiumPlans)
                                                             }
                                                         },
                                                 )
@@ -788,8 +789,7 @@ fun MoreScreen(
                             Button(
                                 onClick = {
                                     showUpgradeDialog = false
-                                    activeModal = "PREMIUM"
-                                    showSheet = true
+                                    navController.navigate(Routes.PremiumPlans)
                                 },
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -828,6 +828,7 @@ fun MoreScreen(
                                     currentUser = null
                                     val prefs = context.getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE)
                                     prefs.edit().remove("current_store_id").remove("is_premium").apply()
+                                    viewModel.refreshUserState()
                                     navController.navigate(Routes.Auth) {
                                         popUpTo(0) { inclusive = true }
                                     }
@@ -1941,26 +1942,20 @@ fun ReportsSheetContent(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                         ) {
-                                Text(
-                                        text =
-                                                if (netProfit >= 0) {
-                                                        "🎉 " +
-                                                        stringResource(
-                                                                id =
-                                                                        R.string
-                                                                                .rep_net_profit_label
-                                                                )
-                                                } else {
-                                                        "⚠️ " +
-                                                        stringResource(
-                                                                id =
-                                                                        R.string
-                                                                                .rep_net_loss_label
-                                                                )
-                                                },
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp,
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                                imageVector = if (netProfit >= 0) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown,
+                                                contentDescription = null,
+                                                tint = if (netProfit >= 0) Emerald500 else Coral500,
+                                                modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                                text = if (netProfit >= 0) stringResource(id = R.string.rep_net_profit_label) else stringResource(id = R.string.rep_net_loss_label),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 15.sp,
+                                        )
+                                }
                                 Text(
                                         text = "${netProfit.toRupee()}",
                                         fontWeight = FontWeight.Black,

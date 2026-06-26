@@ -39,6 +39,10 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.IconButton
@@ -265,7 +269,7 @@ fun SalesScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(unitEmoji(item.unit), fontSize = 26.sp)
+                        Icon(unitIcon(item.unit), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(26.dp))
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(item.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
@@ -565,23 +569,29 @@ fun SalesScreen(
                                             customerNameError = false
                                         }.padding(horizontal = 14.dp, vertical = 8.dp),
                             ) {
-                                Text(
-                                    text =
-                                        when (mode) {
-                                            "Udhaar" -> "📒 Udhaar"
-                                            "Cash" -> "💵 Cash"
-                                            "UPI" -> "📱 UPI"
-                                            else -> mode
-                                        },
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color =
-                                        when {
-                                            isSelected && isUdhaar -> MaterialTheme.colorScheme.onError
-                                            isSelected -> MaterialTheme.colorScheme.onPrimary
-                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                        },
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    val icon = when(mode) {
+                                        "Udhaar" -> androidx.compose.material.icons.Icons.Outlined.MenuBook
+                                        "Cash" -> androidx.compose.material.icons.Icons.Outlined.Payments
+                                        "UPI" -> androidx.compose.material.icons.Icons.Outlined.QrCodeScanner
+                                        else -> null
+                                    }
+                                    val textColor = when {
+                                        isSelected && isUdhaar -> MaterialTheme.colorScheme.onError
+                                        isSelected -> MaterialTheme.colorScheme.onPrimary
+                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                    if (icon != null) {
+                                        Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = textColor)
+                                        Spacer(Modifier.width(4.dp))
+                                    }
+                                    Text(
+                                        text = mode,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = textColor,
+                                    )
+                                }
                             }
                         }
                     }
@@ -801,16 +811,25 @@ fun SalesScreen(
                                 },
                         ),
                 ) {
-                    Text(
-                        text =
-                            when (viewModel.cartPaymentMode) {
-                                "Udhaar" -> "📒 Record as Udhaar"
-                                "UPI" -> "📱 Confirm UPI Sale"
-                                else -> stringResource(id = R.string.sales_checkout)
-                            },
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val icon = when (viewModel.cartPaymentMode) {
+                            "Udhaar" -> androidx.compose.material.icons.Icons.Outlined.MenuBook
+                            "UPI" -> androidx.compose.material.icons.Icons.Outlined.QrCodeScanner
+                            else -> androidx.compose.material.icons.Icons.Outlined.Payments
+                        }
+                        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text =
+                                when (viewModel.cartPaymentMode) {
+                                    "Udhaar" -> "Record as Udhaar"
+                                    "UPI" -> "Confirm UPI Sale"
+                                    else -> stringResource(id = R.string.sales_checkout)
+                                },
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -832,11 +851,15 @@ fun SalesScreen(
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(16.dp),
                     ) {
-                        Text(
-                            text = "📄 Save as Estimate",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(androidx.compose.material.icons.Icons.Outlined.Description, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "Save as Estimate",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                            )
+                        }
                     }
                 }
             }
@@ -1108,7 +1131,7 @@ fun SalesScreen(
                                             contentAlignment = Alignment.Center,
                                         ) {
                                             if (!isPcs) {
-                                                Text(unitEmoji(item.unit), fontSize = 20.sp)
+                                                Icon(unitIcon(item.unit), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                                             } else {
                                                 Text(
                                                     text = item.name.take(2).uppercase(),
@@ -1432,18 +1455,26 @@ fun SalesScreen(
                                         }
                                         .padding(horizontal = 16.dp, vertical = 10.dp)
                                 ) {
-                                    Text(
-                                        text = when (mode) {
-                                            "Udhaar" -> "📒 Udhaar"
-                                            "Cash" -> "💵 Cash"
-                                            "UPI" -> "📱 UPI"
-                                            "Estimate" -> "📄 Estimate"
-                                            else -> mode
-                                        },
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        val icon = when(mode) {
+                                            "Udhaar" -> androidx.compose.material.icons.Icons.Outlined.MenuBook
+                                            "Cash" -> androidx.compose.material.icons.Icons.Outlined.Payments
+                                            "UPI" -> androidx.compose.material.icons.Icons.Outlined.QrCodeScanner
+                                            "Estimate" -> androidx.compose.material.icons.Icons.Outlined.Description
+                                            else -> null
+                                        }
+                                        val textColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        if (icon != null) {
+                                            Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = textColor)
+                                            Spacer(Modifier.width(4.dp))
+                                        }
+                                        Text(
+                                            text = mode,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = textColor
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1567,7 +1598,7 @@ fun SalesSuccessScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = if (isEstimate) "Estimate Saved! 📄" else if (isUdhaar) "Udhaar दर्ज हुई! 📒" else stringResource(id = R.string.sales_success_title),
+            text = if (isEstimate) "Estimate Saved!" else if (isUdhaar) "Udhaar दर्ज हुई!" else stringResource(id = R.string.sales_success_title),
             style =
                 MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
@@ -1610,10 +1641,10 @@ fun SalesSuccessScreen(
             Text(
                 text =
                     when {
-                        isEstimate || paymentMode == "Estimate" -> "📄 Estimation Stored"
-                        paymentMode == "Udhaar" -> "📒 Recorded in Udhaar Ledger"
-                        paymentMode == "UPI" -> "📱 UPI Payment"
-                        else -> "💵 Cash Payment"
+                        isEstimate || paymentMode == "Estimate" -> "Estimation Stored"
+                        paymentMode == "Udhaar" -> "Recorded in Udhaar Ledger"
+                        paymentMode == "UPI" -> "UPI Payment"
+                        else -> "Cash Payment"
                     },
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,

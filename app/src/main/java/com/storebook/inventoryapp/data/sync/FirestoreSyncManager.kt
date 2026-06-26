@@ -22,7 +22,7 @@ class FirestoreSyncManager(
     private var syncJob = kotlinx.coroutines.SupervisorJob()
     private var syncScope = kotlinx.coroutines.CoroutineScope(Dispatchers.IO + syncJob)
 
-    suspend fun syncAllData() =
+    suspend fun syncAllData(onProgress: (Int, String) -> Unit = { _, _ -> }) =
         withContext(Dispatchers.IO) {
             val user = auth.currentUser
             if (user == null) {
@@ -33,10 +33,10 @@ class FirestoreSyncManager(
 
             try {
                 // PHASE 1: Provisioning & Store Mapping
-                // PHASE 1: Provisioning & Store Mapping
+                onProgress(5, "Authenticating user...")
                 val oldActiveStoreId = prefs.getString("active_store_id", "default")
                 var storeId = prefs.getString("current_store_id", null) ?: oldActiveStoreId
-                
+
                 if (storeId == "default" || storeId == null) {
                     // Check if user exists in cloud and has a store
                     val userDoc = firestore.collection("users").document(userId).get().await()
@@ -45,7 +45,7 @@ class FirestoreSyncManager(
                     } else {
                         // Provision a new SaaS store for the mobile user
                         storeId = UUID.randomUUID().toString()
-                        
+
                         // Create Store
                         val newStoreData = hashMapOf(
                             "name" to "My Mobile Store",
@@ -53,7 +53,7 @@ class FirestoreSyncManager(
                             "created_at" to System.currentTimeMillis()
                         )
                         firestore.collection("stores").document(storeId!!).set(newStoreData).await()
-                        
+
                         // Link User to Store
                         val newUserData = hashMapOf(
                             "phone" to (user.phoneNumber ?: ""),
@@ -63,7 +63,7 @@ class FirestoreSyncManager(
                         )
                         firestore.collection("users").document(userId).set(newUserData, SetOptions.merge()).await()
                     }
-                    
+
                     if (storeId != null && storeId != "default" && oldActiveStoreId == "default") {
                         val appContext = context.applicationContext
                         val oldDbFile = appContext.getDatabasePath("storebook_default.db")
@@ -76,7 +76,7 @@ class FirestoreSyncManager(
                             if (oldShm.exists()) oldShm.renameTo(java.io.File(newDbFile.path + "-shm"))
                         }
                     }
-                    
+
                     prefs.edit().putString("current_store_id", storeId).putString("active_store_id", storeId).apply()
                     val stores = prefs.getStringSet("user_stores", setOf("default"))?.toMutableSet() ?: mutableSetOf()
                     stores.remove("default")
@@ -87,11 +87,11 @@ class FirestoreSyncManager(
                 if (storeId == null) {
                     throw Exception("Failed to provision or retrieve storeId")
                 }
-                
+
                 val activeDbHelper = StoreBookDbHelper(context.applicationContext, storeId)
 
                 // Sync Items Table
-                // Sync Items Table
+                onProgress(15, "Syncing Inventory Items...")
                 syncTable(
                     activeDbHelper,
                     storeId,
@@ -110,6 +110,7 @@ class FirestoreSyncManager(
                     ),
                 )
 
+                onProgress(30, "Syncing Sales Records...")
                 // Sync Sales Table
                 syncTable(
                     activeDbHelper,
@@ -129,6 +130,7 @@ class FirestoreSyncManager(
                     ),
                 )
 
+                onProgress(45, "Syncing Sale Details...")
                 // Sync Sale Items Table
                 syncTable(
                     activeDbHelper,
@@ -145,6 +147,7 @@ class FirestoreSyncManager(
                     ),
                 )
 
+                onProgress(60, "Syncing Udhaar/Credit...")
                 // Sync Udhaar Table
                 syncTable(
                     activeDbHelper,
@@ -159,6 +162,7 @@ class FirestoreSyncManager(
                     ),
                 )
 
+                onProgress(70, "Syncing Expenses...")
                 // Sync Expenses Table
                 syncTable(
                     activeDbHelper,
@@ -174,6 +178,7 @@ class FirestoreSyncManager(
                     ),
                 )
 
+                onProgress(80, "Syncing Suppliers...")
                 // Sync Suppliers Table
                 syncTable(
                     activeDbHelper,
@@ -187,6 +192,7 @@ class FirestoreSyncManager(
                     ),
                 )
 
+                onProgress(90, "Syncing Purchases...")
                 // Sync Purchases Table
                 syncTable(
                     activeDbHelper,
@@ -203,6 +209,7 @@ class FirestoreSyncManager(
                     ),
                 )
 
+                onProgress(95, "Syncing Purchase Details...")
                 // Sync Purchase Items Table
                 syncTable(
                     activeDbHelper,
@@ -218,6 +225,7 @@ class FirestoreSyncManager(
                     ),
                 )
 
+                onProgress(100, "Sync Complete!")
                 Log.i("SyncManager", "Sync complete for store $storeId")
             } catch (e: Exception) {
                 Log.e("SyncManager", "Sync failed: ${e.message}", e)

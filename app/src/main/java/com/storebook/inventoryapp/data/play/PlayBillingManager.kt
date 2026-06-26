@@ -121,33 +121,65 @@ class PlayBillingManager(
             return
         }
 
-        val params =
-            QueryProductDetailsParams
-                .newBuilder()
-                .setProductList(
-                    Products.ALL_PRODUCTS.map { productId ->
-                        val isSubscription = productId.contains("monthly") || productId.contains("yearly")
-                        QueryProductDetailsParams.Product
-                            .newBuilder()
-                            .setProductId(productId)
-                            .setProductType(
-                                if (isSubscription) {
-                                    BillingClient.ProductType.SUBS
-                                } else {
-                                    BillingClient.ProductType.INAPP
-                                },
-                            ).build()
-                    },
-                ).build()
+        val inAppProducts = Products.ALL_PRODUCTS.filter { !it.contains("monthly") && !it.contains("yearly") }
+        val subsProducts = Products.ALL_PRODUCTS.filter { it.contains("monthly") || it.contains("yearly") }
 
-        billingClient.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK &&
-                productDetailsList?.isNotEmpty() == true
-            ) {
-                onSuccess(productDetailsList)
-            } else {
-                onFailed(billingResult.debugMessage ?: "No products found")
+        val combinedList = mutableListOf<ProductDetails>()
+        var queriesCompleted = 0
+        var hasError = false
+        var lastErrorMsg = ""
+
+        fun checkCompletion() {
+            queriesCompleted++
+            if (queriesCompleted == 2) {
+                if (combinedList.isNotEmpty()) {
+                    onSuccess(combinedList)
+                } else {
+                    onFailed(if (hasError) lastErrorMsg else "No products found")
+                }
             }
+        }
+
+        if (inAppProducts.isNotEmpty()) {
+            val inAppParams = QueryProductDetailsParams.newBuilder()
+                .setProductList(inAppProducts.map {
+                    QueryProductDetailsParams.Product.newBuilder()
+                        .setProductId(it)
+                        .setProductType(BillingClient.ProductType.INAPP)
+                        .build()
+                }).build()
+            billingClient.queryProductDetailsAsync(inAppParams) { result, details ->
+                if (result.responseCode == BillingClient.BillingResponseCode.OK && details != null) {
+                    combinedList.addAll(details)
+                } else {
+                    hasError = true
+                    lastErrorMsg = result.debugMessage ?: "Error querying INAPP"
+                }
+                checkCompletion()
+            }
+        } else {
+            checkCompletion()
+        }
+
+        if (subsProducts.isNotEmpty()) {
+            val subsParams = QueryProductDetailsParams.newBuilder()
+                .setProductList(subsProducts.map {
+                    QueryProductDetailsParams.Product.newBuilder()
+                        .setProductId(it)
+                        .setProductType(BillingClient.ProductType.SUBS)
+                        .build()
+                }).build()
+            billingClient.queryProductDetailsAsync(subsParams) { result, details ->
+                if (result.responseCode == BillingClient.BillingResponseCode.OK && details != null) {
+                    combinedList.addAll(details)
+                } else {
+                    hasError = true
+                    lastErrorMsg = result.debugMessage ?: "Error querying SUBS"
+                }
+                checkCompletion()
+            }
+        } else {
+            checkCompletion()
         }
     }
 
@@ -162,7 +194,7 @@ class PlayBillingManager(
 
         val productDetailsParamsBuilder = BillingFlowParams.ProductDetailsParams.newBuilder()
             .setProductDetails(productDetails)
-            
+
         if (offerToken != null) {
             productDetailsParamsBuilder.setOfferToken(offerToken)
         }

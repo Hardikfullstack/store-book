@@ -2,6 +2,7 @@ package com.storebook.inventoryapp.ui.screens.auth
 
 import android.app.Activity
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -29,6 +30,10 @@ import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -78,10 +83,29 @@ fun AuthScreen(
     var verificationId by remember { mutableStateOf("") }
     var resendToken by remember { mutableStateOf<PhoneAuthProvider.ForceResendingToken?>(null) }
 
+    var syncProgress by remember { mutableStateOf(0) }
+    var syncMessage by remember { mutableStateOf("") }
+
     // Staff Auth State
     var isStaffLogin by remember { mutableStateOf(false) }
     var staffUsername by remember { mutableStateOf("") }
     var staffPassword by remember { mutableStateOf("") }
+
+    var phoneError by remember { mutableStateOf<String?>(null) }
+    var otpError by remember { mutableStateOf<String?>(null) }
+    var staffError by remember { mutableStateOf<String?>(null) }
+
+    BackHandler(enabled = isLoading || isOtpSent) {
+        if (isLoading) {
+            // Block back button while loading
+        } else if (isOtpSent) {
+            // Go back to phone number entry
+            isOtpSent = false
+            otpCode = ""
+            otpError = null
+            phoneError = null
+        }
+    }
 
     val focusRequesterPassword = remember { androidx.compose.ui.focus.FocusRequester() }
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
@@ -90,7 +114,7 @@ fun AuthScreen(
         remember {
             object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
                 override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                    signInWithPhoneAuthCredential(auth, credential, onAuthSuccess) { err ->
+                    signInWithPhoneAuthCredential(auth, credential, onAuthSuccess, { p, m -> syncProgress = p; syncMessage = m }) { err ->
                         isLoading = false
                         Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
                     }
@@ -98,6 +122,7 @@ fun AuthScreen(
 
                 override fun onVerificationFailed(e: FirebaseException) {
                     isLoading = false
+                    phoneError = e.message
                     val msg = context.getString(R.string.auth_toast_verification_failed, e.message)
                     Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                 }
@@ -203,8 +228,12 @@ fun AuthScreen(
                                 color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
                                 shape = RoundedCornerShape(23.dp)
                             )
-                            .clickable {
+                            .clickable(enabled = !isLoading) {
                                 isStaffLogin = item.isStaff
+                                phoneError = null
+                                otpError = null
+                                staffError = null
+                                focusManager.clearFocus()
                             }
                             .padding(horizontal = 8.dp),
                         contentAlignment = Alignment.Center
@@ -278,10 +307,14 @@ fun AuthScreen(
                             OutlinedTextField(
                                 value = phoneNumber,
                                 onValueChange = {
+                                    phoneError = null
                                     if (it.length <= 10 && it.all { char -> char.isDigit() }) {
                                         phoneNumber = it
                                     }
                                 },
+                                enabled = !isLoading,
+                                isError = phoneError != null,
+                                supportingText = if (phoneError != null) { { Text(phoneError!!, color = MaterialTheme.colorScheme.error) } } else null,
                                 label = { Text(stringResource(R.string.auth_phone_label)) },
                                 leadingIcon = {
                                     Icon(
@@ -311,6 +344,7 @@ fun AuthScreen(
                             val isPhoneBtnEnabled = !isLoading && phoneNumber.length == 10
                             Button(
                                 onClick = {
+                                    focusManager.clearFocus()
                                     if (phoneNumber.length >= 10 && activity != null) {
                                         isLoading = true
                                         val options =
@@ -377,10 +411,14 @@ fun AuthScreen(
                             OutlinedTextField(
                                 value = otpCode,
                                 onValueChange = {
+                                    otpError = null
                                     if (it.length <= 6 && it.all { char -> char.isDigit() }) {
                                         otpCode = it
                                     }
                                 },
+                                enabled = !isLoading,
+                                isError = otpError != null,
+                                supportingText = if (otpError != null) { { Text(otpError!!, color = MaterialTheme.colorScheme.error) } } else null,
                                 label = { Text(stringResource(R.string.auth_otp_label)) },
                                 leadingIcon = {
                                     Icon(
@@ -409,12 +447,13 @@ fun AuthScreen(
                             val isOtpBtnEnabled = !isLoading && otpCode.length == 6
                             Button(
                                 onClick = {
+                                    focusManager.clearFocus()
                                     if (otpCode.length == 6) {
                                         isLoading = true
                                         val credential = PhoneAuthProvider.getCredential(verificationId, otpCode)
-                                        signInWithPhoneAuthCredential(auth, credential, onAuthSuccess) { err ->
+                                        signInWithPhoneAuthCredential(auth, credential, onAuthSuccess, { p, m -> syncProgress = p; syncMessage = m }) { err ->
                                             isLoading = false
-                                            Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
+                                            otpError = err
                                         }
                                     } else {
                                         Toast.makeText(
@@ -473,7 +512,8 @@ fun AuthScreen(
 
                         OutlinedTextField(
                             value = staffUsername,
-                            onValueChange = { staffUsername = it },
+                            onValueChange = { staffUsername = it; staffError = null },
+                            enabled = !isLoading,
                             label = { Text("Username") },
                             leadingIcon = {
                                 Icon(
@@ -500,7 +540,10 @@ fun AuthScreen(
 
                         OutlinedTextField(
                             value = staffPassword,
-                            onValueChange = { staffPassword = it },
+                            onValueChange = { staffPassword = it; staffError = null },
+                            enabled = !isLoading,
+                            isError = staffError != null,
+                            supportingText = if (staffError != null) { { Text(staffError!!, color = MaterialTheme.colorScheme.error) } } else null,
                             label = { Text("Password (Pin)") },
                             leadingIcon = {
                                 Icon(
@@ -539,6 +582,7 @@ fun AuthScreen(
                         val isStaffBtnEnabled = !isLoading && staffUsername.isNotBlank() && staffPassword.isNotBlank()
                         Button(
                             onClick = {
+                                focusManager.clearFocus()
                                 if (staffUsername.isNotBlank() && staffPassword.isNotBlank()) {
                                     isLoading = true
                                     val dummyEmail = "${staffUsername.lowercase().replace(Regex("[^a-z0-9]"), "")}@storebook.internal"
@@ -558,10 +602,16 @@ fun AuthScreen(
 
                                                             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                                                                 try {
-                                                                    com.storebook.inventoryapp.data.sync.FirestoreSyncManager(appContext).syncAllData()
+                                                                    com.storebook.inventoryapp.data.sync.FirestoreSyncManager(appContext).syncAllData { progress, message ->
+                                                                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                                                            syncProgress = progress
+                                                                            syncMessage = message
+                                                                        }
+                                                                    }
                                                                 } catch (e: Exception) {
                                                                     android.util.Log.e("AuthScreen", "Initial staff sync failed", e)
                                                                 }
+                                                                kotlinx.coroutines.delay(800) // Wait for 100% animation to finish
                                                                 android.os.Handler(android.os.Looper.getMainLooper()).post {
                                                                     onAuthSuccess()
                                                                 }
@@ -573,7 +623,7 @@ fun AuthScreen(
                                                 }
                                             } else {
                                                 isLoading = false
-                                                Toast.makeText(context, task.exception?.message ?: "Login failed", Toast.LENGTH_LONG).show()
+                                                staffError = task.exception?.message ?: "Login failed"
                                             }
                                         }
                                 }
@@ -642,19 +692,105 @@ fun AuthScreen(
 
         // Floating Back Button
         FilledTonalIconButton(
-            onClick = onNavigateBack,
+            onClick = {
+                if (isLoading) return@FilledTonalIconButton
+                if (isOtpSent) {
+                    isOtpSent = false
+                    otpCode = ""
+                    otpError = null
+                    phoneError = null
+                } else {
+                    onNavigateBack()
+                }
+            },
+            enabled = !isLoading,
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(start = 16.dp, top = 16.dp),
+                .padding(start = 16.dp, top = 16.dp)
+                .size(34.dp),
             colors = IconButtonDefaults.filledTonalIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
                 contentColor = MaterialTheme.colorScheme.onSurface
             )
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back"
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                modifier = Modifier.size(22.dp)
             )
+        }
+
+        // Full Screen Sync Progress Overlay
+        if (isLoading && syncProgress > 0) {
+            androidx.compose.ui.window.Dialog(
+                onDismissRequest = { /* Prevent dismiss */ },
+                properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = "Syncing",
+                            modifier = Modifier.size(80.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        Text(
+                            text = "Setting up your store...",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 24.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = syncMessage,
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        val animatedProgress by animateFloatAsState(
+                            targetValue = syncProgress / 100f,
+                            animationSpec = tween(durationMillis = 500, easing = LinearOutSlowInEasing)
+                        )
+
+                        LinearProgressIndicator(
+                            progress = { animatedProgress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.primaryContainer,
+                        )
+
+                        Spacer(modifier = Modifier.height(48.dp))
+
+                        val displayProgress = (animatedProgress * 100).toInt()
+
+                        Text(
+                            text = "$displayProgress%",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 48.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -663,6 +799,7 @@ private fun signInWithPhoneAuthCredential(
     auth: FirebaseAuth,
     credential: PhoneAuthCredential,
     onSuccess: () -> Unit,
+    onSyncProgress: (Int, String) -> Unit,
     onError: (String) -> Unit,
 ) {
     auth
@@ -706,10 +843,15 @@ private fun signInWithPhoneAuthCredential(
 
                             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                                 try {
-                                    com.storebook.inventoryapp.data.sync.FirestoreSyncManager(appContext).syncAllData()
+                                    com.storebook.inventoryapp.data.sync.FirestoreSyncManager(appContext).syncAllData { progress, message ->
+                                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                            onSyncProgress(progress, message)
+                                        }
+                                    }
                                 } catch (e: Exception) {
                                     android.util.Log.e("AuthScreen", "Initial owner sync failed", e)
                                 }
+                                kotlinx.coroutines.delay(800)
                                 android.os.Handler(android.os.Looper.getMainLooper()).post {
                                     onSuccess()
                                 }
