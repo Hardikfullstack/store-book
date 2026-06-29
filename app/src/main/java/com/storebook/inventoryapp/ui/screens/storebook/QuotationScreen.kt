@@ -30,9 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.storebook.inventoryapp.data.repository.CartItem
-import com.storebook.inventoryapp.data.repository.Item
-import com.storebook.inventoryapp.data.repository.Sale
+import com.storebook.inventoryapp.shared.domain.models.CartItem
+import com.storebook.inventoryapp.shared.domain.models.Item
+import com.storebook.inventoryapp.shared.domain.models.Sale
 import com.storebook.inventoryapp.ui.navigation.Routes
 import com.storebook.inventoryapp.ui.theme.Coral500
 import com.storebook.inventoryapp.ui.theme.Emerald500

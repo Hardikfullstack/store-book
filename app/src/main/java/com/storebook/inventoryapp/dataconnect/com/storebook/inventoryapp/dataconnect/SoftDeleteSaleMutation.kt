@@ -1,0 +1,105 @@
+
+@file:kotlin.Suppress(
+  "KotlinRedundantDiagnosticSuppress",
+  "LocalVariableName",
+  "MayBeConstant",
+  "RedundantVisibilityModifier",
+  "RemoveEmptyClassBody",
+  "SpellCheckingInspection",
+  "LocalVariableName",
+  "unused",
+)
+
+
+
+package com.storebook.inventoryapp.dataconnect
+
+
+
+public interface SoftDeleteSaleMutation :
+    com.google.firebase.dataconnect.generated.GeneratedMutation<
+      StorebookConnectorConnector,
+      SoftDeleteSaleMutation.Data,
+      SoftDeleteSaleMutation.Variables
+    >
+{
+  
+    @kotlinx.serialization.Serializable
+  public data class Variables(
+  
+    val id:
+    String,
+    val updatedAt:
+    Int
+  ) {
+    
+    
+  }
+  
+
+  
+    @kotlinx.serialization.Serializable
+  public data class Data(
+  @kotlinx.serialization.SerialName("sale_update")
+    val key:
+    SaleKey?
+  ) {
+    
+    
+  }
+  
+
+  public companion object {
+    public val operationName: String = "SoftDeleteSale"
+
+    public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
+      kotlinx.serialization.serializer()
+
+    public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables> =
+      kotlinx.serialization.serializer()
+  }
+}
+
+public fun SoftDeleteSaleMutation.ref(
+  
+    id: String,updatedAt: Int,
+  
+  
+): com.google.firebase.dataconnect.MutationRef<
+    SoftDeleteSaleMutation.Data,
+    SoftDeleteSaleMutation.Variables
+  > =
+  ref(
+    
+      SoftDeleteSaleMutation.Variables(
+        id=id,updatedAt=updatedAt,
+  
+      )
+    
+  )
+
+public suspend fun SoftDeleteSaleMutation.execute(
+  
+    id: String,updatedAt: Int,
+  
+  
+  ): com.google.firebase.dataconnect.MutationResult<
+    SoftDeleteSaleMutation.Data,
+    SoftDeleteSaleMutation.Variables
+  > =
+  ref(
+    
+      id=id,updatedAt=updatedAt,
+  
+    
+  ).execute()
+
+
+
+// The lines below are used by the code generator to ensure that this file is deleted if it is no
+// longer needed. Any files in this directory that contain the lines below will be deleted by the
+// code generator if the file is no longer needed. If, for some reason, you do _not_ want the code
+// generator to delete this file, then remove the line below (and this comment too, if you want).
+
+// FIREBASE_DATA_CONNECT_GENERATED_FILE MARKER 42da5e14-69b3-401b-a9f1-e407bee89a78
+// FIREBASE_DATA_CONNECT_GENERATED_FILE CONNECTOR storebook-connector

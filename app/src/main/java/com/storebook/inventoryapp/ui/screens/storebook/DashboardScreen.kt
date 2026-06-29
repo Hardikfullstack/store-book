@@ -80,7 +80,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.storebook.inventoryapp.R
-import com.storebook.inventoryapp.data.repository.Item
+import com.storebook.inventoryapp.shared.domain.models.Item
 import com.storebook.inventoryapp.ui.navigation.Routes
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
@@ -1101,7 +1101,7 @@ fun AnimatedMetricCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SaleTimelineCard(
-    sale: com.storebook.inventoryapp.data.repository.Sale,
+    sale: com.storebook.inventoryapp.shared.domain.models.Sale,
     customerName: String,
     saleTime: String,
     profit: Double,

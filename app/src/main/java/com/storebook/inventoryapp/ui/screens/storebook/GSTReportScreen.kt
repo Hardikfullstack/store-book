@@ -29,11 +29,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.storebook.inventoryapp.data.billing.BillingEngine
-import com.storebook.inventoryapp.data.repository.Item
-import com.storebook.inventoryapp.data.repository.CartItem
-import com.storebook.inventoryapp.data.repository.Sale
-import com.storebook.inventoryapp.data.repository.Purchase
-import com.storebook.inventoryapp.data.repository.Supplier
+import com.storebook.inventoryapp.shared.domain.models.Item
+import com.storebook.inventoryapp.shared.domain.models.CartItem
+import com.storebook.inventoryapp.shared.domain.models.Sale
+import com.storebook.inventoryapp.shared.domain.models.Purchase
+import com.storebook.inventoryapp.shared.domain.models.Supplier
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import com.storebook.inventoryapp.utils.toBigDecimal

@@ -69,7 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.storebook.inventoryapp.R
-import com.storebook.inventoryapp.data.repository.Sale
+import com.storebook.inventoryapp.shared.domain.models.Sale
 import com.storebook.inventoryapp.data.repository.StoreBookRepository
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel

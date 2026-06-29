@@ -1,0 +1,158 @@
+type Item @table {
+  id: String! @col(name: "id") @default(expr: "uuidV4()")
+  storeId: String! @col(name: "store_id")
+  name: String!
+  quantity: Float!
+  unit: String!
+  buyPrice: Float!
+  sellPrice: Float!
+  lowStockThreshold: Float!
+  category: String!
+  photoPath: String
+  hsnCode: String
+  
+  # Sync Columns
+  isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
+  updatedAt: Int! @col(name: "updated_at")
+}
+
+type Sale @table {
+  id: String! @col(name: "id") @default(expr: "uuidV4()")
+  storeId: String! @col(name: "store_id")
+  timestamp: Int!
+  totalAmount: Float!
+  discountAmount: Float!
+  customerName: String
+  customerGstin: String
+  businessGstin: String
+  customerAddress: String
+  businessAddress: String
+  type: String! @default(value: "SALE")
+  notes: String
+  
+  # Sync Columns
+  isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
+  updatedAt: Int! @col(name: "updated_at")
+}
+
+type SaleItemDetail @table {
+  id: String! @col(name: "id") @default(expr: "uuidV4()")
+  storeId: String! @col(name: "store_id")
+  saleId: String! @col(name: "sale_id")
+  itemId: String! @col(name: "item_id")
+  itemName: String!
+  quantity: Float!
+  unit: String!
+  sellPrice: Float!
+  buyPrice: Float!
+  
+  sale: Sale! @ref
+  item: Item! @ref
+  
+  # Sync Columns
+  isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
+  updatedAt: Int! @col(name: "updated_at")
+}
+
+type UdhaarEntry @table {
+  id: String! @col(name: "id") @default(expr: "uuidV4()")
+  storeId: String! @col(name: "store_id")
+  customerName: String!
+  amount: Float!
+  type: String!
+  timestamp: Int!
+  notes: String
+  
+  # Sync Columns
+  isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
+  updatedAt: Int! @col(name: "updated_at")
+}
+
+type ExpenseEntry @table {
+  id: String! @col(name: "id") @default(expr: "uuidV4()")
+  storeId: String! @col(name: "store_id")
+  type: String!
+  description: String!
+  amount: Float!
+  timestamp: Int!
+  supplierName: String
+  supplierPhone: String
+  
+  # Sync Columns
+  isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
+  updatedAt: Int! @col(name: "updated_at")
+}
+
+type Supplier @table {
+  id: String! @col(name: "id") @default(expr: "uuidV4()")
+  storeId: String! @col(name: "store_id")
+  name: String!
+  phone: String
+  gstin: String
+  address: String
+  
+  # Sync Columns
+  isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
+  updatedAt: Int! @col(name: "updated_at")
+}
+
+type Purchase @table {
+  id: String! @col(name: "id") @default(expr: "uuidV4()")
+  storeId: String! @col(name: "store_id")
+  supplierId: String! @col(name: "supplier_id")
+  supplierName: String!
+  totalAmount: Float!
+  taxAmount: Float! @default(value: 0.0)
+  type: String! @default(value: "BILL")
+  timestamp: Int!
+  notes: String
+  
+  supplier: Supplier! @ref
+  
+  # Sync Columns
+  isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
+  updatedAt: Int! @col(name: "updated_at")
+}
+
+type PurchaseItemDetail @table {
+  id: String! @col(name: "id") @default(expr: "uuidV4()")
+  storeId: String! @col(name: "store_id")
+  purchaseId: String! @col(name: "purchase_id")
+  itemId: String! @col(name: "item_id")
+  itemName: String!
+  quantity: Float!
+  unit: String!
+  buyPrice: Float!
+  
+  purchase: Purchase! @ref
+  item: Item! @ref
+  
+  # Sync Columns
+  isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
+  updatedAt: Int! @col(name: "updated_at")
+}
+
+type ItemBatch @table {
+  id: String! @col(name: "id") @default(expr: "uuidV4()")
+  storeId: String! @col(name: "store_id")
+  itemId: String! @col(name: "item_id")
+  batchNumber: String
+  expiryDate: Int
+  quantity: Float!
+  costPrice: Float!
+  timestamp: Int!
+  notes: String
+  
+  item: Item! @ref
+  
+  # Sync Columns
+  isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
+  updatedAt: Int! @col(name: "updated_at")
+}
+
+type User @table {
+  id: String! @col(name: "id")
+  phoneNumber: String
+  createdAt: Int!
+  role: String! @default(value: "owner")
+}

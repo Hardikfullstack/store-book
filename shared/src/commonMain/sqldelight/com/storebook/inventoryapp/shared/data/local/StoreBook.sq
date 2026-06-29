@@ -1,0 +1,314 @@
+CREATE TABLE ItemEntity (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  quantity REAL NOT NULL DEFAULT 0.0,
+  unit TEXT NOT NULL,
+  buy_price REAL NOT NULL DEFAULT 0.0,
+  sell_price REAL NOT NULL DEFAULT 0.0,
+  low_stock_threshold REAL NOT NULL DEFAULT 0.0,
+  category TEXT NOT NULL,
+  photo_path TEXT,
+  hsn_code TEXT,
+  tax_rate REAL NOT NULL DEFAULT 0.0,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  deleted_timestamp INTEGER DEFAULT 0,
+  cloud_id TEXT,
+  is_synced INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_items_deleted ON ItemEntity(is_deleted);
+CREATE INDEX idx_items_category ON ItemEntity(category);
+CREATE UNIQUE INDEX idx_items_cloud_id ON ItemEntity(cloud_id);
+
+getAllItems:
+SELECT * FROM ItemEntity WHERE is_deleted = 0;
+
+getActiveItems:
+SELECT * FROM ItemEntity WHERE is_deleted = 0 AND quantity > 0;
+
+getItemById:
+SELECT * FROM ItemEntity WHERE id = ? AND is_deleted = 0;
+
+getDeletedItems:
+SELECT * FROM ItemEntity WHERE is_deleted = 1;
+
+insertItem:
+INSERT INTO ItemEntity(name, quantity, unit, buy_price, sell_price, low_stock_threshold, category, photo_path, hsn_code, tax_rate, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateItem:
+UPDATE ItemEntity SET name = ?, quantity = ?, unit = ?, buy_price = ?, sell_price = ?, low_stock_threshold = ?, category = ?, photo_path = ?, hsn_code = ?, tax_rate = ?, updated_at = ? WHERE id = ?;
+
+updateItemStock:
+UPDATE ItemEntity SET quantity = ?, updated_at = ? WHERE id = ?;
+
+softDeleteItem:
+UPDATE ItemEntity SET is_deleted = 1, deleted_timestamp = ?, updated_at = ? WHERE id = ?;
+
+restoreItem:
+UPDATE ItemEntity SET is_deleted = 0, deleted_timestamp = 0, updated_at = ? WHERE id = ?;
+
+CREATE TABLE SaleEntity (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  timestamp INTEGER NOT NULL,
+  total_amount REAL NOT NULL,
+  discount_amount REAL NOT NULL DEFAULT 0.0,
+  customer_name TEXT,
+  customer_gstin TEXT,
+  business_gstin TEXT,
+  customer_address TEXT,
+  business_address TEXT,
+  type TEXT NOT NULL DEFAULT 'SALE',
+  notes TEXT,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  cloud_id TEXT,
+  is_synced INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_sales_timestamp ON SaleEntity(timestamp);
+
+insertSale:
+INSERT INTO SaleEntity(timestamp, total_amount, discount_amount, customer_name, customer_gstin, business_gstin, customer_address, business_address, type, notes, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+getSaleById:
+SELECT * FROM SaleEntity WHERE id = ?;
+
+getAllSales:
+SELECT * FROM SaleEntity WHERE is_deleted = 0 AND type = 'SALE' ORDER BY timestamp DESC;
+
+getQuotations:
+SELECT * FROM SaleEntity WHERE is_deleted = 0 AND type = 'ESTIMATE' ORDER BY timestamp DESC;
+
+getSalesByDateRange:
+SELECT * FROM SaleEntity WHERE is_deleted = 0 AND type = 'SALE' AND timestamp >= ? AND timestamp <= ? ORDER BY timestamp DESC;
+
+updateSaleType:
+UPDATE SaleEntity SET type = ?, updated_at = ? WHERE id = ?;
+
+softDeleteSale:
+UPDATE SaleEntity SET is_deleted = 1, updated_at = ? WHERE id = ?;
+
+CREATE TABLE SaleItemEntity (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sale_id INTEGER NOT NULL,
+  item_id INTEGER NOT NULL,
+  item_name TEXT NOT NULL,
+  unit TEXT NOT NULL,
+  quantity REAL NOT NULL,
+  sell_price REAL NOT NULL,
+  buy_price REAL NOT NULL,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  cloud_id TEXT,
+  is_synced INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_sale_items_sale_id ON SaleItemEntity(sale_id);
+
+insertSaleItem:
+INSERT INTO SaleItemEntity(sale_id, item_id, item_name, unit, quantity, sell_price, buy_price, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+getSaleItemsBySaleId:
+SELECT * FROM SaleItemEntity WHERE sale_id = ? AND is_deleted = 0;
+
+CREATE TABLE UdhaarEntity (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_name TEXT NOT NULL,
+  amount REAL NOT NULL,
+  type TEXT NOT NULL,
+  timestamp INTEGER NOT NULL,
+  notes TEXT,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  cloud_id TEXT,
+  is_synced INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_udhaar_customer ON UdhaarEntity(customer_name);
+
+insertUdhaar:
+INSERT INTO UdhaarEntity(customer_name, amount, type, timestamp, notes, updated_at)
+VALUES (?, ?, ?, ?, ?, ?);
+
+getCustomerLedger:
+SELECT * FROM UdhaarEntity WHERE customer_name = ? AND is_deleted = 0 ORDER BY timestamp ASC;
+
+getAllUdhaar:
+SELECT * FROM UdhaarEntity WHERE is_deleted = 0;
+
+CREATE TABLE ExpenseEntity (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  type TEXT NOT NULL,
+  description TEXT NOT NULL,
+  amount REAL NOT NULL,
+  timestamp INTEGER NOT NULL,
+  supplier_name TEXT,
+  supplier_phone TEXT,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  cloud_id TEXT,
+  is_synced INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_expenses_timestamp ON ExpenseEntity(timestamp);
+
+insertExpense:
+INSERT INTO ExpenseEntity(type, description, amount, timestamp, supplier_name, supplier_phone, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+getAllExpenses:
+SELECT * FROM ExpenseEntity WHERE is_deleted = 0 ORDER BY timestamp DESC;
+
+CREATE TABLE SupplierEntity (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  phone TEXT,
+  gstin TEXT,
+  address TEXT,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  cloud_id TEXT,
+  is_synced INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+insertSupplier:
+INSERT INTO SupplierEntity(name, phone, gstin, address, updated_at)
+VALUES (?, ?, ?, ?, ?);
+
+getAllSuppliers:
+SELECT * FROM SupplierEntity WHERE is_deleted = 0;
+
+softDeleteSupplier:
+UPDATE SupplierEntity SET is_deleted = 1, updated_at = ? WHERE id = ?;
+
+CREATE TABLE PurchaseEntity (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  supplier_id INTEGER NOT NULL,
+  supplier_name TEXT NOT NULL,
+  total_amount REAL NOT NULL,
+  tax_amount REAL NOT NULL DEFAULT 0.0,
+  type TEXT NOT NULL DEFAULT 'BILL',
+  timestamp INTEGER NOT NULL,
+  notes TEXT,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  cloud_id TEXT,
+  is_synced INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_purchases_timestamp ON PurchaseEntity(timestamp);
+
+insertPurchase:
+INSERT INTO PurchaseEntity(supplier_id, supplier_name, total_amount, tax_amount, type, timestamp, notes, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+getAllPurchases:
+SELECT * FROM PurchaseEntity WHERE is_deleted = 0 ORDER BY timestamp DESC;
+
+getPurchasesByDateRange:
+SELECT * FROM PurchaseEntity WHERE is_deleted = 0 AND timestamp >= ? AND timestamp <= ? ORDER BY timestamp DESC;
+
+CREATE TABLE PurchaseItemEntity (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  purchase_id INTEGER NOT NULL,
+  item_id INTEGER NOT NULL,
+  item_name TEXT NOT NULL,
+  quantity REAL NOT NULL,
+  unit TEXT NOT NULL,
+  buy_price REAL NOT NULL,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  cloud_id TEXT,
+  is_synced INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_purchase_items_purchase_id ON PurchaseItemEntity(purchase_id);
+
+insertPurchaseItem:
+INSERT INTO PurchaseItemEntity(purchase_id, item_id, item_name, quantity, unit, buy_price, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+getPurchaseItemsByPurchaseId:
+SELECT * FROM PurchaseItemEntity WHERE purchase_id = ? AND is_deleted = 0;
+
+CREATE TABLE ItemBatchEntity (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_id INTEGER NOT NULL,
+  batch_number TEXT,
+  expiry_date INTEGER,
+  quantity REAL NOT NULL DEFAULT 0,
+  cost_price REAL NOT NULL DEFAULT 0,
+  timestamp INTEGER NOT NULL,
+  notes TEXT,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  cloud_id TEXT,
+  is_synced INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_item_batches_item_id ON ItemBatchEntity(item_id);
+
+insertItemBatch:
+INSERT INTO ItemBatchEntity(item_id, batch_number, expiry_date, quantity, cost_price, timestamp, notes, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+getBatchesForItem:
+SELECT * FROM ItemBatchEntity WHERE item_id = ? AND is_deleted = 0 ORDER BY timestamp DESC;
+
+getNearExpiryBatches:
+SELECT * FROM ItemBatchEntity WHERE is_deleted = 0 AND expiry_date IS NOT NULL AND expiry_date <= ? ORDER BY expiry_date ASC;
+
+softDeleteItemBatch:
+UPDATE ItemBatchEntity SET is_deleted = 1, updated_at = ? WHERE id = ?;
+
+-- Maintenance Queries
+clearItems:
+DELETE FROM ItemEntity;
+
+clearSales:
+DELETE FROM SaleEntity;
+
+clearSaleItems:
+DELETE FROM SaleItemEntity;
+
+clearUdhaar:
+DELETE FROM UdhaarEntity;
+
+clearExpenses:
+DELETE FROM ExpenseEntity;
+
+clearSuppliers:
+DELETE FROM SupplierEntity;
+
+clearPurchases:
+DELETE FROM PurchaseEntity;
+
+clearPurchaseItems:
+DELETE FROM PurchaseItemEntity;
+
+clearItemBatches:
+DELETE FROM ItemBatchEntity;
+
+-- Sync Queries
+
+getUnsyncedItems:
+SELECT * FROM ItemEntity WHERE is_synced = 0;
+
+markItemSynced:
+UPDATE ItemEntity SET is_synced = 1, cloud_id = :cloudId WHERE id = :id;
+
+getUnsyncedSales:
+SELECT * FROM SaleEntity WHERE is_synced = 0;
+
+markSaleSynced:
+UPDATE SaleEntity SET is_synced = 1, cloud_id = :cloudId WHERE id = :id;
+
+getUnsyncedSaleItems:
+SELECT * FROM SaleItemEntity WHERE is_synced = 0;
+
+markSaleItemSynced:
+UPDATE SaleItemEntity SET is_synced = 1, cloud_id = :cloudId WHERE id = :id;

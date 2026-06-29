@@ -77,9 +77,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.R
-import com.storebook.inventoryapp.data.repository.Supplier
-import com.storebook.inventoryapp.data.repository.Purchase
-import com.storebook.inventoryapp.data.repository.SupplierBalance
+import com.storebook.inventoryapp.shared.domain.models.Supplier
+import com.storebook.inventoryapp.shared.domain.models.Purchase
+import com.storebook.inventoryapp.shared.domain.models.SupplierBalance
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.components.AlphabetScrubber
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
@@ -274,7 +274,7 @@ fun SupplierLedgerScreen(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+                    .padding(start = 16.dp, end = if (filteredBalances.isNotEmpty() && searchQ.isBlank()) 32.dp else 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(top = 16.dp, bottom = 90.dp)
             ) {
@@ -392,9 +392,10 @@ fun SupplierLedgerScreen(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 15.sp
                                         )
-                                        if (!supplier.phone.isNullOrBlank()) {
+                                        val phone = supplier.phone
+                                        if (!phone.isNullOrBlank()) {
                                             Text(
-                                                text = supplier.phone,
+                                                text = phone,
                                                 fontSize = 12.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -473,25 +474,18 @@ fun SupplierLedgerScreen(
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold
                                 )
-                                if (!supplier.phone.isNullOrBlank()) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.clickable {
-                                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${supplier.phone}"))
-                                            context.startActivity(intent)
+                                val phone = supplier.phone
+                                if (!phone.isNullOrBlank()) {
+                                    IconButton(onClick = {
+                                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                                            data = Uri.parse("tel:$phone")
                                         }
-                                    ) {
+                                        context.startActivity(intent)
+                                    }) {
                                         Icon(
                                             Icons.Default.Call,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(14.dp),
+                                            contentDescription = "Call",
                                             tint = MaterialTheme.colorScheme.primary
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = supplier.phone,
-                                            fontSize = 13.sp,
-                                            color = MaterialTheme.colorScheme.primary
                                         )
                                     }
                                 }
@@ -625,10 +619,11 @@ fun SupplierLedgerScreen(
                                                         fontSize = 11.sp,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
-                                                    if (!purchase.notes.isNullOrBlank()) {
+                                                    val notes = purchase.notes
+                                                    if (!notes.isNullOrBlank()) {
                                                         Text(
-                                                            text = purchase.notes,
-                                                            fontSize = 11.sp,
+                                                            text = "Notes: $notes",
+                                                            fontSize = 12.sp,
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
                                                     }

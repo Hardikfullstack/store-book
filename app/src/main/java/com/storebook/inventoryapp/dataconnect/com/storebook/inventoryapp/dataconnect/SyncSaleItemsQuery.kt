@@ -1,0 +1,153 @@
+
+@file:kotlin.Suppress(
+  "KotlinRedundantDiagnosticSuppress",
+  "LocalVariableName",
+  "MayBeConstant",
+  "RedundantVisibilityModifier",
+  "RemoveEmptyClassBody",
+  "SpellCheckingInspection",
+  "LocalVariableName",
+  "unused",
+)
+
+
+
+package com.storebook.inventoryapp.dataconnect
+
+
+import kotlinx.coroutines.flow.filterNotNull as _flow_filterNotNull
+import kotlinx.coroutines.flow.map as _flow_map
+
+
+public interface SyncSaleItemsQuery :
+    com.google.firebase.dataconnect.generated.GeneratedQuery<
+      StorebookConnectorConnector,
+      SyncSaleItemsQuery.Data,
+      SyncSaleItemsQuery.Variables
+    >
+{
+  
+    @kotlinx.serialization.Serializable
+  public data class Variables(
+  
+    val lastSync:
+    Int
+  ) {
+    
+    
+  }
+  
+
+  
+    @kotlinx.serialization.Serializable
+  public data class Data(
+  
+    val saleItemDetails:
+    List<SaleItemDetailsItem>
+  ) {
+    
+      
+        @kotlinx.serialization.Serializable
+  public data class SaleItemDetailsItem(
+  
+    val id:
+    String,
+    val saleId:
+    String,
+    val itemId:
+    String,
+    val itemName:
+    String,
+    val quantity:
+    Double,
+    val unit:
+    String,
+    val sellPrice:
+    Double,
+    val buyPrice:
+    Double,
+    val isDeleted:
+    Boolean,
+    val updatedAt:
+    Int
+  ) {
+    
+    
+  }
+      
+    
+    
+  }
+  
+
+  public companion object {
+    public val operationName: String = "SyncSaleItems"
+
+    public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
+      kotlinx.serialization.serializer()
+
+    public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables> =
+      kotlinx.serialization.serializer()
+  }
+}
+
+public fun SyncSaleItemsQuery.ref(
+  
+    lastSync: Int,
+  
+  
+): com.google.firebase.dataconnect.QueryRef<
+    SyncSaleItemsQuery.Data,
+    SyncSaleItemsQuery.Variables
+  > =
+  ref(
+    
+      SyncSaleItemsQuery.Variables(
+        lastSync=lastSync,
+  
+      )
+    
+  )
+
+public suspend fun SyncSaleItemsQuery.execute(
+  
+    lastSync: Int,
+  
+  
+  ): com.google.firebase.dataconnect.QueryResult<
+    SyncSaleItemsQuery.Data,
+    SyncSaleItemsQuery.Variables
+  > =
+  ref(
+    
+      lastSync=lastSync,
+  
+    
+  ).execute()
+
+
+  public fun SyncSaleItemsQuery.flow(
+    
+      lastSync: Int,
+  
+    
+    ): kotlinx.coroutines.flow.Flow<SyncSaleItemsQuery.Data> =
+    ref(
+        
+          lastSync=lastSync,
+  
+        
+      ).subscribe()
+      .flow
+      ._flow_map { querySubscriptionResult -> querySubscriptionResult.result.getOrNull() }
+      ._flow_filterNotNull()
+      ._flow_map { it.data }
+
+
+// The lines below are used by the code generator to ensure that this file is deleted if it is no
+// longer needed. Any files in this directory that contain the lines below will be deleted by the
+// code generator if the file is no longer needed. If, for some reason, you do _not_ want the code
+// generator to delete this file, then remove the line below (and this comment too, if you want).
+
+// FIREBASE_DATA_CONNECT_GENERATED_FILE MARKER 42da5e14-69b3-401b-a9f1-e407bee89a78
+// FIREBASE_DATA_CONNECT_GENERATED_FILE CONNECTOR storebook-connector

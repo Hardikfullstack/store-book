@@ -1,0 +1,128 @@
+# -----------------------------------------
+# SYNC MUTATIONS (Push from Offline)
+# -----------------------------------------
+
+# Synchronize a single item (Insert or Update on Conflict)
+mutation SyncItem(
+  $id: String!
+  $storeId: String!
+  $name: String!
+  $quantity: Float!
+  $unit: String!
+  $buyPrice: Float!
+  $sellPrice: Float!
+  $lowStockThreshold: Float!
+  $category: String!
+  $photoPath: String
+  $hsnCode: String
+  $isDeleted: Boolean!
+  $updatedAt: Int!
+) @auth(level: USER) {
+  item_upsert(data: {
+    id: $id
+    storeId: $storeId
+    name: $name
+    quantity: $quantity
+    unit: $unit
+    buyPrice: $buyPrice
+    sellPrice: $sellPrice
+    lowStockThreshold: $lowStockThreshold
+    category: $category
+    photoPath: $photoPath
+    hsnCode: $hsnCode
+    isDeleted: $isDeleted
+    updatedAt: $updatedAt
+  })
+}
+
+# Synchronize a single sale
+mutation SyncSale(
+  $id: String!
+  $storeId: String!
+  $timestamp: Int!
+  $totalAmount: Float!
+  $discountAmount: Float!
+  $customerName: String
+  $customerGstin: String
+  $businessGstin: String
+  $customerAddress: String
+  $businessAddress: String
+  $type: String!
+  $notes: String
+  $isDeleted: Boolean!
+  $updatedAt: Int!
+) @auth(level: USER) {
+  sale_upsert(data: {
+    id: $id
+    storeId: $storeId
+    timestamp: $timestamp
+    totalAmount: $totalAmount
+    discountAmount: $discountAmount
+    customerName: $customerName
+    customerGstin: $customerGstin
+    businessGstin: $businessGstin
+    customerAddress: $customerAddress
+    businessAddress: $businessAddress
+    type: $type
+    notes: $notes
+    isDeleted: $isDeleted
+    updatedAt: $updatedAt
+  })
+}
+
+# Synchronize a single sale item
+mutation SyncSaleItem(
+  $id: String!
+  $storeId: String!
+  $saleId: String!
+  $itemId: String!
+  $itemName: String!
+  $unit: String!
+  $quantity: Float!
+  $sellPrice: Float!
+  $buyPrice: Float!
+  $isDeleted: Boolean!
+  $updatedAt: Int!
+) @auth(level: USER) {
+  saleItemDetail_upsert(data: {
+    id: $id
+    storeId: $storeId
+    saleId: $saleId
+    itemId: $itemId
+    itemName: $itemName
+    unit: $unit
+    quantity: $quantity
+    sellPrice: $sellPrice
+    buyPrice: $buyPrice
+    isDeleted: $isDeleted
+    updatedAt: $updatedAt
+  })
+}
+
+# -----------------------------------------
+# SOFT DELETE MUTATIONS
+# -----------------------------------------
+
+# Mark an item as deleted (tombstone)
+mutation SoftDeleteItem($id: String!, $updatedAt: Int!) @auth(level: USER) {
+  item_update(id: $id, data: { isDeleted: true, updatedAt: $updatedAt })
+}
+
+# Mark a sale as deleted
+mutation SoftDeleteSale($id: String!, $updatedAt: Int!) @auth(level: USER) {
+  sale_update(id: $id, data: { isDeleted: true, updatedAt: $updatedAt })
+}
+
+mutation SyncUser(
+  $id: String!
+  $phoneNumber: String
+  $createdAt: Int!
+  $role: String!
+) @auth(level: PUBLIC) {
+  user_upsert(data: {
+    id: $id
+    phoneNumber: $phoneNumber
+    createdAt: $createdAt
+    role: $role
+  })
+}

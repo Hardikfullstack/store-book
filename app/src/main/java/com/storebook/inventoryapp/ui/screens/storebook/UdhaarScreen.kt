@@ -89,8 +89,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.R
-import com.storebook.inventoryapp.data.repository.CustomerBalance
-import com.storebook.inventoryapp.data.repository.UdhaarEntry
+import com.storebook.inventoryapp.shared.domain.models.CustomerBalance
+import com.storebook.inventoryapp.shared.domain.models.UdhaarEntry
 import com.storebook.inventoryapp.ui.components.AlphabetScrubber
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
@@ -393,7 +393,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
             } else {
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxSize().padding(start = 16.dp, end = if (filteredBalances.isNotEmpty() && searchQ.isBlank()) 32.dp else 16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
                 ) {
@@ -795,9 +795,10 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                                     fontSize = 13.sp,
                                                     color = if (isCredit) Coral500 else Emerald500,
                                                 )
-                                                if (!entry.notes.isNullOrBlank()) {
+                                                val notes = entry.notes
+                                                if (!notes.isNullOrBlank()) {
                                                     Text(
-                                                        entry.notes,
+                                                        notes,
                                                         fontSize = 12.sp,
                                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                                     )

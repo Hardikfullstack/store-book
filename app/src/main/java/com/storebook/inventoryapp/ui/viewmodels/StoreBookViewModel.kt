@@ -22,19 +22,19 @@ import androidx.work.WorkManager
 import com.google.firebase.auth.FirebaseAuth
 import com.storebook.inventoryapp.data.billing.BillingEngine
 import com.storebook.inventoryapp.data.play.PlayBillingManager
-import com.storebook.inventoryapp.data.repository.CartItem
-import com.storebook.inventoryapp.data.repository.CustomerBalance
-import com.storebook.inventoryapp.data.repository.ExpenseEntry
-import com.storebook.inventoryapp.data.repository.Item
-import com.storebook.inventoryapp.data.repository.ItemBatch
-import com.storebook.inventoryapp.data.repository.Purchase
-import com.storebook.inventoryapp.data.repository.Sale
+import com.storebook.inventoryapp.shared.domain.models.CartItem
+import com.storebook.inventoryapp.shared.domain.models.CustomerBalance
+import com.storebook.inventoryapp.shared.domain.models.ExpenseEntry
+import com.storebook.inventoryapp.shared.domain.models.Item
+import com.storebook.inventoryapp.shared.domain.models.ItemBatch
+import com.storebook.inventoryapp.shared.domain.models.Purchase
+import com.storebook.inventoryapp.shared.domain.models.Sale
 import com.storebook.inventoryapp.data.repository.StoreBookRepository
-import com.storebook.inventoryapp.data.repository.Supplier
-import com.storebook.inventoryapp.data.repository.SupplierBalance
-import com.storebook.inventoryapp.data.repository.UdhaarEntry
+import com.storebook.inventoryapp.shared.domain.models.Supplier
+import com.storebook.inventoryapp.shared.domain.models.SupplierBalance
+import com.storebook.inventoryapp.shared.domain.models.UdhaarEntry
 import com.storebook.inventoryapp.data.sync.FirestoreSyncManager
-import com.storebook.inventoryapp.data.sync.StoreBookSyncWorker
+import com.storebook.inventoryapp.data.sync.SyncWorker
 import com.storebook.inventoryapp.utils.InvoicePdfGenerator
 import com.storebook.inventoryapp.utils.ExcelExporter
 import kotlinx.coroutines.Dispatchers
@@ -255,6 +255,8 @@ class StoreBookViewModel(
     // Billing state (reactive from Play Billing client)
     var isPremiumUser: Boolean by mutableStateOf(prefs.getBoolean("is_premium", false))
 
+    var errorMessage by mutableStateOf<String?>(null)
+
     // Undo mechanism
     var lastSaleId by mutableStateOf<Long?>(null)
         private set
@@ -341,7 +343,11 @@ class StoreBookViewModel(
 
     fun triggerSync() {
         if (isPremiumUser) {
-            val workRequest = OneTimeWorkRequestBuilder<StoreBookSyncWorker>()
+            val data = androidx.work.Data.Builder()
+                .putString("STORE_ID", activeStoreId)
+                .build()
+            val workRequest = OneTimeWorkRequestBuilder<SyncWorker>()
+                .setInputData(data)
                 .setConstraints(
                     Constraints.Builder()
                         .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -621,43 +627,47 @@ class StoreBookViewModel(
         val notesForSale = cartNotes.trim().takeIf { it.isNotBlank() }
 
         viewModelScope.launch {
-            val saleId =
-                repository.recordSale(
-                    itemsInCart = cartItems,
-                    discount = cartDiscount,
-                    customerName = customerNameForSale,
-                    customerGstin = cartCustomerGstin.takeIf { it.isNotBlank() },
-                    customerAddress = cartCustomerAddress.takeIf { it.isNotBlank() },
-                    businessGstin = businessGstin.takeIf { it.isNotBlank() },
-                    businessAddress = businessAddress.takeIf { it.isNotBlank() },
-                    notes = notesForSale,
-                    paymentMode = paymentMode,
-                    type = type,
-                )
-            if (saleId != -1L) {
-                if (type != "ESTIMATE") {
-                    lastSaleId = saleId
-                    lastSaleTime = System.currentTimeMillis()
-                }
-
-                // Calculate grand total with taxes
-                val taxSummary =
-                    BillingEngine.calculateInvoiceTaxes(
-                        cartItems = cartItems,
-                        totalDiscount = cartDiscount,
-                        businessGstin = businessGstin.takeIf { it.isNotBlank() },
+            try {
+                val saleId =
+                    repository.recordSale(
+                        itemsInCart = cartItems,
+                        discount = cartDiscount,
+                        customerName = customerNameForSale,
                         customerGstin = cartCustomerGstin.takeIf { it.isNotBlank() },
+                        customerAddress = cartCustomerAddress.takeIf { it.isNotBlank() },
+                        businessGstin = businessGstin.takeIf { it.isNotBlank() },
+                        businessAddress = businessAddress.takeIf { it.isNotBlank() },
+                        notes = notesForSale,
+                        paymentMode = paymentMode,
+                        type = type,
                     )
-                val total = taxSummary.grandTotal
+                if (saleId != -1L) {
+                    if (type != "ESTIMATE") {
+                        lastSaleId = saleId
+                        lastSaleTime = System.currentTimeMillis()
+                    }
 
-                // If this sale was converted from an estimate, mark the estimate as CONVERTED
-                convertingQuotationId?.let { oldQuoteId ->
-                    repository.markQuotationAsConverted(oldQuoteId)
+                    // Calculate grand total with taxes
+                    val taxSummary =
+                        BillingEngine.calculateInvoiceTaxes(
+                            cartItems = cartItems,
+                            totalDiscount = cartDiscount,
+                            businessGstin = businessGstin.takeIf { it.isNotBlank() },
+                            customerGstin = cartCustomerGstin.takeIf { it.isNotBlank() },
+                        )
+                    val total = taxSummary.grandTotal
+
+                    // If this sale was converted from an estimate, mark the estimate as CONVERTED
+                    convertingQuotationId?.let { oldQuoteId ->
+                        repository.markQuotationAsConverted(oldQuoteId)
+                    }
+
+                    clearCart()
+                    loadAllData()
+                    onSuccess(saleId, total)
                 }
-
-                clearCart()
-                loadAllData()
-                onSuccess(saleId, total)
+            } catch (e: Exception) {
+                errorMessage = e.message ?: "An error occurred during checkout"
             }
         }
     }

@@ -113,6 +113,12 @@ fun AppNavigation() {
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
+    androidx.compose.runtime.LaunchedEffect(storeBookViewModel.errorMessage) {
+        storeBookViewModel.errorMessage?.let { errorMsg ->
+            android.widget.Toast.makeText(context, errorMsg, android.widget.Toast.LENGTH_LONG).show()
+            storeBookViewModel.errorMessage = null
+        }
+    }
 
     // Check if onboarding is completed
     val sharedPref = remember { context.getSharedPreferences("storebook_prefs", Context.MODE_PRIVATE) }
@@ -291,7 +297,7 @@ fun AppNavigation() {
                     val amt = quickSaleAmount.toDoubleOrNull()
                     if (amt != null && amt > 0) {
                         storeBookViewModel.clearCart()
-                        val dummyItem = com.storebook.inventoryapp.data.repository.Item(
+                        val dummyItem = com.storebook.inventoryapp.shared.domain.models.Item(
                             id = 0L,
                             name = "Quick Sale",
                             quantity = 0.0,

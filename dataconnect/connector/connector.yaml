@@ -1,0 +1,5 @@
+connectorId: "storebook-connector"
+generate:
+  kotlinSdk:
+    outputDir: "../../app/src/main/java/com/storebook/inventoryapp/dataconnect"
+    package: "com.storebook.inventoryapp.dataconnect"

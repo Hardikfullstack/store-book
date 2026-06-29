@@ -100,8 +100,8 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.data.billing.BillingEngine
-import com.storebook.inventoryapp.data.repository.CartItem
-import com.storebook.inventoryapp.data.repository.Item
+import com.storebook.inventoryapp.shared.domain.models.CartItem
+import com.storebook.inventoryapp.shared.domain.models.Item
 import com.storebook.inventoryapp.ui.navigation.Routes
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel

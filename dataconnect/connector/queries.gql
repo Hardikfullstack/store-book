@@ -1,0 +1,71 @@
+# -----------------------------------------
+# DELTA SYNC QUERIES (High-Water Mark)
+# -----------------------------------------
+
+# Pull updated items since last sync
+query SyncItems($lastSync: Int!) @auth(level: USER) {
+  items(where: { storeId: { eq_expr: "auth.uid" }, updatedAt: { gt: $lastSync } }) {
+    id
+    name
+    quantity
+    unit
+    buyPrice
+    sellPrice
+    lowStockThreshold
+    category
+    photoPath
+    hsnCode
+    isDeleted
+    updatedAt
+  }
+}
+
+# Pull updated sales since last sync
+query SyncSales($lastSync: Int!) @auth(level: USER) {
+  sales(where: { storeId: { eq_expr: "auth.uid" }, updatedAt: { gt: $lastSync } }) {
+    id
+    timestamp
+    totalAmount
+    discountAmount
+    customerName
+    customerGstin
+    businessGstin
+    customerAddress
+    businessAddress
+    type
+    isDeleted
+    updatedAt
+  }
+}
+
+# Pull updated sale items since last sync
+query SyncSaleItems($lastSync: Int!) @auth(level: USER) {
+  saleItemDetails(where: { storeId: { eq_expr: "auth.uid" }, updatedAt: { gt: $lastSync } }) {
+    id
+    saleId
+    itemId
+    itemName
+    quantity
+    unit
+    sellPrice
+    buyPrice
+    isDeleted
+    updatedAt
+  }
+}
+
+# -----------------------------------------
+# STANDARD QUERIES (Fallback/Debugging)
+# -----------------------------------------
+
+# Get all active items directly (Server-side filtering)
+query GetActiveItems @auth(level: USER) {
+  items(where: { storeId: { eq_expr: "auth.uid" }, isDeleted: { eq: false }, quantity: { gt: 0 } }) {
+    id
+    name
+    quantity
+    sellPrice
+    buyPrice
+    category
+  }
+}

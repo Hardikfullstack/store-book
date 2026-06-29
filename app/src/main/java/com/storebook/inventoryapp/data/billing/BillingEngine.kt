@@ -1,6 +1,6 @@
 package com.storebook.inventoryapp.data.billing
 
-import com.storebook.inventoryapp.data.repository.CartItem
+import com.storebook.inventoryapp.shared.domain.models.CartItem
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.max

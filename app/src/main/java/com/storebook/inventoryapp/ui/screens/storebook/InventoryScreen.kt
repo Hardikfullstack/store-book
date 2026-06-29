@@ -93,11 +93,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.R
-import com.storebook.inventoryapp.data.repository.Item
-import com.storebook.inventoryapp.data.repository.ItemBatch
-import com.storebook.inventoryapp.data.repository.Supplier
-import com.storebook.inventoryapp.data.repository.Purchase
-import com.storebook.inventoryapp.data.repository.PurchaseItemDetail
+import com.storebook.inventoryapp.shared.domain.models.Item
+import com.storebook.inventoryapp.shared.domain.models.ItemBatch
+import com.storebook.inventoryapp.shared.domain.models.Supplier
+import com.storebook.inventoryapp.shared.domain.models.Purchase
+import com.storebook.inventoryapp.shared.domain.models.PurchaseItemDetail
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.filled.CalendarToday

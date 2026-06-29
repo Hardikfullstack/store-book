@@ -6,8 +6,8 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import com.storebook.inventoryapp.data.billing.BillingEngine
-import com.storebook.inventoryapp.data.repository.CartItem
-import com.storebook.inventoryapp.data.repository.Sale
+import com.storebook.inventoryapp.shared.domain.models.CartItem
+import com.storebook.inventoryapp.shared.domain.models.Sale
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -299,8 +299,9 @@ object InvoicePdfGenerator {
             yPos += 20f
             canvas.drawText("Customer Name: ${sale.customerName ?: "Cash Customer"}", leftMargin, yPos, paint)
             yPos += 15f
-            if (!sale.customerAddress.isNullOrBlank()) {
-                val lines = sale.customerAddress.split("\n")
+            val address = sale.customerAddress
+            if (!address.isNullOrBlank()) {
+                val lines = address.split("\n")
                 for ((index, line) in lines.withIndex()) {
                     canvas.drawText(if (index == 0) "Address: $line" else line, leftMargin, yPos, paint)
                     yPos += 15f

@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    // Helper functions
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isOwnerOf(storeId) {
+      let userData = getUserData();
+      return userData.role == 'owner' && (storeId in userData.stores);
+    }
+    
+    function isStaffOf(storeId) {
+      let userData = getUserData();
+      return userData.role == 'staff' && userData.storeId == storeId;
+    }
+    
+    function isAdmin() {
+      return getUserData().role == 'admin';
+    }
+
+    match /stores/{storeId} {
+      allow read, write: if request.auth != null && (isOwnerOf(storeId) || isAdmin());
+      allow read: if request.auth != null && isStaffOf(storeId);
+      
+      match /{collection}/{document=**} {
+        // Owners and Admins have full access
+        allow read, write: if request.auth != null && (isOwnerOf(storeId) || isAdmin());
+        
+        // Staff have restricted access
+        allow read, create: if request.auth != null && isStaffOf(storeId);
+        
+        // QA FIX 1: Staff can only update if they aren't toggling the is_deleted flag (The Soft Delete Loophole)
+        allow update: if request.auth != null 
+          && isStaffOf(storeId) 
+          && request.resource.data.is_deleted == resource.data.is_deleted;
+          
+        // Staff can never hard-delete
+        allow delete: if false;
+      }
+    }
+    
+    match /users/{userId} {
+      // Users can read their own data
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Admins can read/write all users
+      allow read, write: if request.auth != null && isAdmin();
+    }
+  }
+}

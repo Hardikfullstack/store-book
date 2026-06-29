@@ -5,7 +5,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
-import com.storebook.inventoryapp.data.repository.UdhaarEntry
+import com.storebook.inventoryapp.shared.domain.models.UdhaarEntry
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
