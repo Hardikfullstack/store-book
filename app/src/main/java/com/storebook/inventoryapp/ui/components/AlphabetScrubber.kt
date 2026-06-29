@@ -58,10 +58,10 @@ fun AlphabetScrubber(
         // The Scrubber Column
         Column(
             modifier = Modifier
-                .width(32.dp)
-                .fillMaxHeight(0.75f) // Take up 75% of screen height
+                .width(28.dp)
+                .fillMaxHeight(0.85f) // Increased to 85% of screen height
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), CircleShape)
-                .padding(vertical = 12.dp)
+                .padding(vertical = 8.dp)
                 .onGloballyPositioned { coords ->
                     columnHeight = coords.size.height.toFloat()
                 }
@@ -94,12 +94,17 @@ fun AlphabetScrubber(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             alphabet.forEach { letter ->
-                Text(
-                    text = letter.toString(),
-                    fontSize = 11.sp,
-                    fontWeight = if (selectedLetter == letter) FontWeight.Bold else FontWeight.Medium,
-                    color = if (selectedLetter == letter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = letter.toString(),
+                        fontSize = 10.sp,
+                        fontWeight = if (selectedLetter == letter) FontWeight.Bold else FontWeight.Medium,
+                        color = if (selectedLetter == letter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
