@@ -32,11 +32,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ModeNight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.outlined.CheckCircleOutline
 import androidx.compose.material3.AlertDialog
@@ -113,17 +116,6 @@ fun DashboardScreen(
             hourOfDay < 17 -> stringResource(R.string.dash_greeting_afternoon)
             else -> stringResource(R.string.dash_greeting_evening)
         }
-    val greeting =
-        remember(greetingStr) {
-            val prefix =
-                when {
-                    hourOfDay < 12 -> "🌅 "
-                    hourOfDay < 17 -> "☀️ "
-                    else -> "🌙 "
-                }
-            "$prefix$greetingStr!"
-        }
-
     // Today's stats using derivedStateOf for performance
     val todayDateStr = remember { SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date()) }
     val saleDateFmt = remember { SimpleDateFormat("yyyyMMdd", Locale.getDefault()) }
@@ -345,13 +337,22 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column {
-                        Text(
-                            text = greeting,
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = 0.2.sp,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val greetingIcon = when {
+                                hourOfDay < 12 -> Icons.Filled.WbTwilight
+                                hourOfDay < 17 -> Icons.Filled.WbSunny
+                                else -> Icons.Filled.ModeNight
+                            }
+                            Icon(greetingIcon, contentDescription = null, modifier = Modifier.size(15.dp), tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f))
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "$greetingStr!",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 0.2.sp,
+                            )
+                        }
                         Spacer(modifier = Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(

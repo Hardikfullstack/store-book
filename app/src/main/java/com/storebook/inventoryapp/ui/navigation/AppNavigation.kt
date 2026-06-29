@@ -618,19 +618,15 @@ fun AppNavigation() {
                 MoreScreen(navController = navController, viewModel = storeBookViewModel)
             }
             composable<Routes.PremiumPlans> {
-                Scaffold { padding ->
-                    Box(modifier = Modifier.padding(padding)) {
-                        com.storebook.inventoryapp.ui.screens.storebook.ProBillingView(
-                            isProActive = storeBookViewModel.isPremiumUser,
-                            onRequireSignIn = {
-                                navController.navigate(Routes.Auth)
-                            },
-                            onDismiss = {
-                                navController.popBackStack()
-                            },
-                        )
-                    }
-                }
+                com.storebook.inventoryapp.ui.screens.storebook.ProBillingView(
+                    isProActive = storeBookViewModel.isPremiumUser,
+                    onRequireSignIn = {
+                        navController.navigate(Routes.Auth)
+                    },
+                    onDismiss = {
+                        navController.popBackStack()
+                    },
+                )
             }
             composable<Routes.Auth> {
                 AuthScreen(

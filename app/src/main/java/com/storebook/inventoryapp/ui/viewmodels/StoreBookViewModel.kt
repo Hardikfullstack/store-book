@@ -274,7 +274,8 @@ class StoreBookViewModel(
                 // Their personal Google Play accounts won't have the subscription.
                 val playPremium = billingState.isProUnlocked
                 val webPremium = prefs.getBoolean("is_premium", false)
-                isPremiumUser = playPremium || webPremium || userRole == "staff"
+                val isLogged = FirebaseAuth.getInstance().currentUser != null
+                isPremiumUser = isLogged && (playPremium || webPremium || userRole == "staff")
                 if (isPremiumUser) {
                     triggerSync()
                     startSyncManagerRealtime()
@@ -300,7 +301,8 @@ class StoreBookViewModel(
         userRoleType = UserRole.fromString(userRole)
         val playPremium = billingManager.state.value.isProUnlocked
         val webPremium = prefs.getBoolean("is_premium", false)
-        isPremiumUser = playPremium || webPremium || userRole == "staff" || userRoleType == UserRole.BILLER
+        val isLogged = FirebaseAuth.getInstance().currentUser != null
+        isPremiumUser = isLogged && (playPremium || webPremium || userRole == "staff" || userRoleType == UserRole.BILLER)
 
         val newStoreId = prefs.getString("active_store_id", "default") ?: "default"
         if (newStoreId != activeStoreId) {

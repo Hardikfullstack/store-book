@@ -30,6 +30,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Card
@@ -405,27 +406,28 @@ fun SalesAnalyticsScreen(
                 item {
                     val dateLabel =
                         when (quickDateFilter) {
-                            "Today" -> "📅 " + stringResource(R.string.ana_date_today)
-                            "This Month" -> "📅 " + stringResource(R.string.ana_date_this_month)
+                            "Today" -> stringResource(R.string.ana_date_today)
+                            "This Month" -> stringResource(R.string.ana_date_this_month)
                             "Custom" -> {
                                 if (customStartDate != null) {
                                     val sf = SimpleDateFormat("dd MMM", Locale.getDefault())
                                     if (customEndDate != null && customEndDate != customStartDate) {
-                                        "📅 ${sf.format(Date(customStartDate!!))} - ${sf.format(Date(customEndDate!!))}"
+                                        "${sf.format(Date(customStartDate!!))} - ${sf.format(Date(customEndDate!!))}"
                                     } else {
-                                        "📅 ${sf.format(Date(customStartDate!!))}"
+                                        "${sf.format(Date(customStartDate!!))}"
                                     }
                                 } else {
-                                    "📅 " + stringResource(R.string.ana_date_custom)
+                                    stringResource(R.string.ana_date_custom)
                                 }
                             }
-                            else -> "📅 " + stringResource(R.string.ana_date_all_time)
+                            else -> stringResource(R.string.ana_date_all_time)
                         }
 
                     FilterChip(
                         selected = quickDateFilter != "All Time",
                         onClick = { showDateRangePicker = true },
                         label = { Text(dateLabel) },
+                        leadingIcon = { Icon(Icons.Default.CalendarToday, null, Modifier.size(16.dp)) },
                         trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) },
                     )
                 }

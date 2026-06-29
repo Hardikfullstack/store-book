@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -32,8 +33,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -112,12 +114,15 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Inventory
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.rounded.Cancel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.graphics.luminance
 
 private const val PAGE_SIZE = 50
 
@@ -1067,7 +1072,8 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 }
                             )
                             FilterChip(
-                                label = "⚠️ " + stringResource(id = R.string.inv_filter_low_stock),
+                                label = stringResource(id = R.string.inv_filter_low_stock),
+                                icon = Icons.Outlined.WarningAmber,
                                 isSelected = selectedCategory == "Low Stock",
                                 onClick = {
                                     selectedCategory = "Low Stock"
@@ -1075,7 +1081,8 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 }
                             )
                             FilterChip(
-                                label = "🕒 Expiring ≤30d${if (nearExpiryItems.isNotEmpty()) " (${nearExpiryItems.size})" else ""}",
+                                label = "Expiring ≤30d${if (nearExpiryItems.isNotEmpty()) " (${nearExpiryItems.size})" else ""}",
+                                icon = Icons.Outlined.Schedule,
                                 isSelected = filterMode == "NearExpiry",
                                 onClick = {
                                     filterMode = if (filterMode == "NearExpiry") "All" else "NearExpiry"
@@ -1576,6 +1583,14 @@ fun InventoryItemCard(
     onClick: () -> Unit,
     onRefillClick: () -> Unit,
 ) {
+    val isDarkTheme = MaterialTheme.colorScheme.surface.luminance() < 0.05f
+    // In dark mode dim the white text so it doesn't glare on the dark-red card
+    val lowStockTextColor = if (isDarkTheme) Color.White.copy(alpha = 0.75f) else Color.White
+    val lowStockLabelColor = if (isDarkTheme) Color.White.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.85f)
+    val lowStockBadgeBg = if (isDarkTheme) Color.White.copy(alpha = 0.18f) else Color.White
+    val lowStockBadgeText = if (isDarkTheme) Color.White.copy(alpha = 0.85f) else MaterialTheme.colorScheme.error
+    val lowStockBtnBg = if (isDarkTheme) Color.White.copy(alpha = 0.15f) else Color.White
+    val lowStockBtnText = if (isDarkTheme) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.error
     Card(
         modifier =
             Modifier
@@ -1584,10 +1599,15 @@ fun InventoryItemCard(
         shape = RoundedCornerShape(20.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = if (isLowStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.surface,
+                containerColor = if (isLowStock) {
+                    if (isDarkTheme) Color(0xFF8F2A2A) else MaterialTheme.colorScheme.error
+                } else MaterialTheme.colorScheme.surface,
             ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = if (isLowStock) null else BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if(isLowStock) 2.dp else 0.dp),
     ) {
         Column(
             modifier =
@@ -1606,6 +1626,7 @@ fun InventoryItemCard(
                         text = item.name,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
+                        color = if (isLowStock) lowStockTextColor else Color.Unspecified,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
@@ -1615,23 +1636,24 @@ fun InventoryItemCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .background(if (isLowStock) lowStockBadgeBg else MaterialTheme.colorScheme.primaryContainer)
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = item.category,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = if (isLowStock) lowStockBadgeText else MaterialTheme.colorScheme.primary,
                             maxLines = 1,
                         )
                     }
+
                 }
                 Text(
                     text = "${formatQty(item.quantity)} ${item.unit}",
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 16.sp,
-                    color = if (isLowStock) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onSurface,
+                    color = if (isLowStock) lowStockTextColor else MaterialTheme.colorScheme.onSurface,
                 )
             }
 
@@ -1643,8 +1665,8 @@ fun InventoryItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val labelColor = if (isLowStock) MaterialTheme.colorScheme.onError.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
-                val sellValueColor = if (isLowStock) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.primary
+                val labelColor = if (isLowStock) lowStockLabelColor else MaterialTheme.colorScheme.onSurfaceVariant
+                val sellValueColor = if (isLowStock) lowStockTextColor else MaterialTheme.colorScheme.primary
 
                 Column {
                     if (userRole != "staff") {
@@ -1657,7 +1679,7 @@ fun InventoryItemCard(
                             text = stringResource(id = R.string.inv_buy_prefix, item.buyPrice.toRupee()),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
-                            color = if (isLowStock) MaterialTheme.colorScheme.onError else Color.Unspecified
+                            color = if (isLowStock) lowStockTextColor else Color.Unspecified
                         )
                     }
                 }
@@ -1695,13 +1717,7 @@ fun InventoryItemCard(
                     }
                 val profitAbs = (item.sellPrice - item.buyPrice)
                 val marginColor =
-                    if (isLowStock) {
-                        MaterialTheme.colorScheme.onError
-                    } else if (margin >= 15) {
-                        Emerald500
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    }
+                    if (isLowStock) lowStockTextColor else (if (margin >= 15) Emerald500 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1711,7 +1727,7 @@ fun InventoryItemCard(
                     Text(
                         text = "Profit/ Margin",
                         fontSize = 11.sp,
-                        color = if (isLowStock) MaterialTheme.colorScheme.onError.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (isLowStock) lowStockLabelColor else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = "$marginStr / ${profitAbs.toRupee()} Per ${item.unit}",
@@ -1730,8 +1746,8 @@ fun InventoryItemCard(
                 modifier = Modifier.fillMaxWidth().height(40.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.primary
+                    containerColor = if (isLowStock) lowStockBtnBg else MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = if (isLowStock) lowStockBtnText else MaterialTheme.colorScheme.primary
                 ),
                 contentPadding = PaddingValues(0.dp)
             ) {
@@ -1753,6 +1769,7 @@ fun FilterChip(
     isSelected: Boolean,
     onClick: () -> Unit,
     onPrimaryBg: Boolean = false,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
 ) {
     val bgColor by animateColorAsState(
         targetValue = if (isSelected) {
@@ -1780,6 +1797,12 @@ fun FilterChip(
                 .clickable { onClick() }
                 .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {
-        Text(text = label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = textColor)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(icon, contentDescription = null, tint = textColor, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(4.dp))
+            }
+            Text(text = label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = textColor)
+        }
     }
 }

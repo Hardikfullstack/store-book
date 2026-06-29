@@ -10,9 +10,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingCartCheckout
 import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -218,19 +221,27 @@ fun QuotationCard(
                         color = MaterialTheme.colorScheme.primary,
                     )
                     if (isConverted) {
-                        Text(
-                            text = "✅ CONVERTED",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Emerald500,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Emerald500, modifier = Modifier.size(12.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "CONVERTED",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Emerald500,
+                            )
+                        }
                     } else {
-                        Text(
-                            text = "⏳ PENDING",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Coral500,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.Schedule, contentDescription = null, tint = Coral500, modifier = Modifier.size(12.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "PENDING",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Coral500,
+                            )
+                        }
                     }
                 }
             }
