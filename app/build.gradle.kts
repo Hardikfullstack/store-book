@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ktlint)
-    id("com.google.gms.google-services")
+        id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
 }
 
@@ -55,7 +55,9 @@ android {
     }
 }
 
+
 dependencies {
+    implementation(project(":shared"))
     // 1. Platform & Core
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
@@ -64,6 +66,8 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.material)
 
+    // SQLDelight
+        
     // 2. Compose UI (Material 3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
@@ -89,6 +93,8 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-messaging")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-dataconnect:16.0.0-beta01")
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 
     // 5. Features & Utilities
     implementation(libs.coil.compose)
