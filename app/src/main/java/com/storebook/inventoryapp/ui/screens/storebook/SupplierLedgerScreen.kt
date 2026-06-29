@@ -81,6 +81,7 @@ import com.storebook.inventoryapp.data.repository.Supplier
 import com.storebook.inventoryapp.data.repository.Purchase
 import com.storebook.inventoryapp.data.repository.SupplierBalance
 import com.storebook.inventoryapp.ui.theme.*
+import com.storebook.inventoryapp.ui.components.AlphabetScrubber
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import com.storebook.inventoryapp.utils.toRupee
 import kotlinx.coroutines.launch
@@ -418,6 +419,27 @@ fun SupplierLedgerScreen(
                         }
                     }
                 }
+            }
+
+            // Alphabet Scrubber Overlay
+            if (filteredBalances.isNotEmpty() && searchQ.isBlank()) {
+                AlphabetScrubber(
+                    onLetterSelect = { char ->
+                        val index = filteredBalances.indexOfFirst { it.supplierName.uppercase().firstOrNull()?.let { firstChar -> firstChar >= char } == true }
+                        if (index != -1) {
+                            scope.launch {
+                                listState.scrollToItem(index + 1) // +1 for the Total Payable Card
+                            }
+                        } else {
+                            scope.launch {
+                                listState.scrollToItem(filteredBalances.size)
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 4.dp)
+                )
             }
 
             // ── Supplier Detail Bottom Sheet ────────────────────────────────────

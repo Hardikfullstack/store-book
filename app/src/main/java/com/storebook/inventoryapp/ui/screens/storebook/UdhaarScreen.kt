@@ -91,6 +91,7 @@ import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.data.repository.CustomerBalance
 import com.storebook.inventoryapp.data.repository.UdhaarEntry
+import com.storebook.inventoryapp.ui.components.AlphabetScrubber
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import com.storebook.inventoryapp.utils.toRupee
@@ -121,10 +122,11 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
 
     val filteredBalances by remember {
         derivedStateOf {
+            val sorted = balances.sortedBy { it.customerName.uppercase() }
             if (searchQ.isBlank()) {
-                balances
+                sorted
             } else {
-                balances.filter { it.customerName.contains(searchQ, ignoreCase = true) }
+                sorted.filter { it.customerName.contains(searchQ, ignoreCase = true) }
             }
         }
     }
@@ -591,6 +593,28 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                         }
                     }
                 }
+            }
+
+            // Alphabet Scrubber Overlay
+            if (filteredBalances.isNotEmpty() && searchQ.isBlank()) {
+                AlphabetScrubber(
+                    onLetterSelect = { char ->
+                        val hasHeader = balances.filter { it.netBalance > 0 }.take(4).isNotEmpty()
+                        val offset = if (hasHeader) 1 else 0
+                        
+                        val index = filteredBalances.indexOfFirst { it.customerName.uppercase().firstOrNull()?.let { firstChar -> firstChar >= char } == true }
+                        if (index != -1) {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(index + offset)
+                            }
+                        } else {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(filteredBalances.size + offset - 1)
+                            }
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp)
+                )
             }
 
             // Customer Ledger Detail Sheet

@@ -106,6 +106,7 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.SelectableDates
 import androidx.compose.ui.window.PopupProperties
+import com.storebook.inventoryapp.ui.components.DynamicFastScroller
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import com.storebook.inventoryapp.utils.toRupee
@@ -1029,6 +1030,19 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         }
                     }
                 }
+            }
+
+            // Premium Dynamic Fast Scroller Overlay
+            if (displayedItems.isNotEmpty() && !isLoadingItems && filterMode != "NearExpiry") {
+                DynamicFastScroller(
+                    listState = listState,
+                    itemsCount = displayedItems.size,
+                    thumbLabel = { index ->
+                        val item = displayedItems.getOrNull(index)
+                        item?.let { "${it.category} • ${it.name.take(1).uppercase()}" } ?: ""
+                    },
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp)
+                )
             }
 
             // ── Premium Filter Bottom Sheet ──────────────────────────────────────────
