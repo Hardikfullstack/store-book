@@ -126,12 +126,10 @@ export default function ItemsClient({
     e.preventDefault();
     try {
       const payload = !showAdvanced ? {
-          hsn_code : '';
-          tax_rate : 0;
-          batch_lot_number : '';
-          expiry_date : '';
-          batch_lot_number : '';
-          expiry_date : '';
+          hsn_code : '',
+          tax_rate : 0,
+          batch_lot_number : '',
+          expiry_date : '',
         } : {};
       const id = editingId || crypto.randomUUID();
       await syncItem(dataConnect, {
@@ -495,7 +493,7 @@ export default function ItemsClient({
           </div>
         </div>
       )}
-      <RestockQuantity
+      {/* <RestockQuantity
         open={Boolean(reStockQuantity)}
         item={reStockQuantity}
         userRole={userRole}
@@ -516,7 +514,7 @@ export default function ItemsClient({
           await updateItem(reStockQuantity.id, updatedItem);
           setReStockQuantity(null);
         }}
-      />
+      /> */}
     </div>
   );
 }
