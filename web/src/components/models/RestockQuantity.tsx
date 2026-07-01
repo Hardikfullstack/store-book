@@ -3,8 +3,8 @@ import { addDoc, collection, onSnapshot, orderBy, query } from 'firebase/firesto
 import { db } from '@/lib/firebase';
 
 type SupplierOption = {
-  id?: string;
-  name?: string;
+  id: string;
+  name: string;
 };
 
 type RestockQuantityProps = {
@@ -42,11 +42,14 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
     const supplierQuery = query(collection(db, 'stores', storeId, 'suppliers'), orderBy('name', 'asc'));
     const unsubscribe = onSnapshot(supplierQuery, (snapshot) => {
       const nextSuppliers = snapshot.docs
-        .map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as { name?: string }),
-        }))
-        .filter((supplier): supplier is SupplierOption & { name: string } => Boolean(supplier.name))
+        .map((doc) => {
+          const rawName = doc.data().name;
+          return {
+            id: doc.id,
+            name: typeof rawName === 'string' ? rawName.trim() : '',
+          };
+        })
+        .filter((supplier): supplier is SupplierOption => supplier.name.length > 0)
         .map((supplier) => ({ ...supplier, name: supplier.name.trim() }));
 
       setSuppliers(nextSuppliers);
