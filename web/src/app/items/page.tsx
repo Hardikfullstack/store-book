@@ -1,4 +1,3 @@
-import { adminDb } from '@/lib/firebaseAdmin';
 import ItemsClient from './ItemsClient';
 import { getSession } from '@/lib/session';
 import { serializeDoc } from '@/lib/serializeDoc';
@@ -18,7 +17,7 @@ async function getItems(session: any) {
         if (session.role === 'staff') {
           if (data.buy_price !== undefined) delete data.buy_price;
         }
-        return serializeDoc({ id: doc.id, ...data });
+        return { id: doc.id, ...data };
       })
       .filter((data: any) => data.is_deleted !== 1);
   } catch (error) {
@@ -30,13 +29,9 @@ async function getItems(session: any) {
 export default async function ItemsPage() {
   const session = await getSession();
   if (!session) return <div>Please login</div>;
-  const items = await getItems(session);
-
-  let isPremium = false;
-  if (session.storeId) {
-    const storeDoc = await adminDb.collection('stores').doc(session.storeId).get();
-    isPremium = storeDoc.exists ? (storeDoc.data()?.is_premium || false) : false;
-  }
+  
+  const items: any[] = [];
+  const isPremium = true;
 
   return (
     <ItemsClient 

@@ -19,18 +19,18 @@ import kotlinx.coroutines.flow.filterNotNull as _flow_filterNotNull
 import kotlinx.coroutines.flow.map as _flow_map
 
 
-public interface GetActiveItemsQuery :
+public interface GetUserQuery :
     com.google.firebase.dataconnect.generated.GeneratedQuery<
       StorebookConnectorConnector,
-      GetActiveItemsQuery.Data,
-      GetActiveItemsQuery.Variables
+      GetUserQuery.Data,
+      GetUserQuery.Variables
     >
 {
   
     @kotlinx.serialization.Serializable
   public data class Variables(
   
-    val storeId:
+    val id:
     String
   ) {
     
@@ -42,26 +42,24 @@ public interface GetActiveItemsQuery :
     @kotlinx.serialization.Serializable
   public data class Data(
   
-    val items:
-    List<ItemsItem>
+    val user:
+    User?
   ) {
     
       
         @kotlinx.serialization.Serializable
-  public data class ItemsItem(
+  public data class User(
   
     val id:
     String,
-    val name:
+    val phoneNumber:
+    String?,
+    val role:
     String,
-    val quantity:
-    Double,
-    val sellPrice:
-    Double,
-    val buyPrice:
-    Double,
-    val category:
-    String
+    val stores:
+    List<String>?,
+    val storeId:
+    String?
   ) {
     
     
@@ -73,7 +71,7 @@ public interface GetActiveItemsQuery :
   
 
   public companion object {
-    public val operationName: String = "GetActiveItems"
+    public val operationName: String = "GetUser"
 
     public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
       kotlinx.serialization.serializer()
@@ -83,50 +81,50 @@ public interface GetActiveItemsQuery :
   }
 }
 
-public fun GetActiveItemsQuery.ref(
+public fun GetUserQuery.ref(
   
-    storeId: String,
+    id: String,
   
   
 ): com.google.firebase.dataconnect.QueryRef<
-    GetActiveItemsQuery.Data,
-    GetActiveItemsQuery.Variables
+    GetUserQuery.Data,
+    GetUserQuery.Variables
   > =
   ref(
     
-      GetActiveItemsQuery.Variables(
-        storeId=storeId,
+      GetUserQuery.Variables(
+        id=id,
   
       )
     
   )
 
-public suspend fun GetActiveItemsQuery.execute(
+public suspend fun GetUserQuery.execute(
   
-    storeId: String,
+    id: String,
   
   
   ): com.google.firebase.dataconnect.QueryResult<
-    GetActiveItemsQuery.Data,
-    GetActiveItemsQuery.Variables
+    GetUserQuery.Data,
+    GetUserQuery.Variables
   > =
   ref(
     
-      storeId=storeId,
+      id=id,
   
     
   ).execute()
 
 
-  public fun GetActiveItemsQuery.flow(
+  public fun GetUserQuery.flow(
     
-      storeId: String,
+      id: String,
   
     
-    ): kotlinx.coroutines.flow.Flow<GetActiveItemsQuery.Data> =
+    ): kotlinx.coroutines.flow.Flow<GetUserQuery.Data> =
     ref(
         
-          storeId=storeId,
+          id=id,
   
         
       ).subscribe()

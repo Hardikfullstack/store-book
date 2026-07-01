@@ -1,33 +1,25 @@
 import { NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebaseAdmin';
 import { getSession } from '@/lib/session';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getDataConnect } from 'firebase-admin/data-connect';
 
 export async function POST(request: Request) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // In a real application with Razorpay Subscriptions, we would call:
-    // razorpay.subscriptions.cancel(subscription_id)
-    // For this demonstration (since we used simulated one-time orders), 
-    // we will directly downgrade the user's account in Firebase.
+    const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
 
     // 1. Update Store Document
-    await adminDb.collection('stores').doc(session.storeId).update({
-      is_premium: false,
-      subscription_expires_at: FieldValue.delete(),
-      subscription_platform: FieldValue.delete()
-    });
+    await dc.executeGraphql(
+      `mutation CancelStore($id: String!) { store_update(id: $id, data: { isPremium: false, subscriptionExpiresAt: null, subscriptionPlatform: null, subscriptionStatus: "cancelled", subscriptionId: null }) }`,
+      { variables: { id: session.storeId } }
+    );
 
     // 2. Update User Document
-    await adminDb.collection('users').doc(session.docId).update({
-      subscription: {
-        status: 'inactive',
-        plan: 'free',
-        cancelledAt: Date.now()
-      }
-    });
+    await dc.executeGraphql(
+      `mutation CancelUser($id: String!) { user_update(id: $id, data: { subscriptionStatus: "inactive", subscriptionPlan: "free", subscriptionExpiresAt: null }) }`,
+      { variables: { id: session.docId } }
+    );
 
     return NextResponse.json({ success: true, message: 'Subscription cancelled successfully' });
   } catch (error) {

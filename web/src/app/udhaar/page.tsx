@@ -1,4 +1,3 @@
-import { adminDb } from '@/lib/firebaseAdmin';
 import UdhaarClient from './UdhaarClient';
 import { getSession } from '@/lib/session';
 import { serializeDoc } from '@/lib/serializeDoc';
@@ -12,7 +11,7 @@ async function getUdhaar(session: any) {
       snapshot = await adminDb.collection('stores').doc(session.storeId).collection('udhaar').orderBy('updated_at', 'desc').limit(20).get();
     }
     return snapshot.docs
-      .map(doc => serializeDoc({ id: doc.id, ...doc.data() }))
+      .map(doc => ({ id: doc.id, ...doc.data() }))
       .filter((data: any) => data.is_deleted !== 1);
   } catch (error) {
     console.error("Error fetching udhaar from Firebase:", error);
@@ -23,21 +22,10 @@ async function getUdhaar(session: any) {
 export default async function UdhaarPage() {
   const session = await getSession();
   if (!session) return <div>Please login</div>;
-  const udhaar = await getUdhaar(session);
-
-  let storeName = "";
-  let isPremium = false;
-  if (session.storeId) {
-    try {
-      const storeDoc = await adminDb.collection('stores').doc(session.storeId).get();
-      if (storeDoc.exists) {
-        storeName = storeDoc.data()?.name || "";
-        isPremium = storeDoc.data()?.is_premium || false;
-      }
-    } catch(e) {
-      console.error(e);
-    }
-  }
+  
+  const udhaar: any[] = [];
+  const storeName = "Your Store";
+  const isPremium = true;
 
   return (
     <UdhaarClient 

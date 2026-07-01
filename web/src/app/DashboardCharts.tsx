@@ -64,7 +64,7 @@ export default function DashboardCharts({ salesData, itemsData }: { salesData: a
                 ))}
               </Pie>
               <Tooltip 
-                formatter={(value: any) => chartType === 'customer' ? `₹${value}` : `${value} units`}
+                formatter={(value: any) => chartType === 'customer' ? `₹${Number(value).toFixed(2)}` : `${value} units`}
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
               />
               <Legend verticalAlign="bottom" height={36}/>

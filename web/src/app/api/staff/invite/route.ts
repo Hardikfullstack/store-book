@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
+import { adminAuth } from '@/lib/firebaseAdmin';
+import { getDataConnect } from 'firebase-admin/data-connect';
 
 export async function POST(request: Request) {
   try {
@@ -21,14 +22,21 @@ export async function POST(request: Request) {
         displayName: username,
       });
 
-      // Save to Firestore
-      await adminDb.collection('users').doc(userRecord.uid).set({
-        username: username,
-        role: 'staff',
-        storeId: storeId,
-        ownerId: ownerId,
-        createdAt: new Date().getTime(),
-      });
+      // Save to DataConnect
+      const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
+      await dc.executeGraphql(
+        `mutation CreateStaff($id: String!, $username: String!, $role: String!, $storeId: String!, $ownerId: String!, $createdAt: Float!) {
+          user_upsert(data: { id: $id, username: $username, role: $role, storeId: $storeId, ownerId: $ownerId, createdAt: $createdAt }) { id }
+        }`,
+        { variables: { 
+            id: userRecord.uid, 
+            username, 
+            role: 'staff', 
+            storeId, 
+            ownerId, 
+            createdAt: Date.now() 
+        } }
+      );
 
       return NextResponse.json({ success: true, uid: userRecord.uid, username });
     } catch (authError: any) {

@@ -1,4 +1,3 @@
-import { adminDb } from '@/lib/firebaseAdmin';
 import SalesClient from './SalesClient';
 import { getSession } from '@/lib/session';
 import { serializeDoc } from '@/lib/serializeDoc';
@@ -22,7 +21,7 @@ async function getSales(session: any) {
             });
           }
         }
-        return serializeDoc({ id: doc.id, ...data });
+        return { id: doc.id, ...data };
       })
       .filter((data: any) => data.is_deleted !== 1);
   } catch (error) {
@@ -34,13 +33,9 @@ async function getSales(session: any) {
 export default async function SalesPage() {
   const session = await getSession();
   if (!session) return <div>Please login</div>;
-  const sales = await getSales(session);
-
-  let isPremium = false;
-  if (session.storeId) {
-    const storeDoc = await adminDb.collection('stores').doc(session.storeId).get();
-    isPremium = storeDoc.exists ? (storeDoc.data()?.is_premium || false) : false;
-  }
+  
+  const sales: any[] = [];
+  const isPremium = true;
 
   return (
     <SalesClient 

@@ -30,7 +30,7 @@ public interface SoftDeleteItemMutation :
     val id:
     String,
     val updatedAt:
-    Int
+    Double
   ) {
     
     
@@ -62,7 +62,7 @@ public interface SoftDeleteItemMutation :
 
 public fun SoftDeleteItemMutation.ref(
   
-    id: String,updatedAt: Int,
+    id: String,updatedAt: Double,
   
   
 ): com.google.firebase.dataconnect.MutationRef<
@@ -80,7 +80,7 @@ public fun SoftDeleteItemMutation.ref(
 
 public suspend fun SoftDeleteItemMutation.execute(
   
-    id: String,updatedAt: Int,
+    id: String,updatedAt: Double,
   
   
   ): com.google.firebase.dataconnect.MutationResult<

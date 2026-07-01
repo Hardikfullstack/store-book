@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
-import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
+import { adminAuth } from '@/lib/firebaseAdmin';
+import { getDataConnect } from 'firebase-admin/data-connect';
 
 export async function getSession() {
   const cookieStore = await cookies();
@@ -8,20 +9,31 @@ export async function getSession() {
 
   try {
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+    const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
     
-    // Fetch the user's role and store mapping from Firestore
-    // Seed script used phone_number, but staff uses uid
-    let userDoc = await adminDb.collection('users').doc(decodedClaims.uid).get();
-    if (!userDoc.exists && decodedClaims.phone_number) {
-        userDoc = await adminDb.collection('users').doc(decodedClaims.phone_number).get();
+    // Attempt to fetch user by UID first
+    let result = await dc.executeGraphql(
+      `query GetUser($id: String!) { user(id: $id) { id, phoneNumber, role, stores, storeId } }`,
+      { variables: { id: decodedClaims.uid } }
+    );
+    
+    let userDoc = (result.data as any).user;
+
+    // Fallback for legacy phone-number based IDs if not found
+    if (!userDoc && decodedClaims.phone_number) {
+      result = await dc.executeGraphql(
+        `query GetUser($id: String!) { user(id: $id) { id, phoneNumber, role, stores, storeId } }`,
+        { variables: { id: decodedClaims.phone_number } }
+      );
+      userDoc = (result.data as any).user;
     }
     
-    if (!userDoc.exists) {
-      console.error("User not found in database for uid:", decodedClaims.uid, "or phone:", decodedClaims.phone_number);
+    if (!userDoc) {
+      console.error("User not found in DataConnect database for uid:", decodedClaims.uid, "or phone:", decodedClaims.phone_number);
       return null;
     }
 
-    const userData = userDoc.data();
+    const userData = userDoc;
     const activeStoreIdCookie = cookieStore.get('activeStoreId')?.value;
     
     const role = userData?.role || 'owner';
@@ -33,23 +45,30 @@ export async function getSession() {
         activeStoreId = userData?.storeId || '';
     } else if (role === 'owner') {
         // Owners can switch stores, but ONLY to stores they actually own.
-        if (activeStoreIdCookie && userData?.stores?.includes(activeStoreIdCookie)) {
+        if (activeStoreIdCookie && (userData?.stores?.includes(activeStoreIdCookie) || userData?.storeId === activeStoreIdCookie)) {
             activeStoreId = activeStoreIdCookie;
         } else {
             // Fallback to their first owned store if the cookie is forged or missing
-            activeStoreId = userData?.stores && userData.stores.length > 0 ? userData.stores[0] : '';
+            activeStoreId = (userData?.stores && userData.stores.length > 0) 
+              ? userData.stores[0] 
+              : (userData?.storeId || '');
         }
     } else if (role === 'admin') {
         // Admins can view any store
         activeStoreId = activeStoreIdCookie || 'admin_dashboard';
     }
 
+    // Ensure stores array is always populated if storeId exists
+    const resolvedStores = userData?.stores && userData.stores.length > 0 
+      ? userData.stores 
+      : (userData?.storeId ? [userData.storeId] : []);
+
     return { 
       uid: decodedClaims.uid, 
       phone: decodedClaims.phone_number,
       role: role, 
       storeId: activeStoreId,
-      stores: userData?.stores || [],
+      stores: resolvedStores,
       docId: userDoc.id
     };
   } catch (error) {

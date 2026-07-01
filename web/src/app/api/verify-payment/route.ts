@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { adminDb } from '@/lib/firebaseAdmin';
 import { getSession } from '@/lib/session';
+import { getDataConnect } from 'firebase-admin/data-connect';
 
 export async function POST(request: Request) {
   try {
@@ -30,23 +30,21 @@ export async function POST(request: Request) {
     // 1 Month Subscription initial setup (will be extended by webhooks on subsequent charges)
     const expiresAt = Date.now() + (31 * 24 * 60 * 60 * 1000); 
 
-    await adminDb.collection('stores').doc(session.storeId).update({
-      is_premium: true,
-      subscription_expires_at: expiresAt,
-      subscription_platform: 'web',
-      subscription_id: razorpay_subscription_id,
-      subscription_status: 'active'
-    });
+    const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
 
-    await adminDb.collection('users').doc(session.docId).update({
-      subscription: {
-        status: 'active',
-        plan: 'pro',
-        expiresAt: expiresAt,
-        platform: 'web',
-        subscriptionId: razorpay_subscription_id
-      }
-    });
+    await dc.executeGraphql(
+      `mutation UpdateStorePayment($id: String!, $expiresAt: Float!, $subId: String!) { 
+         store_update(id: $id, data: { isPremium: true, subscriptionExpiresAt: $expiresAt, subscriptionPlatform: "web", subscriptionId: $subId, subscriptionStatus: "active" }) 
+       }`,
+      { variables: { id: session.storeId, expiresAt: expiresAt, subId: razorpay_subscription_id } }
+    );
+
+    await dc.executeGraphql(
+      `mutation UpdateUserPayment($id: String!, $expiresAt: Float!, $subId: String!) { 
+         user_update(id: $id, data: { subscriptionStatus: "active", subscriptionPlan: "pro", subscriptionExpiresAt: $expiresAt, subscriptionPlatform: "web", subscriptionId: $subId }) 
+       }`,
+      { variables: { id: session.docId, expiresAt: expiresAt, subId: razorpay_subscription_id } }
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

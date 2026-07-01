@@ -32,7 +32,7 @@ public interface SyncSaleMutation :
     val storeId:
     String,
     val timestamp:
-    Int,
+    Double,
     val totalAmount:
     Double,
     val discountAmount:
@@ -54,7 +54,7 @@ public interface SyncSaleMutation :
     val isDeleted:
     Boolean,
     val updatedAt:
-    Int
+    Double
   ) {
     
     
@@ -65,7 +65,7 @@ public interface SyncSaleMutation :
       public interface Builder {
         public var id: String
         public var storeId: String
-        public var timestamp: Int
+        public var timestamp: Double
         public var totalAmount: Double
         public var discountAmount: Double
         public var customerName: String?
@@ -76,14 +76,14 @@ public interface SyncSaleMutation :
         public var type: String
         public var notes: String?
         public var isDeleted: Boolean
-        public var updatedAt: Int
+        public var updatedAt: Double
         
       }
 
       public companion object {
         @Suppress("NAME_SHADOWING")
         public fun build(
-          id: String,storeId: String,timestamp: Int,totalAmount: Double,discountAmount: Double,type: String,isDeleted: Boolean,updatedAt: Int,
+          id: String,storeId: String,timestamp: Double,totalAmount: Double,discountAmount: Double,type: String,isDeleted: Boolean,updatedAt: Double,
           block_: Builder.() -> Unit
         ): Variables {
           var id= id
@@ -117,7 +117,7 @@ public interface SyncSaleMutation :
               get() = throw UnsupportedOperationException("getting builder values is not supported")
               set(value_) { storeId = value_ }
               
-            override var timestamp: Int
+            override var timestamp: Double
               get() = throw UnsupportedOperationException("getting builder values is not supported")
               set(value_) { timestamp = value_ }
               
@@ -161,7 +161,7 @@ public interface SyncSaleMutation :
               get() = throw UnsupportedOperationException("getting builder values is not supported")
               set(value_) { isDeleted = value_ }
               
-            override var updatedAt: Int
+            override var updatedAt: Double
               get() = throw UnsupportedOperationException("getting builder values is not supported")
               set(value_) { updatedAt = value_ }
               
@@ -203,7 +203,7 @@ public interface SyncSaleMutation :
 
 public fun SyncSaleMutation.ref(
   
-    id: String,storeId: String,timestamp: Int,totalAmount: Double,discountAmount: Double,type: String,isDeleted: Boolean,updatedAt: Int,
+    id: String,storeId: String,timestamp: Double,totalAmount: Double,discountAmount: Double,type: String,isDeleted: Boolean,updatedAt: Double,
   
     block_: SyncSaleMutation.Variables.Builder.() -> Unit
   
@@ -223,7 +223,7 @@ public fun SyncSaleMutation.ref(
 
 public suspend fun SyncSaleMutation.execute(
   
-    id: String,storeId: String,timestamp: Int,totalAmount: Double,discountAmount: Double,type: String,isDeleted: Boolean,updatedAt: Int,
+    id: String,storeId: String,timestamp: Double,totalAmount: Double,discountAmount: Double,type: String,isDeleted: Boolean,updatedAt: Double,
   
     block_: SyncSaleMutation.Variables.Builder.() -> Unit
   

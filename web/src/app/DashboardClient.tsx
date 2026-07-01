@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Package, TrendingUp, Users, Receipt, ArrowUpRight, ArrowDownRight, Store } from 'lucide-react';
 import DashboardCharts from './DashboardCharts';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { dataConnect } from '@/lib/firebase';
+import { getActiveItems, getActiveSales, getActiveUdhaars, getActiveExpenses } from '@/dataconnect';
+import { FormattedAmount } from '@/components/FormattedAmount';
 
 interface Stats {
   totalItems: number;
@@ -54,72 +55,52 @@ export default function DashboardClient({
       }));
     };
 
-    const unsubItems = onSnapshot(collection(db, 'stores', storeId, 'items'), (snap) => {
-      itemsList = snap.docs
-        .map(d => {
-          const data = d.data();
-          if (userRole === 'staff') delete data.buy_price;
-          return { id: d.id, ...data };
-        })
-        .filter((item: any) => item.is_deleted !== 1);
-      updateStats();
-    }, (error) => {
-      console.error("Dashboard items sync error:", error);
-    });
+    let isMounted = true;
+    
+    const fetchDashboardData = async () => {
+      try {
+        const [itemsRes, salesRes, udhaarsRes, expensesRes] = await Promise.all([
+          getActiveItems(dataConnect, { storeId }),
+          getActiveSales(dataConnect, { storeId }),
+          getActiveUdhaars(dataConnect, { storeId }),
+          getActiveExpenses(dataConnect, { storeId })
+        ]);
+        
+        if (!isMounted) return;
 
-    const unsubSales = onSnapshot(collection(db, 'stores', storeId, 'sales'), (snap) => {
-      salesList = snap.docs
-        .map(d => {
-          const data = d.data();
-          if (userRole === 'staff' && Array.isArray(data.items)) {
-            data.items.forEach((i: any) => { delete i.buy_price; });
-          }
-          return { id: d.id, ...data };
-        })
-        .filter((sale: any) => sale.is_deleted !== 1);
-      updateStats();
-    }, (error) => {
-      console.error("Dashboard sales sync error:", error);
-    });
+        itemsList = itemsRes.data.items.map((item: any) => {
+          if (userRole === 'staff') delete item.buyPrice;
+          return { id: item.id, ...item };
+        });
 
-    const unsubUdhaar = onSnapshot(collection(db, 'stores', storeId, 'udhaar'), (snap) => {
-      udhaarList = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter((u: any) => u.is_deleted !== 1);
-      updateStats();
-    }, (error) => {
-      console.error("Dashboard udhaar sync error:", error);
-    });
+        salesList = salesRes.data.sales.map((sale: any) => {
+          // Note: In GetActiveSales, items sub-data is not fetched directly in this simple query.
+          // But totalAmount is available.
+          return { id: sale.id, ...sale, total_amount: sale.totalAmount };
+        });
 
-    const unsubExpenses = onSnapshot(collection(db, 'stores', storeId, 'expenses'), (snap) => {
-      expensesList = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter((e: any) => e.is_deleted !== 1);
-      updateStats();
-    }, (error) => {
-      console.error("Dashboard expenses sync error:", error);
-    });
+        udhaarList = udhaarsRes.data.udhaarEntries.map((u: any) => ({ id: u.id, ...u }));
+        expensesList = expensesRes.data.expenseEntries.map((e: any) => ({ id: e.id, ...e }));
+
+        updateStats();
+      } catch (error) {
+        console.error("Dashboard DataConnect sync error:", error);
+      }
+    };
+
+    fetchDashboardData();
+    const intervalId = setInterval(fetchDashboardData, 30000);
 
     return () => {
-      unsubItems();
-      unsubSales();
-      unsubUdhaar();
-      unsubExpenses();
+      isMounted = false;
+      clearInterval(intervalId);
     };
   }, [isPremium, storeId, userRole]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(amount || 0);
-  };
 
   const statCards = [
     {
       title: 'Total Sales',
-      value: formatCurrency(stats.totalSales),
+      value: <FormattedAmount amount={stats.totalSales} />,
       icon: <TrendingUp className="text-white" size={24} />,
       color: 'bg-teal-500',
       trend: '+12.5%',
@@ -127,7 +108,7 @@ export default function DashboardClient({
     },
     {
       title: 'Total Udhaar',
-      value: formatCurrency(stats.totalUdhaar),
+      value: <FormattedAmount amount={stats.totalUdhaar} />,
       icon: <Users className="text-white" size={24} />,
       color: 'bg-blue-500',
       trend: '+5.2%',
@@ -135,7 +116,7 @@ export default function DashboardClient({
     },
     {
       title: 'Total Expenses',
-      value: formatCurrency(stats.totalExpenses),
+      value: <FormattedAmount amount={stats.totalExpenses} />,
       icon: <Receipt className="text-white" size={24} />,
       color: 'bg-orange-500',
       trend: '-2.4%',
@@ -154,7 +135,7 @@ export default function DashboardClient({
   if (userRole === 'admin') {
     statCards.unshift({
       title: 'Total Stores',
-      value: stats.totalStores.toString(),
+      value: stats.totalStores as any,
       icon: <Store className="text-white" size={24} />,
       color: 'bg-purple-500',
       trend: '+2 new',

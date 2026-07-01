@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, UserCheck, UserMinus, Trash2, Loader2, ArrowDownCircle, MessageCircle } from 'lucide-react';
 import { addUdhaar, deleteUdhaar, fetchMoreData } from '@/app/actions';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { dataConnect } from '@/lib/firebase';
+import { getActiveUdhaars, syncUdhaar, softDeleteUdhaar } from '@/dataconnect';
+import { FormattedAmount } from '@/components/FormattedAmount';
 
 export default function UdhaarClient({ 
   initialUdhaar, 
@@ -22,21 +23,32 @@ export default function UdhaarClient({
   useEffect(() => {
     if (!isPremium || !storeId) return;
 
-    const q = collection(db, 'stores', storeId, 'udhaar');
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const updated = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as any))
-        .filter(record => record.is_deleted !== 1);
+    let isMounted = true;
+    const fetchUdhaars = async () => {
+      try {
+        const response = await getActiveUdhaars(dataConnect, { storeId });
+        if (!isMounted) return;
+        
+        const updated = response.data.udhaarEntries.map((record: any) => ({
+          ...record,
+          is_deleted: 0,
+          updated_at: record.updatedAt || Date.now(),
+          customer_name: record.customerName
+        }));
 
-      // Sort by updated_at or timestamp desc in memory
-      updated.sort((a, b) => (b.updated_at || b.timestamp || 0) - (a.updated_at || a.timestamp || 0));
+        setUdhaar(updated);
+      } catch (error) {
+        console.error("Data Connect udhaar sync error:", error);
+      }
+    };
 
-      setUdhaar(updated);
-    }, (error) => {
-      console.error("Real-time udhaar sync error:", error);
-    });
+    fetchUdhaars();
+    const intervalId = setInterval(fetchUdhaars, 30000);
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, [isPremium, storeId]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,15 +81,35 @@ export default function UdhaarClient({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addUdhaar(formData);
-    setShowModal(false);
-    window.location.reload(); 
+    try {
+      const id = crypto.randomUUID();
+      const now = Date.now();
+      await syncUdhaar(dataConnect, {
+        id,
+        storeId: storeId as string,
+        customerName: formData.customer_name,
+        amount: formData.amount,
+        type: formData.type,
+        timestamp: now,
+        notes: formData.notes,
+        isDeleted: false,
+        updatedAt: Math.floor(now / 1000)
+      });
+      setShowModal(false);
+      window.location.reload(); 
+    } catch (err) {
+      console.error("Failed to save udhaar:", err);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this record?')) {
-      await deleteUdhaar(id);
-      window.location.reload();
+      try {
+        await softDeleteUdhaar(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
+        window.location.reload();
+      } catch (err) {
+        console.error("Failed to delete udhaar:", err);
+      }
     }
   };
 
@@ -167,7 +199,7 @@ export default function UdhaarClient({
                     {record.notes || '-'}
                   </td>
                   <td className={`px-6 py-4 text-right font-bold ${record.type?.toLowerCase() === 'given' ? 'text-red-600 dark:text-red-400' : 'text-teal-600 dark:text-teal-400'}`}>
-                    ₹{record.amount}
+                    <FormattedAmount amount={record.amount} />
                   </td>
                   <td className="px-6 py-4 text-right space-x-3">
                     <button 

@@ -16,6 +16,16 @@ package com.storebook.inventoryapp.dataconnect
 
 
   @kotlinx.serialization.Serializable
+  public data class ExpenseEntryKey(
+  
+    val id:
+    String
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
   public data class ItemKey(
   
     val id:
@@ -37,6 +47,26 @@ package com.storebook.inventoryapp.dataconnect
 
   @kotlinx.serialization.Serializable
   public data class SaleKey(
+  
+    val id:
+    String
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
+  public data class UdhaarEntryKey(
+  
+    val id:
+    String
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
+  public data class UserKey(
   
     val id:
     String

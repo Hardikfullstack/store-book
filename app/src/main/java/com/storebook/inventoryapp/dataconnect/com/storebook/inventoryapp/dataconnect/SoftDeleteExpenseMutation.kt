@@ -16,11 +16,11 @@ package com.storebook.inventoryapp.dataconnect
 
 
 
-public interface SyncSaleItemMutation :
+public interface SoftDeleteExpenseMutation :
     com.google.firebase.dataconnect.generated.GeneratedMutation<
       StorebookConnectorConnector,
-      SyncSaleItemMutation.Data,
-      SyncSaleItemMutation.Variables
+      SoftDeleteExpenseMutation.Data,
+      SoftDeleteExpenseMutation.Variables
     >
 {
   
@@ -29,24 +29,6 @@ public interface SyncSaleItemMutation :
   
     val id:
     String,
-    val storeId:
-    String,
-    val saleId:
-    String,
-    val itemId:
-    String,
-    val itemName:
-    String,
-    val unit:
-    String,
-    val quantity:
-    Double,
-    val sellPrice:
-    Double,
-    val buyPrice:
-    Double,
-    val isDeleted:
-    Boolean,
     val updatedAt:
     Double
   ) {
@@ -58,9 +40,9 @@ public interface SyncSaleItemMutation :
   
     @kotlinx.serialization.Serializable
   public data class Data(
-  @kotlinx.serialization.SerialName("saleItemDetail_upsert")
+  @kotlinx.serialization.SerialName("expenseEntry_update")
     val key:
-    SaleItemDetailKey
+    ExpenseEntryKey?
   ) {
     
     
@@ -68,7 +50,7 @@ public interface SyncSaleItemMutation :
   
 
   public companion object {
-    public val operationName: String = "SyncSaleItem"
+    public val operationName: String = "SoftDeleteExpense"
 
     public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
       kotlinx.serialization.serializer()
@@ -78,36 +60,36 @@ public interface SyncSaleItemMutation :
   }
 }
 
-public fun SyncSaleItemMutation.ref(
+public fun SoftDeleteExpenseMutation.ref(
   
-    id: String,storeId: String,saleId: String,itemId: String,itemName: String,unit: String,quantity: Double,sellPrice: Double,buyPrice: Double,isDeleted: Boolean,updatedAt: Double,
+    id: String,updatedAt: Double,
   
   
 ): com.google.firebase.dataconnect.MutationRef<
-    SyncSaleItemMutation.Data,
-    SyncSaleItemMutation.Variables
+    SoftDeleteExpenseMutation.Data,
+    SoftDeleteExpenseMutation.Variables
   > =
   ref(
     
-      SyncSaleItemMutation.Variables(
-        id=id,storeId=storeId,saleId=saleId,itemId=itemId,itemName=itemName,unit=unit,quantity=quantity,sellPrice=sellPrice,buyPrice=buyPrice,isDeleted=isDeleted,updatedAt=updatedAt,
+      SoftDeleteExpenseMutation.Variables(
+        id=id,updatedAt=updatedAt,
   
       )
     
   )
 
-public suspend fun SyncSaleItemMutation.execute(
+public suspend fun SoftDeleteExpenseMutation.execute(
   
-    id: String,storeId: String,saleId: String,itemId: String,itemName: String,unit: String,quantity: Double,sellPrice: Double,buyPrice: Double,isDeleted: Boolean,updatedAt: Double,
+    id: String,updatedAt: Double,
   
   
   ): com.google.firebase.dataconnect.MutationResult<
-    SyncSaleItemMutation.Data,
-    SyncSaleItemMutation.Variables
+    SoftDeleteExpenseMutation.Data,
+    SoftDeleteExpenseMutation.Variables
   > =
   ref(
     
-      id=id,storeId=storeId,saleId=saleId,itemId=itemId,itemName=itemName,unit=unit,quantity=quantity,sellPrice=sellPrice,buyPrice=buyPrice,isDeleted=isDeleted,updatedAt=updatedAt,
+      id=id,updatedAt=updatedAt,
   
     
   ).execute()

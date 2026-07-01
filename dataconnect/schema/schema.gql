@@ -13,13 +13,13 @@ type Item @table {
   
   # Sync Columns
   isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
-  updatedAt: Int! @col(name: "updated_at")
+  updatedAt: Float! @col(name: "updated_at")
 }
 
 type Sale @table {
   id: String! @col(name: "id") @default(expr: "uuidV4()")
   storeId: String! @col(name: "store_id")
-  timestamp: Int!
+  timestamp: Float!
   totalAmount: Float!
   discountAmount: Float!
   customerName: String
@@ -32,7 +32,7 @@ type Sale @table {
   
   # Sync Columns
   isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
-  updatedAt: Int! @col(name: "updated_at")
+  updatedAt: Float! @col(name: "updated_at")
 }
 
 type SaleItemDetail @table {
@@ -51,7 +51,7 @@ type SaleItemDetail @table {
   
   # Sync Columns
   isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
-  updatedAt: Int! @col(name: "updated_at")
+  updatedAt: Float! @col(name: "updated_at")
 }
 
 type UdhaarEntry @table {
@@ -60,12 +60,12 @@ type UdhaarEntry @table {
   customerName: String!
   amount: Float!
   type: String!
-  timestamp: Int!
+  timestamp: Float!
   notes: String
   
   # Sync Columns
   isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
-  updatedAt: Int! @col(name: "updated_at")
+  updatedAt: Float! @col(name: "updated_at")
 }
 
 type ExpenseEntry @table {
@@ -74,13 +74,13 @@ type ExpenseEntry @table {
   type: String!
   description: String!
   amount: Float!
-  timestamp: Int!
+  timestamp: Float!
   supplierName: String
   supplierPhone: String
   
   # Sync Columns
   isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
-  updatedAt: Int! @col(name: "updated_at")
+  updatedAt: Float! @col(name: "updated_at")
 }
 
 type Supplier @table {
@@ -93,7 +93,7 @@ type Supplier @table {
   
   # Sync Columns
   isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
-  updatedAt: Int! @col(name: "updated_at")
+  updatedAt: Float! @col(name: "updated_at")
 }
 
 type Purchase @table {
@@ -104,14 +104,14 @@ type Purchase @table {
   totalAmount: Float!
   taxAmount: Float! @default(value: 0.0)
   type: String! @default(value: "BILL")
-  timestamp: Int!
+  timestamp: Float!
   notes: String
   
   supplier: Supplier! @ref
   
   # Sync Columns
   isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
-  updatedAt: Int! @col(name: "updated_at")
+  updatedAt: Float! @col(name: "updated_at")
 }
 
 type PurchaseItemDetail @table {
@@ -129,7 +129,7 @@ type PurchaseItemDetail @table {
   
   # Sync Columns
   isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
-  updatedAt: Int! @col(name: "updated_at")
+  updatedAt: Float! @col(name: "updated_at")
 }
 
 type ItemBatch @table {
@@ -137,22 +137,42 @@ type ItemBatch @table {
   storeId: String! @col(name: "store_id")
   itemId: String! @col(name: "item_id")
   batchNumber: String
-  expiryDate: Int
+  expiryDate: Float
   quantity: Float!
   costPrice: Float!
-  timestamp: Int!
+  timestamp: Float!
   notes: String
   
   item: Item! @ref
   
   # Sync Columns
   isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
-  updatedAt: Int! @col(name: "updated_at")
+  updatedAt: Float! @col(name: "updated_at")
 }
 
 type User @table {
   id: String! @col(name: "id")
   phoneNumber: String
-  createdAt: Int!
+  username: String
+  createdAt: Float!
   role: String! @default(value: "owner")
+  stores: [String]
+  storeId: String
+  ownerId: String
+  subscriptionStatus: String @col(name: "subscription_status")
+  subscriptionPlan: String @col(name: "subscription_plan")
+  subscriptionExpiresAt: Float @col(name: "subscription_expires_at")
+  subscriptionPlatform: String @col(name: "subscription_platform")
+  subscriptionId: String @col(name: "subscription_id")
+}
+
+type Store @table {
+  id: String! @col(name: "id")
+  name: String
+  isActive: Boolean @col(name: "is_active") @default(value: true)
+  isPremium: Boolean @col(name: "is_premium")
+  subscriptionExpiresAt: Float @col(name: "subscription_expires_at")
+  subscriptionPlatform: String @col(name: "subscription_platform")
+  subscriptionId: String @col(name: "subscription_id")
+  subscriptionStatus: String @col(name: "subscription_status")
 }

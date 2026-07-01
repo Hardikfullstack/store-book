@@ -6,9 +6,11 @@ import { auth } from '@/lib/firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 import { login } from '@/app/actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { countryCodes } from '@/lib/constants';
 
 export default function LoginPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [countryCode, setCountryCode] = useState('+91');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
   const [loading, setLoading] = useState(false);
@@ -21,9 +23,9 @@ export default function LoginPage() {
   const [staffPassword, setStaffPassword] = useState('');
 
   const formatPhoneNumber = (number: string) => {
-    // Basic formatting, assuming India for this example
+    // Prefix with selected country code if it doesn't already start with '+'
     if (!number.startsWith('+')) {
-      return `+91${number}`;
+      return `${countryCode}${number}`;
     }
     return number;
   };
@@ -155,17 +157,28 @@ export default function LoginPage() {
             <form onSubmit={handleSendOtp} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Mobile Number</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Phone className="h-5 w-5 text-gray-400" />
+                <div className="relative flex rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus-within:ring-2 focus-within:ring-teal-500 transition-all overflow-hidden">
+                  <div className="flex items-center pl-3 bg-gray-100 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
+                    <Phone className="h-4 w-4 text-gray-500 mr-1" />
+                    <select
+                      value={countryCode}
+                      onChange={(e) => setCountryCode(e.target.value)}
+                      className="bg-transparent text-sm font-medium text-gray-700 dark:text-gray-300 border-none focus:ring-0 py-3 pr-2 pl-1 cursor-pointer outline-none appearance-none"
+                    >
+                      {countryCodes.map((c) => (
+                        <option key={c.country + c.code} value={c.code} className="text-gray-900 dark:text-gray-900">
+                          {c.country} ({c.code})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <input
                     type="tel"
                     required
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
-                    placeholder="Enter your mobile number"
+                    onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                    className="block w-full px-3 py-3 bg-transparent text-gray-900 dark:text-white border-none focus:ring-0 outline-none"
+                    placeholder="Enter mobile number"
                   />
                 </div>
               </div>

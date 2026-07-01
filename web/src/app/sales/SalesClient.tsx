@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Search, Calendar, Trash2, Edit2, Loader2, ArrowDownCircle, Download } from 'lucide-react';
-import { addSale, deleteSale, fetchMoreData } from '@/app/actions';
+import { fetchMoreData } from '@/app/actions';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportButtons from '@/app/ExportButtons';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { dataConnect } from '@/lib/firebase';
+import { getActiveSales, syncSale, softDeleteSale } from '@/dataconnect';
+import { FormattedAmount } from '@/components/FormattedAmount';
 
 export default function SalesClient({ 
   initialSales,
@@ -21,36 +22,36 @@ export default function SalesClient({
   isPremium?: boolean
 }) {
   const [sales, setSales] = useState(initialSales);
-
   useEffect(() => {
     if (!isPremium || !storeId) return;
 
-    const q = collection(db, 'stores', storeId, 'sales');
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const updated = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as any))
-        .filter(sale => sale.is_deleted !== 1);
+    let isMounted = true;
+    const fetchSales = async () => {
+      try {
+        const response = await getActiveSales(dataConnect, { storeId });
+        if (!isMounted) return;
+        
+        const updated = response.data.sales.map((sale: any) => ({
+          ...sale,
+          is_deleted: 0,
+          updated_at: sale.updatedAt || Date.now(),
+          customer_name: sale.customerName,
+          total_amount: sale.totalAmount
+        }));
 
-      // Sort by updated_at or timestamp desc in memory
-      updated.sort((a, b) => (b.updated_at || b.timestamp || 0) - (a.updated_at || a.timestamp || 0));
-
-      // Remove buy_price from items inside sales if user is staff
-      if (userRole === 'staff') {
-        updated.forEach(sale => {
-          if (Array.isArray(sale.items)) {
-            sale.items.forEach((i: any) => {
-              if (i.buy_price !== undefined) delete i.buy_price;
-            });
-          }
-        });
+        setSales(updated);
+      } catch (error) {
+        console.error("Data Connect sales sync error:", error);
       }
+    };
 
-      setSales(updated);
-    }, (error) => {
-      console.error("Real-time sales sync error:", error);
-    });
+    fetchSales();
+    const intervalId = setInterval(fetchSales, 30000);
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, [isPremium, storeId, userRole]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,15 +83,36 @@ export default function SalesClient({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addSale(formData);
-    setShowModal(false);
-    window.location.reload(); 
+    try {
+      const id = crypto.randomUUID();
+      const now = Date.now();
+      await syncSale(dataConnect, {
+        id,
+        storeId: storeId as string,
+        timestamp: now,
+        totalAmount: formData.total_amount,
+        discountAmount: 0,
+        customerName: formData.customer_name,
+        type: 'SALE',
+        notes: formData.notes,
+        isDeleted: false,
+        updatedAt: Math.floor(now / 1000)
+      });
+      setShowModal(false);
+      window.location.reload(); 
+    } catch (err) {
+      console.error("Failed to add sale:", err);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this sale?')) {
-      await deleteSale(id);
-      window.location.reload();
+      try {
+        await softDeleteSale(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
+        window.location.reload();
+      } catch (err) {
+        console.error("Failed to delete sale:", err);
+      }
     }
   };
 
@@ -115,12 +137,15 @@ export default function SalesClient({
     doc.text(`Date: ${formatDate(sale.timestamp || sale.updated_at)}`, 14, 35);
     doc.text(`Customer: ${sale.customer_name || 'Walk-in Customer'}`, 14, 40);
     
+    // Format amount for invoice with 2 decimals
+    const displayAmount = Number(sale.total_amount || 0).toFixed(2);
+    
     // Table
     autoTable(doc, {
       startY: 50,
       head: [['Description', 'Amount']],
       body: [
-        [sale.notes || 'Purchases', `Rs. ${sale.total_amount}`],
+        [sale.notes || 'Purchases', `Rs. ${displayAmount}`],
       ],
       theme: 'striped',
       headStyles: { fillColor: [13, 148, 136] } // Teal-600
@@ -130,7 +155,7 @@ export default function SalesClient({
     const finalY = (doc as any).lastAutoTable.finalY || 50;
     doc.setFontSize(12);
     doc.setTextColor(0);
-    doc.text(`Total Amount: Rs. ${sale.total_amount}`, 14, finalY + 10);
+    doc.text(`Total Amount: Rs. ${displayAmount}`, 14, finalY + 10);
     
     // Footer
     doc.setFontSize(10);
@@ -215,7 +240,9 @@ export default function SalesClient({
                         <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{formatDate(sale.timestamp || sale.updated_at)}</td>
                   <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{sale.customer_name || 'Walk-in Customer'}</td>
                   <td className="px-6 py-4 text-right text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{sale.notes || '-'}</td>
-                  <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100">₹{sale.total_amount || 0}</td>
+                  <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100">
+                    <FormattedAmount amount={sale.total_amount || 0} />
+                  </td>
                   <td className="px-6 py-4 text-right space-x-3">
                     <button onClick={() => generateInvoice(sale)} className="text-teal-600 hover:text-teal-800 transition-colors" title="Download Invoice"><Download size={16} /></button>
                     <button onClick={() => handleDelete(sale.id)} className="text-red-500 hover:text-red-700 transition-colors" title="Delete Sale"><Trash2 size={16} /></button>

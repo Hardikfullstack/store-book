@@ -16,7 +16,7 @@ mutation SyncItem(
   $photoPath: String
   $hsnCode: String
   $isDeleted: Boolean!
-  $updatedAt: Int!
+  $updatedAt: Float!
 ) @auth(level: USER) {
   item_upsert(data: {
     id: $id
@@ -39,7 +39,7 @@ mutation SyncItem(
 mutation SyncSale(
   $id: String!
   $storeId: String!
-  $timestamp: Int!
+  $timestamp: Float!
   $totalAmount: Float!
   $discountAmount: Float!
   $customerName: String
@@ -50,7 +50,7 @@ mutation SyncSale(
   $type: String!
   $notes: String
   $isDeleted: Boolean!
-  $updatedAt: Int!
+  $updatedAt: Float!
 ) @auth(level: USER) {
   sale_upsert(data: {
     id: $id
@@ -82,7 +82,7 @@ mutation SyncSaleItem(
   $sellPrice: Float!
   $buyPrice: Float!
   $isDeleted: Boolean!
-  $updatedAt: Int!
+  $updatedAt: Float!
 ) @auth(level: USER) {
   saleItemDetail_upsert(data: {
     id: $id
@@ -104,25 +104,157 @@ mutation SyncSaleItem(
 # -----------------------------------------
 
 # Mark an item as deleted (tombstone)
-mutation SoftDeleteItem($id: String!, $updatedAt: Int!) @auth(level: USER) {
+mutation SoftDeleteItem($id: String!, $updatedAt: Float!) @auth(level: USER) {
   item_update(id: $id, data: { isDeleted: true, updatedAt: $updatedAt })
 }
 
 # Mark a sale as deleted
-mutation SoftDeleteSale($id: String!, $updatedAt: Int!) @auth(level: USER) {
+mutation SoftDeleteSale($id: String!, $updatedAt: Float!) @auth(level: USER) {
   sale_update(id: $id, data: { isDeleted: true, updatedAt: $updatedAt })
 }
 
 mutation SyncUser(
   $id: String!
   $phoneNumber: String
-  $createdAt: Int!
+  $username: String
+  $createdAt: Float!
   $role: String!
+  $stores: [String!]
+  $storeId: String
+  $ownerId: String
+  $subscriptionStatus: String
+  $subscriptionPlan: String
+  $subscriptionExpiresAt: Float
+  $subscriptionPlatform: String
+  $subscriptionId: String
 ) @auth(level: PUBLIC) {
   user_upsert(data: {
     id: $id
     phoneNumber: $phoneNumber
+    username: $username
     createdAt: $createdAt
     role: $role
+    stores: $stores
+    storeId: $storeId
+    ownerId: $ownerId
+    subscriptionStatus: $subscriptionStatus
+    subscriptionPlan: $subscriptionPlan
+    subscriptionExpiresAt: $subscriptionExpiresAt
+    subscriptionPlatform: $subscriptionPlatform
+    subscriptionId: $subscriptionId
   })
+}
+
+mutation UpdateUser(
+  $id: String!
+  $subscriptionStatus: String
+  $subscriptionPlan: String
+  $subscriptionExpiresAt: Float
+  $subscriptionPlatform: String
+  $subscriptionId: String
+) @auth(level: USER) {
+  user_update(id: $id, data: {
+    subscriptionStatus: $subscriptionStatus
+    subscriptionPlan: $subscriptionPlan
+    subscriptionExpiresAt: $subscriptionExpiresAt
+    subscriptionPlatform: $subscriptionPlatform
+    subscriptionId: $subscriptionId
+  })
+}
+
+mutation SyncStore(
+  $id: String!
+  $name: String
+  $isActive: Boolean
+  $isPremium: Boolean
+  $subscriptionExpiresAt: Float
+  $subscriptionPlatform: String
+  $subscriptionId: String
+  $subscriptionStatus: String
+) @auth(level: USER) {
+  store_upsert(data: {
+    id: $id
+    name: $name
+    isActive: $isActive
+    isPremium: $isPremium
+    subscriptionExpiresAt: $subscriptionExpiresAt
+    subscriptionPlatform: $subscriptionPlatform
+    subscriptionId: $subscriptionId
+    subscriptionStatus: $subscriptionStatus
+  })
+}
+
+mutation UpdateStore(
+  $id: String!
+  $isPremium: Boolean
+  $subscriptionExpiresAt: Float
+  $subscriptionPlatform: String
+  $subscriptionId: String
+  $subscriptionStatus: String
+) @auth(level: USER) {
+  store_update(id: $id, data: {
+    isPremium: $isPremium
+    subscriptionExpiresAt: $subscriptionExpiresAt
+    subscriptionPlatform: $subscriptionPlatform
+    subscriptionId: $subscriptionId
+    subscriptionStatus: $subscriptionStatus
+  })
+}
+
+mutation SyncUdhaar(
+  $id: String!
+  $storeId: String!
+  $customerName: String!
+  $amount: Float!
+  $type: String!
+  $timestamp: Float!
+  $notes: String
+  $isDeleted: Boolean!
+  $updatedAt: Float!
+) @auth(level: USER) {
+  udhaarEntry_upsert(data: {
+    id: $id
+    storeId: $storeId
+    customerName: $customerName
+    amount: $amount
+    type: $type
+    timestamp: $timestamp
+    notes: $notes
+    isDeleted: $isDeleted
+    updatedAt: $updatedAt
+  })
+}
+
+mutation SoftDeleteUdhaar($id: String!, $updatedAt: Float!) @auth(level: USER) {
+  udhaarEntry_update(id: $id, data: { isDeleted: true, updatedAt: $updatedAt })
+}
+
+mutation SyncExpense(
+  $id: String!
+  $storeId: String!
+  $type: String!
+  $description: String!
+  $amount: Float!
+  $timestamp: Float!
+  $supplierName: String
+  $supplierPhone: String
+  $isDeleted: Boolean!
+  $updatedAt: Float!
+) @auth(level: USER) {
+  expenseEntry_upsert(data: {
+    id: $id
+    storeId: $storeId
+    type: $type
+    description: $description
+    amount: $amount
+    timestamp: $timestamp
+    supplierName: $supplierName
+    supplierPhone: $supplierPhone
+    isDeleted: $isDeleted
+    updatedAt: $updatedAt
+  })
+}
+
+mutation SoftDeleteExpense($id: String!, $updatedAt: Float!) @auth(level: USER) {
+  expenseEntry_update(id: $id, data: { isDeleted: true, updatedAt: $updatedAt })
 }

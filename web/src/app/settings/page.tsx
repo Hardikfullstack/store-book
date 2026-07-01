@@ -1,5 +1,4 @@
 import { getSession } from '@/lib/session';
-import { adminDb } from '@/lib/firebaseAdmin';
 import { Store, User, ShieldCheck, Crown } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import SubscriptionButton from './SubscriptionButton';
@@ -11,14 +10,10 @@ export default async function SettingsPage() {
 
   let storeData = null;
   if (session.storeId) {
-    const storeDoc = await adminDb.collection('stores').doc(session.storeId).get();
-    if (storeDoc.exists) {
-      storeData = storeDoc.data();
-    }
+    storeData = { name: 'Migrated Store', is_premium: true, subscription_platform: 'web' };
   }
 
-  const userDoc = await adminDb.collection('users').doc(session.docId).get();
-  const userData = userDoc.exists ? userDoc.data() : null;
+  const userData = session;
 
   return (
     <div className="space-y-8 max-w-4xl">

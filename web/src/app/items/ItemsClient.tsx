@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Edit2, Loader2, ArrowDownCircle } from 'lucide-react';
 import { addItem, updateItem, deleteItem, fetchMoreData } from '@/app/actions';
 import ExportButtons from '@/app/ExportButtons';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { dataConnect } from '@/lib/firebase';
+import { getActiveItems, syncItem, softDeleteItem } from '@/dataconnect';
+import { FormattedAmount } from '@/components/FormattedAmount';
 import RestockQuantity from '@/components/models/RestockQuantity';
 
 type UnitOption = 'pcs' | 'kg' | 'g' | 'litre' | 'ml' | 'dozen' | 'box' | 'packet';
@@ -60,28 +61,40 @@ export default function ItemsClient({
   useEffect(() => {
     if (!isPremium || !storeId) return;
 
-    const q = collection(db, 'stores', storeId, 'items');
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const updated = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as any))
-        .filter(item => item.is_deleted !== 1);
+    let isMounted = true;
+    const fetchItems = async () => {
+      try {
+        const response = await getActiveItems(dataConnect, { storeId });
+        if (!isMounted) return;
+        
+        const updated = response.data.items.map((item: any) => ({
+          ...item,
+          is_deleted: 0,
+          updated_at: item.updatedAt || Date.now(),
+          buy_price: item.buyPrice,
+          sell_price: item.sellPrice
+        }));
 
-      // Sort by updated_at or timestamp desc in memory
-      updated.sort((a, b) => (b.updated_at || b.timestamp || 0) - (a.updated_at || a.timestamp || 0));
+        if (userRole === 'staff') {
+          updated.forEach((item: any) => {
+            if (item.buy_price !== undefined) delete item.buy_price;
+          });
+        }
 
-      // Remove buy_price if staff
-      if (userRole === 'staff') {
-        updated.forEach(item => {
-          if (item.buy_price !== undefined) delete item.buy_price;
-        });
+        setItems(updated);
+      } catch (error) {
+        console.error("Data Connect items sync error:", error);
       }
+    };
 
-      setItems(updated);
-    }, (error) => {
-      console.error("Real-time items sync error:", error);
-    });
+    fetchItems();
+    // Optional: poll every 30 seconds for new items
+    const intervalId = setInterval(fetchItems, 30000);
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, [isPremium, storeId, userRole]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -111,27 +124,36 @@ export default function ItemsClient({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const payload: any = { ...formData };
-
-    // If advanced/batch hidden, optionally keep fields empty to avoid storing partial data.
-    if (!showAdvanced) {
-      payload.hsn_code = '';
-      payload.tax_rate = 0;
-      payload.batch_lot_number = '';
-      payload.expiry_date = '';
-      payload.batch_lot_number = '';
-      payload.expiry_date = '';
+    try {
+      const payload = !showAdvanced ? {
+          hsn_code : '';
+          tax_rate : 0;
+          batch_lot_number : '';
+          expiry_date : '';
+          batch_lot_number : '';
+          expiry_date : '';
+        } : {};
+      const id = editingId || crypto.randomUUID();
+      await syncItem(dataConnect, {
+        id,
+        storeId: storeId as string,
+        name: formData.name,
+        quantity: formData.quantity,
+        unit: formData.unit,
+        buyPrice: formData.buy_price,
+        sellPrice: formData.sell_price,
+        lowStockThreshold: formData.low_stock_threshold,
+        category: formData.category,
+        isDeleted: false,
+        updatedAt: Math.floor(Date.now() / 1000),
+        ...payload,
+      });
+      setShowModal(false);
+      // Let polling or a forced refetch handle it, but for simple UX:
+      window.location.reload(); 
+    } catch (err) {
+      console.error("Failed to save item:", err);
     }
-
-    if (editingId) {
-      await updateItem(editingId, payload);
-    } else {
-      await addItem(payload);
-    }
-    setShowModal(false);
-    // Real app would reload or rely on revalidatePath, but since this is client state we can do a hard refresh or optimistic update
-    window.location.reload(); 
   };
 
   const handleEdit = (item: any) => {
@@ -166,8 +188,12 @@ export default function ItemsClient({
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this item?')) {
-      await deleteItem(id);
-      window.location.reload();
+      try {
+        await softDeleteItem(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
+        window.location.reload();
+      } catch (err) {
+        console.error("Failed to delete item:", err);
+      }
     }
   };
 
@@ -262,11 +288,11 @@ export default function ItemsClient({
                   </td>
                   {userRole !== 'staff' && (
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        ₹{item.buy_price?.toFixed(2) || '0.00'}
+                        <FormattedAmount amount={item.buy_price} />
                       </td>
                   )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
-                    ₹{item.sell_price?.toFixed(2) || '0.00'}
+                    <FormattedAmount amount={item.sell_price} />
                   </td>
                   {userRole !== 'staff' && (
                       <td className="px-6 py-4 whitespace-nowrap text-sm">

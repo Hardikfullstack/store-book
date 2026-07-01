@@ -16,11 +16,11 @@ package com.storebook.inventoryapp.dataconnect
 
 
 
-public interface SyncItemMutation :
+public interface SyncExpenseMutation :
     com.google.firebase.dataconnect.generated.GeneratedMutation<
       StorebookConnectorConnector,
-      SyncItemMutation.Data,
-      SyncItemMutation.Variables
+      SyncExpenseMutation.Data,
+      SyncExpenseMutation.Variables
     >
 {
   
@@ -31,23 +31,17 @@ public interface SyncItemMutation :
     String,
     val storeId:
     String,
-    val name:
+    val type:
     String,
-    val quantity:
-    Double,
-    val unit:
+    val description:
     String,
-    val buyPrice:
+    val amount:
     Double,
-    val sellPrice:
+    val timestamp:
     Double,
-    val lowStockThreshold:
-    Double,
-    val category:
-    String,
-    val photoPath:
+    val supplierName:
     com.google.firebase.dataconnect.OptionalVariable<String?>,
-    val hsnCode:
+    val supplierPhone:
     com.google.firebase.dataconnect.OptionalVariable<String?>,
     val isDeleted:
     Boolean,
@@ -63,15 +57,12 @@ public interface SyncItemMutation :
       public interface Builder {
         public var id: String
         public var storeId: String
-        public var name: String
-        public var quantity: Double
-        public var unit: String
-        public var buyPrice: Double
-        public var sellPrice: Double
-        public var lowStockThreshold: Double
-        public var category: String
-        public var photoPath: String?
-        public var hsnCode: String?
+        public var type: String
+        public var description: String
+        public var amount: Double
+        public var timestamp: Double
+        public var supplierName: String?
+        public var supplierPhone: String?
         public var isDeleted: Boolean
         public var updatedAt: Double
         
@@ -80,21 +71,18 @@ public interface SyncItemMutation :
       public companion object {
         @Suppress("NAME_SHADOWING")
         public fun build(
-          id: String,storeId: String,name: String,quantity: Double,unit: String,buyPrice: Double,sellPrice: Double,lowStockThreshold: Double,category: String,isDeleted: Boolean,updatedAt: Double,
+          id: String,storeId: String,type: String,description: String,amount: Double,timestamp: Double,isDeleted: Boolean,updatedAt: Double,
           block_: Builder.() -> Unit
         ): Variables {
           var id= id
             var storeId= storeId
-            var name= name
-            var quantity= quantity
-            var unit= unit
-            var buyPrice= buyPrice
-            var sellPrice= sellPrice
-            var lowStockThreshold= lowStockThreshold
-            var category= category
-            var photoPath: com.google.firebase.dataconnect.OptionalVariable<String?> =
+            var type= type
+            var description= description
+            var amount= amount
+            var timestamp= timestamp
+            var supplierName: com.google.firebase.dataconnect.OptionalVariable<String?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var hsnCode: com.google.firebase.dataconnect.OptionalVariable<String?> =
+            var supplierPhone: com.google.firebase.dataconnect.OptionalVariable<String?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
             var isDeleted= isDeleted
             var updatedAt= updatedAt
@@ -109,41 +97,29 @@ public interface SyncItemMutation :
               get() = throw UnsupportedOperationException("getting builder values is not supported")
               set(value_) { storeId = value_ }
               
-            override var name: String
+            override var type: String
               get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { name = value_ }
+              set(value_) { type = value_ }
               
-            override var quantity: Double
+            override var description: String
               get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { quantity = value_ }
+              set(value_) { description = value_ }
               
-            override var unit: String
+            override var amount: Double
               get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { unit = value_ }
+              set(value_) { amount = value_ }
               
-            override var buyPrice: Double
+            override var timestamp: Double
               get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { buyPrice = value_ }
+              set(value_) { timestamp = value_ }
               
-            override var sellPrice: Double
+            override var supplierName: String?
               get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { sellPrice = value_ }
+              set(value_) { supplierName = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
               
-            override var lowStockThreshold: Double
+            override var supplierPhone: String?
               get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { lowStockThreshold = value_ }
-              
-            override var category: String
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { category = value_ }
-              
-            override var photoPath: String?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { photoPath = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var hsnCode: String?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { hsnCode = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              set(value_) { supplierPhone = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
               
             override var isDeleted: Boolean
               get() = throw UnsupportedOperationException("getting builder values is not supported")
@@ -157,7 +133,7 @@ public interface SyncItemMutation :
           }.apply(block_)
           .let {
             Variables(
-              id=id,storeId=storeId,name=name,quantity=quantity,unit=unit,buyPrice=buyPrice,sellPrice=sellPrice,lowStockThreshold=lowStockThreshold,category=category,photoPath=photoPath,hsnCode=hsnCode,isDeleted=isDeleted,updatedAt=updatedAt,
+              id=id,storeId=storeId,type=type,description=description,amount=amount,timestamp=timestamp,supplierName=supplierName,supplierPhone=supplierPhone,isDeleted=isDeleted,updatedAt=updatedAt,
             )
           }
         }
@@ -169,9 +145,9 @@ public interface SyncItemMutation :
   
     @kotlinx.serialization.Serializable
   public data class Data(
-  @kotlinx.serialization.SerialName("item_upsert")
+  @kotlinx.serialization.SerialName("expenseEntry_upsert")
     val key:
-    ItemKey
+    ExpenseEntryKey
   ) {
     
     
@@ -179,7 +155,7 @@ public interface SyncItemMutation :
   
 
   public companion object {
-    public val operationName: String = "SyncItem"
+    public val operationName: String = "SyncExpense"
 
     public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
       kotlinx.serialization.serializer()
@@ -189,39 +165,39 @@ public interface SyncItemMutation :
   }
 }
 
-public fun SyncItemMutation.ref(
+public fun SyncExpenseMutation.ref(
   
-    id: String,storeId: String,name: String,quantity: Double,unit: String,buyPrice: Double,sellPrice: Double,lowStockThreshold: Double,category: String,isDeleted: Boolean,updatedAt: Double,
+    id: String,storeId: String,type: String,description: String,amount: Double,timestamp: Double,isDeleted: Boolean,updatedAt: Double,
   
-    block_: SyncItemMutation.Variables.Builder.() -> Unit
+    block_: SyncExpenseMutation.Variables.Builder.() -> Unit
   
 ): com.google.firebase.dataconnect.MutationRef<
-    SyncItemMutation.Data,
-    SyncItemMutation.Variables
+    SyncExpenseMutation.Data,
+    SyncExpenseMutation.Variables
   > =
   ref(
     
-      SyncItemMutation.Variables.build(
-        id=id,storeId=storeId,name=name,quantity=quantity,unit=unit,buyPrice=buyPrice,sellPrice=sellPrice,lowStockThreshold=lowStockThreshold,category=category,isDeleted=isDeleted,updatedAt=updatedAt,
+      SyncExpenseMutation.Variables.build(
+        id=id,storeId=storeId,type=type,description=description,amount=amount,timestamp=timestamp,isDeleted=isDeleted,updatedAt=updatedAt,
   
     block_
       )
     
   )
 
-public suspend fun SyncItemMutation.execute(
+public suspend fun SyncExpenseMutation.execute(
   
-    id: String,storeId: String,name: String,quantity: Double,unit: String,buyPrice: Double,sellPrice: Double,lowStockThreshold: Double,category: String,isDeleted: Boolean,updatedAt: Double,
+    id: String,storeId: String,type: String,description: String,amount: Double,timestamp: Double,isDeleted: Boolean,updatedAt: Double,
   
-    block_: SyncItemMutation.Variables.Builder.() -> Unit
+    block_: SyncExpenseMutation.Variables.Builder.() -> Unit
   
   ): com.google.firebase.dataconnect.MutationResult<
-    SyncItemMutation.Data,
-    SyncItemMutation.Variables
+    SyncExpenseMutation.Data,
+    SyncExpenseMutation.Variables
   > =
   ref(
     
-      id=id,storeId=storeId,name=name,quantity=quantity,unit=unit,buyPrice=buyPrice,sellPrice=sellPrice,lowStockThreshold=lowStockThreshold,category=category,isDeleted=isDeleted,updatedAt=updatedAt,
+      id=id,storeId=storeId,type=type,description=description,amount=amount,timestamp=timestamp,isDeleted=isDeleted,updatedAt=updatedAt,
   
     block_
     

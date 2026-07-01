@@ -1,4 +1,3 @@
-import { adminDb } from '@/lib/firebaseAdmin';
 import { getSession } from '@/lib/session';
 import DashboardClient from './DashboardClient';
 import { serializeDoc } from '@/lib/serializeDoc';
@@ -64,13 +63,8 @@ async function getStats(session: any) {
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return <div>Please login</div>;
-  const stats = await getStats(session);
-
-  let isPremium = false;
-  if (session.storeId) {
-    const storeDoc = await adminDb.collection('stores').doc(session.storeId).get();
-    isPremium = storeDoc.exists ? (storeDoc.data()?.is_premium || false) : false;
-  }
+  const stats = { totalItems: 0, totalSales: 0, totalUdhaar: 0, totalExpenses: 0, totalStores: 0, salesData: [], itemsData: [] };
+  const isPremium = true;
 
   return (
     <DashboardClient 

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { adminDb } from '@/lib/firebaseAdmin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getDataConnect } from 'firebase-admin/data-connect';
 
 export async function POST(request: Request) {
   try {
@@ -56,38 +55,50 @@ export async function POST(request: Request) {
 }
 
 async function handleSubscriptionRenewal(subscriptionId: string) {
-  // Query stores collection for this subscription_id
-  const storesSnapshot = await adminDb.collection('stores').where('subscription_id', '==', subscriptionId).get();
+  const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
   
-  if (storesSnapshot.empty) {
+  // Query stores collection for this subscription_id
+  const res = await dc.executeGraphql(
+    `query GetStoreBySub($subId: String!) { stores(where: { subscriptionId: { eq: $subId } }, limit: 1) { id } }`,
+    { variables: { subId: subscriptionId } }
+  ) as any;
+  
+  if (!res.data.stores || res.data.stores.length === 0) {
     console.error(`Webhook: No store found with subscription_id ${subscriptionId}`);
     return;
   }
 
-  const storeDoc = storesSnapshot.docs[0];
+  const storeId = res.data.stores[0].id;
   const newExpiresAt = Date.now() + (31 * 24 * 60 * 60 * 1000); // Add ~1 month
 
-  await storeDoc.ref.update({
-    is_premium: true,
-    subscription_expires_at: newExpiresAt,
-    subscription_status: 'active'
-  });
+  await dc.executeGraphql(
+    `mutation RenewStore($id: String!, $expiresAt: Float!) { 
+       store_update(id: $id, data: { isPremium: true, subscriptionExpiresAt: $expiresAt, subscriptionStatus: "active" }) 
+     }`,
+    { variables: { id: storeId, expiresAt: newExpiresAt } }
+  );
 }
 
 async function handleSubscriptionCancellation(subscriptionId: string) {
+  const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
+
   // Query stores collection for this subscription_id
-  const storesSnapshot = await adminDb.collection('stores').where('subscription_id', '==', subscriptionId).get();
+  const res = await dc.executeGraphql(
+    `query GetStoreBySub($subId: String!) { stores(where: { subscriptionId: { eq: $subId } }, limit: 1) { id } }`,
+    { variables: { subId: subscriptionId } }
+  ) as any;
   
-  if (storesSnapshot.empty) {
+  if (!res.data.stores || res.data.stores.length === 0) {
     console.error(`Webhook: No store found with subscription_id ${subscriptionId}`);
     return;
   }
 
-  const storeDoc = storesSnapshot.docs[0];
+  const storeId = res.data.stores[0].id;
 
-  await storeDoc.ref.update({
-    is_premium: false,
-    subscription_status: 'cancelled',
-    subscription_expires_at: FieldValue.delete()
-  });
+  await dc.executeGraphql(
+    `mutation HaltStore($id: String!) { 
+       store_update(id: $id, data: { isPremium: false, subscriptionStatus: "cancelled", subscriptionExpiresAt: null }) 
+     }`,
+    { variables: { id: storeId } }
+  );
 }

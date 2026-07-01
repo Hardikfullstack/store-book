@@ -30,8 +30,10 @@ public interface SyncSaleItemsQuery :
     @kotlinx.serialization.Serializable
   public data class Variables(
   
+    val storeId:
+    String,
     val lastSync:
-    Int
+    Double
   ) {
     
     
@@ -69,7 +71,7 @@ public interface SyncSaleItemsQuery :
     val isDeleted:
     Boolean,
     val updatedAt:
-    Int
+    Double
   ) {
     
     
@@ -93,7 +95,7 @@ public interface SyncSaleItemsQuery :
 
 public fun SyncSaleItemsQuery.ref(
   
-    lastSync: Int,
+    storeId: String,lastSync: Double,
   
   
 ): com.google.firebase.dataconnect.QueryRef<
@@ -103,7 +105,7 @@ public fun SyncSaleItemsQuery.ref(
   ref(
     
       SyncSaleItemsQuery.Variables(
-        lastSync=lastSync,
+        storeId=storeId,lastSync=lastSync,
   
       )
     
@@ -111,7 +113,7 @@ public fun SyncSaleItemsQuery.ref(
 
 public suspend fun SyncSaleItemsQuery.execute(
   
-    lastSync: Int,
+    storeId: String,lastSync: Double,
   
   
   ): com.google.firebase.dataconnect.QueryResult<
@@ -120,7 +122,7 @@ public suspend fun SyncSaleItemsQuery.execute(
   > =
   ref(
     
-      lastSync=lastSync,
+      storeId=storeId,lastSync=lastSync,
   
     
   ).execute()
@@ -128,13 +130,13 @@ public suspend fun SyncSaleItemsQuery.execute(
 
   public fun SyncSaleItemsQuery.flow(
     
-      lastSync: Int,
+      storeId: String,lastSync: Double,
   
     
     ): kotlinx.coroutines.flow.Flow<SyncSaleItemsQuery.Data> =
     ref(
         
-          lastSync=lastSync,
+          storeId=storeId,lastSync=lastSync,
   
         
       ).subscribe()

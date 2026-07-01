@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, Tag, Trash2, Loader2, ArrowDownCircle } from 'lucide-react';
 import { addExpense, deleteExpense, fetchMoreData } from '@/app/actions';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { dataConnect } from '@/lib/firebase';
+import { getActiveExpenses, syncExpense, softDeleteExpense } from '@/dataconnect';
+import { FormattedAmount } from '@/components/FormattedAmount';
 
 export default function ExpensesClient({ 
   initialExpenses,
@@ -20,21 +21,32 @@ export default function ExpensesClient({
   useEffect(() => {
     if (!isPremium || !storeId) return;
 
-    const q = collection(db, 'stores', storeId, 'expenses');
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const updated = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as any))
-        .filter(record => record.is_deleted !== 1);
+    let isMounted = true;
+    const fetchExpenses = async () => {
+      try {
+        const response = await getActiveExpenses(dataConnect, { storeId });
+        if (!isMounted) return;
+        
+        const updated = response.data.expenseEntries.map((record: any) => ({
+          ...record,
+          is_deleted: 0,
+          updated_at: record.updatedAt || Date.now(),
+          supplier_name: record.supplierName
+        }));
 
-      // Sort by updated_at or timestamp desc in memory
-      updated.sort((a, b) => (b.updated_at || b.timestamp || 0) - (a.updated_at || a.timestamp || 0));
+        setExpenses(updated);
+      } catch (error) {
+        console.error("Data Connect expense sync error:", error);
+      }
+    };
 
-      setExpenses(updated);
-    }, (error) => {
-      console.error("Real-time expenses sync error:", error);
-    });
+    fetchExpenses();
+    const intervalId = setInterval(fetchExpenses, 30000);
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, [isPremium, storeId]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,15 +79,35 @@ export default function ExpensesClient({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addExpense(formData);
-    setShowModal(false);
-    window.location.reload(); 
+    try {
+      const id = crypto.randomUUID();
+      const now = Date.now();
+      await syncExpense(dataConnect, {
+        id,
+        storeId: storeId as string,
+        type: formData.type,
+        description: formData.description,
+        amount: formData.amount,
+        timestamp: now,
+        supplierName: formData.supplier_name,
+        isDeleted: false,
+        updatedAt: Math.floor(now / 1000)
+      });
+      setShowModal(false);
+      window.location.reload(); 
+    } catch (err) {
+      console.error("Failed to save expense:", err);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this expense?')) {
-      await deleteExpense(id);
-      window.location.reload();
+      try {
+        await softDeleteExpense(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
+        window.location.reload();
+      } catch (err) {
+        console.error("Failed to delete expense:", err);
+      }
     }
   };
 
@@ -162,7 +194,7 @@ export default function ExpensesClient({
                   <td className="px-6 py-4 text-gray-900 dark:text-gray-100">{expense.description}</td>
                   <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{expense.supplier_name || '-'}</td>
                   <td className="px-6 py-4 text-right font-bold text-orange-600 dark:text-orange-400">
-                    ₹{expense.amount}
+                    <FormattedAmount amount={expense.amount} />
                   </td>
                   <td className="px-6 py-4 text-right space-x-3">
                     <button onClick={() => handleDelete(expense.id)} className="text-red-500 hover:text-red-700 transition-colors"><Trash2 size={16} /></button>

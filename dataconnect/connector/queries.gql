@@ -3,8 +3,8 @@
 # -----------------------------------------
 
 # Pull updated items since last sync
-query SyncItems($lastSync: Int!) @auth(level: USER) {
-  items(where: { storeId: { eq_expr: "auth.uid" }, updatedAt: { gt: $lastSync } }) {
+query SyncItems($storeId: String!, $lastSync: Float!) @auth(level: USER) {
+  items(where: { storeId: { eq: $storeId }, updatedAt: { gt: $lastSync } }) {
     id
     name
     quantity
@@ -21,8 +21,8 @@ query SyncItems($lastSync: Int!) @auth(level: USER) {
 }
 
 # Pull updated sales since last sync
-query SyncSales($lastSync: Int!) @auth(level: USER) {
-  sales(where: { storeId: { eq_expr: "auth.uid" }, updatedAt: { gt: $lastSync } }) {
+query SyncSales($storeId: String!, $lastSync: Float!) @auth(level: USER) {
+  sales(where: { storeId: { eq: $storeId }, updatedAt: { gt: $lastSync } }) {
     id
     timestamp
     totalAmount
@@ -39,8 +39,8 @@ query SyncSales($lastSync: Int!) @auth(level: USER) {
 }
 
 # Pull updated sale items since last sync
-query SyncSaleItems($lastSync: Int!) @auth(level: USER) {
-  saleItemDetails(where: { storeId: { eq_expr: "auth.uid" }, updatedAt: { gt: $lastSync } }) {
+query SyncSaleItems($storeId: String!, $lastSync: Float!) @auth(level: USER) {
+  saleItemDetails(where: { storeId: { eq: $storeId }, updatedAt: { gt: $lastSync } }) {
     id
     saleId
     itemId
@@ -59,13 +59,90 @@ query SyncSaleItems($lastSync: Int!) @auth(level: USER) {
 # -----------------------------------------
 
 # Get all active items directly (Server-side filtering)
-query GetActiveItems @auth(level: USER) {
-  items(where: { storeId: { eq_expr: "auth.uid" }, isDeleted: { eq: false }, quantity: { gt: 0 } }) {
+query GetActiveItems($storeId: String!) @auth(level: USER) {
+  items(where: { storeId: { eq: $storeId }, isDeleted: { eq: false }, quantity: { gt: 0 } }) {
     id
     name
     quantity
     sellPrice
     buyPrice
     category
+  }
+}
+
+# Pull updated udhaar since last sync
+query SyncUdhaars($storeId: String!, $lastSync: Float!) @auth(level: USER) {
+  udhaarEntries(where: { storeId: { eq: $storeId }, updatedAt: { gt: $lastSync } }) {
+    id
+    storeId
+    customerName
+    amount
+    type
+    timestamp
+    notes
+    isDeleted
+    updatedAt
+  }
+}
+
+# Pull updated expenses since last sync
+query SyncExpenses($storeId: String!, $lastSync: Float!) @auth(level: USER) {
+  expenseEntries(where: { storeId: { eq: $storeId }, updatedAt: { gt: $lastSync } }) {
+    id
+    storeId
+    type
+    description
+    amount
+    timestamp
+    supplierName
+    supplierPhone
+    isDeleted
+    updatedAt
+  }
+}
+
+query GetActiveSales($storeId: String!) @auth(level: USER) {
+  sales(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    id
+    timestamp
+    totalAmount
+    discountAmount
+    customerName
+    notes
+    updatedAt
+  }
+}
+
+query GetActiveUdhaars($storeId: String!) @auth(level: USER) {
+  udhaarEntries(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    id
+    customerName
+    amount
+    type
+    timestamp
+    notes
+    updatedAt
+  }
+}
+
+query GetActiveExpenses($storeId: String!) @auth(level: USER) {
+  expenseEntries(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    id
+    type
+    description
+    amount
+    timestamp
+    supplierName
+    updatedAt
+  }
+}
+
+query GetUser($id: String!) @auth(level: USER) {
+  user(id: $id) {
+    id
+    phoneNumber
+    role
+    stores
+    storeId
   }
 }

@@ -18,11 +18,27 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
   override val dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect
 
   
+    public val getActiveExpenses: GetActiveExpensesQuery
+  
     public val getActiveItems: GetActiveItemsQuery
+  
+    public val getActiveSales: GetActiveSalesQuery
+  
+    public val getActiveUdhaars: GetActiveUdhaarsQuery
+  
+    public val getUser: GetUserQuery
+  
+    public val softDeleteExpense: SoftDeleteExpenseMutation
   
     public val softDeleteItem: SoftDeleteItemMutation
   
     public val softDeleteSale: SoftDeleteSaleMutation
+  
+    public val softDeleteUdhaar: SoftDeleteUdhaarMutation
+  
+    public val syncExpense: SyncExpenseMutation
+  
+    public val syncExpenses: SyncExpensesQuery
   
     public val syncItem: SyncItemMutation
   
@@ -35,6 +51,12 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
     public val syncSaleItems: SyncSaleItemsQuery
   
     public val syncSales: SyncSalesQuery
+  
+    public val syncUdhaar: SyncUdhaarMutation
+  
+    public val syncUdhaars: SyncUdhaarsQuery
+  
+    public val syncUser: SyncUserMutation
   
 
   public companion object {
@@ -75,8 +97,28 @@ private class StorebookConnectorConnectorImpl(
   override val dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect
 ) : StorebookConnectorConnector {
   
+    override val getActiveExpenses by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetActiveExpensesQueryImpl(this)
+    }
+  
     override val getActiveItems by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetActiveItemsQueryImpl(this)
+    }
+  
+    override val getActiveSales by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetActiveSalesQueryImpl(this)
+    }
+  
+    override val getActiveUdhaars by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetActiveUdhaarsQueryImpl(this)
+    }
+  
+    override val getUser by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetUserQueryImpl(this)
+    }
+  
+    override val softDeleteExpense by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SoftDeleteExpenseMutationImpl(this)
     }
   
     override val softDeleteItem by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -85,6 +127,18 @@ private class StorebookConnectorConnectorImpl(
   
     override val softDeleteSale by lazy(LazyThreadSafetyMode.PUBLICATION) {
       SoftDeleteSaleMutationImpl(this)
+    }
+  
+    override val softDeleteUdhaar by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SoftDeleteUdhaarMutationImpl(this)
+    }
+  
+    override val syncExpense by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SyncExpenseMutationImpl(this)
+    }
+  
+    override val syncExpenses by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SyncExpensesQueryImpl(this)
     }
   
     override val syncItem by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -111,6 +165,18 @@ private class StorebookConnectorConnectorImpl(
       SyncSalesQueryImpl(this)
     }
   
+    override val syncUdhaar by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SyncUdhaarMutationImpl(this)
+    }
+  
+    override val syncUdhaars by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SyncUdhaarsQueryImpl(this)
+    }
+  
+    override val syncUser by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SyncUserMutationImpl(this)
+    }
+  
 
   @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
   override fun operations(): List<com.google.firebase.dataconnect.generated.GeneratedOperation<StorebookConnectorConnector, *, *>> =
@@ -119,21 +185,32 @@ private class StorebookConnectorConnectorImpl(
   @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
   override fun mutations(): List<com.google.firebase.dataconnect.generated.GeneratedMutation<StorebookConnectorConnector, *, *>> =
     listOf(
-      softDeleteItem,
+      softDeleteExpense,
+        softDeleteItem,
         softDeleteSale,
+        softDeleteUdhaar,
+        syncExpense,
         syncItem,
         syncSale,
         syncSaleItem,
+        syncUdhaar,
+        syncUser,
         
     )
 
   @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
   override fun queries(): List<com.google.firebase.dataconnect.generated.GeneratedQuery<StorebookConnectorConnector, *, *>> =
     listOf(
-      getActiveItems,
+      getActiveExpenses,
+        getActiveItems,
+        getActiveSales,
+        getActiveUdhaars,
+        getUser,
+        syncExpenses,
         syncItems,
         syncSaleItems,
         syncSales,
+        syncUdhaars,
         
     )
 
@@ -269,18 +346,93 @@ private open class StorebookConnectorConnectorGeneratedMutationImpl<Data, Variab
 
 
 
+private class GetActiveExpensesQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetActiveExpensesQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetActiveExpensesQuery.Data,
+      GetActiveExpensesQuery.Variables
+  >(
+    connector,
+    GetActiveExpensesQuery.Companion.operationName,
+    GetActiveExpensesQuery.Companion.dataDeserializer,
+    GetActiveExpensesQuery.Companion.variablesSerializer,
+  )
+
+
 private class GetActiveItemsQueryImpl(
   connector: StorebookConnectorConnector
 ):
   GetActiveItemsQuery,
   StorebookConnectorConnectorGeneratedQueryImpl<
       GetActiveItemsQuery.Data,
-      Unit
+      GetActiveItemsQuery.Variables
   >(
     connector,
     GetActiveItemsQuery.Companion.operationName,
     GetActiveItemsQuery.Companion.dataDeserializer,
     GetActiveItemsQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetActiveSalesQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetActiveSalesQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetActiveSalesQuery.Data,
+      GetActiveSalesQuery.Variables
+  >(
+    connector,
+    GetActiveSalesQuery.Companion.operationName,
+    GetActiveSalesQuery.Companion.dataDeserializer,
+    GetActiveSalesQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetActiveUdhaarsQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetActiveUdhaarsQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetActiveUdhaarsQuery.Data,
+      GetActiveUdhaarsQuery.Variables
+  >(
+    connector,
+    GetActiveUdhaarsQuery.Companion.operationName,
+    GetActiveUdhaarsQuery.Companion.dataDeserializer,
+    GetActiveUdhaarsQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetUserQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetUserQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetUserQuery.Data,
+      GetUserQuery.Variables
+  >(
+    connector,
+    GetUserQuery.Companion.operationName,
+    GetUserQuery.Companion.dataDeserializer,
+    GetUserQuery.Companion.variablesSerializer,
+  )
+
+
+private class SoftDeleteExpenseMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  SoftDeleteExpenseMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      SoftDeleteExpenseMutation.Data,
+      SoftDeleteExpenseMutation.Variables
+  >(
+    connector,
+    SoftDeleteExpenseMutation.Companion.operationName,
+    SoftDeleteExpenseMutation.Companion.dataDeserializer,
+    SoftDeleteExpenseMutation.Companion.variablesSerializer,
   )
 
 
@@ -311,6 +463,51 @@ private class SoftDeleteSaleMutationImpl(
     SoftDeleteSaleMutation.Companion.operationName,
     SoftDeleteSaleMutation.Companion.dataDeserializer,
     SoftDeleteSaleMutation.Companion.variablesSerializer,
+  )
+
+
+private class SoftDeleteUdhaarMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  SoftDeleteUdhaarMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      SoftDeleteUdhaarMutation.Data,
+      SoftDeleteUdhaarMutation.Variables
+  >(
+    connector,
+    SoftDeleteUdhaarMutation.Companion.operationName,
+    SoftDeleteUdhaarMutation.Companion.dataDeserializer,
+    SoftDeleteUdhaarMutation.Companion.variablesSerializer,
+  )
+
+
+private class SyncExpenseMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  SyncExpenseMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      SyncExpenseMutation.Data,
+      SyncExpenseMutation.Variables
+  >(
+    connector,
+    SyncExpenseMutation.Companion.operationName,
+    SyncExpenseMutation.Companion.dataDeserializer,
+    SyncExpenseMutation.Companion.variablesSerializer,
+  )
+
+
+private class SyncExpensesQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  SyncExpensesQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      SyncExpensesQuery.Data,
+      SyncExpensesQuery.Variables
+  >(
+    connector,
+    SyncExpensesQuery.Companion.operationName,
+    SyncExpensesQuery.Companion.dataDeserializer,
+    SyncExpensesQuery.Companion.variablesSerializer,
   )
 
 
@@ -401,6 +598,51 @@ private class SyncSalesQueryImpl(
     SyncSalesQuery.Companion.operationName,
     SyncSalesQuery.Companion.dataDeserializer,
     SyncSalesQuery.Companion.variablesSerializer,
+  )
+
+
+private class SyncUdhaarMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  SyncUdhaarMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      SyncUdhaarMutation.Data,
+      SyncUdhaarMutation.Variables
+  >(
+    connector,
+    SyncUdhaarMutation.Companion.operationName,
+    SyncUdhaarMutation.Companion.dataDeserializer,
+    SyncUdhaarMutation.Companion.variablesSerializer,
+  )
+
+
+private class SyncUdhaarsQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  SyncUdhaarsQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      SyncUdhaarsQuery.Data,
+      SyncUdhaarsQuery.Variables
+  >(
+    connector,
+    SyncUdhaarsQuery.Companion.operationName,
+    SyncUdhaarsQuery.Companion.dataDeserializer,
+    SyncUdhaarsQuery.Companion.variablesSerializer,
+  )
+
+
+private class SyncUserMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  SyncUserMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      SyncUserMutation.Data,
+      SyncUserMutation.Variables
+  >(
+    connector,
+    SyncUserMutation.Companion.operationName,
+    SyncUserMutation.Companion.dataDeserializer,
+    SyncUserMutation.Companion.variablesSerializer,
   )
 
 
