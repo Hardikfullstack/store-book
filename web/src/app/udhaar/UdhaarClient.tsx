@@ -6,6 +6,9 @@ import { addUdhaar, deleteUdhaar, fetchMoreData } from '@/app/actions';
 import { dataConnect } from '@/lib/firebase';
 import { getActiveUdhaars, syncUdhaar, softDeleteUdhaar } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '@/store';
+import { setUdhaars, removeUdhaarRecord } from '@/store/udhaarSlice';
 
 export default function UdhaarClient({ 
   initialUdhaar, 
@@ -18,7 +21,11 @@ export default function UdhaarClient({
   storeId?: string,
   isPremium?: boolean
 }) {
-  const [udhaar, setUdhaar] = useState(initialUdhaar);
+  const dispatch = useDispatch();
+  const cachedUdhaars = useSelector((state: RootState) => state.udhaar.records);
+  const lastSynced = useSelector((state: RootState) => state.udhaar.lastSynced);
+  
+  const [udhaar, setUdhaar] = useState<any[]>(cachedUdhaars.length > 0 ? cachedUdhaars : initialUdhaar);
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
@@ -37,12 +44,16 @@ export default function UdhaarClient({
         }));
 
         setUdhaar(updated);
+        dispatch(setUdhaars(updated));
       } catch (error) {
         console.error("Data Connect udhaar sync error:", error);
       }
     };
 
-    fetchUdhaars();
+    // If cache is older than 5 mins (300000ms), fetch immediately
+    if (Date.now() - lastSynced > 300000) {
+      fetchUdhaars();
+    }
     const intervalId = setInterval(fetchUdhaars, 30000);
 
     return () => {
@@ -104,9 +115,12 @@ export default function UdhaarClient({
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this record?')) {
+      // Optimistic Update
+      setUdhaar(prev => prev.filter(r => r.id !== id));
+      dispatch(removeUdhaarRecord(id));
+      
       try {
         await softDeleteUdhaar(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
-        window.location.reload();
       } catch (err) {
         console.error("Failed to delete udhaar:", err);
       }
@@ -207,12 +221,13 @@ export default function UdhaarClient({
                         const text = encodeURIComponent(storeName ? `Hi ${record.customer_name}, this is a reminder regarding your pending Udhaar balance of Rs. ${record.amount} at ${storeName}. Please clear your dues at the earliest. Thank you!` : `Hi ${record.customer_name}, this is a reminder regarding your pending Udhaar balance of Rs. ${record.amount}. Please clear your dues at the earliest. Thank you!`);
                         window.open(`https://wa.me/?text=${text}`, '_blank');
                       }} 
-                      className="text-green-500 hover:text-green-700 transition-colors" 
+                      className="inline-flex items-center space-x-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 px-2.5 py-1.5 rounded-lg font-medium text-xs transition-colors border border-green-200 dark:border-green-800"
                       title="Send WhatsApp Reminder"
                     >
-                      <MessageCircle size={16} />
+                      <MessageCircle size={14} />
+                      <span>Remind</span>
                     </button>
-                    <button onClick={() => handleDelete(record.id)} className="text-red-500 hover:text-red-700 transition-colors"><Trash2 size={16} /></button>
+                    <button onClick={() => handleDelete(record.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"><Trash2 size={16} /></button>
                   </td>
                 </tr>
                     ))}

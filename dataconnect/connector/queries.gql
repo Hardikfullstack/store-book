@@ -170,3 +170,76 @@ query GetUser($id: String!) @auth(level: USER) {
     storeId
   }
 }
+
+# -----------------------------------------
+# SUPER ADMIN QUERIES
+# -----------------------------------------
+query GetStoresPaginated @auth(level: USER) {
+  stores {
+    id
+    name
+    isActive
+    isPremium
+    subscriptionPlatform
+    subscriptionStatus
+    subscriptionExpiresAt
+  }
+}
+
+query GetUsersPaginated @auth(level: USER) {
+  users {
+    id
+    phoneNumber
+    username
+    role
+    createdAt
+    storeId
+  }
+}
+
+query GetGlobalSettings @auth(level: USER) {
+  globalSettings {
+    id
+    key
+    value
+    description
+    updatedAt
+    updatedBy
+  }
+}
+
+query GetAdminAuditLogs @auth(level: USER) {
+  adminAuditLogs {
+    id
+    adminId
+    adminUsername
+    action
+    targetId
+    details
+    timestamp
+  }
+}
+
+query GetAnnouncements @auth(level: USER) {
+  announcements {
+    id
+    title
+    message
+    type
+    isActive
+    createdAt
+  }
+}
+
+query GetPromoCodes @auth(level: USER) {
+  promoCodes {
+    id
+    code
+    discountPercent
+    discountAmount
+    maxUses
+    currentUses
+    expiresAt
+    isActive
+  }
+}

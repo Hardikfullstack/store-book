@@ -8,6 +8,45 @@ export type Int64String = string;
 export type DateString = string;
 
 
+export interface AdminAuditLog_Key {
+  id: string;
+  __typename?: 'AdminAuditLog_Key';
+}
+
+export interface Announcement_Key {
+  id: string;
+  __typename?: 'Announcement_Key';
+}
+
+export interface CreateAdminAuditLogData {
+  adminAuditLog_insert: AdminAuditLog_Key;
+}
+
+export interface CreateAdminAuditLogVariables {
+  adminId: string;
+  adminUsername?: string | null;
+  action: string;
+  targetId?: string | null;
+  details?: string | null;
+  timestamp: number;
+}
+
+export interface DeleteAnnouncementData {
+  announcement_delete?: Announcement_Key | null;
+}
+
+export interface DeleteAnnouncementVariables {
+  id: string;
+}
+
+export interface DeletePromoCodeData {
+  promoCode_delete?: PromoCode_Key | null;
+}
+
+export interface DeletePromoCodeVariables {
+  id: string;
+}
+
 export interface ExpenseEntry_Key {
   id: string;
   __typename?: 'ExpenseEntry_Key';
@@ -108,6 +147,65 @@ export interface GetActiveUdhaarsVariables {
   storeId: string;
 }
 
+export interface GetAdminAuditLogsData {
+  adminAuditLogs: ({
+    id: string;
+    adminId: string;
+    adminUsername?: string | null;
+    action: string;
+    targetId?: string | null;
+    details?: string | null;
+    timestamp: number;
+  } & AdminAuditLog_Key)[];
+}
+
+export interface GetAnnouncementsData {
+  announcements: ({
+    id: string;
+    title: string;
+    message: string;
+    type: string;
+    isActive: boolean;
+    createdAt: number;
+  } & Announcement_Key)[];
+}
+
+export interface GetGlobalSettingsData {
+  globalSettings: ({
+    id: string;
+    key: string;
+    value: string;
+    description?: string | null;
+    updatedAt: number;
+    updatedBy?: string | null;
+  } & GlobalSetting_Key)[];
+}
+
+export interface GetPromoCodesData {
+  promoCodes: ({
+    id: string;
+    code: string;
+    discountPercent?: number | null;
+    discountAmount?: number | null;
+    maxUses?: number | null;
+    currentUses?: number | null;
+    expiresAt?: number | null;
+    isActive: boolean;
+  } & PromoCode_Key)[];
+}
+
+export interface GetStoresPaginatedData {
+  stores: ({
+    id: string;
+    name?: string | null;
+    isActive?: boolean | null;
+    isPremium?: boolean | null;
+    subscriptionPlatform?: string | null;
+    subscriptionStatus?: string | null;
+    subscriptionExpiresAt?: number | null;
+  } & Store_Key)[];
+}
+
 export interface GetUserData {
   user?: {
     id: string;
@@ -122,6 +220,22 @@ export interface GetUserVariables {
   id: string;
 }
 
+export interface GetUsersPaginatedData {
+  users: ({
+    id: string;
+    phoneNumber?: string | null;
+    username?: string | null;
+    role: string;
+    createdAt: number;
+    storeId?: string | null;
+  } & User_Key)[];
+}
+
+export interface GlobalSetting_Key {
+  id: string;
+  __typename?: 'GlobalSetting_Key';
+}
+
 export interface ItemBatch_Key {
   id: string;
   __typename?: 'ItemBatch_Key';
@@ -130,6 +244,11 @@ export interface ItemBatch_Key {
 export interface Item_Key {
   id: string;
   __typename?: 'Item_Key';
+}
+
+export interface PromoCode_Key {
+  id: string;
+  __typename?: 'PromoCode_Key';
 }
 
 export interface PurchaseItemDetail_Key {
@@ -477,6 +596,46 @@ export interface UpdateUserVariables {
   subscriptionId?: string | null;
 }
 
+export interface UpsertAnnouncementData {
+  announcement_upsert: Announcement_Key;
+}
+
+export interface UpsertAnnouncementVariables {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  isActive: boolean;
+  createdAt: number;
+}
+
+export interface UpsertGlobalSettingData {
+  globalSetting_upsert: GlobalSetting_Key;
+}
+
+export interface UpsertGlobalSettingVariables {
+  id: string;
+  key: string;
+  value: string;
+  description?: string | null;
+  updatedAt: number;
+  updatedBy?: string | null;
+}
+
+export interface UpsertPromoCodeData {
+  promoCode_upsert: PromoCode_Key;
+}
+
+export interface UpsertPromoCodeVariables {
+  id: string;
+  code: string;
+  discountPercent?: number | null;
+  discountAmount?: number | null;
+  maxUses?: number | null;
+  expiresAt?: number | null;
+  isActive: boolean;
+}
+
 export interface User_Key {
   id: string;
   __typename?: 'User_Key';
@@ -595,6 +754,54 @@ export function syncSupplier(vars: SyncSupplierVariables): MutationPromise<SyncS
 export function syncSupplier(dc: DataConnect, vars: SyncSupplierVariables): MutationPromise<SyncSupplierData, SyncSupplierVariables>;
 
 /* Allow users to create refs without passing in DataConnect */
+export function upsertGlobalSettingRef(vars: UpsertGlobalSettingVariables): MutationRef<UpsertGlobalSettingData, UpsertGlobalSettingVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function upsertGlobalSettingRef(dc: DataConnect, vars: UpsertGlobalSettingVariables): MutationRef<UpsertGlobalSettingData, UpsertGlobalSettingVariables>;
+
+export function upsertGlobalSetting(vars: UpsertGlobalSettingVariables): MutationPromise<UpsertGlobalSettingData, UpsertGlobalSettingVariables>;
+export function upsertGlobalSetting(dc: DataConnect, vars: UpsertGlobalSettingVariables): MutationPromise<UpsertGlobalSettingData, UpsertGlobalSettingVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function createAdminAuditLogRef(vars: CreateAdminAuditLogVariables): MutationRef<CreateAdminAuditLogData, CreateAdminAuditLogVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function createAdminAuditLogRef(dc: DataConnect, vars: CreateAdminAuditLogVariables): MutationRef<CreateAdminAuditLogData, CreateAdminAuditLogVariables>;
+
+export function createAdminAuditLog(vars: CreateAdminAuditLogVariables): MutationPromise<CreateAdminAuditLogData, CreateAdminAuditLogVariables>;
+export function createAdminAuditLog(dc: DataConnect, vars: CreateAdminAuditLogVariables): MutationPromise<CreateAdminAuditLogData, CreateAdminAuditLogVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function upsertAnnouncementRef(vars: UpsertAnnouncementVariables): MutationRef<UpsertAnnouncementData, UpsertAnnouncementVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function upsertAnnouncementRef(dc: DataConnect, vars: UpsertAnnouncementVariables): MutationRef<UpsertAnnouncementData, UpsertAnnouncementVariables>;
+
+export function upsertAnnouncement(vars: UpsertAnnouncementVariables): MutationPromise<UpsertAnnouncementData, UpsertAnnouncementVariables>;
+export function upsertAnnouncement(dc: DataConnect, vars: UpsertAnnouncementVariables): MutationPromise<UpsertAnnouncementData, UpsertAnnouncementVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function deleteAnnouncementRef(vars: DeleteAnnouncementVariables): MutationRef<DeleteAnnouncementData, DeleteAnnouncementVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function deleteAnnouncementRef(dc: DataConnect, vars: DeleteAnnouncementVariables): MutationRef<DeleteAnnouncementData, DeleteAnnouncementVariables>;
+
+export function deleteAnnouncement(vars: DeleteAnnouncementVariables): MutationPromise<DeleteAnnouncementData, DeleteAnnouncementVariables>;
+export function deleteAnnouncement(dc: DataConnect, vars: DeleteAnnouncementVariables): MutationPromise<DeleteAnnouncementData, DeleteAnnouncementVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function upsertPromoCodeRef(vars: UpsertPromoCodeVariables): MutationRef<UpsertPromoCodeData, UpsertPromoCodeVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function upsertPromoCodeRef(dc: DataConnect, vars: UpsertPromoCodeVariables): MutationRef<UpsertPromoCodeData, UpsertPromoCodeVariables>;
+
+export function upsertPromoCode(vars: UpsertPromoCodeVariables): MutationPromise<UpsertPromoCodeData, UpsertPromoCodeVariables>;
+export function upsertPromoCode(dc: DataConnect, vars: UpsertPromoCodeVariables): MutationPromise<UpsertPromoCodeData, UpsertPromoCodeVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function deletePromoCodeRef(vars: DeletePromoCodeVariables): MutationRef<DeletePromoCodeData, DeletePromoCodeVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function deletePromoCodeRef(dc: DataConnect, vars: DeletePromoCodeVariables): MutationRef<DeletePromoCodeData, DeletePromoCodeVariables>;
+
+export function deletePromoCode(vars: DeletePromoCodeVariables): MutationPromise<DeletePromoCodeData, DeletePromoCodeVariables>;
+export function deletePromoCode(dc: DataConnect, vars: DeletePromoCodeVariables): MutationPromise<DeletePromoCodeData, DeletePromoCodeVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
 export function syncItemsRef(vars: SyncItemsVariables): QueryRef<SyncItemsData, SyncItemsVariables>;
 /* Allow users to pass in custom DataConnect instances */
 export function syncItemsRef(dc: DataConnect, vars: SyncItemsVariables): QueryRef<SyncItemsData, SyncItemsVariables>;
@@ -689,4 +896,52 @@ export function getUserRef(dc: DataConnect, vars: GetUserVariables): QueryRef<Ge
 
 export function getUser(vars: GetUserVariables): QueryPromise<GetUserData, GetUserVariables>;
 export function getUser(dc: DataConnect, vars: GetUserVariables): QueryPromise<GetUserData, GetUserVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getStoresPaginatedRef(): QueryRef<GetStoresPaginatedData, undefined>;
+/* Allow users to pass in custom DataConnect instances */
+export function getStoresPaginatedRef(dc: DataConnect): QueryRef<GetStoresPaginatedData, undefined>;
+
+export function getStoresPaginated(): QueryPromise<GetStoresPaginatedData, undefined>;
+export function getStoresPaginated(dc: DataConnect): QueryPromise<GetStoresPaginatedData, undefined>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getUsersPaginatedRef(): QueryRef<GetUsersPaginatedData, undefined>;
+/* Allow users to pass in custom DataConnect instances */
+export function getUsersPaginatedRef(dc: DataConnect): QueryRef<GetUsersPaginatedData, undefined>;
+
+export function getUsersPaginated(): QueryPromise<GetUsersPaginatedData, undefined>;
+export function getUsersPaginated(dc: DataConnect): QueryPromise<GetUsersPaginatedData, undefined>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getGlobalSettingsRef(): QueryRef<GetGlobalSettingsData, undefined>;
+/* Allow users to pass in custom DataConnect instances */
+export function getGlobalSettingsRef(dc: DataConnect): QueryRef<GetGlobalSettingsData, undefined>;
+
+export function getGlobalSettings(): QueryPromise<GetGlobalSettingsData, undefined>;
+export function getGlobalSettings(dc: DataConnect): QueryPromise<GetGlobalSettingsData, undefined>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getAdminAuditLogsRef(): QueryRef<GetAdminAuditLogsData, undefined>;
+/* Allow users to pass in custom DataConnect instances */
+export function getAdminAuditLogsRef(dc: DataConnect): QueryRef<GetAdminAuditLogsData, undefined>;
+
+export function getAdminAuditLogs(): QueryPromise<GetAdminAuditLogsData, undefined>;
+export function getAdminAuditLogs(dc: DataConnect): QueryPromise<GetAdminAuditLogsData, undefined>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getAnnouncementsRef(): QueryRef<GetAnnouncementsData, undefined>;
+/* Allow users to pass in custom DataConnect instances */
+export function getAnnouncementsRef(dc: DataConnect): QueryRef<GetAnnouncementsData, undefined>;
+
+export function getAnnouncements(): QueryPromise<GetAnnouncementsData, undefined>;
+export function getAnnouncements(dc: DataConnect): QueryPromise<GetAnnouncementsData, undefined>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getPromoCodesRef(): QueryRef<GetPromoCodesData, undefined>;
+/* Allow users to pass in custom DataConnect instances */
+export function getPromoCodesRef(dc: DataConnect): QueryRef<GetPromoCodesData, undefined>;
+
+export function getPromoCodes(): QueryPromise<GetPromoCodesData, undefined>;
+export function getPromoCodes(dc: DataConnect): QueryPromise<GetPromoCodesData, undefined>;
 

@@ -5,6 +5,9 @@ import { Search, Plus, Minus, Trash2, X, ShoppingCart, Loader2 } from 'lucide-re
 import { dataConnect } from '@/lib/firebase';
 import { getActiveItems, syncSale, syncSaleItem, syncItem } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '@/store';
+import { addToCart, updateQuantity, removeFromCart, clearCart } from '@/store/cartSlice';
 
 interface Item {
   id: string;
@@ -33,6 +36,7 @@ export default function SalesPOS({
 }: {
   storeId: string;
   type?: 'SALE' | 'ESTIMATE';
+  userRole?: string;
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -40,7 +44,23 @@ export default function SalesPOS({
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const dispatch = useDispatch();
+  const cartState = useSelector((state: RootState) => state.cart.items);
+  // Re-map the Redux items to the local CartItem interface shape
+  const cart = cartState.map(i => ({
+    item: {
+      id: i.id,
+      name: i.name,
+      quantity: i.maxStock,
+      unit: i.unit,
+      buyPrice: i.buy_price,
+      sellPrice: i.sell_price,
+      lowStockThreshold: 0,
+      category: ''
+    },
+    quantity: i.quantity
+  }));
+
   const [customerName, setCustomerName] = useState('');
   const [notes, setNotes] = useState('');
   const [discount, setDiscount] = useState<number>(0);
@@ -94,13 +114,15 @@ export default function SalesPOS({
         );
         
         if (scannedItem) {
-          setCart(prev => {
-            const existing = prev.find(c => c.item.id === scannedItem.id);
-            if (existing) {
-              return prev.map(c => c.item.id === scannedItem.id ? { ...c, quantity: c.quantity + 1 } : c);
-            }
-            return [...prev, { item: scannedItem, quantity: 1 }];
-          });
+          dispatch(addToCart({
+            id: scannedItem.id,
+            name: scannedItem.name,
+            quantity: 1,
+            sell_price: scannedItem.sellPrice,
+            buy_price: scannedItem.buyPrice,
+            unit: scannedItem.unit || 'pcs',
+            maxStock: scannedItem.quantity
+          }));
           // Play a small beep sound for feedback
           try {
             const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -124,32 +146,32 @@ export default function SalesPOS({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [items]);
 
-  const addToCart = (item: Item) => {
-    setCart(prev => {
-      const existing = prev.find(c => c.item.id === item.id);
-      if (existing) {
-        return prev.map(c => c.item.id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
-      }
-      return [...prev, { item, quantity: 1 }];
-    });
+  const handleAddToCart = (item: Item) => {
+    dispatch(addToCart({
+      id: item.id,
+      name: item.name,
+      quantity: 1,
+      sell_price: item.sellPrice,
+      buy_price: item.buyPrice,
+      unit: item.unit || 'pcs',
+      maxStock: item.quantity
+    }));
     setSearchQuery('');
   };
 
-  const updateQuantity = (itemId: string, delta: number) => {
-    setCart(prev => prev.map(c => {
-      if (c.item.id === itemId) {
-        const newQ = Math.max(0.1, c.quantity + delta);
-        return { ...c, quantity: newQ };
-      }
-      return c;
-    }));
+  const handleUpdateQuantity = (itemId: string, currentQty: number, delta: number) => {
+    const newQ = Math.max(0.1, currentQty + delta);
+    dispatch(updateQuantity({ id: itemId, quantity: newQ }));
   };
 
-  const removeFromCart = (itemId: string) => {
-    setCart(prev => prev.filter(c => c.item.id !== itemId));
+  const handleRemoveFromCart = (itemId: string) => {
+    dispatch(removeFromCart(itemId));
   };
 
   const subtotal = cart.reduce((sum, c) => sum + (c.item.sellPrice * c.quantity), 0);
+  const totalBuyPrice = cart.reduce((sum, c) => sum + (c.item.buyPrice * c.quantity), 0);
+  const maxProfitMargin = Math.max(0, subtotal - totalBuyPrice);
+  
   const total = Math.max(0, subtotal - (discount || 0));
 
   const filteredItems = items.filter(item => 
@@ -159,6 +181,11 @@ export default function SalesPOS({
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+    if (userRole === 'staff' && discount > maxProfitMargin) {
+      alert(`Staff accounts cannot give discounts exceeding the profit margin (Max: ₹${maxProfitMargin.toFixed(2)}).`);
+      return;
+    }
+    
     setIsSaving(true);
     
     try {
@@ -219,6 +246,7 @@ export default function SalesPOS({
         }
       }
 
+      dispatch(clearCart());
       onSuccess();
     } catch (error) {
       console.error("Checkout failed:", error);
@@ -264,8 +292,17 @@ export default function SalesPOS({
             
             <div className="flex-1 overflow-y-auto p-4 bg-gray-50/30 dark:bg-black/20">
               {loading ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 className="animate-spin text-teal-500" size={32} />
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 h-32 flex flex-col animate-pulse">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                      </div>
+                      <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2 flex-1 mt-2"></div>
+                      <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mt-auto"></div>
+                    </div>
+                  ))}
                 </div>
               ) : filteredItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-500">
@@ -276,7 +313,7 @@ export default function SalesPOS({
                   {filteredItems.map(item => (
                     <div 
                       key={item.id} 
-                      onClick={() => addToCart(item)}
+                      onClick={() => handleAddToCart(item)}
                       className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 cursor-pointer hover:border-teal-500 hover:shadow-md transition-all active:scale-95 flex flex-col"
                     >
                       <div className="flex justify-between items-start mb-2">
@@ -315,7 +352,7 @@ export default function SalesPOS({
                   <div key={c.item.id} className="flex flex-col bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-medium text-gray-900 dark:text-white text-sm pr-4 line-clamp-1">{c.item.name}</h4>
-                      <button onClick={() => removeFromCart(c.item.id)} className="text-red-400 hover:text-red-600 transition-colors">
+                      <button onClick={() => handleRemoveFromCart(c.item.id)} className="text-red-400 hover:text-red-600 transition-colors">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -325,15 +362,31 @@ export default function SalesPOS({
                       </div>
                       <div className="flex items-center space-x-3 bg-gray-50 dark:bg-gray-900 rounded-lg p-1 border border-gray-200 dark:border-gray-700">
                         <button 
-                          onClick={() => updateQuantity(c.item.id, -1)}
-                          className="w-7 h-7 flex items-center justify-center bg-white dark:bg-gray-800 rounded shadow-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          onClick={() => handleUpdateQuantity(c.item.id, c.quantity, -1)}
+                          className="w-7 h-7 flex items-center justify-center bg-white dark:bg-gray-800 rounded shadow-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0"
                         >
                           <Minus size={14} />
                         </button>
-                        <span className="text-sm font-bold min-w-[20px] text-center dark:text-white">{c.quantity}</span>
+                        <input
+                          type="text"
+                          defaultValue={c.quantity}
+                          onBlur={(e) => {
+                            const val = e.target.value.toLowerCase().trim();
+                            let parsed = parseFloat(val) || 0;
+                            if (parsed > 0) {
+                              const isBaseGram = c.item.unit.toLowerCase().startsWith('g');
+                              if (isBaseGram && (val.includes('kg') || val.includes('kilo'))) parsed *= 1000;
+                              dispatch(updateQuantity({ id: c.item.id, quantity: parsed }));
+                            } else {
+                              e.target.value = String(c.quantity); // reset
+                            }
+                          }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                          className="w-12 text-sm font-bold text-center bg-transparent border-b border-dashed border-gray-400 dark:border-gray-600 focus:outline-none focus:border-teal-500 dark:text-white"
+                        />
                         <button 
-                          onClick={() => updateQuantity(c.item.id, 1)}
-                          className="w-7 h-7 flex items-center justify-center bg-white dark:bg-gray-800 rounded shadow-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          onClick={() => handleUpdateQuantity(c.item.id, c.quantity, 1)}
+                          className="w-7 h-7 flex items-center justify-center bg-white dark:bg-gray-800 rounded shadow-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0"
                         >
                           <Plus size={14} />
                         </button>
@@ -362,9 +415,15 @@ export default function SalesPOS({
                       type="number" 
                       placeholder="Discount (₹)" 
                       value={discount || ''}
-                      onChange={e => setDiscount(parseFloat(e.target.value) || 0)}
+                      onChange={e => {
+                        const val = parseFloat(e.target.value) || 0;
+                        setDiscount(val);
+                      }}
                       className="w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 dark:text-white text-sm focus:ring-2 focus:ring-teal-500"
                     />
+                    {userRole === 'staff' && discount > maxProfitMargin && (
+                      <p className="text-xs text-red-500 mt-1">Exceeds max allowed (₹{maxProfitMargin.toFixed(2)})</p>
+                    )}
                   </div>
                   <div className="flex-[2]">
                     <input 

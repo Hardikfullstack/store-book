@@ -72,6 +72,23 @@ export default function StoresClient({ initialStores }: { initialStores: any[] }
                   </td>
                   <td className="p-4 flex items-center justify-end gap-2">
                     <button 
+                      onClick={async () => {
+                        if (confirm(`Are you sure you want to log in as ${store.name}?`)) {
+                          try {
+                            const { switchStore } = await import('@/app/actions');
+                            await switchStore(store.id);
+                            window.location.href = '/dashboard';
+                          } catch (err) {
+                            alert("Ghost login failed: " + err);
+                          }
+                        }
+                      }}
+                      className="p-2 rounded-lg transition-colors text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                      title="Ghost Login (Impersonate)"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                    <button 
                       onClick={() => handleToggleStatus(store.id, store.is_active !== false)}
                       className={`p-2 rounded-lg transition-colors ${store.is_active !== false ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20' : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'}`}
                       title={store.is_active !== false ? 'Suspend Store' : 'Activate Store'}

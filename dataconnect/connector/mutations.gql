@@ -288,3 +288,31 @@ mutation SyncSupplier(
     }
   )
 }
+
+# -----------------------------------------
+# SUPER ADMIN MUTATIONS
+# -----------------------------------------
+
+mutation UpsertGlobalSetting($id: String!, $key: String!, $value: String!, $description: String, $updatedAt: Float!, $updatedBy: String) @auth(level: USER) {
+  globalSetting_upsert(data: { id: $id, key: $key, value: $value, description: $description, updatedAt: $updatedAt, updatedBy: $updatedBy })
+}
+
+mutation CreateAdminAuditLog($adminId: String!, $adminUsername: String, $action: String!, $targetId: String, $details: String, $timestamp: Float!) @auth(level: USER) {
+  adminAuditLog_insert(data: { adminId: $adminId, adminUsername: $adminUsername, action: $action, targetId: $targetId, details: $details, timestamp: $timestamp })
+}
+
+mutation UpsertAnnouncement($id: String!, $title: String!, $message: String!, $type: String!, $isActive: Boolean!, $createdAt: Float!) @auth(level: USER) {
+  announcement_upsert(data: { id: $id, title: $title, message: $message, type: $type, isActive: $isActive, createdAt: $createdAt })
+}
+
+mutation DeleteAnnouncement($id: String!) @auth(level: USER) {
+  announcement_delete(id: $id)
+}
+
+mutation UpsertPromoCode($id: String!, $code: String!, $discountPercent: Float, $discountAmount: Float, $maxUses: Float, $expiresAt: Float, $isActive: Boolean!) @auth(level: USER) {
+  promoCode_upsert(data: { id: $id, code: $code, discountPercent: $discountPercent, discountAmount: $discountAmount, maxUses: $maxUses, expiresAt: $expiresAt, isActive: $isActive })
+}
+
+mutation DeletePromoCode($id: String!) @auth(level: USER) {
+  promoCode_delete(id: $id)
+}

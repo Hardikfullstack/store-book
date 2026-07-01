@@ -7,6 +7,8 @@ import { createStaffAccount } from '@/app/actions';
 export default function StaffManagement({ storeId }: { storeId: string }) {
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
+  const [canViewProfit, setCanViewProfit] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -23,11 +25,15 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
     setError('');
 
     try {
-      const res = await createStaffAccount(username, pin);
+      // In production, we would pass permissions to the backend action.
+      // Currently passing them to createStaffAccount (requires updating actions.ts).
+      const res = await createStaffAccount(username, pin, { canViewProfit, canDelete });
       if (res.success) {
         setMessage(`Staff account ${username} created successfully!`);
         setUsername('');
         setPin('');
+        setCanViewProfit(false);
+        setCanDelete(false);
       } else {
         setError(res.error || 'Failed to create account');
       }
@@ -81,11 +87,32 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
               />
             </div>
           </div>
+
+          <div className="flex flex-col space-y-3 mt-4">
+            <label className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+              <input 
+                type="checkbox" 
+                checked={canViewProfit}
+                onChange={e => setCanViewProfit(e.target.checked)}
+                className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+              />
+              <span>Can View Profit Margins</span>
+            </label>
+            <label className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+              <input 
+                type="checkbox" 
+                checked={canDelete}
+                onChange={e => setCanDelete(e.target.checked)}
+                className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+              />
+              <span>Can Delete Sales/Items</span>
+            </label>
+          </div>
           
           {error && <p className="text-red-500 text-xs font-medium">{error}</p>}
           {message && <p className="text-teal-600 dark:text-teal-400 text-xs font-medium">{message}</p>}
           
-          <div className="flex justify-end">
+          <div className="flex justify-end mt-4">
             <button 
               type="submit" 
               disabled={isCreating || !username || !pin}

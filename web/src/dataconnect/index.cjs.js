@@ -119,6 +119,54 @@ exports.syncSupplierRef = function syncSupplierRef(dcOrVars, vars) {
 exports.syncSupplier = function syncSupplier(dcOrVars, vars) {
   return executeMutation(syncSupplierRef(dcOrVars, vars));
 };
+exports.upsertGlobalSettingRef = function upsertGlobalSettingRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertGlobalSetting', inputVars);
+}
+exports.upsertGlobalSetting = function upsertGlobalSetting(dcOrVars, vars) {
+  return executeMutation(upsertGlobalSettingRef(dcOrVars, vars));
+};
+exports.createAdminAuditLogRef = function createAdminAuditLogRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateAdminAuditLog', inputVars);
+}
+exports.createAdminAuditLog = function createAdminAuditLog(dcOrVars, vars) {
+  return executeMutation(createAdminAuditLogRef(dcOrVars, vars));
+};
+exports.upsertAnnouncementRef = function upsertAnnouncementRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertAnnouncement', inputVars);
+}
+exports.upsertAnnouncement = function upsertAnnouncement(dcOrVars, vars) {
+  return executeMutation(upsertAnnouncementRef(dcOrVars, vars));
+};
+exports.deleteAnnouncementRef = function deleteAnnouncementRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'DeleteAnnouncement', inputVars);
+}
+exports.deleteAnnouncement = function deleteAnnouncement(dcOrVars, vars) {
+  return executeMutation(deleteAnnouncementRef(dcOrVars, vars));
+};
+exports.upsertPromoCodeRef = function upsertPromoCodeRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertPromoCode', inputVars);
+}
+exports.upsertPromoCode = function upsertPromoCode(dcOrVars, vars) {
+  return executeMutation(upsertPromoCodeRef(dcOrVars, vars));
+};
+exports.deletePromoCodeRef = function deletePromoCodeRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'DeletePromoCode', inputVars);
+}
+exports.deletePromoCode = function deletePromoCode(dcOrVars, vars) {
+  return executeMutation(deletePromoCodeRef(dcOrVars, vars));
+};
 exports.syncItemsRef = function syncItemsRef(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -214,4 +262,52 @@ exports.getUserRef = function getUserRef(dcOrVars, vars) {
 }
 exports.getUser = function getUser(dcOrVars, vars) {
   return executeQuery(getUserRef(dcOrVars, vars));
+};
+exports.getStoresPaginatedRef = function getStoresPaginatedRef(dc) {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetStoresPaginated');
+}
+exports.getStoresPaginated = function getStoresPaginated(dc) {
+  return executeQuery(getStoresPaginatedRef(dc));
+};
+exports.getUsersPaginatedRef = function getUsersPaginatedRef(dc) {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetUsersPaginated');
+}
+exports.getUsersPaginated = function getUsersPaginated(dc) {
+  return executeQuery(getUsersPaginatedRef(dc));
+};
+exports.getGlobalSettingsRef = function getGlobalSettingsRef(dc) {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetGlobalSettings');
+}
+exports.getGlobalSettings = function getGlobalSettings(dc) {
+  return executeQuery(getGlobalSettingsRef(dc));
+};
+exports.getAdminAuditLogsRef = function getAdminAuditLogsRef(dc) {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetAdminAuditLogs');
+}
+exports.getAdminAuditLogs = function getAdminAuditLogs(dc) {
+  return executeQuery(getAdminAuditLogsRef(dc));
+};
+exports.getAnnouncementsRef = function getAnnouncementsRef(dc) {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetAnnouncements');
+}
+exports.getAnnouncements = function getAnnouncements(dc) {
+  return executeQuery(getAnnouncementsRef(dc));
+};
+exports.getPromoCodesRef = function getPromoCodesRef(dc) {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetPromoCodes');
+}
+exports.getPromoCodes = function getPromoCodes(dc) {
+  return executeQuery(getPromoCodesRef(dc));
 };

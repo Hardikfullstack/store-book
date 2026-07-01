@@ -8,6 +8,9 @@ import { dataConnect } from '@/lib/firebase';
 import { getActiveItems, syncItem, softDeleteItem } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import RestockQuantity from '@/components/models/RestockQuantity';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '@/store';
+import { setInventory, updateInventoryItem } from '@/store/inventorySlice';
 
 type UnitOption = 'pcs' | 'kg' | 'g' | 'litre' | 'ml' | 'dozen' | 'box' | 'packet';
 
@@ -56,7 +59,11 @@ export default function ItemsClient({
   storeId?: string,
   isPremium?: boolean
 }) {
-  const [items, setItems] = useState(initialItems);
+  const dispatch = useDispatch();
+  const cachedItems = useSelector((state: RootState) => state.inventory.items);
+  const lastSynced = useSelector((state: RootState) => state.inventory.lastSynced);
+  
+  const [items, setItems] = useState<any[]>(cachedItems.length > 0 ? cachedItems : initialItems);
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
@@ -82,12 +89,15 @@ export default function ItemsClient({
         }
 
         setItems(updated);
+        dispatch(setInventory(updated));
       } catch (error) {
         console.error("Data Connect items sync error:", error);
       }
     };
 
-    fetchItems();
+    if (Date.now() - lastSynced > 300000) {
+      fetchItems();
+    }
     // Optional: poll every 30 seconds for new items
     const intervalId = setInterval(fetchItems, 30000);
 
@@ -153,7 +163,28 @@ export default function ItemsClient({
       });
       setShowModal(false);
       // Let polling or a forced refetch handle it, but for simple UX:
-      window.location.reload();
+      // We will optimistic update here too:
+      const updatedItem = {
+        id,
+        name: formData.name,
+        quantity: formData.quantity,
+        unit: formData.unit,
+        buy_price: formData.buy_price,
+        sell_price: formData.sell_price,
+        low_stock_threshold: formData.low_stock_threshold,
+        category: formData.category,
+        ...payload,
+      };
+      setItems(prev => {
+        const idx = prev.findIndex(i => i.id === id);
+        if (idx > -1) {
+          const next = [...prev];
+          next[idx] = { ...next[idx], ...updatedItem };
+          return next;
+        }
+        return [updatedItem, ...prev];
+      });
+      dispatch(updateInventoryItem(updatedItem));
     } catch (err) {
       console.error("Failed to save item:", err);
     }
@@ -191,9 +222,9 @@ export default function ItemsClient({
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this item?')) {
+      setItems(prev => prev.filter(i => i.id !== id));
       try {
         await softDeleteItem(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
-        window.location.reload();
       } catch (err) {
         console.error("Failed to delete item:", err);
       }
@@ -278,9 +309,28 @@ export default function ItemsClient({
 
                 return (
                   <>
-                    {filteredItems.map((item: any) => (
-                      <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{item.name}</td>
+                    {filteredItems.map((item: any) => {
+                      const now = Date.now();
+                      const expiryDate = item.expiry_date ? new Date(item.expiry_date).getTime() : NaN;
+                      let rowClass = "hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors";
+                      
+                      if (!isNaN(expiryDate)) {
+                        const daysUntilExpiry = (expiryDate - now) / (1000 * 60 * 60 * 24);
+                        if (daysUntilExpiry <= 0) {
+                          rowClass = "bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors";
+                        } else if (daysUntilExpiry <= 30) {
+                          rowClass = "bg-orange-50 dark:bg-orange-900/30 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors";
+                        }
+                      }
+
+                      return (
+                      <tr key={item.id} className={rowClass}>
+                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">
+                          {item.name}
+                          {item.expiry_date && (
+                            <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Exp: {item.expiry_date}</div>
+                          )}
+                        </td>
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
                             {item.category || 'Uncategorized'}
@@ -332,7 +382,8 @@ export default function ItemsClient({
                           )}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </>
                 );
               })()}

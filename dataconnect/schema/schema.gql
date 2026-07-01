@@ -162,6 +162,8 @@ type User @table {
   stores: [String]
   storeId: String
   ownerId: String
+  canViewProfit: Boolean @default(value: false)
+  canDelete: Boolean @default(value: false)
   subscriptionStatus: String @col(name: "subscription_status")
   subscriptionPlan: String @col(name: "subscription_plan")
   subscriptionExpiresAt: Float @col(name: "subscription_expires_at")
@@ -178,4 +180,43 @@ type Store @table {
   subscriptionPlatform: String @col(name: "subscription_platform")
   subscriptionId: String @col(name: "subscription_id")
   subscriptionStatus: String @col(name: "subscription_status")
+}
+
+type GlobalSetting @table {
+  id: String! @col(name: "id")
+  key: String! @unique
+  value: String!
+  description: String
+  updatedAt: Float! @col(name: "updated_at")
+  updatedBy: String @col(name: "updated_by")
+}
+
+type AdminAuditLog @table {
+  id: String! @col(name: "id") @default(expr: "uuidV4()")
+  adminId: String! @col(name: "admin_id")
+  adminUsername: String
+  action: String!
+  targetId: String
+  details: String
+  timestamp: Float!
+}
+
+type Announcement @table {
+  id: String! @col(name: "id") @default(expr: "uuidV4()")
+  title: String!
+  message: String!
+  type: String! @default(value: "info") # info, warning, critical
+  isActive: Boolean! @col(name: "is_active") @default(value: true)
+  createdAt: Float! @col(name: "created_at")
+}
+
+type PromoCode @table {
+  id: String! @col(name: "id")
+  code: String! @unique
+  discountPercent: Float @col(name: "discount_percent")
+  discountAmount: Float @col(name: "discount_amount")
+  maxUses: Float @col(name: "max_uses")
+  currentUses: Float @col(name: "current_uses") @default(value: 0)
+  expiresAt: Float @col(name: "expires_at")
+  isActive: Boolean! @col(name: "is_active") @default(value: true)
 }

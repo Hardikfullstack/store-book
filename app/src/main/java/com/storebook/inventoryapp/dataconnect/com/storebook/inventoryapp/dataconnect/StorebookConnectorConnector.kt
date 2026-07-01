@@ -18,6 +18,12 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
   override val dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect
 
   
+    public val createAdminAuditLog: CreateAdminAuditLogMutation
+  
+    public val deleteAnnouncement: DeleteAnnouncementMutation
+  
+    public val deletePromoCode: DeletePromoCodeMutation
+  
     public val getActiveExpenses: GetActiveExpensesQuery
   
     public val getActiveItems: GetActiveItemsQuery
@@ -30,7 +36,19 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
   
     public val getActiveUdhaars: GetActiveUdhaarsQuery
   
+    public val getAdminAuditLogs: GetAdminAuditLogsQuery
+  
+    public val getAnnouncements: GetAnnouncementsQuery
+  
+    public val getGlobalSettings: GetGlobalSettingsQuery
+  
+    public val getPromoCodes: GetPromoCodesQuery
+  
+    public val getStoresPaginated: GetStoresPaginatedQuery
+  
     public val getUser: GetUserQuery
+  
+    public val getUsersPaginated: GetUsersPaginatedQuery
   
     public val softDeleteExpense: SoftDeleteExpenseMutation
   
@@ -69,6 +87,12 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
     public val updateStore: UpdateStoreMutation
   
     public val updateUser: UpdateUserMutation
+  
+    public val upsertAnnouncement: UpsertAnnouncementMutation
+  
+    public val upsertGlobalSetting: UpsertGlobalSettingMutation
+  
+    public val upsertPromoCode: UpsertPromoCodeMutation
   
 
   public companion object {
@@ -109,6 +133,18 @@ private class StorebookConnectorConnectorImpl(
   override val dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect
 ) : StorebookConnectorConnector {
   
+    override val createAdminAuditLog by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      CreateAdminAuditLogMutationImpl(this)
+    }
+  
+    override val deleteAnnouncement by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      DeleteAnnouncementMutationImpl(this)
+    }
+  
+    override val deletePromoCode by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      DeletePromoCodeMutationImpl(this)
+    }
+  
     override val getActiveExpenses by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetActiveExpensesQueryImpl(this)
     }
@@ -133,8 +169,32 @@ private class StorebookConnectorConnectorImpl(
       GetActiveUdhaarsQueryImpl(this)
     }
   
+    override val getAdminAuditLogs by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetAdminAuditLogsQueryImpl(this)
+    }
+  
+    override val getAnnouncements by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetAnnouncementsQueryImpl(this)
+    }
+  
+    override val getGlobalSettings by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetGlobalSettingsQueryImpl(this)
+    }
+  
+    override val getPromoCodes by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetPromoCodesQueryImpl(this)
+    }
+  
+    override val getStoresPaginated by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetStoresPaginatedQueryImpl(this)
+    }
+  
     override val getUser by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetUserQueryImpl(this)
+    }
+  
+    override val getUsersPaginated by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetUsersPaginatedQueryImpl(this)
     }
   
     override val softDeleteExpense by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -213,6 +273,18 @@ private class StorebookConnectorConnectorImpl(
       UpdateUserMutationImpl(this)
     }
   
+    override val upsertAnnouncement by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      UpsertAnnouncementMutationImpl(this)
+    }
+  
+    override val upsertGlobalSetting by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      UpsertGlobalSettingMutationImpl(this)
+    }
+  
+    override val upsertPromoCode by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      UpsertPromoCodeMutationImpl(this)
+    }
+  
 
   @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
   override fun operations(): List<com.google.firebase.dataconnect.generated.GeneratedOperation<StorebookConnectorConnector, *, *>> =
@@ -221,7 +293,10 @@ private class StorebookConnectorConnectorImpl(
   @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
   override fun mutations(): List<com.google.firebase.dataconnect.generated.GeneratedMutation<StorebookConnectorConnector, *, *>> =
     listOf(
-      softDeleteExpense,
+      createAdminAuditLog,
+        deleteAnnouncement,
+        deletePromoCode,
+        softDeleteExpense,
         softDeleteItem,
         softDeleteSale,
         softDeleteUdhaar,
@@ -235,6 +310,9 @@ private class StorebookConnectorConnectorImpl(
         syncUser,
         updateStore,
         updateUser,
+        upsertAnnouncement,
+        upsertGlobalSetting,
+        upsertPromoCode,
         
     )
 
@@ -247,7 +325,13 @@ private class StorebookConnectorConnectorImpl(
         getActiveSales,
         getActiveSuppliers,
         getActiveUdhaars,
+        getAdminAuditLogs,
+        getAnnouncements,
+        getGlobalSettings,
+        getPromoCodes,
+        getStoresPaginated,
         getUser,
+        getUsersPaginated,
         syncExpenses,
         syncItems,
         syncSaleItems,
@@ -388,6 +472,51 @@ private open class StorebookConnectorConnectorGeneratedMutationImpl<Data, Variab
 
 
 
+private class CreateAdminAuditLogMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  CreateAdminAuditLogMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      CreateAdminAuditLogMutation.Data,
+      CreateAdminAuditLogMutation.Variables
+  >(
+    connector,
+    CreateAdminAuditLogMutation.Companion.operationName,
+    CreateAdminAuditLogMutation.Companion.dataDeserializer,
+    CreateAdminAuditLogMutation.Companion.variablesSerializer,
+  )
+
+
+private class DeleteAnnouncementMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  DeleteAnnouncementMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      DeleteAnnouncementMutation.Data,
+      DeleteAnnouncementMutation.Variables
+  >(
+    connector,
+    DeleteAnnouncementMutation.Companion.operationName,
+    DeleteAnnouncementMutation.Companion.dataDeserializer,
+    DeleteAnnouncementMutation.Companion.variablesSerializer,
+  )
+
+
+private class DeletePromoCodeMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  DeletePromoCodeMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      DeletePromoCodeMutation.Data,
+      DeletePromoCodeMutation.Variables
+  >(
+    connector,
+    DeletePromoCodeMutation.Companion.operationName,
+    DeletePromoCodeMutation.Companion.dataDeserializer,
+    DeletePromoCodeMutation.Companion.variablesSerializer,
+  )
+
+
 private class GetActiveExpensesQueryImpl(
   connector: StorebookConnectorConnector
 ):
@@ -478,6 +607,81 @@ private class GetActiveUdhaarsQueryImpl(
   )
 
 
+private class GetAdminAuditLogsQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetAdminAuditLogsQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetAdminAuditLogsQuery.Data,
+      Unit
+  >(
+    connector,
+    GetAdminAuditLogsQuery.Companion.operationName,
+    GetAdminAuditLogsQuery.Companion.dataDeserializer,
+    GetAdminAuditLogsQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetAnnouncementsQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetAnnouncementsQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetAnnouncementsQuery.Data,
+      Unit
+  >(
+    connector,
+    GetAnnouncementsQuery.Companion.operationName,
+    GetAnnouncementsQuery.Companion.dataDeserializer,
+    GetAnnouncementsQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetGlobalSettingsQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetGlobalSettingsQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetGlobalSettingsQuery.Data,
+      Unit
+  >(
+    connector,
+    GetGlobalSettingsQuery.Companion.operationName,
+    GetGlobalSettingsQuery.Companion.dataDeserializer,
+    GetGlobalSettingsQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetPromoCodesQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetPromoCodesQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetPromoCodesQuery.Data,
+      Unit
+  >(
+    connector,
+    GetPromoCodesQuery.Companion.operationName,
+    GetPromoCodesQuery.Companion.dataDeserializer,
+    GetPromoCodesQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetStoresPaginatedQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetStoresPaginatedQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetStoresPaginatedQuery.Data,
+      Unit
+  >(
+    connector,
+    GetStoresPaginatedQuery.Companion.operationName,
+    GetStoresPaginatedQuery.Companion.dataDeserializer,
+    GetStoresPaginatedQuery.Companion.variablesSerializer,
+  )
+
+
 private class GetUserQueryImpl(
   connector: StorebookConnectorConnector
 ):
@@ -490,6 +694,21 @@ private class GetUserQueryImpl(
     GetUserQuery.Companion.operationName,
     GetUserQuery.Companion.dataDeserializer,
     GetUserQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetUsersPaginatedQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetUsersPaginatedQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetUsersPaginatedQuery.Data,
+      Unit
+  >(
+    connector,
+    GetUsersPaginatedQuery.Companion.operationName,
+    GetUsersPaginatedQuery.Companion.dataDeserializer,
+    GetUsersPaginatedQuery.Companion.variablesSerializer,
   )
 
 
@@ -775,6 +994,51 @@ private class UpdateUserMutationImpl(
     UpdateUserMutation.Companion.operationName,
     UpdateUserMutation.Companion.dataDeserializer,
     UpdateUserMutation.Companion.variablesSerializer,
+  )
+
+
+private class UpsertAnnouncementMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  UpsertAnnouncementMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      UpsertAnnouncementMutation.Data,
+      UpsertAnnouncementMutation.Variables
+  >(
+    connector,
+    UpsertAnnouncementMutation.Companion.operationName,
+    UpsertAnnouncementMutation.Companion.dataDeserializer,
+    UpsertAnnouncementMutation.Companion.variablesSerializer,
+  )
+
+
+private class UpsertGlobalSettingMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  UpsertGlobalSettingMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      UpsertGlobalSettingMutation.Data,
+      UpsertGlobalSettingMutation.Variables
+  >(
+    connector,
+    UpsertGlobalSettingMutation.Companion.operationName,
+    UpsertGlobalSettingMutation.Companion.dataDeserializer,
+    UpsertGlobalSettingMutation.Companion.variablesSerializer,
+  )
+
+
+private class UpsertPromoCodeMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  UpsertPromoCodeMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      UpsertPromoCodeMutation.Data,
+      UpsertPromoCodeMutation.Variables
+  >(
+    connector,
+    UpsertPromoCodeMutation.Companion.operationName,
+    UpsertPromoCodeMutation.Companion.dataDeserializer,
+    UpsertPromoCodeMutation.Companion.variablesSerializer,
   )
 
 

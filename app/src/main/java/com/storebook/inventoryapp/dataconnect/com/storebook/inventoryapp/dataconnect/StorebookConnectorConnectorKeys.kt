@@ -16,6 +16,26 @@ package com.storebook.inventoryapp.dataconnect
 
 
   @kotlinx.serialization.Serializable
+  public data class AdminAuditLogKey(
+  
+    val id:
+    String
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
+  public data class AnnouncementKey(
+  
+    val id:
+    String
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
   public data class ExpenseEntryKey(
   
     val id:
@@ -26,7 +46,27 @@ package com.storebook.inventoryapp.dataconnect
   }
 
   @kotlinx.serialization.Serializable
+  public data class GlobalSettingKey(
+  
+    val id:
+    String
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
   public data class ItemKey(
+  
+    val id:
+    String
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
+  public data class PromoCodeKey(
   
     val id:
     String

@@ -3,6 +3,7 @@ import Sidebar from '@/components/Sidebar';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { Inter } from 'next/font/google';
 import { getSession } from '@/lib/session';
+import { StoreProvider } from '@/store/StoreProvider';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap', preload: false });
 
@@ -26,14 +27,16 @@ export default async function RootLayout({
       </head>
       <body suppressHydrationWarning className={`${inter.className} bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <div className="flex min-h-screen">
-            <Sidebar session={session} />
-            <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50/30 dark:bg-gray-950/30">
-              <div className="max-w-7xl mx-auto px-8 py-8">
-                {children}
-              </div>
-            </main>
-          </div>
+          <StoreProvider>
+            <div className="flex min-h-screen">
+              <Sidebar session={session} />
+              <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50/30 dark:bg-gray-950/30">
+                <div className="max-w-7xl mx-auto px-8 py-8">
+                  {children}
+                </div>
+              </main>
+            </div>
+          </StoreProvider>
         </ThemeProvider>
       </body>
     </html>

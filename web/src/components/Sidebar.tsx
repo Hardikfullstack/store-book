@@ -23,10 +23,14 @@ export default function Sidebar({ session }: { session?: any }) {
     { name: 'Settings', path: '/settings', icon: Settings },
   ];
 
-  if (role === 'admin') {
+  if (role === 'admin' || role === 'super_admin') {
+    navItems.length = 0; // Clear normal store nav items for admin context
     navItems.push(
+      { name: 'Admin Dashboard', path: '/admin', icon: LayoutDashboard },
       { name: 'Manage Stores', path: '/admin/stores', icon: Store },
       { name: 'Manage Users', path: '/admin/users', icon: Users },
+      { name: 'Billing & Subscriptions', path: '/admin/billing', icon: Receipt },
+      { name: 'Platform Settings', path: '/admin/settings', icon: Settings },
       { name: 'Data Center', path: '/admin/data', icon: Database }
     );
   }

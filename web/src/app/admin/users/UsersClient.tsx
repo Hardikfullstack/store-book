@@ -105,14 +105,33 @@ export default function UsersClient({ initialUsers, availableStores }: { initial
                     {user.id === '+919999999999' ? (
                       <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2">Root Admin</span>
                     ) : (
-                      <button 
-                        onClick={() => saveUser(user)}
-                        disabled={savingId === user.id}
-                        className="p-2 bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/40 transition-colors disabled:opacity-50 flex items-center gap-2 text-sm font-medium"
-                      >
-                        {savingId === user.id ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                        Save
-                      </button>
+                      <>
+                        <button 
+                          onClick={async () => {
+                            if (!confirm(`Revoke all sessions for ${user.id}?`)) return;
+                            try {
+                              const { revokeUserSessions } = await import('@/app/actions');
+                              const res = await revokeUserSessions(user.id);
+                              if (res.success) alert("Sessions revoked successfully.");
+                              else alert("Failed to revoke: " + res.error);
+                            } catch (e: any) {
+                              alert("Error: " + e.message);
+                            }
+                          }}
+                          className="p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex items-center gap-2 text-sm font-medium"
+                          title="Force Session Revoke"
+                        >
+                          Revoke
+                        </button>
+                        <button 
+                          onClick={() => saveUser(user)}
+                          disabled={savingId === user.id}
+                          className="p-2 bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/40 transition-colors disabled:opacity-50 flex items-center gap-2 text-sm font-medium"
+                        >
+                          {savingId === user.id ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                          Save
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
