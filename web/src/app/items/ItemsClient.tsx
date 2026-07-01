@@ -493,7 +493,7 @@ export default function ItemsClient({
           </div>
         </div>
       )}
-      {/* <RestockQuantity
+      <RestockQuantity
         open={Boolean(reStockQuantity)}
         item={reStockQuantity}
         userRole={userRole}
@@ -514,7 +514,7 @@ export default function ItemsClient({
           await updateItem(reStockQuantity.id, updatedItem);
           setReStockQuantity(null);
         }}
-      /> */}
+      />
     </div>
   );
 }
