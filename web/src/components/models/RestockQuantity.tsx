@@ -1,0 +1,313 @@
+import React, { useEffect, useState } from 'react';
+import { addDoc, collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
+type SupplierOption = {
+  id?: string;
+  name?: string;
+};
+
+type RestockQuantityProps = {
+  readonly open: boolean;
+  readonly item: Record<string, any> | null;
+  readonly userRole?: string;
+  readonly storeId?: string;
+  readonly onClose: () => void;
+  readonly onConfirm?: (payload: {
+    quantity: number;
+    buyPrice: number;
+    supplierName: string;
+  }) => Promise<void> | void;
+};
+
+const PRESET_AMOUNTS = [5, 10, 25, 50];
+
+function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onConfirm }: Readonly<RestockQuantityProps>) {
+  const [quantity, setQuantity] = useState('');
+  const [buyPrice, setBuyPrice] = useState('');
+  const [supplierSearch, setSupplierSearch] = useState('');
+  const [selectedSupplier, setSelectedSupplier] = useState<SupplierOption | null>(null);
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
+  const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
+  const [isCreatingSupplier, setIsCreatingSupplier] = useState(false);
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open || !storeId) {
+      setSuppliers([]);
+      return;
+    }
+
+    const supplierQuery = query(collection(db, 'stores', storeId, 'suppliers'), orderBy('name', 'asc'));
+    const unsubscribe = onSnapshot(supplierQuery, (snapshot) => {
+      const nextSuppliers = snapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as { name?: string }),
+        }))
+        .filter((supplier): supplier is SupplierOption & { name: string } => Boolean(supplier.name))
+        .map((supplier) => ({ ...supplier, name: supplier.name.trim() }));
+
+      setSuppliers(nextSuppliers);
+    });
+
+    return () => unsubscribe();
+  }, [open, storeId]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    setQuantity('');
+    setBuyPrice(item?.buy_price?.toString() || '');
+    setSupplierSearch('');
+    setSelectedSupplier(null);
+    setShowSupplierDropdown(false);
+    setError('');
+    setIsSubmitting(false);
+  }, [open, item]);
+
+  const unitLabel = item?.unit || 'pcs';
+  const presets = unitLabel === 'pcs' || unitLabel === 'dozen' || unitLabel === 'box' || unitLabel === 'packet'
+    ? PRESET_AMOUNTS
+    : [5, 10, 25, 50];
+
+  const filteredSuppliers = (() => {
+    const query = supplierSearch.trim().toLowerCase();
+    if (!query) return suppliers;
+    return suppliers.filter((supplier) => supplier.name.toLowerCase().includes(query));
+  })();
+
+  if (!open || !item) return null;
+
+  const handlePreset = (amount: number) => {
+    const currentValue = Number(quantity || 0);
+    const nextValue = currentValue + amount;
+    setQuantity(Number.isInteger(nextValue) ? String(nextValue) : nextValue.toString());
+  };
+
+  const handleCreateSupplier = async () => {
+    const trimmedName = supplierSearch.trim();
+    if (!trimmedName || !storeId || isCreatingSupplier) return;
+
+    setIsCreatingSupplier(true);
+    try {
+      const supplierRef = await addDoc(collection(db, 'stores', storeId, 'suppliers'), {
+        name: trimmedName,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+      });
+
+      setSelectedSupplier({ id: supplierRef.id, name: trimmedName });
+      setSupplierSearch(trimmedName);
+      setShowSupplierDropdown(false);
+    } catch (err) {
+      console.error('Create supplier failed', err);
+      setError('Unable to create supplier.');
+    } finally {
+      setIsCreatingSupplier(false);
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+
+    const parsedQuantity = Number(quantity);
+    if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
+      setError('Please enter a valid positive quantity.');
+      return;
+    }
+
+    if (userRole !== 'staff') {
+      const parsedBuyPrice = Number(buyPrice);
+      if (!Number.isFinite(parsedBuyPrice) || parsedBuyPrice < 0) {
+        setError('Please enter a valid buy price.');
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onConfirm?.({
+        quantity: parsedQuantity,
+        buyPrice: userRole === 'staff' ? Number(item?.buy_price || 0) : Number(buyPrice || 0),
+        supplierName: selectedSupplier?.name ?? '',
+      });
+      onClose();
+    } catch (err) {
+      console.error('Restock failed', err);
+      setError('Unable to restock item right now.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-10">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-lg p-6">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-xl font-bold dark:text-white">Restock Stock</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Add stock for {item?.name || 'this item'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800/60 p-3">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Current stock</p>
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">
+              {Number(item?.quantity || 0)} {unitLabel}
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="restock-quantity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Add Quantity
+            </label>
+            <input
+              id="restock-quantity"
+              type="number"
+              min="0"
+              step="any"
+              value={quantity}
+              onChange={(event) => setQuantity(event.target.value)}
+              placeholder="Enter quantity"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {presets.map((amount) => (
+              <button
+                key={amount}
+                type="button"
+                onClick={() => handlePreset(amount)}
+                className="rounded-full border border-teal-500 px-3 py-1 text-sm font-medium text-teal-600 hover:bg-teal-50 dark:border-teal-400 dark:text-teal-300 dark:hover:bg-teal-900/30"
+              >
+                +{amount}
+              </button>
+            ))}
+          </div>
+
+          {userRole !== 'staff' && (
+            <div>
+              <label htmlFor="restock-buy-price" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Buy Price (per {unitLabel})
+              </label>
+              <input
+                id="restock-buy-price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={buyPrice}
+                onChange={(event) => setBuyPrice(event.target.value)}
+                placeholder="0.00"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+          )}
+
+          <div className="relative">
+            <label htmlFor="restock-supplier" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Supplier
+            </label>
+            <button
+              id="restock-supplier"
+              type="button"
+              onClick={() => setShowSupplierDropdown((value) => !value)}
+              className="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            >
+              <span>{selectedSupplier ? selectedSupplier.name : 'Select supplier'}</span>
+              <span className="text-gray-500 dark:text-gray-400">▼</span>
+            </button>
+
+            {showSupplierDropdown && (
+              <div className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-700">
+                  <input
+                    type="text"
+                    value={supplierSearch}
+                    onChange={(event) => setSupplierSearch(event.target.value)}
+                    placeholder="Search supplier..."
+                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-sm text-gray-900 outline-none focus:border-teal-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSupplier(null);
+                    setSupplierSearch('');
+                    setShowSupplierDropdown(false);
+                  }}
+                  className="flex w-full items-center px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                >
+                  Cash Purchase / No Supplier
+                </button>
+
+                {filteredSuppliers.map((supplier) => (
+                  <button
+                    key={supplier.id || supplier.name}
+                    type="button"
+                    onClick={() => {
+                      setSelectedSupplier(supplier);
+                      setSupplierSearch(supplier.name);
+                      setShowSupplierDropdown(false);
+                    }}
+                    className="flex w-full items-center px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                  >
+                    {supplier.name}
+                  </button>
+                ))}
+
+                {supplierSearch.trim() && !filteredSuppliers.some((supplier) => supplier.name.toLowerCase() === supplierSearch.trim().toLowerCase()) && (
+                  <button
+                    type="button"
+                    onClick={handleCreateSupplier}
+                    disabled={isCreatingSupplier}
+                    className="flex w-full items-center px-3 py-2 text-left text-sm font-medium text-teal-600 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-70 dark:text-teal-300 dark:hover:bg-teal-900/30"
+                  >
+                    {isCreatingSupplier ? 'Creating...' : `Create supplier: "${supplierSearch.trim()}"`}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {error ? (
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          ) : null}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isSubmitting ? 'Saving...' : 'Add Stock'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default RestockQuantity;

@@ -1,6 +1,7 @@
 import { adminDb } from '@/lib/firebaseAdmin';
 import ExpensesClient from './ExpensesClient';
 import { getSession } from '@/lib/session';
+import { serializeDoc } from '@/lib/serializeDoc';
 
 async function getExpenses(session: any) {
   try {
@@ -11,7 +12,7 @@ async function getExpenses(session: any) {
       snapshot = await adminDb.collection('stores').doc(session.storeId).collection('expenses').orderBy('updated_at', 'desc').limit(20).get();
     }
     return snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .map(doc => serializeDoc({ id: doc.id, ...doc.data() }))
       .filter((data: any) => data.is_deleted !== 1);
   } catch (error) {
     console.error("Error fetching expenses from Firebase:", error);

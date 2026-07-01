@@ -1,6 +1,7 @@
 import { adminDb } from '@/lib/firebaseAdmin';
 import UdhaarClient from './UdhaarClient';
 import { getSession } from '@/lib/session';
+import { serializeDoc } from '@/lib/serializeDoc';
 
 async function getUdhaar(session: any) {
   try {
@@ -11,7 +12,7 @@ async function getUdhaar(session: any) {
       snapshot = await adminDb.collection('stores').doc(session.storeId).collection('udhaar').orderBy('updated_at', 'desc').limit(20).get();
     }
     return snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .map(doc => serializeDoc({ id: doc.id, ...doc.data() }))
       .filter((data: any) => data.is_deleted !== 1);
   } catch (error) {
     console.error("Error fetching udhaar from Firebase:", error);

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/session';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
+import { serializeDoc } from '@/lib/serializeDoc';
 
 export async function login(idToken: string) {
   const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
@@ -324,7 +325,7 @@ export async function fetchMoreData(collectionName: string, lastUpdatedAt: numbe
           });
         }
       }
-      return { id: doc.id, ...data };
+      return serializeDoc({ id: doc.id, ...data });
     })
     .filter((data: any) => data.is_deleted !== 1);
 }

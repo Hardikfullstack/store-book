@@ -1,6 +1,7 @@
 import { adminDb } from '@/lib/firebaseAdmin';
 import SalesClient from './SalesClient';
 import { getSession } from '@/lib/session';
+import { serializeDoc } from '@/lib/serializeDoc';
 
 async function getSales(session: any) {
   try {
@@ -21,7 +22,7 @@ async function getSales(session: any) {
             });
           }
         }
-        return { id: doc.id, ...data };
+        return serializeDoc({ id: doc.id, ...data });
       })
       .filter((data: any) => data.is_deleted !== 1);
   } catch (error) {

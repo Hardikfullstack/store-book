@@ -1,6 +1,7 @@
 import { adminDb } from '@/lib/firebaseAdmin';
 import ItemsClient from './ItemsClient';
 import { getSession } from '@/lib/session';
+import { serializeDoc } from '@/lib/serializeDoc';
 
 async function getItems(session: any) {
   try {
@@ -17,7 +18,7 @@ async function getItems(session: any) {
         if (session.role === 'staff') {
           if (data.buy_price !== undefined) delete data.buy_price;
         }
-        return { id: doc.id, ...data };
+        return serializeDoc({ id: doc.id, ...data });
       })
       .filter((data: any) => data.is_deleted !== 1);
   } catch (error) {

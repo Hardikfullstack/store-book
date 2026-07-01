@@ -1,11 +1,48 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Trash2, Edit2, Loader2, ArrowDownCircle } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2, Loader2, ArrowDownCircle } from 'lucide-react';
 import { addItem, updateItem, deleteItem, fetchMoreData } from '@/app/actions';
 import ExportButtons from '@/app/ExportButtons';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
+import RestockQuantity from '@/components/models/RestockQuantity';
+
+type UnitOption = 'pcs' | 'kg' | 'g' | 'litre' | 'ml' | 'dozen' | 'box' | 'packet';
+
+type ItemFormData = {
+  name: string;
+  category: string;
+  quantity: number;
+  unit: UnitOption;
+  buy_price: number;
+  sell_price: number;
+  low_stock_threshold: number;
+
+  hsn_code: string;
+  tax_rate: number;
+
+  batch_lot_number: string;
+  expiry_date: string; // yyyy-mm-dd
+};
+
+const UNIT_OPTIONS: UnitOption[] = ['pcs', 'kg', 'g', 'litre', 'ml', 'dozen', 'box', 'packet'];
+
+function emptyFormData(): ItemFormData {
+  return {
+    name: '',
+    category: '',
+    quantity: 0,
+    unit: 'pcs',
+    buy_price: 0,
+    sell_price: 0,
+    low_stock_threshold: 0,
+    hsn_code: '',
+    tax_rate: 0,
+    batch_lot_number: '',
+    expiry_date: ''
+  };
+}
 
 export default function ItemsClient({ 
   initialItems, 
@@ -51,6 +88,9 @@ export default function ItemsClient({
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialItems.length === 20);
+  const [formData, setFormData] = useState<ItemFormData>(() => emptyFormData());
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [reStockQuantity, setReStockQuantity] = useState<any | null>(null);
 
   const handleLoadMore = async () => {
     if (loadingMore || !hasMore || items.length === 0) return;
@@ -68,23 +108,26 @@ export default function ItemsClient({
       setLoadingMore(false);
     }
   };
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    category: '',
-    quantity: 0,
-    unit: 'pcs',
-    buy_price: 0,
-    sell_price: 0,
-    low_stock_threshold: 0
-  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const payload: any = { ...formData };
+
+    // If advanced/batch hidden, optionally keep fields empty to avoid storing partial data.
+    if (!showAdvanced) {
+      payload.hsn_code = '';
+      payload.tax_rate = 0;
+      payload.batch_lot_number = '';
+      payload.expiry_date = '';
+      payload.batch_lot_number = '';
+      payload.expiry_date = '';
+    }
+
     if (editingId) {
-      await updateItem(editingId, formData);
+      await updateItem(editingId, payload);
     } else {
-      await addItem(formData);
+      await addItem(payload);
     }
     setShowModal(false);
     // Real app would reload or rely on revalidatePath, but since this is client state we can do a hard refresh or optimistic update
@@ -92,16 +135,32 @@ export default function ItemsClient({
   };
 
   const handleEdit = (item: any) => {
-    setFormData({
+    const next: ItemFormData = {
       name: item.name || '',
       category: item.category || '',
       quantity: item.quantity || 0,
-      unit: item.unit || 'pcs',
+      unit: (item.unit || 'pcs') as UnitOption,
       buy_price: item.buy_price || 0,
       sell_price: item.sell_price || 0,
-      low_stock_threshold: item.low_stock_threshold || 0
-    });
+      low_stock_threshold: item.low_stock_threshold || 0,
+
+      hsn_code: item.hsn_code || '',
+      tax_rate: item.tax_rate || 0,
+
+      batch_lot_number: item.batch_lot_number || '',
+      expiry_date: item.expiry_date || ''
+    };
+
+    setFormData(next);
     setEditingId(item.id);
+
+    const shouldShow =
+      !!next.hsn_code ||
+      !!next.tax_rate ||
+      !!next.batch_lot_number ||
+      !!next.expiry_date;
+
+    setShowAdvanced(shouldShow);
     setShowModal(true);
   };
 
@@ -110,6 +169,13 @@ export default function ItemsClient({
       await deleteItem(id);
       window.location.reload();
     }
+  };
+
+  const openCreate = () => {
+    setEditingId(null);
+    setFormData(emptyFormData());
+    setShowAdvanced(false);
+    setShowModal(true);
   };
 
   return (
@@ -122,7 +188,7 @@ export default function ItemsClient({
         <div className="flex items-center space-x-3">
           <ExportButtons data={items} type="items" columns={['name', 'category', 'quantity', 'unit', 'buy_price', 'sell_price']} />
           <button 
-            onClick={() => { setEditingId(null); setFormData({name:'',category:'',quantity:0,unit:'pcs',buy_price:0,sell_price:0,low_stock_threshold:0}); setShowModal(true); }}
+            onClick={openCreate}
             className="btn-primary flex items-center space-x-2"
           >
             <Plus size={18} />
@@ -137,8 +203,8 @@ export default function ItemsClient({
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search size={16} className="text-gray-400" />
             </div>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all dark:text-gray-100"
@@ -213,6 +279,13 @@ export default function ItemsClient({
                   )}
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button 
+                      onClick={() => setReStockQuantity(item)}
+                      className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 mr-4 transition-colors"
+                      title="Restock"
+                    >
+                      <Plus size={18} />
+                    </button>
+                    <button 
                       onClick={() => handleEdit(item)}
                       className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-4 transition-colors"
                       title="Edit"
@@ -268,7 +341,18 @@ export default function ItemsClient({
                 </div>
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Unit</label>
-                  <input required type="text" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                  <select
+                    required
+                    value={formData.unit}
+                    onChange={(e) => setFormData({ ...formData, unit: e.target.value as UnitOption })}
+                    className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
+                  >
+                    {UNIT_OPTIONS.map((u) => (
+                      <option key={u} value={u}>
+                        {u}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -282,25 +366,101 @@ export default function ItemsClient({
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                  {userRole !== 'staff' && (
+                {userRole !== 'staff' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Buy Price (₹)</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      required 
+                      value={formData.buy_price || ''} 
+                      onChange={(e) => setFormData({...formData, buy_price: parseFloat(e.target.value) || 0})}
+                      className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
+                      placeholder="0.00"
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium dark:text-gray-300">Sell Price</label>
+                  <input
+                    required
+                    type="number"
+                    step="any"
+                    value={formData.sell_price}
+                    onChange={(e) => setFormData({ ...formData, sell_price: parseFloat(e.target.value) })}
+                    className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced((s) => !s)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <span>Show Advanced Options</span>
+                  <span>{showAdvanced ? '▲' : '▼'}</span>
+                </button>
+              </div>
+
+              {showAdvanced && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium dark:text-gray-300">HSN/SAC Code</label>
+                      <input
+                        type="text"
+                        value={formData.hsn_code}
+                        onChange={(e) => setFormData({ ...formData, hsn_code: e.target.value })}
+                        className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium dark:text-gray-300">Tax Rate (%)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={formData.tax_rate}
+                        onChange={(e) => setFormData({ ...formData, tax_rate: parseFloat(e.target.value) || 0 })}
+                        className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <span>Batch & Expiry Tracking (Optional)</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Buy Price (₹)</label>
-                        <input 
-                          type="number" 
-                          step="0.01"
-                          required 
-                          value={formData.buy_price || ''} 
-                          onChange={(e) => setFormData({...formData, buy_price: parseFloat(e.target.value) || 0})}
+                        <label className="block text-sm font-medium dark:text-gray-300">Batch/Lot Number</label>
+                        <input
+                          type="text"
+                          value={formData.batch_lot_number}
+                          onChange={(e) =>
+                            setFormData({ ...formData, batch_lot_number: e.target.value })
+                          }
                           className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
-                          placeholder="0.00"
                         />
                       </div>
-                  )}
-                  <div>
-                    <label className="block text-sm font-medium dark:text-gray-300">Sell Price</label>
-                    <input required type="number" step="any" value={formData.sell_price} onChange={e => setFormData({...formData, sell_price: parseFloat(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                      <div>
+                        <label className="block text-sm font-medium dark:text-gray-300">Expiry Date</label>
+                        <input
+                          type="date"
+                          value={formData.expiry_date}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              expiry_date: e.target.value
+                            })
+                          }
+                          className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
+                        />
+                      </div>
                   </div>
-              </div>
+                </div>
+              )}
               <div className="flex justify-end space-x-3 mt-6">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>
                 <button type="submit" className="btn-primary">Save</button>
@@ -309,6 +469,28 @@ export default function ItemsClient({
           </div>
         </div>
       )}
+      <RestockQuantity
+        open={Boolean(reStockQuantity)}
+        item={reStockQuantity}
+        userRole={userRole}
+        storeId={storeId}
+        onClose={() => setReStockQuantity(null)}
+        onConfirm={async (payload) => {
+          if (!reStockQuantity) return;
+
+          const nextQuantity = Number(reStockQuantity.quantity || 0) + payload.quantity;
+          const updatedItem = {
+            ...reStockQuantity,
+            quantity: nextQuantity,
+            ...(userRole !== 'staff' && { buy_price: payload.buyPrice ?? reStockQuantity.buy_price ?? 0 }),
+            updated_at: Date.now(),
+          };
+
+          setItems((prev) => prev.map((item: any) => item.id === reStockQuantity.id ? updatedItem : item));
+          await updateItem(reStockQuantity.id, updatedItem);
+          setReStockQuantity(null);
+        }}
+      />
     </div>
   );
 }

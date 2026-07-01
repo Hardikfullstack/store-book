@@ -1,6 +1,7 @@
 import { adminDb } from '@/lib/firebaseAdmin';
 import { getSession } from '@/lib/session';
 import DashboardClient from './DashboardClient';
+import { serializeDoc } from '@/lib/serializeDoc';
 
 async function getStats(session: any) {
   let stats = { totalItems: 0, totalSales: 0, totalUdhaar: 0, totalExpenses: 0, totalStores: 0, salesData: [] as any[], itemsData: [] as any[] };
@@ -23,8 +24,8 @@ async function getStats(session: any) {
       stats.totalSales = salesSnap.docs.reduce((acc, doc) => acc + (doc.data().total_amount || 0), 0);
       stats.totalUdhaar = udhaarSnap.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
       stats.totalExpenses = expensesSnap.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
-      stats.salesData = salesSnap.docs.map(d => d.data());
-      stats.itemsData = itemsSnap.docs.map(d => d.data());
+      stats.salesData = salesSnap.docs.map(d => serializeDoc(d.data()));
+      stats.itemsData = itemsSnap.docs.map(d => serializeDoc(d.data()));
     } else {
       // Client sees only their store
       const storeRef = adminDb.collection('stores').doc(session.storeId);
@@ -44,12 +45,12 @@ async function getStats(session: any) {
           if (session.role === 'staff' && Array.isArray(data.items)) {
               data.items.forEach((i: any) => { delete i.buy_price; });
           }
-          return data;
+          return serializeDoc(data);
       });
       stats.itemsData = itemsSnap.docs.map(d => {
           const data = d.data();
           if (session.role === 'staff') delete data.buy_price;
-          return data;
+          return serializeDoc(data);
       });
     }
     
