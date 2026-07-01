@@ -45,13 +45,13 @@ function emptyFormData(): ItemFormData {
   };
 }
 
-export default function ItemsClient({ 
-  initialItems, 
+export default function ItemsClient({
+  initialItems,
   userRole,
   storeId,
   isPremium
-}: { 
-  initialItems: any[], 
+}: {
+  initialItems: any[],
   userRole: string,
   storeId?: string,
   isPremium?: boolean
@@ -66,7 +66,7 @@ export default function ItemsClient({
       try {
         const response = await getActiveItems(dataConnect, { storeId });
         if (!isMounted) return;
-        
+
         const updated = response.data.items.map((item: any) => ({
           ...item,
           is_deleted: 0,
@@ -126,16 +126,16 @@ export default function ItemsClient({
     e.preventDefault();
     try {
       const payload = !showAdvanced ? {
-          hsnCode: '',
-          taxRate: 0,
-          batchLotNumber: '',
-          expiryDate: ''
-        } : {
-          hsnCode: formData.hsn_code,
-          taxRate: formData.tax_rate,
-          batchLotNumber: formData.batch_lot_number,
-          expiryDate: formData.expiry_date
-        };
+        hsnCode: '',
+        taxRate: 0,
+        batchLotNumber: '',
+        expiryDate: ''
+      } : {
+        hsnCode: formData.hsn_code,
+        taxRate: formData.tax_rate,
+        batchLotNumber: formData.batch_lot_number,
+        expiryDate: formData.expiry_date
+      };
       const id = editingId || crypto.randomUUID();
       await syncItem(dataConnect, {
         id,
@@ -153,7 +153,7 @@ export default function ItemsClient({
       });
       setShowModal(false);
       // Let polling or a forced refetch handle it, but for simple UX:
-      window.location.reload(); 
+      window.location.reload();
     } catch (err) {
       console.error("Failed to save item:", err);
     }
@@ -216,7 +216,7 @@ export default function ItemsClient({
         </div>
         <div className="flex items-center space-x-3">
           <ExportButtons data={items} type="items" columns={['name', 'category', 'quantity', 'unit', 'buy_price', 'sell_price']} />
-          <button 
+          <button
             onClick={openCreate}
             className="btn-primary flex items-center space-x-2"
           >
@@ -261,8 +261,8 @@ export default function ItemsClient({
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
               {(() => {
-                const filteredItems = items.filter((item: any) => 
-                  (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                const filteredItems = items.filter((item: any) =>
+                  (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                   (item.category || '').toLowerCase().includes(searchQuery.toLowerCase())
                 );
 
@@ -280,58 +280,58 @@ export default function ItemsClient({
                   <>
                     {filteredItems.map((item: any) => (
                       <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{item.name}</td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                      {item.category || 'Uncategorized'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {item.quantity} <span className="text-gray-400 dark:text-gray-500 text-xs">{item.unit}</span>
-                  </td>
-                  {userRole !== 'staff' && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        <FormattedAmount amount={item.buy_price} />
-                      </td>
-                  )}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
-                    <FormattedAmount amount={item.sell_price} />
-                  </td>
-                  {userRole !== 'staff' && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {item.buy_price > 0 ? (
-                          <span className={`px-2 py-1 rounded text-xs font-bold ${((item.sell_price - item.buy_price) / item.buy_price * 100) >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                            {(((item.sell_price - item.buy_price) / item.buy_price) * 100).toFixed(0)}%
+                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{item.name}</td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                            {item.category || 'Uncategorized'}
                           </span>
-                        ) : '-'}
-                      </td>
-                  )}
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button 
-                      onClick={() => setReStockQuantity(item)}
-                      className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 mr-4 transition-colors"
-                      title="Restock"
-                    >
-                      <Plus size={18} />
-                    </button>
-                    <button 
-                      onClick={() => handleEdit(item)}
-                      className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-4 transition-colors"
-                      title="Edit"
-                    >
-                      <Edit2 size={18} />
-                    </button>
-                    {userRole !== 'staff' && (
-                        <button 
-                          onClick={() => handleDelete(item.id)}
-                          className="text-red-500 hover:text-red-700 transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                    )}
-                  </td>
-                </tr>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                          {item.quantity} <span className="text-gray-400 dark:text-gray-500 text-xs">{item.unit}</span>
+                        </td>
+                        {userRole !== 'staff' && (
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            <FormattedAmount amount={item.buy_price} />
+                          </td>
+                        )}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
+                          <FormattedAmount amount={item.sell_price} />
+                        </td>
+                        {userRole !== 'staff' && (
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            {item.buy_price > 0 ? (
+                              <span className={`px-2 py-1 rounded text-xs font-bold ${((item.sell_price - item.buy_price) / item.buy_price * 100) >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                {(((item.sell_price - item.buy_price) / item.buy_price) * 100).toFixed(0)}%
+                              </span>
+                            ) : '-'}
+                          </td>
+                        )}
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => setReStockQuantity(item)}
+                            className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 mr-4 transition-colors"
+                            title="Restock"
+                          >
+                            <Plus size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-4 transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          {userRole !== 'staff' && (
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
                     ))}
                   </>
                 );
@@ -339,11 +339,11 @@ export default function ItemsClient({
             </tbody>
           </table>
         </div>
-        
+
         {hasMore && !searchQuery && (
           <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-center">
-            <button 
-              onClick={handleLoadMore} 
+            <button
+              onClick={handleLoadMore}
               disabled={loadingMore}
               className="px-6 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
             >
@@ -361,12 +361,12 @@ export default function ItemsClient({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium dark:text-gray-300">Name</label>
-                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                <input required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Category</label>
-                  <input type="text" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                  <input type="text" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Unit</label>
@@ -387,23 +387,23 @@ export default function ItemsClient({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Quantity</label>
-                  <input required type="number" step="any" value={formData.quantity} onChange={e => setFormData({...formData, quantity: parseFloat(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                  <input required type="number" step="any" value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: parseFloat(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Low Stock Alert</label>
-                  <input required type="number" step="any" value={formData.low_stock_threshold} onChange={e => setFormData({...formData, low_stock_threshold: parseFloat(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                  <input required type="number" step="any" value={formData.low_stock_threshold} onChange={e => setFormData({ ...formData, low_stock_threshold: parseFloat(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {userRole !== 'staff' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Buy Price (₹)</label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       step="0.01"
-                      required 
-                      value={formData.buy_price || ''} 
-                      onChange={(e) => setFormData({...formData, buy_price: parseFloat(e.target.value) || 0})}
+                      required
+                      value={formData.buy_price || ''}
+                      onChange={(e) => setFormData({ ...formData, buy_price: parseFloat(e.target.value) || 0 })}
                       className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
                       placeholder="0.00"
                     />
@@ -462,31 +462,31 @@ export default function ItemsClient({
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium dark:text-gray-300">Batch/Lot Number</label>
-                        <input
-                          type="text"
-                          value={formData.batch_lot_number}
-                          onChange={(e) =>
-                            setFormData({ ...formData, batch_lot_number: e.target.value })
-                          }
-                          className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium dark:text-gray-300">Expiry Date</label>
-                        <input
-                          type="date"
-                          value={formData.expiry_date}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              expiry_date: e.target.value
-                            })
-                          }
-                          className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium dark:text-gray-300">Batch/Lot Number</label>
+                      <input
+                        type="text"
+                        value={formData.batch_lot_number}
+                        onChange={(e) =>
+                          setFormData({ ...formData, batch_lot_number: e.target.value })
+                        }
+                        className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium dark:text-gray-300">Expiry Date</label>
+                      <input
+                        type="date"
+                        value={formData.expiry_date}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            expiry_date: e.target.value
+                          })
+                        }
+                        className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
