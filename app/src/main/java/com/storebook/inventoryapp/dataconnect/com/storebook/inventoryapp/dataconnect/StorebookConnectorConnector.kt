@@ -22,7 +22,11 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
   
     public val getActiveItems: GetActiveItemsQuery
   
+    public val getActiveSaleItems: GetActiveSaleItemsQuery
+  
     public val getActiveSales: GetActiveSalesQuery
+  
+    public val getActiveSuppliers: GetActiveSuppliersQuery
   
     public val getActiveUdhaars: GetActiveUdhaarsQuery
   
@@ -52,11 +56,19 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
   
     public val syncSales: SyncSalesQuery
   
+    public val syncStore: SyncStoreMutation
+  
+    public val syncSupplier: SyncSupplierMutation
+  
     public val syncUdhaar: SyncUdhaarMutation
   
     public val syncUdhaars: SyncUdhaarsQuery
   
     public val syncUser: SyncUserMutation
+  
+    public val updateStore: UpdateStoreMutation
+  
+    public val updateUser: UpdateUserMutation
   
 
   public companion object {
@@ -105,8 +117,16 @@ private class StorebookConnectorConnectorImpl(
       GetActiveItemsQueryImpl(this)
     }
   
+    override val getActiveSaleItems by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetActiveSaleItemsQueryImpl(this)
+    }
+  
     override val getActiveSales by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetActiveSalesQueryImpl(this)
+    }
+  
+    override val getActiveSuppliers by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetActiveSuppliersQueryImpl(this)
     }
   
     override val getActiveUdhaars by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -165,6 +185,14 @@ private class StorebookConnectorConnectorImpl(
       SyncSalesQueryImpl(this)
     }
   
+    override val syncStore by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SyncStoreMutationImpl(this)
+    }
+  
+    override val syncSupplier by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SyncSupplierMutationImpl(this)
+    }
+  
     override val syncUdhaar by lazy(LazyThreadSafetyMode.PUBLICATION) {
       SyncUdhaarMutationImpl(this)
     }
@@ -175,6 +203,14 @@ private class StorebookConnectorConnectorImpl(
   
     override val syncUser by lazy(LazyThreadSafetyMode.PUBLICATION) {
       SyncUserMutationImpl(this)
+    }
+  
+    override val updateStore by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      UpdateStoreMutationImpl(this)
+    }
+  
+    override val updateUser by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      UpdateUserMutationImpl(this)
     }
   
 
@@ -193,8 +229,12 @@ private class StorebookConnectorConnectorImpl(
         syncItem,
         syncSale,
         syncSaleItem,
+        syncStore,
+        syncSupplier,
         syncUdhaar,
         syncUser,
+        updateStore,
+        updateUser,
         
     )
 
@@ -203,7 +243,9 @@ private class StorebookConnectorConnectorImpl(
     listOf(
       getActiveExpenses,
         getActiveItems,
+        getActiveSaleItems,
         getActiveSales,
+        getActiveSuppliers,
         getActiveUdhaars,
         getUser,
         syncExpenses,
@@ -376,6 +418,21 @@ private class GetActiveItemsQueryImpl(
   )
 
 
+private class GetActiveSaleItemsQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetActiveSaleItemsQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetActiveSaleItemsQuery.Data,
+      GetActiveSaleItemsQuery.Variables
+  >(
+    connector,
+    GetActiveSaleItemsQuery.Companion.operationName,
+    GetActiveSaleItemsQuery.Companion.dataDeserializer,
+    GetActiveSaleItemsQuery.Companion.variablesSerializer,
+  )
+
+
 private class GetActiveSalesQueryImpl(
   connector: StorebookConnectorConnector
 ):
@@ -388,6 +445,21 @@ private class GetActiveSalesQueryImpl(
     GetActiveSalesQuery.Companion.operationName,
     GetActiveSalesQuery.Companion.dataDeserializer,
     GetActiveSalesQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetActiveSuppliersQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetActiveSuppliersQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetActiveSuppliersQuery.Data,
+      GetActiveSuppliersQuery.Variables
+  >(
+    connector,
+    GetActiveSuppliersQuery.Companion.operationName,
+    GetActiveSuppliersQuery.Companion.dataDeserializer,
+    GetActiveSuppliersQuery.Companion.variablesSerializer,
   )
 
 
@@ -601,6 +673,36 @@ private class SyncSalesQueryImpl(
   )
 
 
+private class SyncStoreMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  SyncStoreMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      SyncStoreMutation.Data,
+      SyncStoreMutation.Variables
+  >(
+    connector,
+    SyncStoreMutation.Companion.operationName,
+    SyncStoreMutation.Companion.dataDeserializer,
+    SyncStoreMutation.Companion.variablesSerializer,
+  )
+
+
+private class SyncSupplierMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  SyncSupplierMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      SyncSupplierMutation.Data,
+      SyncSupplierMutation.Variables
+  >(
+    connector,
+    SyncSupplierMutation.Companion.operationName,
+    SyncSupplierMutation.Companion.dataDeserializer,
+    SyncSupplierMutation.Companion.variablesSerializer,
+  )
+
+
 private class SyncUdhaarMutationImpl(
   connector: StorebookConnectorConnector
 ):
@@ -643,6 +745,36 @@ private class SyncUserMutationImpl(
     SyncUserMutation.Companion.operationName,
     SyncUserMutation.Companion.dataDeserializer,
     SyncUserMutation.Companion.variablesSerializer,
+  )
+
+
+private class UpdateStoreMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  UpdateStoreMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      UpdateStoreMutation.Data,
+      UpdateStoreMutation.Variables
+  >(
+    connector,
+    UpdateStoreMutation.Companion.operationName,
+    UpdateStoreMutation.Companion.dataDeserializer,
+    UpdateStoreMutation.Companion.variablesSerializer,
+  )
+
+
+private class UpdateUserMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  UpdateUserMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      UpdateUserMutation.Data,
+      UpdateUserMutation.Variables
+  >(
+    connector,
+    UpdateUserMutation.Companion.operationName,
+    UpdateUserMutation.Companion.dataDeserializer,
+    UpdateUserMutation.Companion.variablesSerializer,
   )
 
 

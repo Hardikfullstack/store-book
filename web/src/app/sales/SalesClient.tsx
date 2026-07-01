@@ -9,6 +9,7 @@ import ExportButtons from '@/app/ExportButtons';
 import { dataConnect } from '@/lib/firebase';
 import { getActiveSales, syncSale, softDeleteSale } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
+import SalesPOS from './SalesPOS';
 
 export default function SalesClient({ 
   initialSales,
@@ -31,13 +32,15 @@ export default function SalesClient({
         const response = await getActiveSales(dataConnect, { storeId });
         if (!isMounted) return;
         
-        const updated = response.data.sales.map((sale: any) => ({
-          ...sale,
-          is_deleted: 0,
-          updated_at: sale.updatedAt || Date.now(),
-          customer_name: sale.customerName,
-          total_amount: sale.totalAmount
-        }));
+        const updated = response.data.sales
+          .filter((s: any) => s.type === 'SALE')
+          .map((sale: any) => ({
+            ...sale,
+            is_deleted: 0,
+            updated_at: sale.updatedAt || Date.now(),
+            customer_name: sale.customerName,
+            total_amount: sale.totalAmount
+          }));
 
         setSales(updated);
       } catch (error) {
@@ -75,35 +78,7 @@ export default function SalesClient({
     }
   };
   
-  const [formData, setFormData] = useState({
-    customer_name: '',
-    total_amount: 0,
-    notes: ''
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const id = crypto.randomUUID();
-      const now = Date.now();
-      await syncSale(dataConnect, {
-        id,
-        storeId: storeId as string,
-        timestamp: now,
-        totalAmount: formData.total_amount,
-        discountAmount: 0,
-        customerName: formData.customer_name,
-        type: 'SALE',
-        notes: formData.notes,
-        isDeleted: false,
-        updatedAt: Math.floor(now / 1000)
-      });
-      setShowModal(false);
-      window.location.reload(); 
-    } catch (err) {
-      console.error("Failed to add sale:", err);
-    }
-  };
+  // Old simple handleSubmit removed, handled by SalesPOS
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this sale?')) {
@@ -175,7 +150,7 @@ export default function SalesClient({
         <div className="flex items-center space-x-3">
           <ExportButtons data={sales} type="sales" columns={['timestamp', 'customer_name', 'total_amount', 'notes']} />
           <button 
-            onClick={() => { setFormData({customer_name:'',total_amount:0,notes:''}); setShowModal(true); }}
+            onClick={() => setShowModal(true)}
             className="btn-primary flex items-center space-x-2"
           >
             <Plus size={18} />
@@ -270,30 +245,15 @@ export default function SalesClient({
         )}
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-xl font-bold mb-4 dark:text-white">New Sale</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium dark:text-gray-300">Customer Name</label>
-                <input type="text" value={formData.customer_name} onChange={e => setFormData({...formData, customer_name: e.target.value})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium dark:text-gray-300">Total Amount</label>
-                <input required type="number" step="any" value={formData.total_amount} onChange={e => setFormData({...formData, total_amount: parseFloat(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium dark:text-gray-300">Notes</label>
-                <input type="text" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
-              </div>
-              <div className="flex justify-end space-x-3 mt-6">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>
-                <button type="submit" className="btn-primary">Save Sale</button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {showModal && storeId && (
+        <SalesPOS 
+          storeId={storeId} 
+          onClose={() => setShowModal(false)} 
+          onSuccess={() => {
+            setShowModal(false);
+            window.location.reload();
+          }} 
+        />
       )}
     </div>
   );

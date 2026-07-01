@@ -66,6 +66,36 @@ export function syncUser(dcOrVars, vars) {
   return executeMutation(syncUserRef(dcOrVars, vars));
 }
 
+export function updateUserRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpdateUser', inputVars);
+}
+
+export function updateUser(dcOrVars, vars) {
+  return executeMutation(updateUserRef(dcOrVars, vars));
+}
+
+export function syncStoreRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'SyncStore', inputVars);
+}
+
+export function syncStore(dcOrVars, vars) {
+  return executeMutation(syncStoreRef(dcOrVars, vars));
+}
+
+export function updateStoreRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpdateStore', inputVars);
+}
+
+export function updateStore(dcOrVars, vars) {
+  return executeMutation(updateStoreRef(dcOrVars, vars));
+}
+
 export function syncUdhaarRef(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -104,6 +134,16 @@ export function softDeleteExpenseRef(dcOrVars, vars) {
 
 export function softDeleteExpense(dcOrVars, vars) {
   return executeMutation(softDeleteExpenseRef(dcOrVars, vars));
+}
+
+export function syncSupplierRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'SyncSupplier', inputVars);
+}
+
+export function syncSupplier(dcOrVars, vars) {
+  return executeMutation(syncSupplierRef(dcOrVars, vars));
 }
 
 export function syncItemsRef(dcOrVars, vars) {
@@ -176,6 +216,16 @@ export function getActiveSales(dcOrVars, vars) {
   return executeQuery(getActiveSalesRef(dcOrVars, vars));
 }
 
+export function getActiveSaleItemsRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetActiveSaleItems', inputVars);
+}
+
+export function getActiveSaleItems(dcOrVars, vars) {
+  return executeQuery(getActiveSaleItemsRef(dcOrVars, vars));
+}
+
 export function getActiveUdhaarsRef(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -194,6 +244,16 @@ export function getActiveExpensesRef(dcOrVars, vars) {
 
 export function getActiveExpenses(dcOrVars, vars) {
   return executeQuery(getActiveExpensesRef(dcOrVars, vars));
+}
+
+export function getActiveSuppliersRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetActiveSuppliers', inputVars);
+}
+
+export function getActiveSuppliers(dcOrVars, vars) {
+  return executeQuery(getActiveSuppliersRef(dcOrVars, vars));
 }
 
 export function getUserRef(dcOrVars, vars) {

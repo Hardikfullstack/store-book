@@ -10,6 +10,9 @@ type Item @table {
   category: String!
   photoPath: String
   hsnCode: String
+  taxRate: Float
+  batchLotNumber: String
+  expiryDate: String
   
   # Sync Columns
   isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")

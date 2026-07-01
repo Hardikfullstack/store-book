@@ -49,6 +49,12 @@ public interface SyncItemMutation :
     com.google.firebase.dataconnect.OptionalVariable<String?>,
     val hsnCode:
     com.google.firebase.dataconnect.OptionalVariable<String?>,
+    val taxRate:
+    com.google.firebase.dataconnect.OptionalVariable<Double?>,
+    val batchLotNumber:
+    com.google.firebase.dataconnect.OptionalVariable<String?>,
+    val expiryDate:
+    com.google.firebase.dataconnect.OptionalVariable<String?>,
     val isDeleted:
     Boolean,
     val updatedAt:
@@ -72,6 +78,9 @@ public interface SyncItemMutation :
         public var category: String
         public var photoPath: String?
         public var hsnCode: String?
+        public var taxRate: Double?
+        public var batchLotNumber: String?
+        public var expiryDate: String?
         public var isDeleted: Boolean
         public var updatedAt: Double
         
@@ -95,6 +104,12 @@ public interface SyncItemMutation :
             var photoPath: com.google.firebase.dataconnect.OptionalVariable<String?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
             var hsnCode: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var taxRate: com.google.firebase.dataconnect.OptionalVariable<Double?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var batchLotNumber: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var expiryDate: com.google.firebase.dataconnect.OptionalVariable<String?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
             var isDeleted= isDeleted
             var updatedAt= updatedAt
@@ -145,6 +160,18 @@ public interface SyncItemMutation :
               get() = throw UnsupportedOperationException("getting builder values is not supported")
               set(value_) { hsnCode = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
               
+            override var taxRate: Double?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { taxRate = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
+            override var batchLotNumber: String?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { batchLotNumber = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
+            override var expiryDate: String?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { expiryDate = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
             override var isDeleted: Boolean
               get() = throw UnsupportedOperationException("getting builder values is not supported")
               set(value_) { isDeleted = value_ }
@@ -157,7 +184,7 @@ public interface SyncItemMutation :
           }.apply(block_)
           .let {
             Variables(
-              id=id,storeId=storeId,name=name,quantity=quantity,unit=unit,buyPrice=buyPrice,sellPrice=sellPrice,lowStockThreshold=lowStockThreshold,category=category,photoPath=photoPath,hsnCode=hsnCode,isDeleted=isDeleted,updatedAt=updatedAt,
+              id=id,storeId=storeId,name=name,quantity=quantity,unit=unit,buyPrice=buyPrice,sellPrice=sellPrice,lowStockThreshold=lowStockThreshold,category=category,photoPath=photoPath,hsnCode=hsnCode,taxRate=taxRate,batchLotNumber=batchLotNumber,expiryDate=expiryDate,isDeleted=isDeleted,updatedAt=updatedAt,
             )
           }
         }

@@ -3,6 +3,7 @@ import { Store, User, ShieldCheck, Crown } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import SubscriptionButton from './SubscriptionButton';
 import ManageSubscription from './ManageSubscription';
+import StaffManagement from './StaffManagement';
 
 export default async function SettingsPage() {
   const session = await getSession();
@@ -101,7 +102,11 @@ export default async function SettingsPage() {
         </div>
       </div>
       
-      <div className="glass-card p-6 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50">
+      {session.role === 'owner' && session.storeId && (
+        <StaffManagement storeId={session.storeId} />
+      )}
+      
+      <div className="glass-card p-6 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50 mt-6">
         Note: Store Context Switching feature is coming soon. Currently, each user account is mapped to a single primary store.
       </div>
     </div>

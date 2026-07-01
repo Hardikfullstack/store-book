@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Package, TrendingUp, Users, Receipt, ArrowUpRight, ArrowDownRight, Store } from 'lucide-react';
 import DashboardCharts from './DashboardCharts';
 import { dataConnect } from '@/lib/firebase';
-import { getActiveItems, getActiveSales, getActiveUdhaars, getActiveExpenses } from '@/dataconnect';
+import { getActiveItems, getActiveSales, getActiveUdhaars, getActiveExpenses, getActiveSaleItems } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 
 interface Stats {
@@ -15,6 +15,7 @@ interface Stats {
   totalStores: number;
   salesData: any[];
   itemsData: any[];
+  saleItemsData: any[];
 }
 
 export default function DashboardClient({
@@ -29,6 +30,12 @@ export default function DashboardClient({
   isPremium?: boolean;
 }) {
   const [stats, setStats] = useState<Stats>(initialStats);
+  const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'all'>('all');
+  const [rawSales, setRawSales] = useState<any[]>([]);
+  const [rawUdhaars, setRawUdhaars] = useState<any[]>([]);
+  const [rawExpenses, setRawExpenses] = useState<any[]>([]);
+  const [rawSaleItems, setRawSaleItems] = useState<any[]>([]);
+  const [itemsList, setItemsList] = useState<any[]>([]);
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
@@ -39,10 +46,20 @@ export default function DashboardClient({
     let expensesList: any[] = [];
 
     const updateStats = () => {
+      const now = Date.now();
+      let cutoff = 0;
+      if (dateRange === 'today') cutoff = now - 24 * 60 * 60 * 1000;
+      if (dateRange === 'week') cutoff = now - 7 * 24 * 60 * 60 * 1000;
+      if (dateRange === 'month') cutoff = now - 30 * 24 * 60 * 60 * 1000;
+
+      const filteredSales = rawSales.filter(s => ((s.timestamp || s.updated_at) * 1000) >= cutoff);
+      const filteredUdhaar = rawUdhaars.filter(u => ((u.timestamp || u.updated_at) * 1000) >= cutoff);
+      const filteredExpenses = rawExpenses.filter(e => ((e.timestamp || e.updated_at) * 1000) >= cutoff);
+
       const totalItems = itemsList.length;
-      const totalSales = salesList.reduce((acc, doc) => acc + (doc.total_amount || 0), 0);
-      const totalUdhaar = udhaarList.reduce((acc, doc) => acc + (doc.amount || 0), 0);
-      const totalExpenses = expensesList.reduce((acc, doc) => acc + (doc.amount || 0), 0);
+      const totalSales = filteredSales.reduce((acc, doc) => acc + (doc.total_amount || 0), 0);
+      const totalUdhaar = filteredUdhaar.reduce((acc, doc) => acc + (doc.amount || 0), 0);
+      const totalExpenses = filteredExpenses.reduce((acc, doc) => acc + (doc.amount || 0), 0);
 
       setStats(prev => ({
         ...prev,
@@ -50,39 +67,53 @@ export default function DashboardClient({
         totalSales,
         totalUdhaar,
         totalExpenses,
-        salesData: [...salesList],
-        itemsData: [...itemsList]
+        salesData: [...filteredSales],
+        itemsData: [...itemsList],
+        saleItemsData: [...rawSaleItems]
       }));
     };
+
+    updateStats();
+  }, [dateRange, rawSales, rawUdhaars, rawExpenses, rawSaleItems, itemsList]); // We will define itemsList outside or memoize
+
+  // Separate effect for fetching
+  useEffect(() => {
+    if (!isPremium || !storeId) return;
 
     let isMounted = true;
     
     const fetchDashboardData = async () => {
       try {
-        const [itemsRes, salesRes, udhaarsRes, expensesRes] = await Promise.all([
+        const [itemsRes, salesRes, udhaarsRes, expensesRes, saleItemsRes] = await Promise.all([
           getActiveItems(dataConnect, { storeId }),
           getActiveSales(dataConnect, { storeId }),
           getActiveUdhaars(dataConnect, { storeId }),
-          getActiveExpenses(dataConnect, { storeId })
+          getActiveExpenses(dataConnect, { storeId }),
+          getActiveSaleItems(dataConnect, { storeId })
         ]);
         
         if (!isMounted) return;
 
-        itemsList = itemsRes.data.items.map((item: any) => {
+        const parsedItems = itemsRes.data.items.map((item: any) => {
           if (userRole === 'staff') delete item.buyPrice;
           return { id: item.id, ...item };
         });
 
-        salesList = salesRes.data.sales.map((sale: any) => {
-          // Note: In GetActiveSales, items sub-data is not fetched directly in this simple query.
-          // But totalAmount is available.
-          return { id: sale.id, ...sale, total_amount: sale.totalAmount };
-        });
+        const parsedSales = salesRes.data.sales
+          .filter((sale: any) => sale.type === 'SALE')
+          .map((sale: any) => ({
+            id: sale.id, ...sale, total_amount: sale.totalAmount, updated_at: sale.updatedAt
+          }));
 
-        udhaarList = udhaarsRes.data.udhaarEntries.map((u: any) => ({ id: u.id, ...u }));
-        expensesList = expensesRes.data.expenseEntries.map((e: any) => ({ id: e.id, ...e }));
+        const parsedUdhaars = udhaarsRes.data.udhaarEntries.map((u: any) => ({ id: u.id, ...u, updated_at: u.updatedAt }));
+        const parsedExpenses = expensesRes.data.expenseEntries.map((e: any) => ({ id: e.id, ...e, updated_at: e.updatedAt }));
+        const parsedSaleItems = saleItemsRes.data.saleItemDetails;
 
-        updateStats();
+        setRawSales(parsedSales);
+        setRawUdhaars(parsedUdhaars);
+        setRawExpenses(parsedExpenses);
+        setRawSaleItems(parsedSaleItems);
+        setItemsList(parsedItems);
       } catch (error) {
         console.error("Dashboard DataConnect sync error:", error);
       }
@@ -150,6 +181,18 @@ export default function DashboardClient({
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Here's what's happening with your store today. (SSR via Firebase)</p>
         </div>
+        <div>
+          <select 
+            value={dateRange}
+            onChange={e => setDateRange(e.target.value as any)}
+            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-teal-500"
+          >
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -174,7 +217,7 @@ export default function DashboardClient({
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
         <div className="lg:col-span-2 glass-card p-6 h-80 flex items-center justify-center border-dashed dark:border-gray-800">
-            <DashboardCharts salesData={stats.salesData} itemsData={stats.itemsData} />
+            <DashboardCharts salesData={stats.salesData} itemsData={stats.itemsData} saleItemsData={stats.saleItemsData} />
         </div>
         <div className="glass-card p-6 h-80 flex items-center justify-center border-dashed dark:border-gray-800">
             <p className="text-gray-400 dark:text-gray-500 font-medium">Recent Activity Placeholder</p>

@@ -15,6 +15,9 @@ mutation SyncItem(
   $category: String!
   $photoPath: String
   $hsnCode: String
+  $taxRate: Float
+  $batchLotNumber: String
+  $expiryDate: String
   $isDeleted: Boolean!
   $updatedAt: Float!
 ) @auth(level: USER) {
@@ -30,6 +33,9 @@ mutation SyncItem(
     category: $category
     photoPath: $photoPath
     hsnCode: $hsnCode
+    taxRate: $taxRate
+    batchLotNumber: $batchLotNumber
+    expiryDate: $expiryDate
     isDeleted: $isDeleted
     updatedAt: $updatedAt
   })
@@ -257,4 +263,28 @@ mutation SyncExpense(
 
 mutation SoftDeleteExpense($id: String!, $updatedAt: Float!) @auth(level: USER) {
   expenseEntry_update(id: $id, data: { isDeleted: true, updatedAt: $updatedAt })
+}
+
+mutation SyncSupplier(
+  $id: String!
+  $storeId: String!
+  $name: String!
+  $phone: String
+  $gstin: String
+  $address: String
+  $isDeleted: Boolean!
+  $updatedAt: Float!
+) @auth(level: USER) {
+  supplier_upsert(
+    data: {
+      id: $id
+      storeId: $storeId
+      name: $name
+      phone: $phone
+      gstin: $gstin
+      address: $address
+      isDeleted: $isDeleted
+      updatedAt: $updatedAt
+    }
+  )
 }

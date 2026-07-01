@@ -15,9 +15,11 @@ export default function Sidebar({ session }: { session?: any }) {
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Items', path: '/items', icon: Package },
+    { name: 'Quotations', path: '/quotations', icon: Receipt },
     { name: 'Sales', path: '/sales', icon: ShoppingCart },
     { name: 'Udhaar', path: '/udhaar', icon: Users },
     { name: 'Expenses', path: '/expenses', icon: Receipt },
+    { name: 'Reports', path: '/reports', icon: Database },
     { name: 'Settings', path: '/settings', icon: Settings },
   ];
 

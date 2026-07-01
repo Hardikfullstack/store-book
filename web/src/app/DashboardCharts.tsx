@@ -5,8 +5,16 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
-export default function DashboardCharts({ salesData, itemsData }: { salesData: any[], itemsData: any[] }) {
-  const [chartType, setChartType] = useState<'customer' | 'product'>('customer');
+export default function DashboardCharts({ 
+  salesData = [], 
+  itemsData = [],
+  saleItemsData = []
+}: { 
+  salesData: any[], 
+  itemsData: any[],
+  saleItemsData?: any[]
+}) {
+  const [chartType, setChartType] = useState<'customer' | 'product' | 'fast' | 'dead'>('customer');
 
   const customerData = salesData.reduce((acc: any, sale: any) => {
     const name = sale.customer_name || 'Walk-in';
@@ -30,8 +38,44 @@ export default function DashboardCharts({ salesData, itemsData }: { salesData: a
     return acc;
   }, []).sort((a: any, b: any) => b.value - a.value).slice(0, 5);
 
-  const data = chartType === 'customer' ? customerData : productData;
-  const title = chartType === 'customer' ? 'Top Revenue by Customer' : 'Inventory by Category';
+  // Fast Moving Items
+  const fastMovingData = (saleItemsData || []).reduce((acc: any, item: any) => {
+    const existing = acc.find((i: any) => i.name === item.itemName);
+    if (existing) {
+      existing.value += item.quantity || 0;
+    } else {
+      acc.push({ name: item.itemName, value: item.quantity || 0 });
+    }
+    return acc;
+  }, []).sort((a: any, b: any) => b.value - a.value).slice(0, 5);
+
+  // Profit Margin Items
+  const profitMarginData = (saleItemsData || []).reduce((acc: any, item: any) => {
+    const profit = (item.sellPrice - item.buyPrice) * item.quantity;
+    if (profit > 0) {
+      const existing = acc.find((i: any) => i.name === item.itemName);
+      if (existing) {
+        existing.value += profit;
+      } else {
+        acc.push({ name: item.itemName, value: profit });
+      }
+    }
+    return acc;
+  }, []).sort((a: any, b: any) => b.value - a.value).slice(0, 5);
+
+  // Dead Stock Items (High quantity, low sales)
+  const deadStockData = itemsData
+    .map((item: any) => ({ name: item.name, value: item.quantity || 0 }))
+    .sort((a: any, b: any) => b.value - a.value)
+    .slice(0, 5); // Simplistic dead stock: just highest raw quantity for demo
+
+  let data = [];
+  let title = '';
+  if (chartType === 'customer') { data = customerData; title = 'Top Revenue by Customer'; }
+  if (chartType === 'product') { data = productData; title = 'Inventory by Category'; }
+  if (chartType === 'fast') { data = fastMovingData; title = 'Fast Moving Products'; }
+  if (chartType === 'profit') { data = profitMarginData; title = 'Top Profit Margin Items'; }
+  if (chartType === 'dead') { data = deadStockData; title = 'Dead Stock Alert (High Qty)'; }
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -39,11 +83,14 @@ export default function DashboardCharts({ salesData, itemsData }: { salesData: a
         <h3 className="font-bold text-gray-900 dark:text-white">{title}</h3>
         <select 
           value={chartType} 
-          onChange={(e) => setChartType(e.target.value as 'customer' | 'product')}
-          className="text-sm border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg dark:text-gray-200 p-1"
+          onChange={(e) => setChartType(e.target.value as any)}
+          className="text-sm border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg dark:text-gray-200 p-1 outline-none"
         >
           <option value="customer">By Customer</option>
-          <option value="product">By Product Category</option>
+          <option value="product">By Category</option>
+          <option value="fast">Fast Moving</option>
+          <option value="profit">Top Profit Margin</option>
+          <option value="dead">Dead Stock</option>
         </select>
       </div>
       <div className="flex-1 min-h-0">
@@ -64,7 +111,7 @@ export default function DashboardCharts({ salesData, itemsData }: { salesData: a
                 ))}
               </Pie>
               <Tooltip 
-                formatter={(value: any) => chartType === 'customer' ? `₹${Number(value).toFixed(2)}` : `${value} units`}
+                formatter={(value: any) => (chartType === 'customer' || chartType === 'profit') ? `₹${Number(value).toFixed(2)}` : `${value} units`}
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
               />
               <Legend verticalAlign="bottom" height={36}/>

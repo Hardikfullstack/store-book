@@ -3,7 +3,7 @@ import DashboardClient from './DashboardClient';
 import { serializeDoc } from '@/lib/serializeDoc';
 
 async function getStats(session: any) {
-  let stats = { totalItems: 0, totalSales: 0, totalUdhaar: 0, totalExpenses: 0, totalStores: 0, salesData: [] as any[], itemsData: [] as any[] };
+  let stats = { totalItems: 0, totalSales: 0, totalUdhaar: 0, totalExpenses: 0, totalStores: 0, salesData: [] as any[], itemsData: [] as any[], saleItemsData: [] as any[] };
   try {
     if (session.role === 'admin') {
       // Admin sees aggregate metrics from across all stores
@@ -63,7 +63,7 @@ async function getStats(session: any) {
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return <div>Please login</div>;
-  const stats = { totalItems: 0, totalSales: 0, totalUdhaar: 0, totalExpenses: 0, totalStores: 0, salesData: [], itemsData: [] };
+  const stats = { totalItems: 0, totalSales: 0, totalUdhaar: 0, totalExpenses: 0, totalStores: 0, salesData: [], itemsData: [], saleItemsData: [] };
   const isPremium = true;
 
   return (

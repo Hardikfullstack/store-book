@@ -56,6 +56,26 @@ package com.storebook.inventoryapp.dataconnect
   }
 
   @kotlinx.serialization.Serializable
+  public data class StoreKey(
+  
+    val id:
+    String
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
+  public data class SupplierKey(
+  
+    val id:
+    String
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
   public data class UdhaarEntryKey(
   
     val id:

@@ -126,13 +126,16 @@ export default function ItemsClient({
     e.preventDefault();
     try {
       const payload = !showAdvanced ? {
-          hsn_code : '';
-          tax_rate : 0;
-          batch_lot_number : '';
-          expiry_date : '';
-          batch_lot_number : '';
-          expiry_date : '';
-        } : {};
+          hsnCode: '',
+          taxRate: 0,
+          batchLotNumber: '',
+          expiryDate: ''
+        } : {
+          hsnCode: formData.hsn_code,
+          taxRate: formData.tax_rate,
+          batchLotNumber: formData.batch_lot_number,
+          expiryDate: formData.expiry_date
+        };
       const id = editingId || crypto.randomUUID();
       await syncItem(dataConnect, {
         id,

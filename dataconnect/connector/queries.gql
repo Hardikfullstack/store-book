@@ -108,8 +108,21 @@ query GetActiveSales($storeId: String!) @auth(level: USER) {
     totalAmount
     discountAmount
     customerName
+    type
     notes
     updatedAt
+  }
+}
+
+query GetActiveSaleItems($storeId: String!) @auth(level: USER) {
+  saleItemDetails(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    id
+    saleId
+    itemId
+    itemName
+    quantity
+    sellPrice
+    buyPrice
   }
 }
 
@@ -133,6 +146,17 @@ query GetActiveExpenses($storeId: String!) @auth(level: USER) {
     amount
     timestamp
     supplierName
+    updatedAt
+  }
+}
+
+query GetActiveSuppliers($storeId: String!) @auth(level: USER) {
+  suppliers(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    id
+    name
+    phone
+    gstin
+    address
     updatedAt
   }
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { addDoc, collection, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { dataConnect } from '@/lib/firebase';
+import { getActiveSuppliers, syncSupplier } from '@/dataconnect';
 
 type SupplierOption = {
   id: string;
@@ -39,23 +39,31 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
       return;
     }
 
-    const supplierQuery = query(collection(db, 'stores', storeId, 'suppliers'), orderBy('name', 'asc'));
-    const unsubscribe = onSnapshot(supplierQuery, (snapshot) => {
-      const nextSuppliers = snapshot.docs
-        .map((doc) => {
-          const rawName = doc.data().name;
-          return {
-            id: doc.id,
-            name: typeof rawName === 'string' ? rawName.trim() : '',
-          };
-        })
-        .filter((supplier): supplier is SupplierOption => supplier.name.length > 0)
-        .map((supplier) => ({ ...supplier, name: supplier.name.trim() }));
+    let isMounted = true;
 
-      setSuppliers(nextSuppliers);
-    });
+    const fetchSuppliers = async () => {
+      try {
+        const res = await getActiveSuppliers(dataConnect, { storeId });
+        if (!isMounted) return;
+        
+        const nextSuppliers = res.data.suppliers
+          .map((doc: any) => {
+            const rawName = doc.name;
+            return {
+              id: doc.id,
+              name: typeof rawName === 'string' ? rawName.trim() : '',
+            };
+          })
+          .filter((supplier): supplier is SupplierOption => supplier.name.length > 0);
 
-    return () => unsubscribe();
+        setSuppliers(nextSuppliers.sort((a, b) => a.name.localeCompare(b.name)));
+      } catch (err) {
+        console.error("Failed to fetch suppliers:", err);
+      }
+    };
+
+    fetchSuppliers();
+    return () => { isMounted = false; };
   }, [open, storeId]);
 
   useEffect(() => {
@@ -95,13 +103,19 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
 
     setIsCreatingSupplier(true);
     try {
-      const supplierRef = await addDoc(collection(db, 'stores', storeId, 'suppliers'), {
+      const newId = crypto.randomUUID();
+      await syncSupplier(dataConnect, {
+        id: newId,
+        storeId,
         name: trimmedName,
-        created_at: Date.now(),
-        updated_at: Date.now(),
+        phone: '',
+        gstin: '',
+        address: '',
+        isDeleted: false,
+        updatedAt: Math.floor(Date.now() / 1000)
       });
 
-      setSelectedSupplier({ id: supplierRef.id, name: trimmedName });
+      setSelectedSupplier({ id: newId, name: trimmedName });
       setSupplierSearch(trimmedName);
       setShowSupplierDropdown(false);
     } catch (err) {
