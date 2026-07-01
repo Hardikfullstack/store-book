@@ -58,15 +58,35 @@ query SyncSaleItems($storeId: String!, $lastSync: Float!) @auth(level: USER) {
 # STANDARD QUERIES (Fallback/Debugging)
 # -----------------------------------------
 
-# Get all active items directly (Server-side filtering)
-query GetActiveItems($storeId: String!) @auth(level: USER) {
-  items(where: { storeId: { eq: $storeId }, isDeleted: { eq: false }, quantity: { gt: 0 } }) {
+
+
+# Paginated active items with total count
+query GetActiveItems($storeId: String!, $limit: Int, $offset: Int) @auth(level: USER) {
+  items(
+    where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }
+    limit: $limit
+    offset: $offset
+    orderBy: { updatedAt: DESC }
+  ) {
     id
     name
     quantity
-    sellPrice
+    unit
     buyPrice
+    sellPrice
+    lowStockThreshold
     category
+    photoPath
+    hsnCode
+    isDeleted
+    updatedAt
+  }
+}
+
+# Separate count query (fetching just IDs to count)
+query GetItemsCount($storeId: String!) @auth(level: USER) {
+  items(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    id
   }
 }
 

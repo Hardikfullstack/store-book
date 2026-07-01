@@ -64,6 +64,9 @@ export default function ItemsClient({
   const lastSynced = useSelector((state: RootState) => state.inventory.lastSynced);
   
   const [items, setItems] = useState<any[]>(cachedItems.length > 0 ? cachedItems : initialItems);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
@@ -71,7 +74,12 @@ export default function ItemsClient({
     let isMounted = true;
     const fetchItems = async () => {
       try {
-        const response = await getActiveItems(dataConnect, { storeId });
+        const offset = (currentPage - 1) * pageSize;
+        const response = await getActiveItems(dataConnect, {
+          storeId,
+          limit: pageSize,
+          offset
+        });
         if (!isMounted) return;
 
         const updated = response.data.items.map((item: any) => ({
@@ -79,7 +87,8 @@ export default function ItemsClient({
           is_deleted: 0,
           updated_at: item.updatedAt || Date.now(),
           buy_price: item.buyPrice,
-          sell_price: item.sellPrice
+          sell_price: item.sellPrice,
+          low_stock_threshold: item.lowStockThreshold
         }));
 
         if (userRole === 'staff') {
@@ -89,9 +98,17 @@ export default function ItemsClient({
         }
 
         setItems(updated);
+
+        // Fetch total items count separately for proper pagination
+        if (totalItems === 0) {
+          const countResponse = await getItemsCount(dataConnect, { storeId });
+          if (countResponse.data && countResponse.data.items) {
+            setTotalItems(countResponse.data.items.length);
+          }
+        }
         dispatch(setInventory(updated));
       } catch (error) {
-        console.error("Data Connect items sync error:", error);
+        console.error("Data Connect items fetch error:", error);
       }
     };
 
@@ -109,28 +126,11 @@ export default function ItemsClient({
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(initialItems.length === 20);
   const [formData, setFormData] = useState<ItemFormData>(() => emptyFormData());
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [reStockQuantity, setReStockQuantity] = useState<any | null>(null);
 
-  const handleLoadMore = async () => {
-    if (loadingMore || !hasMore || items.length === 0) return;
-    setLoadingMore(true);
-    try {
-      const lastItem = items[items.length - 1];
-      const nextBatch = await fetchMoreData('items', lastItem.updated_at || lastItem.timestamp || Date.now(), 20);
-      if (nextBatch.length < 20) {
-        setHasMore(false);
-      }
-      setItems(prev => [...prev, ...nextBatch]);
-    } catch (error) {
-      console.error("Load more failed", error);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -391,16 +391,51 @@ export default function ItemsClient({
           </table>
         </div>
 
-        {hasMore && !searchQuery && (
-          <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-center">
-            <button
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              className="px-6 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
-            >
-              {loadingMore ? <Loader2 size={16} className="animate-spin" /> : <ArrowDownCircle size={16} />}
-              Load More from Server
-            </button>
+        {totalItems > 0 && !searchQuery && (
+          <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
+            </span>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded-md border border-gray-200 dark:border-gray-700 disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Previous
+              </button>
+
+              {(() => {
+                const totalPages = Math.ceil(totalItems / pageSize);
+                // Create a sliding window of max 5 pages
+                let startPage = Math.max(1, currentPage - 2);
+                let endPage = Math.min(totalPages, startPage + 4);
+                if (endPage - startPage < 4) {
+                  startPage = Math.max(1, endPage - 4);
+                }
+
+                return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(pageNum => (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${currentPage === pageNum
+                        ? 'bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-teal-800'
+                        : 'border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                  >
+                    {pageNum}
+                  </button>
+                ));
+              })()}
+
+              <button
+                onClick={() => setCurrentPage(p => p + 1)}
+                disabled={currentPage * pageSize >= totalItems}
+                className="px-3 py-1 rounded-md border border-gray-200 dark:border-gray-700 disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>
