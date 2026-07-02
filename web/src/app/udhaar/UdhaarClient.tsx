@@ -4,6 +4,7 @@ import { sanitizeInput } from '@/lib/sanitize';
 import { useState, useEffect } from 'react';
 import { Plus, Search, UserCheck, UserMinus, Trash2, Loader2, ArrowDownCircle, MessageCircle } from 'lucide-react';
 import { fetchMoreData } from '@/app/actions';
+import Pagination from '@/app/components/Pagination';
 import { dataConnect } from '@/lib/firebase';
 import { getActiveUdhaars, syncUdhaar, softDeleteUdhaar } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
@@ -11,13 +12,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { setUdhaars, removeUdhaarRecord } from '@/store/udhaarSlice';
 
-export default function UdhaarClient({ 
-  initialUdhaar, 
+export default function UdhaarClient({
+  initialUdhaar,
   storeName,
   storeId,
   isPremium
-}: { 
-  initialUdhaar: any[], 
+}: {
+  initialUdhaar: any[],
   storeName?: string,
   storeId?: string,
   isPremium?: boolean
@@ -25,65 +26,64 @@ export default function UdhaarClient({
   const dispatch = useDispatch();
   const cachedUdhaars = useSelector((state: RootState) => state.udhaar.records);
   const lastSynced = useSelector((state: RootState) => state.udhaar.lastSynced);
-  
+
   const [udhaar, setUdhaar] = useState<any[]>(cachedUdhaars.length > 0 ? cachedUdhaars : initialUdhaar);
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
+    // Fetch total count once
+    const fetchTotal = async () => {
+      try {
+        const resp = await getActiveUdhaars(dataConnect, { storeId });
+        const filtered = resp.data.udhaarEntries;
+        setTotalItems(filtered.length);
+      } catch (e) {
+        console.error('Count fetch error:', e);
+      }
+    };
+    fetchTotal();
+  }, [isPremium, storeId]);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch paginated udhaar entries
+  useEffect(() => {
+    if (!isPremium || !storeId) return;
     let isMounted = true;
     const fetchUdhaars = async () => {
+      setIsLoading(true);
       try {
-        const response = await getActiveUdhaars(dataConnect, { storeId });
+        const offset = (currentPage - 1) * pageSize;
+        const response = await getActiveUdhaars(dataConnect, { storeId, limit: pageSize, offset });
         if (!isMounted) return;
-        
         const updated = response.data.udhaarEntries.map((record: any) => ({
           ...record,
           is_deleted: 0,
           updated_at: record.updatedAt || Date.now(),
           customer_name: record.customerName
         }));
-
         setUdhaar(updated);
         dispatch(setUdhaars(updated));
       } catch (error) {
-        console.error("Data Connect udhaar sync error:", error);
+        console.error('Data Connect udhaar sync error:', error);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
-
-    // If cache is older than 5 mins (300000ms), fetch immediately
-    if (Date.now() - lastSynced > 300000) {
-      fetchUdhaars();
-    }
+    fetchUdhaars();
     const intervalId = setInterval(fetchUdhaars, 30000);
-
     return () => {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId]);
+  }, [isPremium, storeId, currentPage]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(initialUdhaar.length === 20);
 
-  const handleLoadMore = async () => {
-    if (loadingMore || !hasMore || udhaar.length === 0) return;
-    setLoadingMore(true);
-    try {
-      const lastItem = udhaar[udhaar.length - 1];
-      const nextBatch = await fetchMoreData('udhaar', lastItem.updated_at || lastItem.timestamp || Date.now(), 20);
-      if (nextBatch.length < 20) {
-        setHasMore(false);
-      }
-      setUdhaar(prev => [...prev, ...nextBatch]);
-    } catch (error) {
-      console.error("Load more failed", error);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
-  
   const [formData, setFormData] = useState({
     customer_name: '',
     type: 'given',
@@ -108,7 +108,7 @@ export default function UdhaarClient({
         updatedAt: Math.floor(now / 1000)
       });
       setShowModal(false);
-      window.location.reload(); 
+      window.location.reload();
     } catch (err) {
       console.error("Failed to save udhaar:", err);
     }
@@ -119,7 +119,7 @@ export default function UdhaarClient({
       // Optimistic Update
       setUdhaar(prev => prev.filter(r => r.id !== id));
       dispatch(removeUdhaarRecord(id));
-      
+
       try {
         await softDeleteUdhaar(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
       } catch (err) {
@@ -135,8 +135,8 @@ export default function UdhaarClient({
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Udhaar Ledger</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Track credit given and taken.</p>
         </div>
-        <button 
-          onClick={() => { setFormData({customer_name:'',type:'given',amount:0,notes:''}); setShowModal(true); }}
+        <button
+          onClick={() => { setFormData({ customer_name: '', type: 'given', amount: 0, notes: '' }); setShowModal(true); }}
           className="btn-primary flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 shadow-blue-600/30"
         >
           <Plus size={18} />
@@ -150,8 +150,8 @@ export default function UdhaarClient({
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search size={16} className="text-gray-400" />
             </div>
-            <input aria-label="text" 
-              type="text" 
+            <input aria-label="text"
+              type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
               className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:text-gray-100"
@@ -173,10 +173,19 @@ export default function UdhaarClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-              {(() => {
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <div className="flex items-center justify-center space-x-2 text-gray-400 dark:text-gray-500">
+                      <Loader2 size={20} className="animate-spin" />
+                      <span className="text-sm">Loading udhaars...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (() => {
                 const filteredUdhaar = udhaar.filter((record: any) => {
                   return (
-                    (record.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                    (record.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                     (record.notes || '').toLowerCase().includes(searchQuery.toLowerCase())
                   );
                 });
@@ -198,39 +207,39 @@ export default function UdhaarClient({
                         <td className="px-6 py-4 whitespace-nowrap">
                           {new Date(record.timestamp || record.updated_at).toLocaleDateString('en-IN')}
                         </td>
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{record.customer_name}</td>
-                  <td className="px-6 py-4">
-                    {record.type?.toLowerCase() === 'given' ? (
-                      <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                        <UserMinus size={14} className="mr-1" /> Given
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400">
-                        <UserCheck size={14} className="mr-1" /> Received
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-gray-500 dark:text-gray-400 truncate max-w-xs" title={record.notes}>
-                    {record.notes || '-'}
-                  </td>
-                  <td className={`px-6 py-4 text-right font-bold ${record.type?.toLowerCase() === 'given' ? 'text-red-600 dark:text-red-400' : 'text-teal-600 dark:text-teal-400'}`}>
-                    <FormattedAmount amount={record.amount} />
-                  </td>
-                  <td className="px-6 py-4 text-right space-x-3">
-                    <button 
-                      onClick={() => {
-                        const text = encodeURIComponent(storeName ? `Hi ${record.customer_name}, this is a reminder regarding your pending Udhaar balance of Rs. ${record.amount} at ${storeName}. Please clear your dues at the earliest. Thank you!` : `Hi ${record.customer_name}, this is a reminder regarding your pending Udhaar balance of Rs. ${record.amount}. Please clear your dues at the earliest. Thank you!`);
-                        window.open(`https://wa.me/?text=${text}`, '_blank');
-                      }} 
-                      className="inline-flex items-center space-x-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 px-2.5 py-1.5 rounded-lg font-medium text-xs transition-colors border border-green-200 dark:border-green-800"
-                      title="Send WhatsApp Reminder"
-                    >
-                      <MessageCircle size={14} />
-                      <span>Remind</span>
-                    </button>
-                    <button onClick={() => handleDelete(record.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"><Trash2 size={16} /></button>
-                  </td>
-                </tr>
+                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{record.customer_name}</td>
+                        <td className="px-6 py-4">
+                          {record.type?.toLowerCase() === 'given' ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                              <UserMinus size={14} className="mr-1" /> Given
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400">
+                              <UserCheck size={14} className="mr-1" /> Received
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-gray-500 dark:text-gray-400 truncate max-w-xs" title={record.notes}>
+                          {record.notes || '-'}
+                        </td>
+                        <td className={`px-6 py-4 text-right font-bold ${record.type?.toLowerCase() === 'given' ? 'text-red-600 dark:text-red-400' : 'text-teal-600 dark:text-teal-400'}`}>
+                          <FormattedAmount amount={record.amount} />
+                        </td>
+                        <td className="px-6 py-4 text-right space-x-3">
+                          <button
+                            onClick={() => {
+                              const text = encodeURIComponent(storeName ? `Hi ${record.customer_name}, this is a reminder regarding your pending Udhaar balance of Rs. ${record.amount} at ${storeName}. Please clear your dues at the earliest. Thank you!` : `Hi ${record.customer_name}, this is a reminder regarding your pending Udhaar balance of Rs. ${record.amount}. Please clear your dues at the earliest. Thank you!`);
+                              window.open(`https://wa.me/?text=${text}`, '_blank');
+                            }}
+                            className="inline-flex items-center space-x-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 px-2.5 py-1.5 rounded-lg font-medium text-xs transition-colors border border-green-200 dark:border-green-800"
+                            title="Send WhatsApp Reminder"
+                          >
+                            <MessageCircle size={14} />
+                            <span>Remind</span>
+                          </button>
+                          <button onClick={() => handleDelete(record.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                        </td>
+                      </tr>
                     ))}
                   </>
                 );
@@ -238,19 +247,14 @@ export default function UdhaarClient({
             </tbody>
           </table>
         </div>
-        
-        {hasMore && !searchQuery && (
-          <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-center">
-            <button 
-              onClick={handleLoadMore} 
-              disabled={loadingMore}
-              className="px-6 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
-            >
-              {loadingMore ? <Loader2 size={16} className="animate-spin" /> : <ArrowDownCircle size={16} />}
-              Load More from Server
-            </button>
-          </div>
-        )}
+
+        <Pagination
+          currentPage={currentPage}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          isLoading={isLoading}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {showModal && (
@@ -260,24 +264,24 @@ export default function UdhaarClient({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium dark:text-gray-300">Customer Name</label>
-                <input aria-label="text" required type="text" value={formData.customer_name} onChange={e => setFormData({...formData, customer_name: sanitizeInput(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                <input aria-label="text" required type="text" value={formData.customer_name} onChange={e => setFormData({ ...formData, customer_name: sanitizeInput(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Type</label>
-                  <select value={formData.type} onChange={e => setFormData({...formData, type: sanitizeInput(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white">
+                  <select value={formData.type} onChange={e => setFormData({ ...formData, type: sanitizeInput(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white">
                     <option value="given">Given</option>
                     <option value="received">Received</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Amount</label>
-                  <input aria-label="number" required type="number" step="any" value={formData.amount} onChange={e => setFormData({...formData, amount: parseFloat(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                  <input aria-label="number" required type="number" step="any" value={formData.amount} onChange={e => setFormData({ ...formData, amount: parseFloat(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium dark:text-gray-300">Notes</label>
-                <input aria-label="text" type="text" value={formData.notes} onChange={e => setFormData({...formData, notes: sanitizeInput(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                <input aria-label="text" type="text" value={formData.notes} onChange={e => setFormData({ ...formData, notes: sanitizeInput(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
               </div>
               <div className="flex justify-end space-x-3 mt-6">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>

@@ -135,6 +135,9 @@ export interface GetActiveSalesData {
 
 export interface GetActiveSalesVariables {
   storeId: string;
+  type: string;
+  limit?: number | null;
+  offset?: number | null;
 }
 
 export interface GetActiveSuppliersData {
@@ -166,6 +169,8 @@ export interface GetActiveUdhaarsData {
 
 export interface GetActiveUdhaarsVariables {
   storeId: string;
+  limit?: number | null;
+  offset?: number | null;
 }
 
 export interface GetAdminAuditLogsData {

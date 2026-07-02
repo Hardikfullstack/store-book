@@ -82,12 +82,8 @@ query GetActiveItems($storeId: String!, $limit: Int, $offset: Int) @auth(level: 
     isDeleted
     updatedAt
   }
-}
-
-# Separate count query (fetching just IDs to count)
-query GetItemsCount($storeId: String!) @auth(level: USER) {
-  items(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
-    id
+  items_aggregate(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    _count
   }
 }
 
@@ -122,8 +118,8 @@ query SyncExpenses($storeId: String!, $lastSync: Float!) @auth(level: USER) {
   }
 }
 
-query GetActiveSales($storeId: String!) @auth(level: USER) {
-  sales(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+query GetActiveSales($storeId: String!, $type: String!, $limit: Int, $offset: Int) @auth(level: USER) {
+  sales(where: { storeId: { eq: $storeId }, type: { eq: $type }, isDeleted: { eq: false } }, limit: $limit, offset: $offset, orderBy: { updatedAt: DESC }) {
     id
     timestamp
     totalAmount
@@ -132,6 +128,9 @@ query GetActiveSales($storeId: String!) @auth(level: USER) {
     type
     notes
     updatedAt
+  }
+  sales_aggregate(where: { storeId: { eq: $storeId }, isDeleted: { eq: false }, type: { eq: $type } }) {
+    _count
   }
 }
 
@@ -147,8 +146,13 @@ query GetActiveSaleItems($storeId: String!) @auth(level: USER) {
   }
 }
 
-query GetActiveUdhaars($storeId: String!) @auth(level: USER) {
-  udhaarEntries(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+query GetActiveUdhaars($storeId: String!, $limit: Int, $offset: Int) @auth(level: USER) {
+  udhaarEntries(
+    where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }
+    limit: $limit,
+    offset: $offset,
+    orderBy: { updatedAt: DESC }
+  ) {
     id
     customerName
     amount
@@ -157,10 +161,18 @@ query GetActiveUdhaars($storeId: String!) @auth(level: USER) {
     notes
     updatedAt
   }
+  udhaarEntries_aggregate(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    _count
+  }
 }
 
-query GetActiveExpenses($storeId: String!) @auth(level: USER) {
-  expenseEntries(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+query GetActiveExpenses($storeId: String!, $limit: Int, $offset: Int) @auth(level: USER) {
+  expenseEntries(
+    where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }
+    limit: $limit,
+    offset: $offset,
+    orderBy: { updatedAt: DESC }
+  ) {
     id
     type
     description
@@ -168,6 +180,9 @@ query GetActiveExpenses($storeId: String!) @auth(level: USER) {
     timestamp
     supplierName
     updatedAt
+  }
+  expenseEntries_aggregate(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    _count
   }
 }
 

@@ -12,6 +12,7 @@ import RestockQuantity from '@/components/models/RestockQuantity';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { setInventory, updateInventoryItem } from '@/store/inventorySlice';
+import Pagination from '../components/Pagination';
 
 type UnitOption = 'pcs' | 'kg' | 'g' | 'litre' | 'ml' | 'dozen' | 'box' | 'packet';
 
@@ -63,17 +64,29 @@ export default function ItemsClient({
   const dispatch = useDispatch();
   const cachedItems = useSelector((state: RootState) => state.inventory.items);
   const lastSynced = useSelector((state: RootState) => state.inventory.lastSynced);
-  
+
   const [items, setItems] = useState<any[]>(cachedItems.length > 0 ? cachedItems : initialItems);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Fetch total count once on mount using getActiveItems without limit/offset
   useEffect(() => {
     if (!isPremium || !storeId) return;
+    getActiveItems(dataConnect, { storeId })
+      .then(res => {
+        if (res.data?.items) setTotalItems(res.data.items.length);
+      })
+      .catch(err => console.error('Count fetch error:', err));
+  }, [isPremium, storeId]);
 
+  // Fetch paginated items whenever page changes and poll regularly
+  useEffect(() => {
+    if (!isPremium || !storeId) return;
     let isMounted = true;
     const fetchItems = async () => {
+      setIsLoading(true);
       try {
         const offset = (currentPage - 1) * pageSize;
         const response = await getActiveItems(dataConnect, {
@@ -99,31 +112,22 @@ export default function ItemsClient({
         }
 
         setItems(updated);
-
-        // Fetch total items count separately for proper pagination
-        if (totalItems === 0) {
-          const countResponse = await getItemsCount(dataConnect, { storeId });
-          if (countResponse.data && countResponse.data.items) {
-            setTotalItems(countResponse.data.items.length);
-          }
-        }
         dispatch(setInventory(updated));
       } catch (error) {
-        console.error("Data Connect items fetch error:", error);
+        console.error('Data Connect items fetch error:', error);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
-
-    if (Date.now() - lastSynced > 300000) {
-      fetchItems();
-    }
-    // Optional: poll every 30 seconds for new items
+    // Initial fetch for current page
+    fetchItems();
+    // Poll every 30 seconds for updates
     const intervalId = setInterval(fetchItems, 30000);
-
     return () => {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId, userRole]);
+  }, [isPremium, storeId, userRole, currentPage, pageSize]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -292,7 +296,16 @@ export default function ItemsClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-              {(() => {
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <div className="flex items-center justify-center space-x-2 text-gray-400 dark:text-gray-500">
+                      <Loader2 size={20} className="animate-spin" />
+                      <span className="text-sm">Loading items...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (() => {
                 const filteredItems = items.filter((item: any) =>
                   (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                   (item.category || '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -314,7 +327,7 @@ export default function ItemsClient({
                       const now = Date.now();
                       const expiryDate = item.expiry_date ? new Date(item.expiry_date).getTime() : NaN;
                       let rowClass = "hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors";
-                      
+
                       if (!isNaN(expiryDate)) {
                         const daysUntilExpiry = (expiryDate - now) / (1000 * 60 * 60 * 24);
                         if (daysUntilExpiry <= 0) {
@@ -325,64 +338,64 @@ export default function ItemsClient({
                       }
 
                       return (
-                      <tr key={item.id} className={rowClass}>
-                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">
-                          {item.name}
-                          {item.expiry_date && (
-                            <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Exp: {item.expiry_date}</div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                            {item.category || 'Uncategorized'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          {item.quantity} <span className="text-gray-400 dark:text-gray-500 text-xs">{item.unit}</span>
-                        </td>
-                        {userRole !== 'staff' && (
+                        <tr key={item.id} className={rowClass}>
+                          <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">
+                            {item.name}
+                            {item.expiry_date && (
+                              <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Exp: {item.expiry_date}</div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                              {item.category || 'Uncategorized'}
+                            </span>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                            <FormattedAmount amount={item.buy_price} />
+                            {item.quantity} <span className="text-gray-400 dark:text-gray-500 text-xs">{item.unit}</span>
                           </td>
-                        )}
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
-                          <FormattedAmount amount={item.sell_price} />
-                        </td>
-                        {userRole !== 'staff' && (
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            {item.buy_price > 0 ? (
-                              <span className={`px-2 py-1 rounded text-xs font-bold ${((item.sell_price - item.buy_price) / item.buy_price * 100) >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                                {(((item.sell_price - item.buy_price) / item.buy_price) * 100).toFixed(0)}%
-                              </span>
-                            ) : '-'}
-                          </td>
-                        )}
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => setReStockQuantity(item)}
-                            className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 mr-4 transition-colors"
-                            title="Restock"
-                          >
-                            <Plus size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(item)}
-                            className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-4 transition-colors"
-                            title="Edit"
-                          >
-                            <Edit2 size={18} />
-                          </button>
                           {userRole !== 'staff' && (
-                            <button
-                              onClick={() => handleDelete(item.id)}
-                              className="text-red-500 hover:text-red-700 transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 size={18} />
-                            </button>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                              <FormattedAmount amount={item.buy_price} />
+                            </td>
                           )}
-                        </td>
-                      </tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
+                            <FormattedAmount amount={item.sell_price} />
+                          </td>
+                          {userRole !== 'staff' && (
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              {item.buy_price > 0 ? (
+                                <span className={`px-2 py-1 rounded text-xs font-bold ${((item.sell_price - item.buy_price) / item.buy_price * 100) >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                  {(((item.sell_price - item.buy_price) / item.buy_price) * 100).toFixed(0)}%
+                                </span>
+                              ) : '-'}
+                            </td>
+                          )}
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={() => setReStockQuantity(item)}
+                              className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 mr-4 transition-colors"
+                              title="Restock"
+                            >
+                              <Plus size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleEdit(item)}
+                              className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-4 transition-colors"
+                              title="Edit"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                            {userRole !== 'staff' && (
+                              <button
+                                onClick={() => handleDelete(item.id)}
+                                className="text-red-500 hover:text-red-700 transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
                       );
                     })}
                   </>
@@ -391,54 +404,13 @@ export default function ItemsClient({
             </tbody>
           </table>
         </div>
-
-        {totalItems > 0 && !searchQuery && (
-          <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries
-            </span>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 rounded-md border border-gray-200 dark:border-gray-700 disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Previous
-              </button>
-
-              {(() => {
-                const totalPages = Math.ceil(totalItems / pageSize);
-                // Create a sliding window of max 5 pages
-                let startPage = Math.max(1, currentPage - 2);
-                let endPage = Math.min(totalPages, startPage + 4);
-                if (endPage - startPage < 4) {
-                  startPage = Math.max(1, endPage - 4);
-                }
-
-                return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(pageNum => (
-                  <button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${currentPage === pageNum
-                        ? 'bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-teal-800'
-                        : 'border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
-                  >
-                    {pageNum}
-                  </button>
-                ));
-              })()}
-
-              <button
-                onClick={() => setCurrentPage(p => p + 1)}
-                disabled={currentPage * pageSize >= totalItems}
-                className="px-3 py-1 rounded-md border border-gray-200 dark:border-gray-700 disabled:opacity-50 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          currentPage={currentPage}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          isLoading={isLoading}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
       </div>
 
       {showModal && (

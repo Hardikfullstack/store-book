@@ -7,48 +7,63 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { dataConnect } from '@/lib/firebase';
 import { getActiveSales, softDeleteSale } from '@/dataconnect';
+import Pagination from '@/app/components/Pagination';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import SalesPOS from '@/app/sales/SalesPOS';
 
-export default function QuotationsClient({ 
+export default function QuotationsClient({
   storeId,
-}: { 
+  isPremium
+}: {
   storeId?: string,
-  userRole?: string
+  userRole?: string,
+  isPremium?: boolean
 }) {
   const [quotations, setQuotations] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    if (!storeId) return;
+    if (!isPremium || !storeId) return;
+    // Fetch total count
+    getActiveSales(dataConnect, { storeId, type: 'ESTIMATE' })
+      .then(res => {
+        setTotalItems(res.data.sales.length);
+      })
+      .catch(err => console.error('Count fetch error:', err));
+  }, [isPremium, storeId]);
 
+  // Fetch paginated quotations
+  useEffect(() => {
+    if (!isPremium || !storeId) return;
     let isMounted = true;
     const fetchQuotations = async () => {
+      setIsLoading(true);
       try {
-        const response = await getActiveSales(dataConnect, { storeId });
+        const offset = (currentPage - 1) * pageSize;
+        const response = await getActiveSales(dataConnect, { storeId, limit: pageSize, offset, type: 'ESTIMATE' });
         if (!isMounted) return;
-        
-        // Filter out actual sales, only keep estimates/quotations
-        const filtered = response.data.sales.filter((s: any) => s.type === 'ESTIMATE');
-        
-        const updated = filtered.map((q: any) => ({
+        const updated = response.data.sales.map((q: any) => ({
           ...q,
           is_deleted: 0,
           updated_at: q.updatedAt || Date.now(),
           customer_name: q.customerName,
           total_amount: q.totalAmount
         }));
-
         setQuotations(updated);
       } catch (error) {
         console.error("Data Connect quotations sync error:", error);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
-
     fetchQuotations();
-  }, [storeId]);
-  
+  }, [isPremium, storeId, currentPage]);
+
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this quotation?')) {
       try {
@@ -67,9 +82,9 @@ export default function QuotationsClient({
         const { getActiveSaleItems, syncItem, syncSale } = await import('@/dataconnect');
         const itemsRes = await getActiveSaleItems(dataConnect, { storeId: storeId! });
         const quoteItems = itemsRes.data.saleItemDetails.filter((i: any) => i.saleId === quote.id);
-        
+
         const now = Math.floor(Date.now() / 1000);
-        
+
         // Update the sale type
         await syncSale(dataConnect, {
           id: quote.id,
@@ -110,18 +125,18 @@ export default function QuotationsClient({
 
   const generatePDF = (quote: any) => {
     const doc = new jsPDF();
-    
+
     doc.setFontSize(20);
     doc.text('ESTIMATE / QUOTATION', 14, 22);
-    
+
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text(`Quote ID: #EST-${quote.id.substring(0, 8)}`, 14, 30);
     doc.text(`Date: ${formatDate(quote.timestamp || quote.updated_at)}`, 14, 35);
     doc.text(`Customer: ${quote.customer_name || 'Walk-in Customer'}`, 14, 40);
-    
+
     const displayAmount = Number(quote.total_amount || 0).toFixed(2);
-    
+
     autoTable(doc, {
       startY: 50,
       head: [['Description', 'Amount']],
@@ -131,16 +146,16 @@ export default function QuotationsClient({
       theme: 'striped',
       headStyles: { fillColor: [147, 51, 234] } // Purple-600
     });
-    
+
     const finalY = (doc as any).lastAutoTable.finalY || 50;
     doc.setFontSize(12);
     doc.setTextColor(0);
     doc.text(`Total Estimate: Rs. ${displayAmount}`, 14, finalY + 10);
-    
+
     doc.setFontSize(10);
     doc.setTextColor(150);
     doc.text('This is an estimate, not a tax invoice.', 14, finalY + 30);
-    
+
     doc.save(`Estimate_${quote.id.substring(0, 8)}.pdf`);
   };
 
@@ -152,7 +167,7 @@ export default function QuotationsClient({
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Create and share price estimates without affecting inventory.</p>
         </div>
         <div className="flex items-center space-x-3">
-          <button 
+          <button
             onClick={() => setShowModal(true)}
             className="btn-primary flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 shadow-purple-600/30"
           >
@@ -168,8 +183,8 @@ export default function QuotationsClient({
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search size={16} className="text-gray-400" />
             </div>
-            <input aria-label="text" 
-              type="text" 
+            <input aria-label="text"
+              type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
               className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all dark:text-gray-100"
@@ -193,7 +208,7 @@ export default function QuotationsClient({
               {(() => {
                 const filtered = quotations.filter((q: any) => {
                   return (
-                    (q.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                    (q.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                     (q.id || '').toLowerCase().includes(searchQuery.toLowerCase())
                   );
                 });
@@ -234,17 +249,24 @@ export default function QuotationsClient({
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          isLoading={isLoading}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {showModal && storeId && (
-        <SalesPOS 
-          storeId={storeId} 
+        <SalesPOS
+          storeId={storeId}
           type="ESTIMATE"
-          onClose={() => setShowModal(false)} 
+          onClose={() => setShowModal(false)}
           onSuccess={() => {
             setShowModal(false);
             window.location.reload();
-          }} 
+          }}
         />
       )}
     </div>
