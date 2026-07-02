@@ -46,7 +46,12 @@ export default function ExpensesClient({
     const fetchExpenses = async () => {
       setIsLoading(true);
       try {
-        const response = await getActiveExpenses(dataConnect, { storeId });
+        const offset = (currentPage - 1) * pageSize;
+        const response = await getActiveExpenses(dataConnect, {
+          storeId,
+          limit: pageSize,
+          offset
+        });
         if (!isMounted) return;
 
         const updated = response.data.expenseEntries.map((record: any) => ({

@@ -79,6 +79,8 @@ export interface GetActiveExpensesData {
 
 export interface GetActiveExpensesVariables {
   storeId: string;
+  limit?: number | null;
+  offset?: number | null;
 }
 
 export interface GetActiveItemsData {
