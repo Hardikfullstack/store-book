@@ -244,7 +244,7 @@ fun AuthScreen(
                         ) {
                             Icon(
                                 imageVector = item.icon,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.ui_element_desc),
                                 tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -319,7 +319,7 @@ fun AuthScreen(
                                 leadingIcon = {
                                     Icon(
                                         imageVector = Icons.Default.Phone,
-                                        contentDescription = null,
+                                        contentDescription = stringResource(R.string.ui_element_desc),
                                         tint = if (phoneNumber.length == 10) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                     )
                                 },
@@ -423,7 +423,7 @@ fun AuthScreen(
                                 leadingIcon = {
                                     Icon(
                                         imageVector = Icons.Default.Lock,
-                                        contentDescription = null,
+                                        contentDescription = stringResource(R.string.ui_element_desc),
                                         tint = if (otpCode.length == 6) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                     )
                                 },
@@ -518,7 +518,7 @@ fun AuthScreen(
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.Person,
-                                    contentDescription = null,
+                                    contentDescription = stringResource(R.string.ui_element_desc),
                                     tint = if (staffUsername.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                 )
                             },
@@ -548,7 +548,7 @@ fun AuthScreen(
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.Lock,
-                                    contentDescription = null,
+                                    contentDescription = stringResource(R.string.ui_element_desc),
                                     tint = if (staffPassword.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                 )
                             },
@@ -668,7 +668,7 @@ fun AuthScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Shield,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.ui_element_desc),
                         tint = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(16.dp)
                     )

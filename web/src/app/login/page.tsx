@@ -172,7 +172,7 @@ export default function LoginPage() {
                       ))}
                     </select>
                   </div>
-                  <input
+                  <input aria-label="tel"
                     type="tel"
                     required
                     value={phoneNumber}
@@ -209,7 +209,7 @@ export default function LoginPage() {
                   <button type="button" onClick={() => setStep('PHONE')} className="text-teal-600 hover:underline">Change</button>
                 </p>
                 <div className="flex gap-2">
-                  <input
+                  <input aria-label="text"
                     type="text"
                     required
                     maxLength={6}
@@ -237,7 +237,7 @@ export default function LoginPage() {
             <form onSubmit={handleStaffLogin} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username</label>
-                <input
+                <input aria-label="text"
                   type="text"
                   required
                   value={staffUsername}
@@ -248,7 +248,7 @@ export default function LoginPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password / PIN</label>
-                <input
+                <input aria-label="password"
                   type="password"
                   required
                   value={staffPassword}

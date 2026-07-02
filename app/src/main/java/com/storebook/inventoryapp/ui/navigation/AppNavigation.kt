@@ -780,7 +780,7 @@ private fun ModernBottomNavBar(
                         ) {
                             Icon(
                                 imageVector = if (isSelected) tab.selectedIcon else tab.icon,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.ui_element_desc),
                                 modifier =
                                     Modifier
                                         .scale(scale)
@@ -790,7 +790,7 @@ private fun ModernBottomNavBar(
                     } else {
                         Icon(
                             imageVector = if (isSelected) tab.selectedIcon else tab.icon,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.ui_element_desc),
                             modifier =
                                 Modifier
                                     .scale(scale)

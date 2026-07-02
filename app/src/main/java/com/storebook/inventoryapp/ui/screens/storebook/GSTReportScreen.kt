@@ -1,6 +1,9 @@
 package com.storebook.inventoryapp.ui.screens.storebook
 
+import com.storebook.inventoryapp.R
+
 import androidx.compose.foundation.background
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -236,7 +239,7 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                         ),
                         elevation = CardDefaults.cardElevation(if (isSelected) 4.dp else 1.dp),
                         modifier = Modifier
-                            .clickable { activeReportType = type }
+                            .clickable(onClickLabel = "Action") { activeReportType = type }
                     ) {
                         Text(
                             text = type.title,
@@ -519,7 +522,7 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
                             ) {
                                 Icon(
                                     Icons.Outlined.Info,
-                                    contentDescription = null,
+                                    contentDescription = stringResource(R.string.ui_element_desc),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -910,7 +913,7 @@ private fun EmptyReportState(message: String) {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.AutoMirrored.Outlined.Assignment, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+            Icon(Icons.AutoMirrored.Outlined.Assignment, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
             Spacer(Modifier.height(12.dp))
             Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), fontSize = 14.sp)
         }

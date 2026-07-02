@@ -279,7 +279,7 @@ export default function SalesPOS({
             <div className="p-4 border-b border-gray-100 dark:border-gray-800">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input 
+                <input aria-label="text" 
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -310,7 +310,7 @@ export default function SalesPOS({
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                   {filteredItems.map(item => (
-                    <div 
+                    <div role="button" tabIndex={0} 
                       key={item.id} 
                       onClick={() => handleAddToCart(item)}
                       className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 cursor-pointer hover:border-teal-500 hover:shadow-md transition-all active:scale-95 flex flex-col"
@@ -366,7 +366,7 @@ export default function SalesPOS({
                         >
                           <Minus size={14} />
                         </button>
-                        <input
+                        <input aria-label="text"
                           type="text"
                           defaultValue={c.quantity}
                           onBlur={(e) => {
@@ -400,7 +400,7 @@ export default function SalesPOS({
             <div className="border-t border-gray-200 dark:border-gray-800 p-6 bg-white dark:bg-gray-900">
               <div className="space-y-4 mb-6">
                 <div>
-                  <input 
+                  <input aria-label="Customer Name (Optional)" 
                     type="text" 
                     placeholder="Customer Name (Optional)" 
                     value={customerName}
@@ -410,7 +410,7 @@ export default function SalesPOS({
                 </div>
                 <div className="flex space-x-3">
                   <div className="flex-1">
-                    <input 
+                    <input aria-label="Discount (₹)" 
                       type="number" 
                       placeholder="Discount (₹)" 
                       value={discount || ''}
@@ -425,7 +425,7 @@ export default function SalesPOS({
                     )}
                   </div>
                   <div className="flex-[2]">
-                    <input 
+                    <input aria-label="Notes (e.g. UPI, Cash)" 
                       type="text" 
                       placeholder="Notes (e.g. UPI, Cash)" 
                       value={notes}

@@ -323,7 +323,7 @@ fun MoreScreen(
                                                                 horizontal = 16.dp,
                                                                 vertical = 10.dp
                                                         )
-                                                        .clickable {
+                                                        .clickable(onClickLabel = "Action") {
                                                                 navController.navigate(Routes.PremiumPlans)
                                                         },
                                         colors =
@@ -349,7 +349,7 @@ fun MoreScreen(
                                                 ) {
                                                         Icon(
                                                                 painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_star),
-                                                                contentDescription = null,
+                                                                contentDescription = stringResource(R.string.ui_element_desc),
                                                                 tint = Gold400,
                                                                 modifier = Modifier.size(24.dp),
                                                         )
@@ -376,7 +376,7 @@ fun MoreScreen(
                                                 Icon(
                                                         Icons.AutoMirrored.Filled
                                                                 .KeyboardArrowRight,
-                                                        contentDescription = null,
+                                                        contentDescription = stringResource(R.string.ui_element_desc),
                                                         tint = Gold400
                                                 )
                                         }
@@ -782,7 +782,7 @@ fun MoreScreen(
                 if (showUpgradeDialog) {
                     androidx.compose.material3.AlertDialog(
                         onDismissRequest = { showUpgradeDialog = false },
-                        icon = { Icon(Icons.Default.Star, contentDescription = null, tint = Gold400, modifier = Modifier.size(36.dp)) },
+                        icon = { Icon(Icons.Default.Star, contentDescription = stringResource(R.string.ui_element_desc), tint = Gold400, modifier = Modifier.size(36.dp)) },
                         title = { Text("Store Limit Reached", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
                         text = { Text("You can only create up to 2 local stores on the free plan. Upgrade to Pro to create unlimited stores, sync to cloud, and access premium features!", textAlign = TextAlign.Center) },
                         confirmButton = {
@@ -811,7 +811,7 @@ fun MoreScreen(
                 if (showLogoutConfirmation) {
                     androidx.compose.material3.AlertDialog(
                         onDismissRequest = { showLogoutConfirmation = false },
-                        icon = { Icon(Icons.AutoMirrored.Outlined.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(36.dp)) },
+                        icon = { Icon(Icons.AutoMirrored.Outlined.ExitToApp, contentDescription = stringResource(R.string.ui_element_desc), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(36.dp)) },
                         title = { Text("Logout Confirmation", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
                         text = {
                             if (viewModel.isPremiumUser) {
@@ -853,7 +853,7 @@ fun MoreScreen(
                 if (showClearDataDialog) {
                     androidx.compose.material3.AlertDialog(
                         onDismissRequest = { showClearDataDialog = false },
-                        icon = { Icon(Icons.Outlined.Restore, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(36.dp)) },
+                        icon = { Icon(Icons.Outlined.Restore, contentDescription = stringResource(R.string.ui_element_desc), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(36.dp)) },
                         title = { Text("Clear Local Data?", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
                         text = { Text("This will permanently delete all your local inventory, sales, Udhaar, and expense data from this device. Are you absolutely sure?", textAlign = TextAlign.Center) },
                         confirmButton = {
@@ -1147,7 +1147,7 @@ fun MoreScreen(
                                                             Box(
                                                                 modifier = Modifier
                                                                     .matchParentSize()
-                                                                    .clickable { showCurrencyDropdown = true }
+                                                                    .clickable(onClickLabel = "Action") { showCurrencyDropdown = true }
                                                             )
                                                             DropdownMenu(
                                                                 expanded = showCurrencyDropdown,
@@ -1181,7 +1181,7 @@ fun MoreScreen(
                                                                 mutableStateOf(viewModel.isHapticFeedbackEnabled)
                                                         }
                                                         Row(
-                                                                modifier = Modifier.fillMaxWidth().clickable { useThermalPrinter = !useThermalPrinter }.padding(vertical = 4.dp),
+                                                                modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Action") { useThermalPrinter = !useThermalPrinter }.padding(vertical = 4.dp),
                                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                                 verticalAlignment = Alignment.CenterVertically
                                                         ) {
@@ -1195,7 +1195,7 @@ fun MoreScreen(
                                                                 )
                                                         }
                                                         Row(
-                                                                modifier = Modifier.fillMaxWidth().clickable { useHapticFeedback = !useHapticFeedback }.padding(vertical = 4.dp),
+                                                                modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Action") { useHapticFeedback = !useHapticFeedback }.padding(vertical = 4.dp),
                                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                                 verticalAlignment = Alignment.CenterVertically
                                                         ) {
@@ -1290,7 +1290,7 @@ fun MoreScreen(
                                                     Text("Your Associated Stores:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                                                     viewModel.userStores.forEach { sId ->
                                                         Card(
-                                                            modifier = Modifier.fillMaxWidth().clickable {
+                                                            modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Action") {
                                                                 viewModel.switchStore(sId)
                                                                 showSheet = false
                                                                 android.widget.Toast.makeText(context, "Switched to $sId", android.widget.Toast.LENGTH_SHORT).show()
@@ -1353,7 +1353,7 @@ fun IconOptionRow(
         Row(
                 modifier =
                         Modifier.fillMaxWidth()
-                                .clickable { onClick() }
+                                .clickable(onClickLabel = "Action") { onClick() }
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
@@ -1375,7 +1375,7 @@ fun IconOptionRow(
                         ) {
                                 Icon(
                                         imageVector = icon,
-                                        contentDescription = null,
+                                        contentDescription = stringResource(R.string.ui_element_desc),
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(22.dp)
                                 )
@@ -1387,7 +1387,7 @@ fun IconOptionRow(
                         if (trailingIconRes != null) {
                                 Icon(
                                         painter = androidx.compose.ui.res.painterResource(id = trailingIconRes),
-                                        contentDescription = null,
+                                        contentDescription = stringResource(R.string.ui_element_desc),
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                 )
@@ -1404,7 +1404,7 @@ fun IconOptionRow(
                         }
                         Icon(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.ui_element_desc),
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
                                 modifier = Modifier.size(20.dp),
                         )
@@ -1473,7 +1473,7 @@ fun LanguageOptionCard(
         onSelect: (String) -> Unit,
 ) {
         Card(
-                modifier = Modifier.fillMaxWidth().clickable { onSelect(code) },
+                modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Action") { onSelect(code) },
                 shape = RoundedCornerShape(14.dp),
                 colors =
                         CardDefaults.cardColors(
@@ -1496,7 +1496,7 @@ fun LanguageOptionCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                         painter = androidx.compose.ui.res.painterResource(id = iconRes),
-                                        contentDescription = null,
+                                        contentDescription = stringResource(R.string.ui_element_desc),
                                         tint = androidx.compose.material3.LocalContentColor.current,
                                         modifier = Modifier.size(24.dp)
                                 )
@@ -1593,7 +1593,7 @@ fun InlineThemeCard(
                             .weight(1f)
                             .clip(RoundedCornerShape(10.dp))
                             .background(bgColor)
-                            .clickable { onThemeSelected(dark) }
+                            .clickable(onClickLabel = "Action") { onThemeSelected(dark) }
                             .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -1603,7 +1603,7 @@ fun InlineThemeCard(
                         ) {
                             Icon(
                                 painter = painterResource(id = emoji as Int),
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.ui_element_desc),
                                 tint = textColor,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -1657,7 +1657,7 @@ fun InlineThemeCard(
                                     android.widget.Toast.makeText(context, "Only available for Pro users", android.widget.Toast.LENGTH_SHORT).show()
                                 }
                             } else {
-                                Modifier.clickable { onThemeModeSelected(mode) }
+                                Modifier.clickable(onClickLabel = "Action") { onThemeModeSelected(mode) }
                             },
                         ) {
                             Box(
@@ -1677,7 +1677,7 @@ fun InlineThemeCard(
                                     if (isSelected && !isLocked) {
                                         Icon(
                                             imageVector = Icons.Default.Star,
-                                            contentDescription = null,
+                                            contentDescription = stringResource(R.string.ui_element_desc),
                                             tint = MaterialTheme.colorScheme.onPrimary,
                                             modifier = Modifier
                                                 .size(16.dp)
@@ -1945,7 +1945,7 @@ fun ReportsSheetContent(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
                                                 imageVector = if (netProfit >= 0) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown,
-                                                contentDescription = null,
+                                                contentDescription = stringResource(R.string.ui_element_desc),
                                                 tint = if (netProfit >= 0) Emerald500 else Coral500,
                                                 modifier = Modifier.size(18.dp)
                                         )

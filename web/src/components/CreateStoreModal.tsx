@@ -27,7 +27,7 @@ export default function CreateStoreModal({ onClose }: { onClose: () => void }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium dark:text-gray-300">Store Name</label>
-            <input 
+            <input aria-label="text" 
               required 
               type="text" 
               value={storeName} 

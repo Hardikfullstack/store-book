@@ -39,7 +39,7 @@ class SyncWorker(
                         lowStockThreshold = item.lowStockThreshold,
                         category = item.category ?: "",
                         isDeleted = item.isDeleted,
-                        updatedAt = item.updatedAt.toInt(),
+                        updatedAt = item.updatedAt.toDouble(),
                     ) {
                         photoPath = item.photoPath
                         hsnCode = item.hsnCode
@@ -60,12 +60,12 @@ class SyncWorker(
                     val result = connector.syncSale.execute(
                         id = sale.id.toString(),
                         storeId = storeId,
-                        timestamp = sale.timestamp.toInt(),
+                        timestamp = sale.timestamp.toDouble(),
                         totalAmount = sale.totalAmount,
                         discountAmount = sale.discountAmount,
                         type = sale.type,
                         isDeleted = sale.isDeleted,
-                        updatedAt = sale.updatedAt.toInt()
+                        updatedAt = sale.updatedAt.toDouble()
                     ) {
                         customerName = sale.customerName
                         customerGstin = sale.customerGstin
@@ -98,7 +98,7 @@ class SyncWorker(
                         sellPrice = saleItem.sellPrice,
                         buyPrice = saleItem.buyPrice,
                         isDeleted = saleItem.isDeleted,
-                        updatedAt = saleItem.updatedAt.toInt()
+                        updatedAt = saleItem.updatedAt.toDouble()
                     )
                     
                     val cloudId = result.data.key.id

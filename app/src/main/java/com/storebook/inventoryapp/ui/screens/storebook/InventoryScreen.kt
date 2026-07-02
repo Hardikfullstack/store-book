@@ -640,7 +640,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                     ) {
                         Box(
                             modifier = Modifier
-                                .clickable {
+                                .clickable(onClickLabel = "Action") {
                                     sortBy = when (sortBy) {
                                         "Name" -> "Qty"
                                         "Qty" -> "Price"
@@ -666,7 +666,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         
                         Box(
                             modifier = Modifier
-                                .clickable { sortDescending = !sortDescending }
+                                .clickable(onClickLabel = "Action") { sortDescending = !sortDescending }
                                 .padding(start = 6.dp, top = 6.dp, bottom = 6.dp, end = 12.dp)
                         ) {
                             Icon(
@@ -687,7 +687,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                     onValueChange = { searchQ = it },
                     placeholder = { Text(stringResource(id = R.string.inv_search_hint)) },
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.ui_element_desc)) },
                     trailingIcon = {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 8.dp)) {
                             if (isLoadingItems) {
@@ -703,7 +703,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 modifier = Modifier
                                     .clip(CircleShape)
                                     .background(if (selectedCategory != "All" || filterMode != "All") MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f) else Color.Transparent)
-                                    .clickable { showFilterSheet = true }
+                                    .clickable(onClickLabel = "Action") { showFilterSheet = true }
                                     .padding(6.dp)
                             ) {
                                 Icon(
@@ -781,7 +781,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             ) {
                                 androidx.compose.material3.Icon(
                                     imageVector = androidx.compose.material.icons.Icons.Outlined.Inventory,
-                                    contentDescription = null,
+                                    contentDescription = stringResource(R.string.ui_element_desc),
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(50.dp)
                                 )
@@ -814,7 +814,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                     )
                                    Icon(
                                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                        contentDescription = null,
+                                        contentDescription = stringResource(R.string.ui_element_desc),
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(24.dp).rotate(45f)
                                     )
@@ -895,7 +895,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                                             modifier = Modifier
                                                                 .clip(RoundedCornerShape(12.dp))
                                                                 .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
-                                                                .clickable {
+                                                                .clickable(onClickLabel = "Action") {
                                                                     scope.launch {
                                                                         val purchase = Purchase(
                                                                             supplierId = 0L,
@@ -933,7 +933,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                                         modifier = Modifier
                                                             .clip(RoundedCornerShape(12.dp))
                                                             .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
-                                                            .clickable {
+                                                            .clickable(onClickLabel = "Action") {
                                                                 quickRefillItem = item
                                                                 scope.launch {
                                                                     dismissState.snapTo(SwipeToDismissBoxValue.Settled)
@@ -950,7 +950,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                                         modifier = Modifier
                                                             .clip(CircleShape)
                                                             .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f))
-                                                            .clickable {
+                                                            .clickable(onClickLabel = "Action") {
                                                                 scope.launch {
                                                                     dismissState.snapTo(SwipeToDismissBoxValue.Settled)
                                                                 }
@@ -1370,7 +1370,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { showAdvancedOptions = !showAdvancedOptions }
+                                .clickable(onClickLabel = "Action") { showAdvancedOptions = !showAdvancedOptions }
                                 .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -1383,7 +1383,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             )
                             Icon(
                                 imageVector = if (showAdvancedOptions) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.ui_element_desc),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -1609,7 +1609,7 @@ fun InventoryItemCard(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable { onClick() },
+                .clickable(onClickLabel = "Action") { onClick() },
         shape = RoundedCornerShape(20.dp),
         colors =
             CardDefaults.cardColors(
@@ -1808,12 +1808,12 @@ fun FilterChip(
             Modifier
                 .clip(RoundedCornerShape(20.dp))
                 .background(bgColor)
-                .clickable { onClick() }
+                .clickable(onClickLabel = "Action") { onClick() }
                 .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (icon != null) {
-                Icon(icon, contentDescription = null, tint = textColor, modifier = Modifier.size(14.dp))
+                Icon(icon, contentDescription = stringResource(R.string.ui_element_desc), tint = textColor, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))
             }
             Text(text = label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = textColor)

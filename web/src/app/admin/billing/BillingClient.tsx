@@ -31,7 +31,7 @@ export default function BillingClient({ stores }: { stores: any[] }) {
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search size={16} className="text-gray-400" />
             </div>
-            <input 
+            <input aria-label="text" 
               type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -141,7 +141,7 @@ export default function BillingClient({ stores }: { stores: any[] }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expiry Date</label>
-                <input 
+                <input aria-label="date" 
                   type="date" 
                   defaultValue={editingStore.subscriptionExpiresAt ? new Date(editingStore.subscriptionExpiresAt).toISOString().split('T')[0] : ''}
                   className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-teal-500"

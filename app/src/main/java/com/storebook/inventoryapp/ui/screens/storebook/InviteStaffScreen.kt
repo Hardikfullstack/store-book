@@ -1,6 +1,9 @@
 package com.storebook.inventoryapp.ui.screens.storebook
 
+import com.storebook.inventoryapp.R
+
 import android.widget.Toast
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -64,7 +67,7 @@ fun InviteStaffScreen(
         ) {
             Icon(
                 imageVector = Icons.Default.PersonAdd,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.ui_element_desc),
                 modifier = Modifier
                     .size(64.dp)
                     .clip(RoundedCornerShape(16.dp))

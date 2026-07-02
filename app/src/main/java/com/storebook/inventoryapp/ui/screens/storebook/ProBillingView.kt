@@ -241,7 +241,7 @@ fun ProBillingView(
                                 ) {
                                     Icon(
                                         feature.first,
-                                        contentDescription = null,
+                                        contentDescription = stringResource(R.string.ui_element_desc),
                                         tint = Gold400,
                                         modifier = Modifier.size(16.dp)
                                     )
@@ -457,7 +457,7 @@ private fun PlanCard(
             ) {
                 Icon(
                     imageVector = icon,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.ui_element_desc),
                     tint = if (isSelected) Color.White else (if (isDark) Color.White else Color.Black),
                     modifier = Modifier.size(24.dp)
                 )
@@ -482,7 +482,7 @@ private fun PlanCard(
 
             Icon(
                 Icons.Default.CheckCircle,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.ui_element_desc),
                 tint = if (isSelected) Gold400 else Color.Transparent,
                 modifier = Modifier.size(24.dp),
             )

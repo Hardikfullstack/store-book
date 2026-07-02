@@ -385,7 +385,7 @@ fun SalesAnalyticsScreen(
                                 .padding(4.dp)
                                 .clip(RoundedCornerShape(18.dp))
                                 .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                                .clickable { groupBy = g },
+                                .clickable(onClickLabel = "Action") { groupBy = g },
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -771,7 +771,7 @@ fun ExpandableGroupCard(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .clickable { expanded = !expanded }
+                        .clickable(onClickLabel = "Action") { expanded = !expanded }
                         .padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,

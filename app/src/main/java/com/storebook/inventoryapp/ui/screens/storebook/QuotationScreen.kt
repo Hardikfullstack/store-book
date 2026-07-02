@@ -1,6 +1,9 @@
 package com.storebook.inventoryapp.ui.screens.storebook
 
+import com.storebook.inventoryapp.R
+
 import androidx.compose.foundation.background
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -97,7 +100,7 @@ fun QuotationScreen(
                     ) {
                        Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ReceiptLong,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.ui_element_desc),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(36.dp)
                         )
@@ -222,7 +225,7 @@ fun QuotationCard(
                     )
                     if (isConverted) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Emerald500, modifier = Modifier.size(12.dp))
+                            Icon(Icons.Default.CheckCircle, contentDescription = stringResource(R.string.ui_element_desc), tint = Emerald500, modifier = Modifier.size(12.dp))
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 text = "CONVERTED",
@@ -233,7 +236,7 @@ fun QuotationCard(
                         }
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Outlined.Schedule, contentDescription = null, tint = Coral500, modifier = Modifier.size(12.dp))
+                            Icon(Icons.Outlined.Schedule, contentDescription = stringResource(R.string.ui_element_desc), tint = Coral500, modifier = Modifier.size(12.dp))
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 text = "PENDING",
@@ -269,7 +272,7 @@ fun QuotationCard(
                             modifier = Modifier.height(36.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
-                            Icon(Icons.Default.ShoppingCartCheckout, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.ShoppingCartCheckout, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Convert", fontSize = 12.sp)
                         }

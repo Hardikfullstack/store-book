@@ -343,7 +343,7 @@ fun DashboardScreen(
                                 hourOfDay < 17 -> Icons.Filled.WbSunny
                                 else -> Icons.Filled.ModeNight
                             }
-                            Icon(greetingIcon, contentDescription = null, modifier = Modifier.size(15.dp), tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f))
+                            Icon(greetingIcon, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(15.dp), tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f))
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 text = "$greetingStr!",
@@ -388,7 +388,7 @@ fun DashboardScreen(
                                         } else {
                                             MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
                                         },
-                                    ).clickable { navController.navigate(Routes.PremiumPlans) }
+                                    ).clickable(onClickLabel = "Action") { navController.navigate(Routes.PremiumPlans) }
                                     .padding(horizontal = 14.dp, vertical = 7.dp),
                         ) {
                             Text(
@@ -429,7 +429,7 @@ fun DashboardScreen(
                                     .size(40.dp)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f))
-                                    .clickable {
+                                    .clickable(onClickLabel = "Action") {
                                         if (currentUser == null) {
                                             navController.navigate(Routes.Auth)
                                         } else {
@@ -479,7 +479,7 @@ fun DashboardScreen(
                 item {
                     Box(
                         modifier =
-                            Modifier.fillMaxWidth().clickable {
+                            Modifier.fillMaxWidth().clickable(onClickLabel = "Action") {
                                 navController.navigate(Routes.Sales) {
                                     popUpTo<Routes.Dashboard> { saveState = true }
                                     launchSingleTop = true
@@ -492,7 +492,7 @@ fun DashboardScreen(
                             onValueChange = {},
                             placeholder = { Text("Search or scan barcode to sell...") },
                             modifier = Modifier.fillMaxWidth(),
-                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.ui_element_desc)) },
                             enabled = false,
                             colors =
                                 OutlinedTextFieldDefaults.colors(
@@ -518,7 +518,7 @@ fun DashboardScreen(
                                 selected = false,
                                 onClick = { navController.navigate(Routes.Sales) },
                                 label = { Text("New Sale", fontWeight = FontWeight.Bold) },
-                                leadingIcon = { Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                leadingIcon = { Icon(Icons.Default.ShoppingCart, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(16.dp)) },
                                 shape = RoundedCornerShape(16.dp),
                             )
                         }
@@ -527,7 +527,7 @@ fun DashboardScreen(
                                 selected = false,
                                 onClick = { navController.navigate(Routes.Udhaar) },
                                 label = { Text("Give Udhaar", fontWeight = FontWeight.Bold) },
-                                leadingIcon = { Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                leadingIcon = { Icon(Icons.Default.AccountCircle, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(16.dp)) },
                                 shape = RoundedCornerShape(16.dp),
                             )
                         }
@@ -536,7 +536,7 @@ fun DashboardScreen(
                                 selected = false,
                                 onClick = { navController.navigate(Routes.Inventory) },
                                 label = { Text("Add Stock", fontWeight = FontWeight.Bold) },
-                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(16.dp)) },
                                 shape = RoundedCornerShape(16.dp),
                             )
                         }
@@ -560,7 +560,7 @@ fun DashboardScreen(
                                     Modifier
                                         .fillMaxWidth()
                                         .padding(horizontal = 14.dp, vertical = 10.dp)
-                                        .clickable {
+                                        .clickable(onClickLabel = "Action") {
                                             navController.navigate(Routes.Inventory) {
                                                 popUpTo<Routes.Dashboard> { saveState = true }
                                                 launchSingleTop = true
@@ -571,7 +571,7 @@ fun DashboardScreen(
                             ) {
                                 Icon(
                                     Icons.Default.Warning,
-                                    contentDescription = null,
+                                    contentDescription = stringResource(R.string.ui_element_desc),
                                     tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(18.dp),
                                 )
@@ -586,7 +586,7 @@ fun DashboardScreen(
                                 Text("View All", color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 Icon(
                                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    contentDescription = null,
+                                    contentDescription = stringResource(R.string.ui_element_desc),
                                     tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(16.dp),
                                 )
@@ -653,7 +653,7 @@ fun DashboardScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         Icons.Default.Notifications,
-                                        contentDescription = null,
+                                        contentDescription = stringResource(R.string.ui_element_desc),
                                         tint = MaterialTheme.colorScheme.secondary,
                                         modifier = Modifier.size(20.dp),
                                     )
@@ -745,7 +745,7 @@ fun DashboardScreen(
                                     iconContent = {
                                         Icon(
                                             painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_total_items),
-                                            contentDescription = null,
+                                            contentDescription = stringResource(R.string.ui_element_desc),
                                             tint = Color.White,
                                             modifier = Modifier.size(22.dp)
                                         )
@@ -764,7 +764,7 @@ fun DashboardScreen(
                                     iconContent = {
                                         Icon(
                                             imageVector = if (lowStockItems.isNotEmpty()) Icons.Outlined.WarningAmber else Icons.Outlined.CheckCircleOutline,
-                                            contentDescription = null,
+                                            contentDescription = stringResource(R.string.ui_element_desc),
                                             tint = Color.White,
                                             modifier = Modifier.size(22.dp)
                                         )
@@ -785,7 +785,7 @@ fun DashboardScreen(
                                 .height(56.dp)
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(MaterialTheme.colorScheme.primary)
-                                .clickable {
+                                .clickable(onClickLabel = "Action") {
                                     navController.navigate(Routes.Sales) {
                                         popUpTo<Routes.Dashboard> {
                                             saveState = true
@@ -802,7 +802,7 @@ fun DashboardScreen(
                         ) {
                             Icon(
                                 Icons.Outlined.ShoppingCart,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.ui_element_desc),
                                 tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(20.dp),
                             )
@@ -872,7 +872,7 @@ fun DashboardScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.ShoppingCart,
-                                        contentDescription = null,
+                                        contentDescription = stringResource(R.string.ui_element_desc),
                                         tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                                         modifier = Modifier.size(32.dp)
                                     )
@@ -1166,7 +1166,7 @@ fun SaleTimelineCard(
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.clickable { showPopup = true },
+                        modifier = Modifier.clickable(onClickLabel = "Action") { showPopup = true },
                     )
                     Text(
                         text = saleTime,
@@ -1253,7 +1253,7 @@ fun MetricCard(
         iconContent = {
             Icon(
                 imageVector = androidx.compose.material.icons.Icons.Outlined.CheckCircleOutline,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.ui_element_desc),
                 tint = androidx.compose.ui.graphics.Color.White,
                 modifier = Modifier.size(22.dp)
             )

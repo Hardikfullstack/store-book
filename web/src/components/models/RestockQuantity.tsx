@@ -251,7 +251,7 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
             {showSupplierDropdown && (
               <div className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
                 <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-700">
-                  <input
+                  <input aria-label="text"
                     type="text"
                     value={supplierSearch}
                     onChange={(event) => setSupplierSearch(event.target.value)}

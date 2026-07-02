@@ -165,7 +165,7 @@ export default function SalesClient({
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search size={16} className="text-gray-400" />
             </div>
-            <input 
+            <input aria-label="text" 
               type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

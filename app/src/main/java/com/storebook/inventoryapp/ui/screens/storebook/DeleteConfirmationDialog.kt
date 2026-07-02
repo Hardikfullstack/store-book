@@ -129,7 +129,7 @@ fun DeleteConfirmationDialog(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.ui_element_desc),
                         tint = Coral500,
                         modifier = Modifier.size(30.dp),
                     )
@@ -209,7 +209,7 @@ fun DeleteConfirmationDialog(
                     ) {
                         Icon(
                             Icons.Default.Delete,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.ui_element_desc),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onError,
                         )

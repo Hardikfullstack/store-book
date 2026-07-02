@@ -269,7 +269,7 @@ fun SalesScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(unitIcon(item.unit), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(26.dp))
+                        Icon(unitIcon(item.unit), contentDescription = stringResource(R.string.ui_element_desc), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(26.dp))
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(item.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
@@ -299,7 +299,7 @@ fun SalesScreen(
                                     .size(44.dp)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary)
-                                    .clickable {
+                                    .clickable(onClickLabel = "Action") {
                                         val cur = editingQtyText.text.toDoubleOrNull() ?: step
                                         val next = (cur - step).coerceAtLeast(step)
                                         val s = formatQty(next)
@@ -363,7 +363,7 @@ fun SalesScreen(
                                     .size(44.dp)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary)
-                                    .clickable {
+                                    .clickable(onClickLabel = "Action") {
                                         val cur = editingQtyText.text.toDoubleOrNull() ?: 0.0
                                         val next = cur + step
                                         val s = formatQty(next)
@@ -397,7 +397,7 @@ fun SalesScreen(
                                     Modifier
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(MaterialTheme.colorScheme.primary)
-                                        .clickable {
+                                        .clickable(onClickLabel = "Action") {
                                             val cur = editingQtyText.text.toDoubleOrNull() ?: 0.0
                                             val next = cur + presetVal
                                             val s = formatQty(next)
@@ -564,7 +564,7 @@ fun SalesScreen(
                                                 isSelected -> MaterialTheme.colorScheme.primary
                                                 else -> MaterialTheme.colorScheme.surfaceVariant
                                             },
-                                        ).clickable {
+                                        ).clickable(onClickLabel = "Action") {
                                             viewModel.cartPaymentMode = mode
                                             customerNameError = false
                                         }.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -582,7 +582,7 @@ fun SalesScreen(
                                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                                     }
                                     if (icon != null) {
-                                        Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = textColor)
+                                        Icon(icon, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(16.dp), tint = textColor)
                                         Spacer(Modifier.width(4.dp))
                                     }
                                     Text(
@@ -610,7 +610,7 @@ fun SalesScreen(
                     ) {
                         Icon(
                             Icons.Default.Warning,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.ui_element_desc),
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(16.dp),
                         )
@@ -655,7 +655,7 @@ fun SalesScreen(
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Person,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.ui_element_desc),
                                 tint = if (customerNameError) Coral500 else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp),
                             )
@@ -735,7 +735,7 @@ fun SalesScreen(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .clickable { showAdvancedBilling = !showAdvancedBilling }
+                            .clickable(onClickLabel = "Action") { showAdvancedBilling = !showAdvancedBilling }
                             .padding(vertical = 4.dp),
                     textAlign = TextAlign.Center,
                 )
@@ -819,7 +819,7 @@ fun SalesScreen(
                             "UPI" -> androidx.compose.material.icons.Icons.Outlined.QrCodeScanner
                             else -> androidx.compose.material.icons.Icons.Outlined.Payments
                         }
-                        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(icon, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Text(
                             text =
@@ -854,7 +854,7 @@ fun SalesScreen(
                         shape = RoundedCornerShape(16.dp),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(androidx.compose.material.icons.Icons.Outlined.Description, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(androidx.compose.material.icons.Icons.Outlined.Description, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 text = "Save as Estimate",
@@ -885,7 +885,7 @@ fun SalesScreen(
                             .size(36.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
-                            .clickable {
+                            .clickable(onClickLabel = "Action") {
                                 viewModel.clearCart()
                                 customerNameError = false
                                 navController.popBackStack()
@@ -951,7 +951,7 @@ fun SalesScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     Icons.Default.Notifications,
-                                    contentDescription = null,
+                                    contentDescription = stringResource(R.string.ui_element_desc),
                                     tint = MaterialTheme.colorScheme.secondary,
                                     modifier = Modifier.size(20.dp),
                                 )
@@ -999,7 +999,7 @@ fun SalesScreen(
                         Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.ui_element_desc)) },
                     trailingIcon = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (searchQ.isNotEmpty()) {
@@ -1075,7 +1075,7 @@ fun SalesScreen(
                                 modifier =
                                     Modifier
                                         .fillMaxWidth()
-                                        .clickable {
+                                        .clickable(onClickLabel = "Action") {
                                             if (inCart == null) {
                                                 if (isPcs) {
                                                     viewModel.addToCart(item, 1.0)
@@ -1133,7 +1133,7 @@ fun SalesScreen(
                                             contentAlignment = Alignment.Center,
                                         ) {
                                             if (!isPcs) {
-                                                Icon(unitIcon(item.unit), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                                Icon(unitIcon(item.unit), contentDescription = stringResource(R.string.ui_element_desc), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                                             } else {
                                                 Text(
                                                     text = item.name.take(2).uppercase(),
@@ -1184,7 +1184,7 @@ fun SalesScreen(
                                                     Modifier
                                                         .fillMaxHeight()
                                                         .width(36.dp)
-                                                        .clickable {
+                                                        .clickable(onClickLabel = "Action") {
                                                             if (viewModel.isHapticFeedbackEnabled) {
                                                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                             }
@@ -1204,7 +1204,7 @@ fun SalesScreen(
                                                 modifier =
                                                     Modifier
                                                         .fillMaxHeight()
-                                                        .clickable {
+                                                        .clickable(onClickLabel = "Action") {
                                                             val curr = cartMap[item.id]
                                                             curr?.let {
                                                                 val s = formatQty(it.quantity)
@@ -1229,7 +1229,7 @@ fun SalesScreen(
                                                     Modifier
                                                         .fillMaxHeight()
                                                         .width(36.dp)
-                                                        .clickable {
+                                                        .clickable(onClickLabel = "Action") {
                                                             if (viewModel.isHapticFeedbackEnabled) {
                                                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                             }
@@ -1251,7 +1251,7 @@ fun SalesScreen(
                                                 Modifier
                                                     .clip(RoundedCornerShape(18.dp))
                                                     .background(MaterialTheme.colorScheme.primaryContainer)
-                                                    .clickable {
+                                                    .clickable(onClickLabel = "Action") {
                                                         if (viewModel.isHapticFeedbackEnabled) {
                                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                         }
@@ -1347,7 +1347,7 @@ fun SalesScreen(
                                 leadingIcon = {
                                     Icon(
                                         Icons.Default.Person,
-                                        contentDescription = null,
+                                        contentDescription = stringResource(R.string.ui_element_desc),
                                         tint = if (customerNameError) Coral500 else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(18.dp),
                                     )
@@ -1449,7 +1449,7 @@ fun SalesScreen(
                                                 else -> MaterialTheme.colorScheme.surfaceVariant
                                             }
                                         )
-                                        .clickable {
+                                        .clickable(onClickLabel = "Action") {
                                             viewModel.cartPaymentMode = mode
                                             if (mode == "Udhaar") {
                                                 showCheckoutSheet = true
@@ -1467,7 +1467,7 @@ fun SalesScreen(
                                         }
                                         val textColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                                         if (icon != null) {
-                                            Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = textColor)
+                                            Icon(icon, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(16.dp), tint = textColor)
                                             Spacer(Modifier.width(4.dp))
                                         }
                                         Text(
@@ -1591,7 +1591,7 @@ fun SalesSuccessScreen(
         ) {
             Icon(
                 imageVector = Icons.Default.CheckCircle,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.ui_element_desc),
                 tint = if (isUdhaar) Coral500 else Emerald500,
                 modifier = Modifier.size(64.dp),
             )

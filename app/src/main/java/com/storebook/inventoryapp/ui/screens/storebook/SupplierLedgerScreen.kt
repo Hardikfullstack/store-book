@@ -223,7 +223,7 @@ fun SupplierLedgerScreen(
                     onValueChange = { searchQ = it },
                     placeholder = { Text("Search supplier by name...") },
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.ui_element_desc)) },
                     trailingIcon = {
                         if (searchQ.isNotEmpty()) {
                             androidx.compose.material3.IconButton(onClick = { searchQ = "" }) {
@@ -259,7 +259,7 @@ fun SupplierLedgerScreen(
                 shape = CircleShape,
                 modifier = Modifier.height(56.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.ui_element_desc))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Add Supplier", fontWeight = FontWeight.Bold)
             }
@@ -329,7 +329,7 @@ fun SupplierLedgerScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.Store,
-                                        contentDescription = null,
+                                        contentDescription = stringResource(R.string.ui_element_desc),
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(36.dp)
                                     )
@@ -350,7 +350,7 @@ fun SupplierLedgerScreen(
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
+                                .clickable(onClickLabel = "Action") {
                                     selectedSupplierBalance = supplier
                                     showSupplierDetailSheet = true
                                 },

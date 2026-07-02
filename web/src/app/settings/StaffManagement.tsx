@@ -66,7 +66,7 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Username (No Spaces)</label>
-              <input 
+              <input aria-label="text" 
                 type="text" 
                 required
                 value={username}
@@ -77,7 +77,7 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Login PIN</label>
-              <input 
+              <input aria-label="password" 
                 type="password" 
                 required
                 value={pin}
@@ -90,7 +90,7 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
 
           <div className="flex flex-col space-y-3 mt-4">
             <label className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
-              <input 
+              <input aria-label="checkbox" 
                 type="checkbox" 
                 checked={canViewProfit}
                 onChange={e => setCanViewProfit(e.target.checked)}
@@ -99,7 +99,7 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
               <span>Can View Profit Margins</span>
             </label>
             <label className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
-              <input 
+              <input aria-label="checkbox" 
                 type="checkbox" 
                 checked={canDelete}
                 onChange={e => setCanDelete(e.target.checked)}

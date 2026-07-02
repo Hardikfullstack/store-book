@@ -122,7 +122,7 @@ fun SalesHistoryScreen(
                     Row(
                         modifier =
                             Modifier
-                                .clickable { showDatePicker = true }
+                                .clickable(onClickLabel = "Action") { showDatePicker = true }
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -170,7 +170,7 @@ fun SalesHistoryScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.ShoppingCart,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.ui_element_desc),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(36.dp)
                         )

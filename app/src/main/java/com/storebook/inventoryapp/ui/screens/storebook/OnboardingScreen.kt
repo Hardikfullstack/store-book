@@ -130,7 +130,7 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                 ) {
                     Icon(
                         imageVector = step.icon,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.ui_element_desc),
                         tint = Color.White,
                         modifier = Modifier.size(80.dp),
                     )
@@ -231,7 +231,7 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.ui_element_desc),
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(18.dp),
                         )

@@ -195,7 +195,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onPrimary, contentColor = MaterialTheme.colorScheme.primary),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(stringResource(id = R.string.btn_add), fontWeight = FontWeight.Bold)
                     }
@@ -233,7 +233,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                             ) {
                                  Icon(
                                     painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_rupee),
-                                    contentDescription = null,
+                                    contentDescription = stringResource(R.string.ui_element_desc),
                                     tint = Color.Unspecified,
                                     modifier = Modifier.size(28.dp)
                                 )
@@ -281,7 +281,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                     onValueChange = { searchQ = it },
                     placeholder = { Text(stringResource(id = R.string.udh_search_hint)) },
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.ui_element_desc)) },
                     trailingIcon = {
                         if (searchQ.isNotEmpty()) {
                             IconButton(onClick = { searchQ = "" }) {
@@ -330,7 +330,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Book,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.ui_element_desc),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(50.dp)
                             )
@@ -358,7 +358,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                             )
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.ui_element_desc),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(24.dp).rotate(45f)
                             )
@@ -377,7 +377,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Search,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.ui_element_desc),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(36.dp)
                             )
@@ -416,7 +416,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                         modifier =
                                             Modifier
                                                 .width(120.dp)
-                                                .clickable {
+                                                .clickable(onClickLabel = "Action") {
                                                     selectedCustomer = bal
                                                     fetchLedger(bal.customerName)
                                                     showCustomerLedgerSheet = true
@@ -555,7 +555,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                 ) {
                                     when {
                                         offsetX > 0 -> {
-                                            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
+                                            Icon(Icons.Default.Check, contentDescription = stringResource(R.string.ui_element_desc), tint = MaterialTheme.colorScheme.onPrimary)
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Text(
                                                 stringResource(id = R.string.udh_mark_paid),
@@ -572,7 +572,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Icon(
                                                 Icons.AutoMirrored.Filled.Send,
-                                                contentDescription = null,
+                                                contentDescription = stringResource(R.string.ui_element_desc),
                                                 tint = MaterialTheme.colorScheme.onTertiary,
                                             )
                                         }
@@ -685,7 +685,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                         .size(40.dp)
                                         .clip(CircleShape)
                                         .background(WhatsAppGreen.copy(alpha = 0.12f))
-                                        .clickable {
+                                        .clickable(onClickLabel = "Action") {
                                             val template =
                                                 if (viewModel.businessName.isNotBlank() && viewModel.businessName != "StoreBook Kirana") {
                                                     context.getString(
@@ -741,7 +741,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                             ) {
                                 Icon(
                                     Icons.Default.Share,
-                                    contentDescription = null,
+                                    contentDescription = stringResource(R.string.ui_element_desc),
                                     tint = WhatsAppGreen,
                                     modifier = Modifier.size(20.dp),
                                 )
@@ -1100,7 +1100,7 @@ fun UdhaarCustomerCard(
     onClick: () -> Unit,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Action") { onClick() },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),

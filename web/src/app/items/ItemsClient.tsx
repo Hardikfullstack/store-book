@@ -263,7 +263,7 @@ export default function ItemsClient({
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search size={16} className="text-gray-400" />
             </div>
-            <input
+            <input aria-label="text"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -447,12 +447,12 @@ export default function ItemsClient({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium dark:text-gray-300">Name</label>
-                <input required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                <input aria-label="text" required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Category</label>
-                  <input type="text" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                  <input aria-label="text" type="text" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Unit</label>
@@ -473,18 +473,18 @@ export default function ItemsClient({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Quantity</label>
-                  <input required type="number" step="any" value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: parseFloat(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                  <input aria-label="number" required type="number" step="any" value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: parseFloat(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Low Stock Alert</label>
-                  <input required type="number" step="any" value={formData.low_stock_threshold} onChange={e => setFormData({ ...formData, low_stock_threshold: parseFloat(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                  <input aria-label="number" required type="number" step="any" value={formData.low_stock_threshold} onChange={e => setFormData({ ...formData, low_stock_threshold: parseFloat(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {userRole !== 'staff' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Buy Price (₹)</label>
-                    <input
+                    <input aria-label="number"
                       type="number"
                       step="0.01"
                       required
@@ -497,7 +497,7 @@ export default function ItemsClient({
                 )}
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Sell Price</label>
-                  <input
+                  <input aria-label="number"
                     required
                     type="number"
                     step="any"
@@ -524,7 +524,7 @@ export default function ItemsClient({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium dark:text-gray-300">HSN/SAC Code</label>
-                      <input
+                      <input aria-label="text"
                         type="text"
                         value={formData.hsn_code}
                         onChange={(e) => setFormData({ ...formData, hsn_code: e.target.value })}
@@ -533,7 +533,7 @@ export default function ItemsClient({
                     </div>
                     <div>
                       <label className="block text-sm font-medium dark:text-gray-300">Tax Rate (%)</label>
-                      <input
+                      <input aria-label="number"
                         type="number"
                         step="any"
                         value={formData.tax_rate}
@@ -550,7 +550,7 @@ export default function ItemsClient({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium dark:text-gray-300">Batch/Lot Number</label>
-                      <input
+                      <input aria-label="text"
                         type="text"
                         value={formData.batch_lot_number}
                         onChange={(e) =>
@@ -561,7 +561,7 @@ export default function ItemsClient({
                     </div>
                     <div>
                       <label className="block text-sm font-medium dark:text-gray-300">Expiry Date</label>
-                      <input
+                      <input aria-label="date"
                         type="date"
                         value={formData.expiry_date}
                         onChange={(e) =>
