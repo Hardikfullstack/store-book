@@ -1,10 +1,10 @@
-import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Edit2, Loader2, ArrowDownCircle } from 'lucide-react';
 import { fetchMoreData } from '@/app/actions';
 import ExportButtons from '@/app/ExportButtons';
+import { sanitizeInput } from '@/lib/sanitize';
 import { dataConnect } from '@/lib/firebase';
 import { getActiveItems, syncItem, softDeleteItem, getItemsCount } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
