@@ -135,7 +135,7 @@ export interface GetActiveSalesData {
 
 export interface GetActiveSalesVariables {
   storeId: string;
-  type: string;
+  type?: string;
   limit?: number | null;
   offset?: number | null;
 }

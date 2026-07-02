@@ -14,7 +14,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
     let isMounted = true;
     const fetchSales = async () => {
       try {
-        const res = await getActiveSales(dataConnect, { storeId, type: 'SALE' });
+        const res = await getActiveSales(dataConnect, { storeId });
         if (isMounted) setSales(res.data.sales);
       } catch (err) {
         console.error(err);

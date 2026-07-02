@@ -118,7 +118,7 @@ query SyncExpenses($storeId: String!, $lastSync: Float!) @auth(level: USER) {
   }
 }
 
-query GetActiveSales($storeId: String!, $type: String!, $limit: Int, $offset: Int) @auth(level: USER) {
+query GetActiveSales($storeId: String!, $type: String, $limit: Int, $offset: Int) @auth(level: USER) {
   sales(where: { storeId: { eq: $storeId }, type: { eq: $type }, isDeleted: { eq: false } }, limit: $limit, offset: $offset, orderBy: { updatedAt: DESC }) {
     id
     timestamp
