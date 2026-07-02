@@ -5,7 +5,7 @@ import { Plus, Search, Tag, Trash2, Loader2, ArrowDownCircle } from 'lucide-reac
 import { fetchMoreData } from '@/app/actions';
 import { dataConnect } from '@/lib/firebase';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveExpenses, syncExpense, softDeleteExpense } from '@/dataconnect';
+import { getActiveExpenses, syncExpense, softDeleteExpense , getExpenseEntriesCount } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import Pagination from '@/app/components/Pagination';
 

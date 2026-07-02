@@ -7,6 +7,214 @@ const connectorConfig = {
 };
 exports.connectorConfig = connectorConfig;
 
+exports.syncItemsRef = function syncItemsRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SyncItems', inputVars);
+}
+exports.syncItems = function syncItems(dcOrVars, vars) {
+  return executeQuery(syncItemsRef(dcOrVars, vars));
+};
+exports.syncSalesRef = function syncSalesRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SyncSales', inputVars);
+}
+exports.syncSales = function syncSales(dcOrVars, vars) {
+  return executeQuery(syncSalesRef(dcOrVars, vars));
+};
+exports.syncSaleItemsRef = function syncSaleItemsRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SyncSaleItems', inputVars);
+}
+exports.syncSaleItems = function syncSaleItems(dcOrVars, vars) {
+  return executeQuery(syncSaleItemsRef(dcOrVars, vars));
+};
+exports.getActiveItemsRef = function getActiveItemsRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetActiveItems', inputVars);
+}
+exports.getActiveItems = function getActiveItems(dcOrVars, vars) {
+  return executeQuery(getActiveItemsRef(dcOrVars, vars));
+};
+exports.syncUdhaarsRef = function syncUdhaarsRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SyncUdhaars', inputVars);
+}
+exports.syncUdhaars = function syncUdhaars(dcOrVars, vars) {
+  return executeQuery(syncUdhaarsRef(dcOrVars, vars));
+};
+exports.syncExpensesRef = function syncExpensesRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SyncExpenses', inputVars);
+}
+exports.syncExpenses = function syncExpenses(dcOrVars, vars) {
+  return executeQuery(syncExpensesRef(dcOrVars, vars));
+};
+exports.getActiveSalesRef = function getActiveSalesRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetActiveSales', inputVars);
+}
+exports.getActiveSales = function getActiveSales(dcOrVars, vars) {
+  return executeQuery(getActiveSalesRef(dcOrVars, vars));
+};
+exports.getActiveSaleItemsRef = function getActiveSaleItemsRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetActiveSaleItems', inputVars);
+}
+exports.getActiveSaleItems = function getActiveSaleItems(dcOrVars, vars) {
+  return executeQuery(getActiveSaleItemsRef(dcOrVars, vars));
+};
+exports.getActiveUdhaarsRef = function getActiveUdhaarsRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetActiveUdhaars', inputVars);
+}
+exports.getActiveUdhaars = function getActiveUdhaars(dcOrVars, vars) {
+  return executeQuery(getActiveUdhaarsRef(dcOrVars, vars));
+};
+exports.getActiveExpensesRef = function getActiveExpensesRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetActiveExpenses', inputVars);
+}
+exports.getActiveExpenses = function getActiveExpenses(dcOrVars, vars) {
+  return executeQuery(getActiveExpensesRef(dcOrVars, vars));
+};
+exports.getActiveSuppliersRef = function getActiveSuppliersRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetActiveSuppliers', inputVars);
+}
+exports.getActiveSuppliers = function getActiveSuppliers(dcOrVars, vars) {
+  return executeQuery(getActiveSuppliersRef(dcOrVars, vars));
+};
+exports.getUserRef = function getUserRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetUser', inputVars);
+}
+exports.getUser = function getUser(dcOrVars, vars) {
+  return executeQuery(getUserRef(dcOrVars, vars));
+};
+exports.getStoresPaginatedRef = function getStoresPaginatedRef(dc) {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetStoresPaginated');
+}
+exports.getStoresPaginated = function getStoresPaginated(dc) {
+  return executeQuery(getStoresPaginatedRef(dc));
+};
+exports.getUsersPaginatedRef = function getUsersPaginatedRef(dc) {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetUsersPaginated');
+}
+exports.getUsersPaginated = function getUsersPaginated(dc) {
+  return executeQuery(getUsersPaginatedRef(dc));
+};
+exports.getGlobalSettingsRef = function getGlobalSettingsRef(dc) {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetGlobalSettings');
+}
+exports.getGlobalSettings = function getGlobalSettings(dc) {
+  return executeQuery(getGlobalSettingsRef(dc));
+};
+exports.getAdminAuditLogsRef = function getAdminAuditLogsRef(dc) {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetAdminAuditLogs');
+}
+exports.getAdminAuditLogs = function getAdminAuditLogs(dc) {
+  return executeQuery(getAdminAuditLogsRef(dc));
+};
+exports.getAnnouncementsRef = function getAnnouncementsRef(dc) {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetAnnouncements');
+}
+exports.getAnnouncements = function getAnnouncements(dc) {
+  return executeQuery(getAnnouncementsRef(dc));
+};
+exports.getPromoCodesRef = function getPromoCodesRef(dc) {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetPromoCodes');
+}
+exports.getPromoCodes = function getPromoCodes(dc) {
+  return executeQuery(getPromoCodesRef(dc));
+};
+exports.syncSuppliersRef = function syncSuppliersRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SyncSuppliers', inputVars);
+}
+exports.syncSuppliers = function syncSuppliers(dcOrVars, vars) {
+  return executeQuery(syncSuppliersRef(dcOrVars, vars));
+};
+exports.syncPurchasesRef = function syncPurchasesRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SyncPurchases', inputVars);
+}
+exports.syncPurchases = function syncPurchases(dcOrVars, vars) {
+  return executeQuery(syncPurchasesRef(dcOrVars, vars));
+};
+exports.syncPurchaseItemsRef = function syncPurchaseItemsRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SyncPurchaseItems', inputVars);
+}
+exports.syncPurchaseItems = function syncPurchaseItems(dcOrVars, vars) {
+  return executeQuery(syncPurchaseItemsRef(dcOrVars, vars));
+};
+exports.syncItemBatchesRef = function syncItemBatchesRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SyncItemBatches', inputVars);
+}
+exports.syncItemBatches = function syncItemBatches(dcOrVars, vars) {
+  return executeQuery(syncItemBatchesRef(dcOrVars, vars));
+};
+exports.getItemsCountRef = function getItemsCountRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetItemsCount', inputVars);
+}
+exports.getItemsCount = function getItemsCount(dcOrVars, vars) {
+  return executeQuery(getItemsCountRef(dcOrVars, vars));
+};
+exports.getSalesCountRef = function getSalesCountRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetSalesCount', inputVars);
+}
+exports.getSalesCount = function getSalesCount(dcOrVars, vars) {
+  return executeQuery(getSalesCountRef(dcOrVars, vars));
+};
+exports.getUdhaarEntriesCountRef = function getUdhaarEntriesCountRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetUdhaarEntriesCount', inputVars);
+}
+exports.getUdhaarEntriesCount = function getUdhaarEntriesCount(dcOrVars, vars) {
+  return executeQuery(getUdhaarEntriesCountRef(dcOrVars, vars));
+};
+exports.getExpenseEntriesCountRef = function getExpenseEntriesCountRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetExpenseEntriesCount', inputVars);
+}
+exports.getExpenseEntriesCount = function getExpenseEntriesCount(dcOrVars, vars) {
+  return executeQuery(getExpenseEntriesCountRef(dcOrVars, vars));
+};
 exports.syncItemRef = function syncItemRef(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -214,188 +422,4 @@ exports.syncItemBatchRef = function syncItemBatchRef(dcOrVars, vars) {
 }
 exports.syncItemBatch = function syncItemBatch(dcOrVars, vars) {
   return executeMutation(syncItemBatchRef(dcOrVars, vars));
-};
-exports.syncItemsRef = function syncItemsRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'SyncItems', inputVars);
-}
-exports.syncItems = function syncItems(dcOrVars, vars) {
-  return executeQuery(syncItemsRef(dcOrVars, vars));
-};
-exports.syncSalesRef = function syncSalesRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'SyncSales', inputVars);
-}
-exports.syncSales = function syncSales(dcOrVars, vars) {
-  return executeQuery(syncSalesRef(dcOrVars, vars));
-};
-exports.syncSaleItemsRef = function syncSaleItemsRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'SyncSaleItems', inputVars);
-}
-exports.syncSaleItems = function syncSaleItems(dcOrVars, vars) {
-  return executeQuery(syncSaleItemsRef(dcOrVars, vars));
-};
-exports.getActiveItemsRef = function getActiveItemsRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetActiveItems', inputVars);
-}
-exports.getActiveItems = function getActiveItems(dcOrVars, vars) {
-  return executeQuery(getActiveItemsRef(dcOrVars, vars));
-};
-exports.getItemsCountRef = function getItemsCountRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetItemsCount', inputVars);
-}
-exports.getItemsCount = function getItemsCount(dcOrVars, vars) {
-  return executeQuery(getItemsCountRef(dcOrVars, vars));
-};
-exports.syncUdhaarsRef = function syncUdhaarsRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'SyncUdhaars', inputVars);
-}
-exports.syncUdhaars = function syncUdhaars(dcOrVars, vars) {
-  return executeQuery(syncUdhaarsRef(dcOrVars, vars));
-};
-exports.syncExpensesRef = function syncExpensesRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'SyncExpenses', inputVars);
-}
-exports.syncExpenses = function syncExpenses(dcOrVars, vars) {
-  return executeQuery(syncExpensesRef(dcOrVars, vars));
-};
-exports.getActiveSalesRef = function getActiveSalesRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetActiveSales', inputVars);
-}
-exports.getActiveSales = function getActiveSales(dcOrVars, vars) {
-  return executeQuery(getActiveSalesRef(dcOrVars, vars));
-};
-exports.getActiveSaleItemsRef = function getActiveSaleItemsRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetActiveSaleItems', inputVars);
-}
-exports.getActiveSaleItems = function getActiveSaleItems(dcOrVars, vars) {
-  return executeQuery(getActiveSaleItemsRef(dcOrVars, vars));
-};
-exports.getActiveUdhaarsRef = function getActiveUdhaarsRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetActiveUdhaars', inputVars);
-}
-exports.getActiveUdhaars = function getActiveUdhaars(dcOrVars, vars) {
-  return executeQuery(getActiveUdhaarsRef(dcOrVars, vars));
-};
-exports.getActiveExpensesRef = function getActiveExpensesRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetActiveExpenses', inputVars);
-}
-exports.getActiveExpenses = function getActiveExpenses(dcOrVars, vars) {
-  return executeQuery(getActiveExpensesRef(dcOrVars, vars));
-};
-exports.getActiveSuppliersRef = function getActiveSuppliersRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetActiveSuppliers', inputVars);
-}
-exports.getActiveSuppliers = function getActiveSuppliers(dcOrVars, vars) {
-  return executeQuery(getActiveSuppliersRef(dcOrVars, vars));
-};
-exports.getUserRef = function getUserRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetUser', inputVars);
-}
-exports.getUser = function getUser(dcOrVars, vars) {
-  return executeQuery(getUserRef(dcOrVars, vars));
-};
-exports.getStoresPaginatedRef = function getStoresPaginatedRef(dc) {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetStoresPaginated');
-}
-exports.getStoresPaginated = function getStoresPaginated(dc) {
-  return executeQuery(getStoresPaginatedRef(dc));
-};
-exports.getUsersPaginatedRef = function getUsersPaginatedRef(dc) {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetUsersPaginated');
-}
-exports.getUsersPaginated = function getUsersPaginated(dc) {
-  return executeQuery(getUsersPaginatedRef(dc));
-};
-exports.getGlobalSettingsRef = function getGlobalSettingsRef(dc) {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetGlobalSettings');
-}
-exports.getGlobalSettings = function getGlobalSettings(dc) {
-  return executeQuery(getGlobalSettingsRef(dc));
-};
-exports.getAdminAuditLogsRef = function getAdminAuditLogsRef(dc) {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetAdminAuditLogs');
-}
-exports.getAdminAuditLogs = function getAdminAuditLogs(dc) {
-  return executeQuery(getAdminAuditLogsRef(dc));
-};
-exports.getAnnouncementsRef = function getAnnouncementsRef(dc) {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetAnnouncements');
-}
-exports.getAnnouncements = function getAnnouncements(dc) {
-  return executeQuery(getAnnouncementsRef(dc));
-};
-exports.getPromoCodesRef = function getPromoCodesRef(dc) {
-  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetPromoCodes');
-}
-exports.getPromoCodes = function getPromoCodes(dc) {
-  return executeQuery(getPromoCodesRef(dc));
-};
-exports.syncSuppliersRef = function syncSuppliersRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'SyncSuppliers', inputVars);
-}
-exports.syncSuppliers = function syncSuppliers(dcOrVars, vars) {
-  return executeQuery(syncSuppliersRef(dcOrVars, vars));
-};
-exports.syncPurchasesRef = function syncPurchasesRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'SyncPurchases', inputVars);
-}
-exports.syncPurchases = function syncPurchases(dcOrVars, vars) {
-  return executeQuery(syncPurchasesRef(dcOrVars, vars));
-};
-exports.syncPurchaseItemsRef = function syncPurchaseItemsRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'SyncPurchaseItems', inputVars);
-}
-exports.syncPurchaseItems = function syncPurchaseItems(dcOrVars, vars) {
-  return executeQuery(syncPurchaseItemsRef(dcOrVars, vars));
-};
-exports.syncItemBatchesRef = function syncItemBatchesRef(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'SyncItemBatches', inputVars);
-}
-exports.syncItemBatches = function syncItemBatches(dcOrVars, vars) {
-  return executeQuery(syncItemBatchesRef(dcOrVars, vars));
 };

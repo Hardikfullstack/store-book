@@ -7,7 +7,6 @@
   - [*SyncSales*](#syncsales)
   - [*SyncSaleItems*](#syncsaleitems)
   - [*GetActiveItems*](#getactiveitems)
-  - [*GetItemsCount*](#getitemscount)
   - [*SyncUdhaars*](#syncudhaars)
   - [*SyncExpenses*](#syncexpenses)
   - [*GetActiveSales*](#getactivesales)
@@ -26,6 +25,10 @@
   - [*SyncPurchases*](#syncpurchases)
   - [*SyncPurchaseItems*](#syncpurchaseitems)
   - [*SyncItemBatches*](#syncitembatches)
+  - [*GetItemsCount*](#getitemscount)
+  - [*GetSalesCount*](#getsalescount)
+  - [*GetUdhaarEntriesCount*](#getudhaarentriescount)
+  - [*GetExpenseEntriesCount*](#getexpenseentriescount)
 - [**Mutations**](#mutations)
   - [*SyncItem*](#syncitem)
   - [*SyncSale*](#syncsale)
@@ -548,102 +551,6 @@ executeQuery(ref).then((response) => {
 });
 ```
 
-## GetItemsCount
-You can execute the `GetItemsCount` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
-```javascript
-getItemsCount(vars: GetItemsCountVariables): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
-
-getItemsCountRef(vars: GetItemsCountVariables): QueryRef<GetItemsCountData, GetItemsCountVariables>;
-```
-You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
-```javascript
-getItemsCount(dc: DataConnect, vars: GetItemsCountVariables): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
-
-getItemsCountRef(dc: DataConnect, vars: GetItemsCountVariables): QueryRef<GetItemsCountData, GetItemsCountVariables>;
-```
-
-### Variables
-The `GetItemsCount` query requires an argument of type `GetItemsCountVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
-
-```javascript
-export interface GetItemsCountVariables {
-  storeId: string;
-}
-```
-### Return Type
-Recall that executing the `GetItemsCount` query returns a `QueryPromise` that resolves to an object with a `data` property.
-
-The `data` property is an object of type `GetItemsCountData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
-```javascript
-export interface GetItemsCountData {
-  items: ({
-    id: string;
-  } & Item_Key)[];
-}
-```
-### Using `GetItemsCount`'s action shortcut function
-
-```javascript
-import { getDataConnect, DataConnect } from 'firebase/data-connect';
-import { connectorConfig, getItemsCount, GetItemsCountVariables } from '@storebook/dataconnect';
-
-// The `GetItemsCount` query requires an argument of type `GetItemsCountVariables`:
-const getItemsCountVars: GetItemsCountVariables = {
-  storeId: ..., 
-};
-
-// Call the `getItemsCount()` function to execute the query.
-// You can use the `await` keyword to wait for the promise to resolve.
-const { data } = await getItemsCount(getItemsCountVars);
-// Variables can be defined inline as well.
-const { data } = await getItemsCount({ storeId: ..., });
-
-// You can also pass in a `DataConnect` instance to the action shortcut function.
-const dataConnect = getDataConnect(connectorConfig);
-const { data } = await getItemsCount(dataConnect, getItemsCountVars);
-
-console.log(data.items);
-
-// Or, you can use the `Promise` API.
-getItemsCount(getItemsCountVars).then((response) => {
-  const data = response.data;
-  console.log(data.items);
-});
-```
-
-### Using `GetItemsCount`'s `QueryRef` function
-
-```javascript
-import { getDataConnect, DataConnect, executeQuery } from 'firebase/data-connect';
-import { connectorConfig, getItemsCountRef, GetItemsCountVariables } from '@storebook/dataconnect';
-
-// The `GetItemsCount` query requires an argument of type `GetItemsCountVariables`:
-const getItemsCountVars: GetItemsCountVariables = {
-  storeId: ..., 
-};
-
-// Call the `getItemsCountRef()` function to get a reference to the query.
-const ref = getItemsCountRef(getItemsCountVars);
-// Variables can be defined inline as well.
-const ref = getItemsCountRef({ storeId: ..., });
-
-// You can also pass in a `DataConnect` instance to the `QueryRef` function.
-const dataConnect = getDataConnect(connectorConfig);
-const ref = getItemsCountRef(dataConnect, getItemsCountVars);
-
-// Call `executeQuery()` on the reference to execute the query.
-// You can use the `await` keyword to wait for the promise to resolve.
-const { data } = await executeQuery(ref);
-
-console.log(data.items);
-
-// Or, you can use the `Promise` API.
-executeQuery(ref).then((response) => {
-  const data = response.data;
-  console.log(data.items);
-});
-```
-
 ## SyncUdhaars
 You can execute the `SyncUdhaars` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
 ```javascript
@@ -879,6 +786,9 @@ The `GetActiveSales` query requires an argument of type `GetActiveSalesVariables
 ```javascript
 export interface GetActiveSalesVariables {
   storeId: string;
+  type?: string | null;
+  limit?: number | null;
+  offset?: number | null;
 }
 ```
 ### Return Type
@@ -908,13 +818,16 @@ import { connectorConfig, getActiveSales, GetActiveSalesVariables } from '@store
 // The `GetActiveSales` query requires an argument of type `GetActiveSalesVariables`:
 const getActiveSalesVars: GetActiveSalesVariables = {
   storeId: ..., 
+  type: ..., // optional
+  limit: ..., // optional
+  offset: ..., // optional
 };
 
 // Call the `getActiveSales()` function to execute the query.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await getActiveSales(getActiveSalesVars);
 // Variables can be defined inline as well.
-const { data } = await getActiveSales({ storeId: ..., });
+const { data } = await getActiveSales({ storeId: ..., type: ..., limit: ..., offset: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -938,12 +851,15 @@ import { connectorConfig, getActiveSalesRef, GetActiveSalesVariables } from '@st
 // The `GetActiveSales` query requires an argument of type `GetActiveSalesVariables`:
 const getActiveSalesVars: GetActiveSalesVariables = {
   storeId: ..., 
+  type: ..., // optional
+  limit: ..., // optional
+  offset: ..., // optional
 };
 
 // Call the `getActiveSalesRef()` function to get a reference to the query.
 const ref = getActiveSalesRef(getActiveSalesVars);
 // Variables can be defined inline as well.
-const ref = getActiveSalesRef({ storeId: ..., });
+const ref = getActiveSalesRef({ storeId: ..., type: ..., limit: ..., offset: ..., });
 
 // You can also pass in a `DataConnect` instance to the `QueryRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1084,6 +1000,8 @@ The `GetActiveUdhaars` query requires an argument of type `GetActiveUdhaarsVaria
 ```javascript
 export interface GetActiveUdhaarsVariables {
   storeId: string;
+  limit?: number | null;
+  offset?: number | null;
 }
 ```
 ### Return Type
@@ -1112,13 +1030,15 @@ import { connectorConfig, getActiveUdhaars, GetActiveUdhaarsVariables } from '@s
 // The `GetActiveUdhaars` query requires an argument of type `GetActiveUdhaarsVariables`:
 const getActiveUdhaarsVars: GetActiveUdhaarsVariables = {
   storeId: ..., 
+  limit: ..., // optional
+  offset: ..., // optional
 };
 
 // Call the `getActiveUdhaars()` function to execute the query.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await getActiveUdhaars(getActiveUdhaarsVars);
 // Variables can be defined inline as well.
-const { data } = await getActiveUdhaars({ storeId: ..., });
+const { data } = await getActiveUdhaars({ storeId: ..., limit: ..., offset: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1142,12 +1062,14 @@ import { connectorConfig, getActiveUdhaarsRef, GetActiveUdhaarsVariables } from 
 // The `GetActiveUdhaars` query requires an argument of type `GetActiveUdhaarsVariables`:
 const getActiveUdhaarsVars: GetActiveUdhaarsVariables = {
   storeId: ..., 
+  limit: ..., // optional
+  offset: ..., // optional
 };
 
 // Call the `getActiveUdhaarsRef()` function to get a reference to the query.
 const ref = getActiveUdhaarsRef(getActiveUdhaarsVars);
 // Variables can be defined inline as well.
-const ref = getActiveUdhaarsRef({ storeId: ..., });
+const ref = getActiveUdhaarsRef({ storeId: ..., limit: ..., offset: ..., });
 
 // You can also pass in a `DataConnect` instance to the `QueryRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1186,6 +1108,8 @@ The `GetActiveExpenses` query requires an argument of type `GetActiveExpensesVar
 ```javascript
 export interface GetActiveExpensesVariables {
   storeId: string;
+  limit?: number | null;
+  offset?: number | null;
 }
 ```
 ### Return Type
@@ -1214,13 +1138,15 @@ import { connectorConfig, getActiveExpenses, GetActiveExpensesVariables } from '
 // The `GetActiveExpenses` query requires an argument of type `GetActiveExpensesVariables`:
 const getActiveExpensesVars: GetActiveExpensesVariables = {
   storeId: ..., 
+  limit: ..., // optional
+  offset: ..., // optional
 };
 
 // Call the `getActiveExpenses()` function to execute the query.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await getActiveExpenses(getActiveExpensesVars);
 // Variables can be defined inline as well.
-const { data } = await getActiveExpenses({ storeId: ..., });
+const { data } = await getActiveExpenses({ storeId: ..., limit: ..., offset: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1244,12 +1170,14 @@ import { connectorConfig, getActiveExpensesRef, GetActiveExpensesVariables } fro
 // The `GetActiveExpenses` query requires an argument of type `GetActiveExpensesVariables`:
 const getActiveExpensesVars: GetActiveExpensesVariables = {
   storeId: ..., 
+  limit: ..., // optional
+  offset: ..., // optional
 };
 
 // Call the `getActiveExpensesRef()` function to get a reference to the query.
 const ref = getActiveExpensesRef(getActiveExpensesVars);
 // Variables can be defined inline as well.
-const ref = getActiveExpensesRef({ storeId: ..., });
+const ref = getActiveExpensesRef({ storeId: ..., limit: ..., offset: ..., });
 
 // You can also pass in a `DataConnect` instance to the `QueryRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -2400,6 +2328,393 @@ console.log(data.itemBatches);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.itemBatches);
+});
+```
+
+## GetItemsCount
+You can execute the `GetItemsCount` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```javascript
+getItemsCount(vars: GetItemsCountVariables): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
+
+getItemsCountRef(vars: GetItemsCountVariables): QueryRef<GetItemsCountData, GetItemsCountVariables>;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```javascript
+getItemsCount(dc: DataConnect, vars: GetItemsCountVariables): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
+
+getItemsCountRef(dc: DataConnect, vars: GetItemsCountVariables): QueryRef<GetItemsCountData, GetItemsCountVariables>;
+```
+
+### Variables
+The `GetItemsCount` query requires an argument of type `GetItemsCountVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```javascript
+export interface GetItemsCountVariables {
+  storeId: string;
+}
+```
+### Return Type
+Recall that executing the `GetItemsCount` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetItemsCountData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```javascript
+export interface GetItemsCountData {
+  items: ({
+    id: string;
+  } & Item_Key)[];
+}
+```
+### Using `GetItemsCount`'s action shortcut function
+
+```javascript
+import { getDataConnect, DataConnect } from 'firebase/data-connect';
+import { connectorConfig, getItemsCount, GetItemsCountVariables } from '@storebook/dataconnect';
+
+// The `GetItemsCount` query requires an argument of type `GetItemsCountVariables`:
+const getItemsCountVars: GetItemsCountVariables = {
+  storeId: ..., 
+};
+
+// Call the `getItemsCount()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getItemsCount(getItemsCountVars);
+// Variables can be defined inline as well.
+const { data } = await getItemsCount({ storeId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getItemsCount(dataConnect, getItemsCountVars);
+
+console.log(data.items);
+
+// Or, you can use the `Promise` API.
+getItemsCount(getItemsCountVars).then((response) => {
+  const data = response.data;
+  console.log(data.items);
+});
+```
+
+### Using `GetItemsCount`'s `QueryRef` function
+
+```javascript
+import { getDataConnect, DataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getItemsCountRef, GetItemsCountVariables } from '@storebook/dataconnect';
+
+// The `GetItemsCount` query requires an argument of type `GetItemsCountVariables`:
+const getItemsCountVars: GetItemsCountVariables = {
+  storeId: ..., 
+};
+
+// Call the `getItemsCountRef()` function to get a reference to the query.
+const ref = getItemsCountRef(getItemsCountVars);
+// Variables can be defined inline as well.
+const ref = getItemsCountRef({ storeId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getItemsCountRef(dataConnect, getItemsCountVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.items);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.items);
+});
+```
+
+## GetSalesCount
+You can execute the `GetSalesCount` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```javascript
+getSalesCount(vars: GetSalesCountVariables): QueryPromise<GetSalesCountData, GetSalesCountVariables>;
+
+getSalesCountRef(vars: GetSalesCountVariables): QueryRef<GetSalesCountData, GetSalesCountVariables>;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```javascript
+getSalesCount(dc: DataConnect, vars: GetSalesCountVariables): QueryPromise<GetSalesCountData, GetSalesCountVariables>;
+
+getSalesCountRef(dc: DataConnect, vars: GetSalesCountVariables): QueryRef<GetSalesCountData, GetSalesCountVariables>;
+```
+
+### Variables
+The `GetSalesCount` query requires an argument of type `GetSalesCountVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```javascript
+export interface GetSalesCountVariables {
+  storeId: string;
+  type?: string | null;
+}
+```
+### Return Type
+Recall that executing the `GetSalesCount` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetSalesCountData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```javascript
+export interface GetSalesCountData {
+  sales: ({
+    id: string;
+  } & Sale_Key)[];
+}
+```
+### Using `GetSalesCount`'s action shortcut function
+
+```javascript
+import { getDataConnect, DataConnect } from 'firebase/data-connect';
+import { connectorConfig, getSalesCount, GetSalesCountVariables } from '@storebook/dataconnect';
+
+// The `GetSalesCount` query requires an argument of type `GetSalesCountVariables`:
+const getSalesCountVars: GetSalesCountVariables = {
+  storeId: ..., 
+  type: ..., // optional
+};
+
+// Call the `getSalesCount()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getSalesCount(getSalesCountVars);
+// Variables can be defined inline as well.
+const { data } = await getSalesCount({ storeId: ..., type: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getSalesCount(dataConnect, getSalesCountVars);
+
+console.log(data.sales);
+
+// Or, you can use the `Promise` API.
+getSalesCount(getSalesCountVars).then((response) => {
+  const data = response.data;
+  console.log(data.sales);
+});
+```
+
+### Using `GetSalesCount`'s `QueryRef` function
+
+```javascript
+import { getDataConnect, DataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getSalesCountRef, GetSalesCountVariables } from '@storebook/dataconnect';
+
+// The `GetSalesCount` query requires an argument of type `GetSalesCountVariables`:
+const getSalesCountVars: GetSalesCountVariables = {
+  storeId: ..., 
+  type: ..., // optional
+};
+
+// Call the `getSalesCountRef()` function to get a reference to the query.
+const ref = getSalesCountRef(getSalesCountVars);
+// Variables can be defined inline as well.
+const ref = getSalesCountRef({ storeId: ..., type: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getSalesCountRef(dataConnect, getSalesCountVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.sales);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sales);
+});
+```
+
+## GetUdhaarEntriesCount
+You can execute the `GetUdhaarEntriesCount` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```javascript
+getUdhaarEntriesCount(vars: GetUdhaarEntriesCountVariables): QueryPromise<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
+
+getUdhaarEntriesCountRef(vars: GetUdhaarEntriesCountVariables): QueryRef<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```javascript
+getUdhaarEntriesCount(dc: DataConnect, vars: GetUdhaarEntriesCountVariables): QueryPromise<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
+
+getUdhaarEntriesCountRef(dc: DataConnect, vars: GetUdhaarEntriesCountVariables): QueryRef<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
+```
+
+### Variables
+The `GetUdhaarEntriesCount` query requires an argument of type `GetUdhaarEntriesCountVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```javascript
+export interface GetUdhaarEntriesCountVariables {
+  storeId: string;
+}
+```
+### Return Type
+Recall that executing the `GetUdhaarEntriesCount` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetUdhaarEntriesCountData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```javascript
+export interface GetUdhaarEntriesCountData {
+  udhaarEntries: ({
+    id: string;
+  } & UdhaarEntry_Key)[];
+}
+```
+### Using `GetUdhaarEntriesCount`'s action shortcut function
+
+```javascript
+import { getDataConnect, DataConnect } from 'firebase/data-connect';
+import { connectorConfig, getUdhaarEntriesCount, GetUdhaarEntriesCountVariables } from '@storebook/dataconnect';
+
+// The `GetUdhaarEntriesCount` query requires an argument of type `GetUdhaarEntriesCountVariables`:
+const getUdhaarEntriesCountVars: GetUdhaarEntriesCountVariables = {
+  storeId: ..., 
+};
+
+// Call the `getUdhaarEntriesCount()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getUdhaarEntriesCount(getUdhaarEntriesCountVars);
+// Variables can be defined inline as well.
+const { data } = await getUdhaarEntriesCount({ storeId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getUdhaarEntriesCount(dataConnect, getUdhaarEntriesCountVars);
+
+console.log(data.udhaarEntries);
+
+// Or, you can use the `Promise` API.
+getUdhaarEntriesCount(getUdhaarEntriesCountVars).then((response) => {
+  const data = response.data;
+  console.log(data.udhaarEntries);
+});
+```
+
+### Using `GetUdhaarEntriesCount`'s `QueryRef` function
+
+```javascript
+import { getDataConnect, DataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getUdhaarEntriesCountRef, GetUdhaarEntriesCountVariables } from '@storebook/dataconnect';
+
+// The `GetUdhaarEntriesCount` query requires an argument of type `GetUdhaarEntriesCountVariables`:
+const getUdhaarEntriesCountVars: GetUdhaarEntriesCountVariables = {
+  storeId: ..., 
+};
+
+// Call the `getUdhaarEntriesCountRef()` function to get a reference to the query.
+const ref = getUdhaarEntriesCountRef(getUdhaarEntriesCountVars);
+// Variables can be defined inline as well.
+const ref = getUdhaarEntriesCountRef({ storeId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getUdhaarEntriesCountRef(dataConnect, getUdhaarEntriesCountVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.udhaarEntries);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.udhaarEntries);
+});
+```
+
+## GetExpenseEntriesCount
+You can execute the `GetExpenseEntriesCount` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```javascript
+getExpenseEntriesCount(vars: GetExpenseEntriesCountVariables): QueryPromise<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+
+getExpenseEntriesCountRef(vars: GetExpenseEntriesCountVariables): QueryRef<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```javascript
+getExpenseEntriesCount(dc: DataConnect, vars: GetExpenseEntriesCountVariables): QueryPromise<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+
+getExpenseEntriesCountRef(dc: DataConnect, vars: GetExpenseEntriesCountVariables): QueryRef<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+```
+
+### Variables
+The `GetExpenseEntriesCount` query requires an argument of type `GetExpenseEntriesCountVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```javascript
+export interface GetExpenseEntriesCountVariables {
+  storeId: string;
+}
+```
+### Return Type
+Recall that executing the `GetExpenseEntriesCount` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetExpenseEntriesCountData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```javascript
+export interface GetExpenseEntriesCountData {
+  expenseEntries: ({
+    id: string;
+  } & ExpenseEntry_Key)[];
+}
+```
+### Using `GetExpenseEntriesCount`'s action shortcut function
+
+```javascript
+import { getDataConnect, DataConnect } from 'firebase/data-connect';
+import { connectorConfig, getExpenseEntriesCount, GetExpenseEntriesCountVariables } from '@storebook/dataconnect';
+
+// The `GetExpenseEntriesCount` query requires an argument of type `GetExpenseEntriesCountVariables`:
+const getExpenseEntriesCountVars: GetExpenseEntriesCountVariables = {
+  storeId: ..., 
+};
+
+// Call the `getExpenseEntriesCount()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getExpenseEntriesCount(getExpenseEntriesCountVars);
+// Variables can be defined inline as well.
+const { data } = await getExpenseEntriesCount({ storeId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getExpenseEntriesCount(dataConnect, getExpenseEntriesCountVars);
+
+console.log(data.expenseEntries);
+
+// Or, you can use the `Promise` API.
+getExpenseEntriesCount(getExpenseEntriesCountVars).then((response) => {
+  const data = response.data;
+  console.log(data.expenseEntries);
+});
+```
+
+### Using `GetExpenseEntriesCount`'s `QueryRef` function
+
+```javascript
+import { getDataConnect, DataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getExpenseEntriesCountRef, GetExpenseEntriesCountVariables } from '@storebook/dataconnect';
+
+// The `GetExpenseEntriesCount` query requires an argument of type `GetExpenseEntriesCountVariables`:
+const getExpenseEntriesCountVars: GetExpenseEntriesCountVariables = {
+  storeId: ..., 
+};
+
+// Call the `getExpenseEntriesCountRef()` function to get a reference to the query.
+const ref = getExpenseEntriesCountRef(getExpenseEntriesCountVars);
+// Variables can be defined inline as well.
+const ref = getExpenseEntriesCountRef({ storeId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getExpenseEntriesCountRef(dataConnect, getExpenseEntriesCountVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.expenseEntries);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.expenseEntries);
 });
 ```
 

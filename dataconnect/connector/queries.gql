@@ -82,9 +82,6 @@ query GetActiveItems($storeId: String!, $limit: Int, $offset: Int) @auth(level: 
     isDeleted
     updatedAt
   }
-  items_aggregate(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
-    _count
-  }
 }
 
 # Pull updated udhaar since last sync
@@ -129,9 +126,6 @@ query GetActiveSales($storeId: String!, $type: String, $limit: Int, $offset: Int
     notes
     updatedAt
   }
-  sales_aggregate(where: { storeId: { eq: $storeId }, isDeleted: { eq: false }, type: { eq: $type } }) {
-    _count
-  }
 }
 
 query GetActiveSaleItems($storeId: String!) @auth(level: USER) {
@@ -161,9 +155,6 @@ query GetActiveUdhaars($storeId: String!, $limit: Int, $offset: Int) @auth(level
     notes
     updatedAt
   }
-  udhaarEntries_aggregate(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
-    _count
-  }
 }
 
 query GetActiveExpenses($storeId: String!, $limit: Int, $offset: Int) @auth(level: USER) {
@@ -180,9 +171,6 @@ query GetActiveExpenses($storeId: String!, $limit: Int, $offset: Int) @auth(leve
     timestamp
     supplierName
     updatedAt
-  }
-  expenseEntries_aggregate(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
-    _count
   }
 }
 
@@ -342,5 +330,31 @@ query SyncItemBatches($storeId: String!, $lastSync: Float!) @auth(level: USER) {
     notes
     isDeleted
     updatedAt
+  }
+}
+
+
+# Lightweight queries for pagination counts
+query GetItemsCount($storeId: String!) @auth(level: USER) {
+  items(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    id
+  }
+}
+
+query GetSalesCount($storeId: String!, $type: String) @auth(level: USER) {
+  sales(where: { storeId: { eq: $storeId }, type: { eq: $type }, isDeleted: { eq: false } }) {
+    id
+  }
+}
+
+query GetUdhaarEntriesCount($storeId: String!) @auth(level: USER) {
+  udhaarEntries(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    id
+  }
+}
+
+query GetExpenseEntriesCount($storeId: String!) @auth(level: USER) {
+  expenseEntries(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    id
   }
 }

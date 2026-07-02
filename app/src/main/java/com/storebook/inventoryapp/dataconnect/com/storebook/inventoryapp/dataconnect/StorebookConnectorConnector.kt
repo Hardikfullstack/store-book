@@ -42,13 +42,19 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
   
     public val getAnnouncements: GetAnnouncementsQuery
   
+    public val getExpenseEntriesCount: GetExpenseEntriesCountQuery
+  
     public val getGlobalSettings: GetGlobalSettingsQuery
   
     public val getItemsCount: GetItemsCountQuery
   
     public val getPromoCodes: GetPromoCodesQuery
   
+    public val getSalesCount: GetSalesCountQuery
+  
     public val getStoresPaginated: GetStoresPaginatedQuery
+  
+    public val getUdhaarEntriesCount: GetUdhaarEntriesCountQuery
   
     public val getUser: GetUserQuery
   
@@ -203,6 +209,10 @@ private class StorebookConnectorConnectorImpl(
       GetAnnouncementsQueryImpl(this)
     }
   
+    override val getExpenseEntriesCount by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetExpenseEntriesCountQueryImpl(this)
+    }
+  
     override val getGlobalSettings by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetGlobalSettingsQueryImpl(this)
     }
@@ -215,8 +225,16 @@ private class StorebookConnectorConnectorImpl(
       GetPromoCodesQueryImpl(this)
     }
   
+    override val getSalesCount by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetSalesCountQueryImpl(this)
+    }
+  
     override val getStoresPaginated by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetStoresPaginatedQueryImpl(this)
+    }
+  
+    override val getUdhaarEntriesCount by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetUdhaarEntriesCountQueryImpl(this)
     }
   
     override val getUser by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -399,10 +417,13 @@ private class StorebookConnectorConnectorImpl(
         getActiveUdhaars,
         getAdminAuditLogs,
         getAnnouncements,
+        getExpenseEntriesCount,
         getGlobalSettings,
         getItemsCount,
         getPromoCodes,
+        getSalesCount,
         getStoresPaginated,
+        getUdhaarEntriesCount,
         getUser,
         getUsersPaginated,
         syncExpenses,
@@ -729,6 +750,21 @@ private class GetAnnouncementsQueryImpl(
   )
 
 
+private class GetExpenseEntriesCountQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetExpenseEntriesCountQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetExpenseEntriesCountQuery.Data,
+      GetExpenseEntriesCountQuery.Variables
+  >(
+    connector,
+    GetExpenseEntriesCountQuery.Companion.operationName,
+    GetExpenseEntriesCountQuery.Companion.dataDeserializer,
+    GetExpenseEntriesCountQuery.Companion.variablesSerializer,
+  )
+
+
 private class GetGlobalSettingsQueryImpl(
   connector: StorebookConnectorConnector
 ):
@@ -774,6 +810,21 @@ private class GetPromoCodesQueryImpl(
   )
 
 
+private class GetSalesCountQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetSalesCountQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetSalesCountQuery.Data,
+      GetSalesCountQuery.Variables
+  >(
+    connector,
+    GetSalesCountQuery.Companion.operationName,
+    GetSalesCountQuery.Companion.dataDeserializer,
+    GetSalesCountQuery.Companion.variablesSerializer,
+  )
+
+
 private class GetStoresPaginatedQueryImpl(
   connector: StorebookConnectorConnector
 ):
@@ -786,6 +837,21 @@ private class GetStoresPaginatedQueryImpl(
     GetStoresPaginatedQuery.Companion.operationName,
     GetStoresPaginatedQuery.Companion.dataDeserializer,
     GetStoresPaginatedQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetUdhaarEntriesCountQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetUdhaarEntriesCountQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetUdhaarEntriesCountQuery.Data,
+      GetUdhaarEntriesCountQuery.Variables
+  >(
+    connector,
+    GetUdhaarEntriesCountQuery.Companion.operationName,
+    GetUdhaarEntriesCountQuery.Companion.dataDeserializer,
+    GetUdhaarEntriesCountQuery.Companion.variablesSerializer,
   )
 
 

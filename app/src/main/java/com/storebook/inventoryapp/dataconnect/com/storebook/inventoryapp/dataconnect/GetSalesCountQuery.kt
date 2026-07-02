@@ -19,11 +19,11 @@ import kotlinx.coroutines.flow.filterNotNull as _flow_filterNotNull
 import kotlinx.coroutines.flow.map as _flow_map
 
 
-public interface GetActiveExpensesQuery :
+public interface GetSalesCountQuery :
     com.google.firebase.dataconnect.generated.GeneratedQuery<
       StorebookConnectorConnector,
-      GetActiveExpensesQuery.Data,
-      GetActiveExpensesQuery.Variables
+      GetSalesCountQuery.Data,
+      GetSalesCountQuery.Variables
     >
 {
   
@@ -32,10 +32,8 @@ public interface GetActiveExpensesQuery :
   
     val storeId:
     String,
-    val limit:
-    com.google.firebase.dataconnect.OptionalVariable<Int?>,
-    val offset:
-    com.google.firebase.dataconnect.OptionalVariable<Int?>
+    val type:
+    com.google.firebase.dataconnect.OptionalVariable<String?>
   ) {
     
     
@@ -45,8 +43,7 @@ public interface GetActiveExpensesQuery :
       @BuilderDsl
       public interface Builder {
         public var storeId: String
-        public var limit: Int?
-        public var offset: Int?
+        public var type: String?
         
       }
 
@@ -57,9 +54,7 @@ public interface GetActiveExpensesQuery :
           block_: Builder.() -> Unit
         ): Variables {
           var storeId= storeId
-            var limit: com.google.firebase.dataconnect.OptionalVariable<Int?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var offset: com.google.firebase.dataconnect.OptionalVariable<Int?> =
+            var type: com.google.firebase.dataconnect.OptionalVariable<String?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
             
 
@@ -68,19 +63,15 @@ public interface GetActiveExpensesQuery :
               get() = throw UnsupportedOperationException("getting builder values is not supported")
               set(value_) { storeId = value_ }
               
-            override var limit: Int?
+            override var type: String?
               get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { limit = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var offset: Int?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { offset = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              set(value_) { type = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
               
             
           }.apply(block_)
           .let {
             Variables(
-              storeId=storeId,limit=limit,offset=offset,
+              storeId=storeId,type=type,
             )
           }
         }
@@ -93,28 +84,16 @@ public interface GetActiveExpensesQuery :
     @kotlinx.serialization.Serializable
   public data class Data(
   
-    val expenseEntries:
-    List<ExpenseEntriesItem>
+    val sales:
+    List<SalesItem>
   ) {
     
       
         @kotlinx.serialization.Serializable
-  public data class ExpenseEntriesItem(
+  public data class SalesItem(
   
     val id:
-    String,
-    val type:
-    String,
-    val description:
-    String,
-    val amount:
-    Double,
-    val timestamp:
-    Double,
-    val supplierName:
-    String?,
-    val updatedAt:
-    Double
+    String
   ) {
     
     
@@ -126,7 +105,7 @@ public interface GetActiveExpensesQuery :
   
 
   public companion object {
-    public val operationName: String = "GetActiveExpenses"
+    public val operationName: String = "GetSalesCount"
 
     public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
       kotlinx.serialization.serializer()
@@ -136,19 +115,19 @@ public interface GetActiveExpensesQuery :
   }
 }
 
-public fun GetActiveExpensesQuery.ref(
+public fun GetSalesCountQuery.ref(
   
     storeId: String,
   
-    block_: GetActiveExpensesQuery.Variables.Builder.() -> Unit
+    block_: GetSalesCountQuery.Variables.Builder.() -> Unit
   
 ): com.google.firebase.dataconnect.QueryRef<
-    GetActiveExpensesQuery.Data,
-    GetActiveExpensesQuery.Variables
+    GetSalesCountQuery.Data,
+    GetSalesCountQuery.Variables
   > =
   ref(
     
-      GetActiveExpensesQuery.Variables.build(
+      GetSalesCountQuery.Variables.build(
         storeId=storeId,
   
     block_
@@ -156,15 +135,15 @@ public fun GetActiveExpensesQuery.ref(
     
   )
 
-public suspend fun GetActiveExpensesQuery.execute(
+public suspend fun GetSalesCountQuery.execute(
   
     storeId: String,
   
-    block_: GetActiveExpensesQuery.Variables.Builder.() -> Unit
+    block_: GetSalesCountQuery.Variables.Builder.() -> Unit
   
   ): com.google.firebase.dataconnect.QueryResult<
-    GetActiveExpensesQuery.Data,
-    GetActiveExpensesQuery.Variables
+    GetSalesCountQuery.Data,
+    GetSalesCountQuery.Variables
   > =
   ref(
     
@@ -175,13 +154,13 @@ public suspend fun GetActiveExpensesQuery.execute(
   ).execute()
 
 
-  public fun GetActiveExpensesQuery.flow(
+  public fun GetSalesCountQuery.flow(
     
       storeId: String,
   
-    block_: GetActiveExpensesQuery.Variables.Builder.() -> Unit
+    block_: GetSalesCountQuery.Variables.Builder.() -> Unit
     
-    ): kotlinx.coroutines.flow.Flow<GetActiveExpensesQuery.Data> =
+    ): kotlinx.coroutines.flow.Flow<GetSalesCountQuery.Data> =
     ref(
         
           storeId=storeId,

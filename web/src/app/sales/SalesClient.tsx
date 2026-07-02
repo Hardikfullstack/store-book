@@ -9,7 +9,7 @@ import autoTable from 'jspdf-autotable';
 import ExportButtons from '@/app/ExportButtons';
 import { dataConnect } from '@/lib/firebase';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveSales, syncSale, softDeleteSale } from '@/dataconnect';
+import { getActiveSales, syncSale, softDeleteSale , getSalesCount } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import SalesPOS from './SalesPOS';
 

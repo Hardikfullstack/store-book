@@ -6,7 +6,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { dataConnect } from '@/lib/firebase';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveSales, softDeleteSale } from '@/dataconnect';
+import { getActiveSales, softDeleteSale , getSalesCount } from '@/dataconnect';
 import Pagination from '@/app/components/Pagination';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import SalesPOS from '@/app/sales/SalesPOS';

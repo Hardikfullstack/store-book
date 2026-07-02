@@ -137,7 +137,7 @@ export interface GetActiveSalesData {
 
 export interface GetActiveSalesVariables {
   storeId: string;
-  type?: string;
+  type?: string | null;
   limit?: number | null;
   offset?: number | null;
 }
@@ -198,6 +198,16 @@ export interface GetAnnouncementsData {
   } & Announcement_Key)[];
 }
 
+export interface GetExpenseEntriesCountData {
+  expenseEntries: ({
+    id: string;
+  } & ExpenseEntry_Key)[];
+}
+
+export interface GetExpenseEntriesCountVariables {
+  storeId: string;
+}
+
 export interface GetGlobalSettingsData {
   globalSettings: ({
     id: string;
@@ -232,6 +242,17 @@ export interface GetPromoCodesData {
   } & PromoCode_Key)[];
 }
 
+export interface GetSalesCountData {
+  sales: ({
+    id: string;
+  } & Sale_Key)[];
+}
+
+export interface GetSalesCountVariables {
+  storeId: string;
+  type?: string | null;
+}
+
 export interface GetStoresPaginatedData {
   stores: ({
     id: string;
@@ -242,6 +263,16 @@ export interface GetStoresPaginatedData {
     subscriptionStatus?: string | null;
     subscriptionExpiresAt?: number | null;
   } & Store_Key)[];
+}
+
+export interface GetUdhaarEntriesCountData {
+  udhaarEntries: ({
+    id: string;
+  } & UdhaarEntry_Key)[];
+}
+
+export interface GetUdhaarEntriesCountVariables {
+  storeId: string;
 }
 
 export interface GetUserData {
@@ -831,6 +862,214 @@ export interface User_Key {
 }
 
 /* Allow users to create refs without passing in DataConnect */
+export function syncItemsRef(vars: SyncItemsVariables): QueryRef<SyncItemsData, SyncItemsVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncItemsRef(dc: DataConnect, vars: SyncItemsVariables): QueryRef<SyncItemsData, SyncItemsVariables>;
+
+export function syncItems(vars: SyncItemsVariables): QueryPromise<SyncItemsData, SyncItemsVariables>;
+export function syncItems(dc: DataConnect, vars: SyncItemsVariables): QueryPromise<SyncItemsData, SyncItemsVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function syncSalesRef(vars: SyncSalesVariables): QueryRef<SyncSalesData, SyncSalesVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncSalesRef(dc: DataConnect, vars: SyncSalesVariables): QueryRef<SyncSalesData, SyncSalesVariables>;
+
+export function syncSales(vars: SyncSalesVariables): QueryPromise<SyncSalesData, SyncSalesVariables>;
+export function syncSales(dc: DataConnect, vars: SyncSalesVariables): QueryPromise<SyncSalesData, SyncSalesVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function syncSaleItemsRef(vars: SyncSaleItemsVariables): QueryRef<SyncSaleItemsData, SyncSaleItemsVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncSaleItemsRef(dc: DataConnect, vars: SyncSaleItemsVariables): QueryRef<SyncSaleItemsData, SyncSaleItemsVariables>;
+
+export function syncSaleItems(vars: SyncSaleItemsVariables): QueryPromise<SyncSaleItemsData, SyncSaleItemsVariables>;
+export function syncSaleItems(dc: DataConnect, vars: SyncSaleItemsVariables): QueryPromise<SyncSaleItemsData, SyncSaleItemsVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getActiveItemsRef(vars: GetActiveItemsVariables): QueryRef<GetActiveItemsData, GetActiveItemsVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function getActiveItemsRef(dc: DataConnect, vars: GetActiveItemsVariables): QueryRef<GetActiveItemsData, GetActiveItemsVariables>;
+
+export function getActiveItems(vars: GetActiveItemsVariables): QueryPromise<GetActiveItemsData, GetActiveItemsVariables>;
+export function getActiveItems(dc: DataConnect, vars: GetActiveItemsVariables): QueryPromise<GetActiveItemsData, GetActiveItemsVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function syncUdhaarsRef(vars: SyncUdhaarsVariables): QueryRef<SyncUdhaarsData, SyncUdhaarsVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncUdhaarsRef(dc: DataConnect, vars: SyncUdhaarsVariables): QueryRef<SyncUdhaarsData, SyncUdhaarsVariables>;
+
+export function syncUdhaars(vars: SyncUdhaarsVariables): QueryPromise<SyncUdhaarsData, SyncUdhaarsVariables>;
+export function syncUdhaars(dc: DataConnect, vars: SyncUdhaarsVariables): QueryPromise<SyncUdhaarsData, SyncUdhaarsVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function syncExpensesRef(vars: SyncExpensesVariables): QueryRef<SyncExpensesData, SyncExpensesVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncExpensesRef(dc: DataConnect, vars: SyncExpensesVariables): QueryRef<SyncExpensesData, SyncExpensesVariables>;
+
+export function syncExpenses(vars: SyncExpensesVariables): QueryPromise<SyncExpensesData, SyncExpensesVariables>;
+export function syncExpenses(dc: DataConnect, vars: SyncExpensesVariables): QueryPromise<SyncExpensesData, SyncExpensesVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getActiveSalesRef(vars: GetActiveSalesVariables): QueryRef<GetActiveSalesData, GetActiveSalesVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function getActiveSalesRef(dc: DataConnect, vars: GetActiveSalesVariables): QueryRef<GetActiveSalesData, GetActiveSalesVariables>;
+
+export function getActiveSales(vars: GetActiveSalesVariables): QueryPromise<GetActiveSalesData, GetActiveSalesVariables>;
+export function getActiveSales(dc: DataConnect, vars: GetActiveSalesVariables): QueryPromise<GetActiveSalesData, GetActiveSalesVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getActiveSaleItemsRef(vars: GetActiveSaleItemsVariables): QueryRef<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function getActiveSaleItemsRef(dc: DataConnect, vars: GetActiveSaleItemsVariables): QueryRef<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
+
+export function getActiveSaleItems(vars: GetActiveSaleItemsVariables): QueryPromise<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
+export function getActiveSaleItems(dc: DataConnect, vars: GetActiveSaleItemsVariables): QueryPromise<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getActiveUdhaarsRef(vars: GetActiveUdhaarsVariables): QueryRef<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function getActiveUdhaarsRef(dc: DataConnect, vars: GetActiveUdhaarsVariables): QueryRef<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
+
+export function getActiveUdhaars(vars: GetActiveUdhaarsVariables): QueryPromise<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
+export function getActiveUdhaars(dc: DataConnect, vars: GetActiveUdhaarsVariables): QueryPromise<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getActiveExpensesRef(vars: GetActiveExpensesVariables): QueryRef<GetActiveExpensesData, GetActiveExpensesVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function getActiveExpensesRef(dc: DataConnect, vars: GetActiveExpensesVariables): QueryRef<GetActiveExpensesData, GetActiveExpensesVariables>;
+
+export function getActiveExpenses(vars: GetActiveExpensesVariables): QueryPromise<GetActiveExpensesData, GetActiveExpensesVariables>;
+export function getActiveExpenses(dc: DataConnect, vars: GetActiveExpensesVariables): QueryPromise<GetActiveExpensesData, GetActiveExpensesVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getActiveSuppliersRef(vars: GetActiveSuppliersVariables): QueryRef<GetActiveSuppliersData, GetActiveSuppliersVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function getActiveSuppliersRef(dc: DataConnect, vars: GetActiveSuppliersVariables): QueryRef<GetActiveSuppliersData, GetActiveSuppliersVariables>;
+
+export function getActiveSuppliers(vars: GetActiveSuppliersVariables): QueryPromise<GetActiveSuppliersData, GetActiveSuppliersVariables>;
+export function getActiveSuppliers(dc: DataConnect, vars: GetActiveSuppliersVariables): QueryPromise<GetActiveSuppliersData, GetActiveSuppliersVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getUserRef(vars: GetUserVariables): QueryRef<GetUserData, GetUserVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function getUserRef(dc: DataConnect, vars: GetUserVariables): QueryRef<GetUserData, GetUserVariables>;
+
+export function getUser(vars: GetUserVariables): QueryPromise<GetUserData, GetUserVariables>;
+export function getUser(dc: DataConnect, vars: GetUserVariables): QueryPromise<GetUserData, GetUserVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getStoresPaginatedRef(): QueryRef<GetStoresPaginatedData, undefined>;
+/* Allow users to pass in custom DataConnect instances */
+export function getStoresPaginatedRef(dc: DataConnect): QueryRef<GetStoresPaginatedData, undefined>;
+
+export function getStoresPaginated(): QueryPromise<GetStoresPaginatedData, undefined>;
+export function getStoresPaginated(dc: DataConnect): QueryPromise<GetStoresPaginatedData, undefined>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getUsersPaginatedRef(): QueryRef<GetUsersPaginatedData, undefined>;
+/* Allow users to pass in custom DataConnect instances */
+export function getUsersPaginatedRef(dc: DataConnect): QueryRef<GetUsersPaginatedData, undefined>;
+
+export function getUsersPaginated(): QueryPromise<GetUsersPaginatedData, undefined>;
+export function getUsersPaginated(dc: DataConnect): QueryPromise<GetUsersPaginatedData, undefined>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getGlobalSettingsRef(): QueryRef<GetGlobalSettingsData, undefined>;
+/* Allow users to pass in custom DataConnect instances */
+export function getGlobalSettingsRef(dc: DataConnect): QueryRef<GetGlobalSettingsData, undefined>;
+
+export function getGlobalSettings(): QueryPromise<GetGlobalSettingsData, undefined>;
+export function getGlobalSettings(dc: DataConnect): QueryPromise<GetGlobalSettingsData, undefined>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getAdminAuditLogsRef(): QueryRef<GetAdminAuditLogsData, undefined>;
+/* Allow users to pass in custom DataConnect instances */
+export function getAdminAuditLogsRef(dc: DataConnect): QueryRef<GetAdminAuditLogsData, undefined>;
+
+export function getAdminAuditLogs(): QueryPromise<GetAdminAuditLogsData, undefined>;
+export function getAdminAuditLogs(dc: DataConnect): QueryPromise<GetAdminAuditLogsData, undefined>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getAnnouncementsRef(): QueryRef<GetAnnouncementsData, undefined>;
+/* Allow users to pass in custom DataConnect instances */
+export function getAnnouncementsRef(dc: DataConnect): QueryRef<GetAnnouncementsData, undefined>;
+
+export function getAnnouncements(): QueryPromise<GetAnnouncementsData, undefined>;
+export function getAnnouncements(dc: DataConnect): QueryPromise<GetAnnouncementsData, undefined>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getPromoCodesRef(): QueryRef<GetPromoCodesData, undefined>;
+/* Allow users to pass in custom DataConnect instances */
+export function getPromoCodesRef(dc: DataConnect): QueryRef<GetPromoCodesData, undefined>;
+
+export function getPromoCodes(): QueryPromise<GetPromoCodesData, undefined>;
+export function getPromoCodes(dc: DataConnect): QueryPromise<GetPromoCodesData, undefined>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function syncSuppliersRef(vars: SyncSuppliersVariables): QueryRef<SyncSuppliersData, SyncSuppliersVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncSuppliersRef(dc: DataConnect, vars: SyncSuppliersVariables): QueryRef<SyncSuppliersData, SyncSuppliersVariables>;
+
+export function syncSuppliers(vars: SyncSuppliersVariables): QueryPromise<SyncSuppliersData, SyncSuppliersVariables>;
+export function syncSuppliers(dc: DataConnect, vars: SyncSuppliersVariables): QueryPromise<SyncSuppliersData, SyncSuppliersVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function syncPurchasesRef(vars: SyncPurchasesVariables): QueryRef<SyncPurchasesData, SyncPurchasesVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncPurchasesRef(dc: DataConnect, vars: SyncPurchasesVariables): QueryRef<SyncPurchasesData, SyncPurchasesVariables>;
+
+export function syncPurchases(vars: SyncPurchasesVariables): QueryPromise<SyncPurchasesData, SyncPurchasesVariables>;
+export function syncPurchases(dc: DataConnect, vars: SyncPurchasesVariables): QueryPromise<SyncPurchasesData, SyncPurchasesVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function syncPurchaseItemsRef(vars: SyncPurchaseItemsVariables): QueryRef<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncPurchaseItemsRef(dc: DataConnect, vars: SyncPurchaseItemsVariables): QueryRef<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+
+export function syncPurchaseItems(vars: SyncPurchaseItemsVariables): QueryPromise<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+export function syncPurchaseItems(dc: DataConnect, vars: SyncPurchaseItemsVariables): QueryPromise<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function syncItemBatchesRef(vars: SyncItemBatchesVariables): QueryRef<SyncItemBatchesData, SyncItemBatchesVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncItemBatchesRef(dc: DataConnect, vars: SyncItemBatchesVariables): QueryRef<SyncItemBatchesData, SyncItemBatchesVariables>;
+
+export function syncItemBatches(vars: SyncItemBatchesVariables): QueryPromise<SyncItemBatchesData, SyncItemBatchesVariables>;
+export function syncItemBatches(dc: DataConnect, vars: SyncItemBatchesVariables): QueryPromise<SyncItemBatchesData, SyncItemBatchesVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getItemsCountRef(vars: GetItemsCountVariables): QueryRef<GetItemsCountData, GetItemsCountVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function getItemsCountRef(dc: DataConnect, vars: GetItemsCountVariables): QueryRef<GetItemsCountData, GetItemsCountVariables>;
+
+export function getItemsCount(vars: GetItemsCountVariables): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
+export function getItemsCount(dc: DataConnect, vars: GetItemsCountVariables): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getSalesCountRef(vars: GetSalesCountVariables): QueryRef<GetSalesCountData, GetSalesCountVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function getSalesCountRef(dc: DataConnect, vars: GetSalesCountVariables): QueryRef<GetSalesCountData, GetSalesCountVariables>;
+
+export function getSalesCount(vars: GetSalesCountVariables): QueryPromise<GetSalesCountData, GetSalesCountVariables>;
+export function getSalesCount(dc: DataConnect, vars: GetSalesCountVariables): QueryPromise<GetSalesCountData, GetSalesCountVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getUdhaarEntriesCountRef(vars: GetUdhaarEntriesCountVariables): QueryRef<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function getUdhaarEntriesCountRef(dc: DataConnect, vars: GetUdhaarEntriesCountVariables): QueryRef<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
+
+export function getUdhaarEntriesCount(vars: GetUdhaarEntriesCountVariables): QueryPromise<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
+export function getUdhaarEntriesCount(dc: DataConnect, vars: GetUdhaarEntriesCountVariables): QueryPromise<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getExpenseEntriesCountRef(vars: GetExpenseEntriesCountVariables): QueryRef<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function getExpenseEntriesCountRef(dc: DataConnect, vars: GetExpenseEntriesCountVariables): QueryRef<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+
+export function getExpenseEntriesCount(vars: GetExpenseEntriesCountVariables): QueryPromise<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+export function getExpenseEntriesCount(dc: DataConnect, vars: GetExpenseEntriesCountVariables): QueryPromise<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
 export function syncItemRef(vars: SyncItemVariables): MutationRef<SyncItemData, SyncItemVariables>;
 /* Allow users to pass in custom DataConnect instances */
 export function syncItemRef(dc: DataConnect, vars: SyncItemVariables): MutationRef<SyncItemData, SyncItemVariables>;
@@ -1037,188 +1276,4 @@ export function syncItemBatchRef(dc: DataConnect, vars: SyncItemBatchVariables):
 
 export function syncItemBatch(vars: SyncItemBatchVariables): MutationPromise<SyncItemBatchData, SyncItemBatchVariables>;
 export function syncItemBatch(dc: DataConnect, vars: SyncItemBatchVariables): MutationPromise<SyncItemBatchData, SyncItemBatchVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function syncItemsRef(vars: SyncItemsVariables): QueryRef<SyncItemsData, SyncItemsVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncItemsRef(dc: DataConnect, vars: SyncItemsVariables): QueryRef<SyncItemsData, SyncItemsVariables>;
-
-export function syncItems(vars: SyncItemsVariables): QueryPromise<SyncItemsData, SyncItemsVariables>;
-export function syncItems(dc: DataConnect, vars: SyncItemsVariables): QueryPromise<SyncItemsData, SyncItemsVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function syncSalesRef(vars: SyncSalesVariables): QueryRef<SyncSalesData, SyncSalesVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncSalesRef(dc: DataConnect, vars: SyncSalesVariables): QueryRef<SyncSalesData, SyncSalesVariables>;
-
-export function syncSales(vars: SyncSalesVariables): QueryPromise<SyncSalesData, SyncSalesVariables>;
-export function syncSales(dc: DataConnect, vars: SyncSalesVariables): QueryPromise<SyncSalesData, SyncSalesVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function syncSaleItemsRef(vars: SyncSaleItemsVariables): QueryRef<SyncSaleItemsData, SyncSaleItemsVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncSaleItemsRef(dc: DataConnect, vars: SyncSaleItemsVariables): QueryRef<SyncSaleItemsData, SyncSaleItemsVariables>;
-
-export function syncSaleItems(vars: SyncSaleItemsVariables): QueryPromise<SyncSaleItemsData, SyncSaleItemsVariables>;
-export function syncSaleItems(dc: DataConnect, vars: SyncSaleItemsVariables): QueryPromise<SyncSaleItemsData, SyncSaleItemsVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function getActiveItemsRef(vars: GetActiveItemsVariables): QueryRef<GetActiveItemsData, GetActiveItemsVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getActiveItemsRef(dc: DataConnect, vars: GetActiveItemsVariables): QueryRef<GetActiveItemsData, GetActiveItemsVariables>;
-
-export function getActiveItems(vars: GetActiveItemsVariables): QueryPromise<GetActiveItemsData, GetActiveItemsVariables>;
-export function getActiveItems(dc: DataConnect, vars: GetActiveItemsVariables): QueryPromise<GetActiveItemsData, GetActiveItemsVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function getItemsCountRef(vars: GetItemsCountVariables): QueryRef<GetItemsCountData, GetItemsCountVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getItemsCountRef(dc: DataConnect, vars: GetItemsCountVariables): QueryRef<GetItemsCountData, GetItemsCountVariables>;
-
-export function getItemsCount(vars: GetItemsCountVariables): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
-export function getItemsCount(dc: DataConnect, vars: GetItemsCountVariables): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function syncUdhaarsRef(vars: SyncUdhaarsVariables): QueryRef<SyncUdhaarsData, SyncUdhaarsVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncUdhaarsRef(dc: DataConnect, vars: SyncUdhaarsVariables): QueryRef<SyncUdhaarsData, SyncUdhaarsVariables>;
-
-export function syncUdhaars(vars: SyncUdhaarsVariables): QueryPromise<SyncUdhaarsData, SyncUdhaarsVariables>;
-export function syncUdhaars(dc: DataConnect, vars: SyncUdhaarsVariables): QueryPromise<SyncUdhaarsData, SyncUdhaarsVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function syncExpensesRef(vars: SyncExpensesVariables): QueryRef<SyncExpensesData, SyncExpensesVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncExpensesRef(dc: DataConnect, vars: SyncExpensesVariables): QueryRef<SyncExpensesData, SyncExpensesVariables>;
-
-export function syncExpenses(vars: SyncExpensesVariables): QueryPromise<SyncExpensesData, SyncExpensesVariables>;
-export function syncExpenses(dc: DataConnect, vars: SyncExpensesVariables): QueryPromise<SyncExpensesData, SyncExpensesVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function getActiveSalesRef(vars: GetActiveSalesVariables): QueryRef<GetActiveSalesData, GetActiveSalesVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getActiveSalesRef(dc: DataConnect, vars: GetActiveSalesVariables): QueryRef<GetActiveSalesData, GetActiveSalesVariables>;
-
-export function getActiveSales(vars: GetActiveSalesVariables): QueryPromise<GetActiveSalesData, GetActiveSalesVariables>;
-export function getActiveSales(dc: DataConnect, vars: GetActiveSalesVariables): QueryPromise<GetActiveSalesData, GetActiveSalesVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function getActiveSaleItemsRef(vars: GetActiveSaleItemsVariables): QueryRef<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getActiveSaleItemsRef(dc: DataConnect, vars: GetActiveSaleItemsVariables): QueryRef<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
-
-export function getActiveSaleItems(vars: GetActiveSaleItemsVariables): QueryPromise<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
-export function getActiveSaleItems(dc: DataConnect, vars: GetActiveSaleItemsVariables): QueryPromise<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function getActiveUdhaarsRef(vars: GetActiveUdhaarsVariables): QueryRef<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getActiveUdhaarsRef(dc: DataConnect, vars: GetActiveUdhaarsVariables): QueryRef<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
-
-export function getActiveUdhaars(vars: GetActiveUdhaarsVariables): QueryPromise<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
-export function getActiveUdhaars(dc: DataConnect, vars: GetActiveUdhaarsVariables): QueryPromise<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function getActiveExpensesRef(vars: GetActiveExpensesVariables): QueryRef<GetActiveExpensesData, GetActiveExpensesVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getActiveExpensesRef(dc: DataConnect, vars: GetActiveExpensesVariables): QueryRef<GetActiveExpensesData, GetActiveExpensesVariables>;
-
-export function getActiveExpenses(vars: GetActiveExpensesVariables): QueryPromise<GetActiveExpensesData, GetActiveExpensesVariables>;
-export function getActiveExpenses(dc: DataConnect, vars: GetActiveExpensesVariables): QueryPromise<GetActiveExpensesData, GetActiveExpensesVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function getActiveSuppliersRef(vars: GetActiveSuppliersVariables): QueryRef<GetActiveSuppliersData, GetActiveSuppliersVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getActiveSuppliersRef(dc: DataConnect, vars: GetActiveSuppliersVariables): QueryRef<GetActiveSuppliersData, GetActiveSuppliersVariables>;
-
-export function getActiveSuppliers(vars: GetActiveSuppliersVariables): QueryPromise<GetActiveSuppliersData, GetActiveSuppliersVariables>;
-export function getActiveSuppliers(dc: DataConnect, vars: GetActiveSuppliersVariables): QueryPromise<GetActiveSuppliersData, GetActiveSuppliersVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function getUserRef(vars: GetUserVariables): QueryRef<GetUserData, GetUserVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getUserRef(dc: DataConnect, vars: GetUserVariables): QueryRef<GetUserData, GetUserVariables>;
-
-export function getUser(vars: GetUserVariables): QueryPromise<GetUserData, GetUserVariables>;
-export function getUser(dc: DataConnect, vars: GetUserVariables): QueryPromise<GetUserData, GetUserVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function getStoresPaginatedRef(): QueryRef<GetStoresPaginatedData, undefined>;
-/* Allow users to pass in custom DataConnect instances */
-export function getStoresPaginatedRef(dc: DataConnect): QueryRef<GetStoresPaginatedData, undefined>;
-
-export function getStoresPaginated(): QueryPromise<GetStoresPaginatedData, undefined>;
-export function getStoresPaginated(dc: DataConnect): QueryPromise<GetStoresPaginatedData, undefined>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function getUsersPaginatedRef(): QueryRef<GetUsersPaginatedData, undefined>;
-/* Allow users to pass in custom DataConnect instances */
-export function getUsersPaginatedRef(dc: DataConnect): QueryRef<GetUsersPaginatedData, undefined>;
-
-export function getUsersPaginated(): QueryPromise<GetUsersPaginatedData, undefined>;
-export function getUsersPaginated(dc: DataConnect): QueryPromise<GetUsersPaginatedData, undefined>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function getGlobalSettingsRef(): QueryRef<GetGlobalSettingsData, undefined>;
-/* Allow users to pass in custom DataConnect instances */
-export function getGlobalSettingsRef(dc: DataConnect): QueryRef<GetGlobalSettingsData, undefined>;
-
-export function getGlobalSettings(): QueryPromise<GetGlobalSettingsData, undefined>;
-export function getGlobalSettings(dc: DataConnect): QueryPromise<GetGlobalSettingsData, undefined>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function getAdminAuditLogsRef(): QueryRef<GetAdminAuditLogsData, undefined>;
-/* Allow users to pass in custom DataConnect instances */
-export function getAdminAuditLogsRef(dc: DataConnect): QueryRef<GetAdminAuditLogsData, undefined>;
-
-export function getAdminAuditLogs(): QueryPromise<GetAdminAuditLogsData, undefined>;
-export function getAdminAuditLogs(dc: DataConnect): QueryPromise<GetAdminAuditLogsData, undefined>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function getAnnouncementsRef(): QueryRef<GetAnnouncementsData, undefined>;
-/* Allow users to pass in custom DataConnect instances */
-export function getAnnouncementsRef(dc: DataConnect): QueryRef<GetAnnouncementsData, undefined>;
-
-export function getAnnouncements(): QueryPromise<GetAnnouncementsData, undefined>;
-export function getAnnouncements(dc: DataConnect): QueryPromise<GetAnnouncementsData, undefined>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function getPromoCodesRef(): QueryRef<GetPromoCodesData, undefined>;
-/* Allow users to pass in custom DataConnect instances */
-export function getPromoCodesRef(dc: DataConnect): QueryRef<GetPromoCodesData, undefined>;
-
-export function getPromoCodes(): QueryPromise<GetPromoCodesData, undefined>;
-export function getPromoCodes(dc: DataConnect): QueryPromise<GetPromoCodesData, undefined>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function syncSuppliersRef(vars: SyncSuppliersVariables): QueryRef<SyncSuppliersData, SyncSuppliersVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncSuppliersRef(dc: DataConnect, vars: SyncSuppliersVariables): QueryRef<SyncSuppliersData, SyncSuppliersVariables>;
-
-export function syncSuppliers(vars: SyncSuppliersVariables): QueryPromise<SyncSuppliersData, SyncSuppliersVariables>;
-export function syncSuppliers(dc: DataConnect, vars: SyncSuppliersVariables): QueryPromise<SyncSuppliersData, SyncSuppliersVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function syncPurchasesRef(vars: SyncPurchasesVariables): QueryRef<SyncPurchasesData, SyncPurchasesVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncPurchasesRef(dc: DataConnect, vars: SyncPurchasesVariables): QueryRef<SyncPurchasesData, SyncPurchasesVariables>;
-
-export function syncPurchases(vars: SyncPurchasesVariables): QueryPromise<SyncPurchasesData, SyncPurchasesVariables>;
-export function syncPurchases(dc: DataConnect, vars: SyncPurchasesVariables): QueryPromise<SyncPurchasesData, SyncPurchasesVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function syncPurchaseItemsRef(vars: SyncPurchaseItemsVariables): QueryRef<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncPurchaseItemsRef(dc: DataConnect, vars: SyncPurchaseItemsVariables): QueryRef<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
-
-export function syncPurchaseItems(vars: SyncPurchaseItemsVariables): QueryPromise<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
-export function syncPurchaseItems(dc: DataConnect, vars: SyncPurchaseItemsVariables): QueryPromise<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
-
-/* Allow users to create refs without passing in DataConnect */
-export function syncItemBatchesRef(vars: SyncItemBatchesVariables): QueryRef<SyncItemBatchesData, SyncItemBatchesVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncItemBatchesRef(dc: DataConnect, vars: SyncItemBatchesVariables): QueryRef<SyncItemBatchesData, SyncItemBatchesVariables>;
-
-export function syncItemBatches(vars: SyncItemBatchesVariables): QueryPromise<SyncItemBatchesData, SyncItemBatchesVariables>;
-export function syncItemBatches(dc: DataConnect, vars: SyncItemBatchesVariables): QueryPromise<SyncItemBatchesData, SyncItemBatchesVariables>;
 

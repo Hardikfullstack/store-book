@@ -31,9 +31,60 @@ public interface GetActiveUdhaarsQuery :
   public data class Variables(
   
     val storeId:
-    String
+    String,
+    val limit:
+    com.google.firebase.dataconnect.OptionalVariable<Int?>,
+    val offset:
+    com.google.firebase.dataconnect.OptionalVariable<Int?>
   ) {
     
+    
+      
+      @kotlin.DslMarker public annotation class BuilderDsl
+
+      @BuilderDsl
+      public interface Builder {
+        public var storeId: String
+        public var limit: Int?
+        public var offset: Int?
+        
+      }
+
+      public companion object {
+        @Suppress("NAME_SHADOWING")
+        public fun build(
+          storeId: String,
+          block_: Builder.() -> Unit
+        ): Variables {
+          var storeId= storeId
+            var limit: com.google.firebase.dataconnect.OptionalVariable<Int?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var offset: com.google.firebase.dataconnect.OptionalVariable<Int?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            
+
+          return object : Builder {
+            override var storeId: String
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { storeId = value_ }
+              
+            override var limit: Int?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { limit = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
+            override var offset: Int?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { offset = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
+            
+          }.apply(block_)
+          .let {
+            Variables(
+              storeId=storeId,limit=limit,offset=offset,
+            )
+          }
+        }
+      }
     
   }
   
@@ -89,6 +140,7 @@ public fun GetActiveUdhaarsQuery.ref(
   
     storeId: String,
   
+    block_: GetActiveUdhaarsQuery.Variables.Builder.() -> Unit
   
 ): com.google.firebase.dataconnect.QueryRef<
     GetActiveUdhaarsQuery.Data,
@@ -96,9 +148,10 @@ public fun GetActiveUdhaarsQuery.ref(
   > =
   ref(
     
-      GetActiveUdhaarsQuery.Variables(
+      GetActiveUdhaarsQuery.Variables.build(
         storeId=storeId,
   
+    block_
       )
     
   )
@@ -107,6 +160,7 @@ public suspend fun GetActiveUdhaarsQuery.execute(
   
     storeId: String,
   
+    block_: GetActiveUdhaarsQuery.Variables.Builder.() -> Unit
   
   ): com.google.firebase.dataconnect.QueryResult<
     GetActiveUdhaarsQuery.Data,
@@ -116,6 +170,7 @@ public suspend fun GetActiveUdhaarsQuery.execute(
     
       storeId=storeId,
   
+    block_
     
   ).execute()
 
@@ -124,12 +179,14 @@ public suspend fun GetActiveUdhaarsQuery.execute(
     
       storeId: String,
   
+    block_: GetActiveUdhaarsQuery.Variables.Builder.() -> Unit
     
     ): kotlinx.coroutines.flow.Flow<GetActiveUdhaarsQuery.Data> =
     ref(
         
           storeId=storeId,
   
+    block_
         
       ).subscribe()
       .flow

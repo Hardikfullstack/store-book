@@ -31,9 +31,69 @@ public interface GetActiveSalesQuery :
   public data class Variables(
   
     val storeId:
-    String
+    String,
+    val type:
+    com.google.firebase.dataconnect.OptionalVariable<String?>,
+    val limit:
+    com.google.firebase.dataconnect.OptionalVariable<Int?>,
+    val offset:
+    com.google.firebase.dataconnect.OptionalVariable<Int?>
   ) {
     
+    
+      
+      @kotlin.DslMarker public annotation class BuilderDsl
+
+      @BuilderDsl
+      public interface Builder {
+        public var storeId: String
+        public var type: String?
+        public var limit: Int?
+        public var offset: Int?
+        
+      }
+
+      public companion object {
+        @Suppress("NAME_SHADOWING")
+        public fun build(
+          storeId: String,
+          block_: Builder.() -> Unit
+        ): Variables {
+          var storeId= storeId
+            var type: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var limit: com.google.firebase.dataconnect.OptionalVariable<Int?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var offset: com.google.firebase.dataconnect.OptionalVariable<Int?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            
+
+          return object : Builder {
+            override var storeId: String
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { storeId = value_ }
+              
+            override var type: String?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { type = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
+            override var limit: Int?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { limit = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
+            override var offset: Int?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { offset = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
+            
+          }.apply(block_)
+          .let {
+            Variables(
+              storeId=storeId,type=type,limit=limit,offset=offset,
+            )
+          }
+        }
+      }
     
   }
   
@@ -91,6 +151,7 @@ public fun GetActiveSalesQuery.ref(
   
     storeId: String,
   
+    block_: GetActiveSalesQuery.Variables.Builder.() -> Unit
   
 ): com.google.firebase.dataconnect.QueryRef<
     GetActiveSalesQuery.Data,
@@ -98,9 +159,10 @@ public fun GetActiveSalesQuery.ref(
   > =
   ref(
     
-      GetActiveSalesQuery.Variables(
+      GetActiveSalesQuery.Variables.build(
         storeId=storeId,
   
+    block_
       )
     
   )
@@ -109,6 +171,7 @@ public suspend fun GetActiveSalesQuery.execute(
   
     storeId: String,
   
+    block_: GetActiveSalesQuery.Variables.Builder.() -> Unit
   
   ): com.google.firebase.dataconnect.QueryResult<
     GetActiveSalesQuery.Data,
@@ -118,6 +181,7 @@ public suspend fun GetActiveSalesQuery.execute(
     
       storeId=storeId,
   
+    block_
     
   ).execute()
 
@@ -126,12 +190,14 @@ public suspend fun GetActiveSalesQuery.execute(
     
       storeId: String,
   
+    block_: GetActiveSalesQuery.Variables.Builder.() -> Unit
     
     ): kotlinx.coroutines.flow.Flow<GetActiveSalesQuery.Data> =
     ref(
         
           storeId=storeId,
   
+    block_
         
       ).subscribe()
       .flow
