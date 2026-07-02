@@ -1,4 +1,3 @@
-import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,6 +7,7 @@ import { getActiveItems, syncSale, syncSaleItem, syncItem } from '@/dataconnect'
 import { FormattedAmount } from '@/components/FormattedAmount';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
+import { sanitizeInput } from '@/lib/sanitize';
 import { addToCart, updateQuantity, removeFromCart, clearCart } from '@/store/cartSlice';
 
 interface Item {
@@ -45,7 +45,7 @@ export default function SalesPOS({
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const dispatch = useDispatch();
   const cartState = useSelector((state: RootState) => state.cart.items);
   // Re-map the Redux items to the local CartItem interface shape
@@ -74,7 +74,7 @@ export default function SalesPOS({
       try {
         const response = await getActiveItems(dataConnect, { storeId });
         if (!isMounted) return;
-        
+
         const updated = response.data.items.map((item: any) => ({
           ...item,
           buyPrice: item.buyPrice || 0,
@@ -102,7 +102,7 @@ export default function SalesPOS({
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
 
       const currentTime = Date.now();
-      
+
       // If time between keystrokes is more than 50ms, reset (it's human typing)
       if (currentTime - lastKeyTime > 50) {
         barcode = '';
@@ -114,7 +114,7 @@ export default function SalesPOS({
         const scannedItem = items.find(
           item => item.id === barcode || item.name.toLowerCase() === barcode.toLowerCase()
         );
-        
+
         if (scannedItem) {
           dispatch(addToCart({
             id: scannedItem.id,
@@ -143,7 +143,7 @@ export default function SalesPOS({
       } else if (e.key !== 'Enter' && e.key !== 'Shift') {
         barcode += e.key;
       }
-      
+
       lastKeyTime = currentTime;
     };
 
@@ -176,11 +176,11 @@ export default function SalesPOS({
   const subtotal = cart.reduce((sum, c) => sum + (c.item.sellPrice * c.quantity), 0);
   const totalBuyPrice = cart.reduce((sum, c) => sum + (c.item.buyPrice * c.quantity), 0);
   const maxProfitMargin = Math.max(0, subtotal - totalBuyPrice);
-  
+
   const total = Math.max(0, subtotal - (discount || 0));
 
-  const filteredItems = items.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredItems = items.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (item.category || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -190,14 +190,14 @@ export default function SalesPOS({
       alert(`Staff accounts cannot give discounts exceeding the profit margin (Max: ₹${maxProfitMargin.toFixed(2)}).`);
       return;
     }
-    
+
     setIsSaving(true);
-    
+
     try {
       const saleId = crypto.randomUUID();
       const now = Date.now();
       const updatedAt = Math.floor(now / 1000);
-      
+
       // 1. Create the Sale
       await syncSale(dataConnect, {
         id: saleId,
@@ -261,7 +261,7 @@ export default function SalesPOS({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-6xl h-full max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 dark:border-gray-800">
-        
+
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
           <div className="flex items-center space-x-3">
@@ -277,14 +277,14 @@ export default function SalesPOS({
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-          
+
           {/* Left Column - Product Selection */}
           <div className="flex-1 flex flex-col border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
             <div className="p-4 border-b border-gray-100 dark:border-gray-800">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input aria-label="text" 
-                  type="text" 
+                <input aria-label="text"
+                  type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
                   placeholder="Search products by name or category..."
@@ -292,7 +292,7 @@ export default function SalesPOS({
                 />
               </div>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-4 bg-gray-50/30 dark:bg-black/20">
               {loading ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -314,8 +314,8 @@ export default function SalesPOS({
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                   {filteredItems.map(item => (
-                    <div role="button" tabIndex={0} 
-                      key={item.id} 
+                    <div role="button" tabIndex={0}
+                      key={item.id}
                       onClick={() => handleAddToCart(item)}
                       className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 cursor-pointer hover:border-teal-500 hover:shadow-md transition-all active:scale-95 flex flex-col"
                     >
@@ -364,7 +364,7 @@ export default function SalesPOS({
                         <FormattedAmount amount={c.item.sellPrice * c.quantity} />
                       </div>
                       <div className="flex items-center space-x-3 bg-gray-50 dark:bg-gray-900 rounded-lg p-1 border border-gray-200 dark:border-gray-700">
-                        <button 
+                        <button
                           onClick={() => handleUpdateQuantity(c.item.id, c.quantity, -1)}
                           className="w-7 h-7 flex items-center justify-center bg-white dark:bg-gray-800 rounded shadow-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0"
                         >
@@ -387,7 +387,7 @@ export default function SalesPOS({
                           onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                           className="w-12 text-sm font-bold text-center bg-transparent border-b border-dashed border-gray-400 dark:border-gray-600 focus:outline-none focus:border-teal-500 dark:text-white"
                         />
-                        <button 
+                        <button
                           onClick={() => handleUpdateQuantity(c.item.id, c.quantity, 1)}
                           className="w-7 h-7 flex items-center justify-center bg-white dark:bg-gray-800 rounded shadow-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0"
                         >
@@ -404,9 +404,9 @@ export default function SalesPOS({
             <div className="border-t border-gray-200 dark:border-gray-800 p-6 bg-white dark:bg-gray-900">
               <div className="space-y-4 mb-6">
                 <div>
-                  <input aria-label="Customer Name (Optional)" 
-                    type="text" 
-                    placeholder="Customer Name (Optional)" 
+                  <input aria-label="Customer Name (Optional)"
+                    type="text"
+                    placeholder="Customer Name (Optional)"
                     value={customerName}
                     onChange={e => setCustomerName(sanitizeInput(e.target.value))}
                     className="w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 dark:text-white text-sm focus:ring-2 focus:ring-teal-500"
@@ -414,9 +414,9 @@ export default function SalesPOS({
                 </div>
                 <div className="flex space-x-3">
                   <div className="flex-1">
-                    <input aria-label="Discount (₹)" 
-                      type="number" 
-                      placeholder="Discount (₹)" 
+                    <input aria-label="Discount (₹)"
+                      type="number"
+                      placeholder="Discount (₹)"
                       value={discount || ''}
                       onChange={e => {
                         const val = parseFloat(e.target.value) || 0;
@@ -429,9 +429,9 @@ export default function SalesPOS({
                     )}
                   </div>
                   <div className="flex-[2]">
-                    <input aria-label="Notes (e.g. UPI, Cash)" 
-                      type="text" 
-                      placeholder="Notes (e.g. UPI, Cash)" 
+                    <input aria-label="Notes (e.g. UPI, Cash)"
+                      type="text"
+                      placeholder="Notes (e.g. UPI, Cash)"
                       value={notes}
                       onChange={e => setNotes(sanitizeInput(e.target.value))}
                       className="w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 dark:text-white text-sm focus:ring-2 focus:ring-teal-500"
@@ -439,7 +439,7 @@ export default function SalesPOS({
                   </div>
                 </div>
               </div>
-              
+
               <div className="space-y-3 mb-6 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                 <div className="flex justify-between text-gray-600 dark:text-gray-400 text-sm">
                   <span>Subtotal ({cart.length} items)</span>
@@ -459,7 +459,7 @@ export default function SalesPOS({
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={handleCheckout}
                 disabled={cart.length === 0 || isSaving}
                 className="w-full py-4 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg shadow-lg shadow-teal-600/30 transition-all flex items-center justify-center space-x-2"
@@ -478,7 +478,7 @@ export default function SalesPOS({
               </button>
             </div>
           </div>
-          
+
         </div>
       </div>
     </div>

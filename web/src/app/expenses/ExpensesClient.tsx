@@ -1,18 +1,18 @@
-import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Plus, Search, Tag, Trash2, Loader2, ArrowDownCircle } from 'lucide-react';
 import { fetchMoreData } from '@/app/actions';
 import { dataConnect } from '@/lib/firebase';
+import { sanitizeInput } from '@/lib/sanitize';
 import { getActiveExpenses, syncExpense, softDeleteExpense } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 
-export default function ExpensesClient({ 
+export default function ExpensesClient({
   initialExpenses,
   storeId,
   isPremium
-}: { 
+}: {
   initialExpenses: any[],
   storeId?: string,
   isPremium?: boolean
@@ -27,7 +27,7 @@ export default function ExpensesClient({
       try {
         const response = await getActiveExpenses(dataConnect, { storeId });
         if (!isMounted) return;
-        
+
         const updated = response.data.expenseEntries.map((record: any) => ({
           ...record,
           is_deleted: 0,
@@ -70,7 +70,7 @@ export default function ExpensesClient({
       setLoadingMore(false);
     }
   };
-  
+
   const [formData, setFormData] = useState({
     type: 'supplies',
     description: '',
@@ -95,7 +95,7 @@ export default function ExpensesClient({
         updatedAt: Math.floor(now / 1000)
       });
       setShowModal(false);
-      window.location.reload(); 
+      window.location.reload();
     } catch (err) {
       console.error("Failed to save expense:", err);
     }
@@ -119,8 +119,8 @@ export default function ExpensesClient({
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Expenses Tracker</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Keep an eye on your business spending.</p>
         </div>
-        <button 
-          onClick={() => { setFormData({type:'supplies',description:'',amount:0,supplier_name:''}); setShowModal(true); }}
+        <button
+          onClick={() => { setFormData({ type: 'supplies', description: '', amount: 0, supplier_name: '' }); setShowModal(true); }}
           className="btn-primary flex items-center space-x-2 bg-orange-600 hover:bg-orange-700 shadow-orange-600/30"
         >
           <Plus size={18} />
@@ -134,8 +134,8 @@ export default function ExpensesClient({
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search size={16} className="text-gray-400" />
             </div>
-            <input aria-label="text" 
-              type="text" 
+            <input aria-label="text"
+              type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
               className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all dark:text-gray-100"
@@ -164,7 +164,7 @@ export default function ExpensesClient({
               {(() => {
                 const filteredExpenses = expenses.filter((expense: any) => {
                   return (
-                    (expense.description || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                    (expense.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                     (expense.type || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                     (expense.supplier_name || '').toLowerCase().includes(searchQuery.toLowerCase())
                   );
@@ -187,20 +187,20 @@ export default function ExpensesClient({
                         <td className="px-6 py-4 whitespace-nowrap">
                           {new Date(expense.timestamp || expense.updated_at).toLocaleDateString('en-IN')}
                         </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                      {expense.type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-gray-900 dark:text-gray-100">{expense.description}</td>
-                  <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{expense.supplier_name || '-'}</td>
-                  <td className="px-6 py-4 text-right font-bold text-orange-600 dark:text-orange-400">
-                    <FormattedAmount amount={expense.amount} />
-                  </td>
-                  <td className="px-6 py-4 text-right space-x-3">
-                    <button onClick={() => handleDelete(expense.id)} className="text-red-500 hover:text-red-700 transition-colors"><Trash2 size={16} /></button>
-                  </td>
-                </tr>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                            {expense.type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-gray-900 dark:text-gray-100">{expense.description}</td>
+                        <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{expense.supplier_name || '-'}</td>
+                        <td className="px-6 py-4 text-right font-bold text-orange-600 dark:text-orange-400">
+                          <FormattedAmount amount={expense.amount} />
+                        </td>
+                        <td className="px-6 py-4 text-right space-x-3">
+                          <button onClick={() => handleDelete(expense.id)} className="text-red-500 hover:text-red-700 transition-colors"><Trash2 size={16} /></button>
+                        </td>
+                      </tr>
                     ))}
                   </>
                 );
@@ -208,11 +208,11 @@ export default function ExpensesClient({
             </tbody>
           </table>
         </div>
-        
+
         {hasMore && !searchQuery && (
           <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-center">
-            <button 
-              onClick={handleLoadMore} 
+            <button
+              onClick={handleLoadMore}
               disabled={loadingMore}
               className="px-6 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
             >
@@ -230,21 +230,21 @@ export default function ExpensesClient({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium dark:text-gray-300">Description</label>
-                <input aria-label="text" required type="text" value={formData.description} onChange={e => setFormData({...formData, description: sanitizeInput(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                <input aria-label="text" required type="text" value={formData.description} onChange={e => setFormData({ ...formData, description: sanitizeInput(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Type/Category</label>
-                  <input aria-label="text" type="text" value={formData.type} onChange={e => setFormData({...formData, type: sanitizeInput(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                  <input aria-label="text" type="text" value={formData.type} onChange={e => setFormData({ ...formData, type: sanitizeInput(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Amount</label>
-                  <input aria-label="number" required type="number" step="any" value={formData.amount} onChange={e => setFormData({...formData, amount: parseFloat(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                  <input aria-label="number" required type="number" step="any" value={formData.amount} onChange={e => setFormData({ ...formData, amount: parseFloat(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium dark:text-gray-300">Supplier (Optional)</label>
-                <input aria-label="text" type="text" value={formData.supplier_name} onChange={e => setFormData({...formData, supplier_name: sanitizeInput(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                <input aria-label="text" type="text" value={formData.supplier_name} onChange={e => setFormData({ ...formData, supplier_name: sanitizeInput(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
               </div>
               <div className="flex justify-end space-x-3 mt-6">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>

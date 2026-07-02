@@ -1,14 +1,14 @@
-import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState } from 'react';
+import { sanitizeInput } from '@/lib/sanitize';
 import { Database, AlertTriangle, CheckCircle, Clock, Shield, Trash2 } from 'lucide-react';
 import { archiveOldData } from '@/app/actions';
 
 export default function DataClient({ initialAuditLogs }: { initialAuditLogs: any[] }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
-  const [days, setDays] = useState(180); 
+  const [days, setDays] = useState(180);
 
   const handleArchive = async () => {
     if (!confirm(`Are you absolutely sure you want to archive data older than ${days} days? This cannot be undone.`)) return;

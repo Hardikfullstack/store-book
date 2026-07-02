@@ -1,4 +1,3 @@
-import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +6,8 @@ import DashboardCharts from './DashboardCharts';
 import { dataConnect, rtdb } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import { get, set } from 'idb-keyval';
-import { 
+import { sanitizeInput } from '@/lib/sanitize';
+import {
   getActiveItems, getActiveSales, getActiveUdhaars, getActiveExpenses, getActiveSaleItems,
   syncItems, syncSales, syncUdhaars, syncExpenses, syncSaleItems
 } from '@/dataconnect';
@@ -133,7 +133,7 @@ export default function DashboardClient({
             getActiveExpenses(dataConnect, { storeId }),
             getActiveSaleItems(dataConnect, { storeId })
           ]);
-          
+
           if (!isMounted) return;
 
           const parsedItems = itemsRes.data.items.map((item: any) => {
@@ -150,7 +150,7 @@ export default function DashboardClient({
             items: parsedItems, sales: parsedSales, udhaars: parsedUdhaars, expenses: parsedExpenses, saleItems: parsedSaleItems,
             lastSync: Date.now() // Use milliseconds matching Android System.currentTimeMillis()
           };
-          
+
           await set(cacheKey, newData);
           setItemsList(parsedItems);
           setRawSales(parsedSales);
@@ -171,7 +171,7 @@ export default function DashboardClient({
           if (!isMounted) return;
 
           const cached = await get(cacheKey) || { items: [], sales: [], udhaars: [], expenses: [], saleItems: [] };
-          
+
           const pItems = itemsRes.data.items.map((item: any) => {
             if (userRole === 'staff') delete item.buyPrice;
             return { id: item.id, ...item };
@@ -192,7 +192,7 @@ export default function DashboardClient({
             items: newItems, sales: newSales, udhaars: newUdhaars, expenses: newExpenses, saleItems: newSaleItems,
             lastSync: Date.now() // Use milliseconds
           };
-          
+
           await set(cacheKey, newData);
           setItemsList(newItems);
           setRawSales(newSales);
@@ -205,28 +205,28 @@ export default function DashboardClient({
       } finally {
         isFetching = false;
         if (syncRequested) {
-           performSync(localLastSync).then(() => { localLastSync = Date.now(); });
+          performSync(localLastSync).then(() => { localLastSync = Date.now(); });
         }
       }
     };
 
     let localLastSync = 0;
-    
+
     // Init Cache & RTDB Listener
     loadFromCache().then((syncTime) => {
       localLastSync = syncTime;
       // If cache is empty, fetch immediately
       if (syncTime === 0) performSync(0);
-      
+
       // Setup RTDB Ping Listener
       const updateRef = ref(rtdb, `store_updates/${storeId}/last_update`);
       onValue(updateRef, (snapshot) => {
         const serverUpdate = snapshot.val() || 0;
         // serverUpdate is in ms, localLastSync is in ms
         if (serverUpdate > localLastSync) {
-           performSync(localLastSync).then(() => {
-             localLastSync = Date.now();
-           });
+          performSync(localLastSync).then(() => {
+            localLastSync = Date.now();
+          });
         }
       });
     });
@@ -290,7 +290,7 @@ export default function DashboardClient({
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Real-time sync via Data Connect Delta.</p>
         </div>
         <div>
-          <select 
+          <select
             value={dateRange}
             onChange={e => setDateRange(sanitizeInput(e.target.value) as any)}
             className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-teal-500"
@@ -322,13 +322,13 @@ export default function DashboardClient({
           </div>
         ))}
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
         <div className="lg:col-span-2 glass-card p-6 h-80 flex items-center justify-center border-dashed dark:border-gray-800">
-            <DashboardCharts salesData={stats.salesData} itemsData={stats.itemsData} saleItemsData={stats.saleItemsData} />
+          <DashboardCharts salesData={stats.salesData} itemsData={stats.itemsData} saleItemsData={stats.saleItemsData} />
         </div>
         <div className="glass-card p-6 h-80 flex items-center justify-center border-dashed dark:border-gray-800">
-            <p className="text-gray-400 dark:text-gray-500 font-medium">Recent Activity Placeholder</p>
+          <p className="text-gray-400 dark:text-gray-500 font-medium">Recent Activity Placeholder</p>
         </div>
       </div>
     </div>

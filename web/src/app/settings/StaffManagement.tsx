@@ -1,8 +1,8 @@
-import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState } from 'react';
 import { Users, UserPlus, Trash2, Loader2, ShieldCheck } from 'lucide-react';
+import { sanitizeInput } from '@/lib/sanitize';
 import { createStaffAccount } from '@/app/actions';
 
 export default function StaffManagement({ storeId }: { storeId: string }) {
@@ -20,7 +20,7 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
       setError('PIN must be at least 4 characters');
       return;
     }
-    
+
     setIsCreating(true);
     setMessage('');
     setError('');
@@ -62,13 +62,13 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
           <UserPlus size={16} className="mr-2" />
           Create New Staff Account
         </h3>
-        
+
         <form onSubmit={handleCreate} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Username (No Spaces)</label>
-              <input aria-label="text" 
-                type="text" 
+              <input aria-label="text"
+                type="text"
                 required
                 value={username}
                 onChange={e => setUsername(sanitizeInput(e.target.value).replace(/\s+/g, '').toLowerCase())}
@@ -78,8 +78,8 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Login PIN</label>
-              <input aria-label="password" 
-                type="password" 
+              <input aria-label="password"
+                type="password"
                 required
                 value={pin}
                 onChange={e => setPin(sanitizeInput(e.target.value))}
@@ -91,8 +91,8 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
 
           <div className="flex flex-col space-y-3 mt-4">
             <label className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
-              <input aria-label="checkbox" 
-                type="checkbox" 
+              <input aria-label="checkbox"
+                type="checkbox"
                 checked={canViewProfit}
                 onChange={e => setCanViewProfit(e.target.checked)}
                 className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
@@ -100,8 +100,8 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
               <span>Can View Profit Margins</span>
             </label>
             <label className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
-              <input aria-label="checkbox" 
-                type="checkbox" 
+              <input aria-label="checkbox"
+                type="checkbox"
                 checked={canDelete}
                 onChange={e => setCanDelete(e.target.checked)}
                 className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
@@ -109,13 +109,13 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
               <span>Can Delete Sales/Items</span>
             </label>
           </div>
-          
+
           {error && <p className="text-red-500 text-xs font-medium">{error}</p>}
           {message && <p className="text-teal-600 dark:text-teal-400 text-xs font-medium">{message}</p>}
-          
+
           <div className="flex justify-end mt-4">
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isCreating || !username || !pin}
               className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center"
             >

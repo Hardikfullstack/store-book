@@ -1,8 +1,8 @@
-import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState } from 'react';
 import { Users, Loader2, Save } from 'lucide-react';
+import { sanitizeInput } from '@/lib/sanitize';
 import { getUsersPaginated, updateUserRole } from '@/app/actions';
 
 export default function UsersClient({ initialUsers, availableStores }: { initialUsers: any[], availableStores: any[] }) {
@@ -79,8 +79,8 @@ export default function UsersClient({ initialUsers, availableStores }: { initial
                     {user.id}
                   </td>
                   <td className="p-4">
-                    <select 
-                      value={user.role || 'client'} 
+                    <select
+                      value={user.role || 'client'}
                       onChange={(e) => handleRoleChange(user.id, sanitizeInput(e.target.value))}
                       disabled={user.id === '+919999999999'}
                       className="text-sm p-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white disabled:opacity-50"
@@ -90,8 +90,8 @@ export default function UsersClient({ initialUsers, availableStores }: { initial
                     </select>
                   </td>
                   <td className="p-4">
-                    <select 
-                      value={user.storeId || 'none'} 
+                    <select
+                      value={user.storeId || 'none'}
                       onChange={(e) => handleStoreChange(user.id, sanitizeInput(e.target.value))}
                       disabled={user.role === 'admin' || user.id === '+919999999999'}
                       className="text-sm p-1.5 w-full max-w-[200px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white disabled:opacity-50"
@@ -107,7 +107,7 @@ export default function UsersClient({ initialUsers, availableStores }: { initial
                       <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2">Root Admin</span>
                     ) : (
                       <>
-                        <button 
+                        <button
                           onClick={async () => {
                             if (!confirm(`Revoke all sessions for ${user.id}?`)) return;
                             try {
@@ -124,7 +124,7 @@ export default function UsersClient({ initialUsers, availableStores }: { initial
                         >
                           Revoke
                         </button>
-                        <button 
+                        <button
                           onClick={() => saveUser(user)}
                           disabled={savingId === user.id}
                           className="p-2 bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/40 transition-colors disabled:opacity-50 flex items-center gap-2 text-sm font-medium"
@@ -147,11 +147,11 @@ export default function UsersClient({ initialUsers, availableStores }: { initial
             </tbody>
           </table>
         </div>
-        
+
         {hasMore && (
           <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-center">
-            <button 
-              onClick={loadMore} 
+            <button
+              onClick={loadMore}
               disabled={loadingMore}
               className="px-6 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
             >

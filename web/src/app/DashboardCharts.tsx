@@ -1,17 +1,17 @@
-import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { sanitizeInput } from '@/lib/sanitize';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
-export default function DashboardCharts({ 
-  salesData = [], 
+export default function DashboardCharts({
+  salesData = [],
   itemsData = [],
   saleItemsData = []
-}: { 
-  salesData: any[], 
+}: {
+  salesData: any[],
   itemsData: any[],
   saleItemsData?: any[]
 }) {
@@ -82,8 +82,8 @@ export default function DashboardCharts({
     <div className="w-full h-full flex flex-col">
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-bold text-gray-900 dark:text-white">{title}</h3>
-        <select 
-          value={chartType} 
+        <select
+          value={chartType}
           onChange={(e) => setChartType(sanitizeInput(e.target.value) as any)}
           className="text-sm border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg dark:text-gray-200 p-1 outline-none"
         >
@@ -111,11 +111,11 @@ export default function DashboardCharts({
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip 
+              <Tooltip
                 formatter={(value: any) => (chartType === 'customer' || chartType === 'profit') ? `₹${Number(value).toFixed(2)}` : `${value} units`}
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
               />
-              <Legend verticalAlign="bottom" height={36}/>
+              <Legend verticalAlign="bottom" height={36} />
             </PieChart>
           </ResponsiveContainer>
         ) : (

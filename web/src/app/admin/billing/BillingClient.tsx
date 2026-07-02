@@ -1,16 +1,16 @@
-import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState } from 'react';
 import { Receipt, Search, CreditCard, Play, Edit, ShieldCheck } from 'lucide-react';
+import { sanitizeInput } from '@/lib/sanitize';
 import { FormattedAmount } from '@/components/FormattedAmount';
 
 export default function BillingClient({ stores }: { stores: any[] }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [editingStore, setEditingStore] = useState<any>(null);
 
-  const filteredStores = stores.filter(s => 
-    (s.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredStores = stores.filter(s =>
+    (s.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (s.id || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -32,8 +32,8 @@ export default function BillingClient({ stores }: { stores: any[] }) {
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search size={16} className="text-gray-400" />
             </div>
-            <input aria-label="text" 
-              type="text" 
+            <input aria-label="text"
+              type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
               className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all dark:text-white"
@@ -90,7 +90,7 @@ export default function BillingClient({ stores }: { stores: any[] }) {
                     {store.subscriptionExpiresAt ? new Date(store.subscriptionExpiresAt).toLocaleDateString() : '-'}
                   </td>
                   <td className="p-4 flex justify-end gap-2">
-                    <button 
+                    <button
                       onClick={() => setEditingStore(store)}
                       className="p-2 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-lg transition-colors"
                       title="Manual Plan Override"
@@ -121,7 +121,7 @@ export default function BillingClient({ stores }: { stores: any[] }) {
               Manual Plan Override
             </h2>
             <p className="text-sm text-gray-500 mb-6">Modify subscription details directly for <span className="font-bold">{editingStore.name}</span>.</p>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
@@ -130,33 +130,33 @@ export default function BillingClient({ stores }: { stores: any[] }) {
                   <option value="false" selected={!editingStore.isPremium}>Free Tier</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Platform Override</label>
                 <select className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-teal-500">
                   <option value="razorpay" selected={editingStore.subscriptionPlatform === 'razorpay'}>Razorpay (Web)</option>
                   <option value="google_play" selected={editingStore.subscriptionPlatform === 'google_play'}>Google Play (App)</option>
-                  <option value="manual" selected={!['razorpay','google_play'].includes(editingStore.subscriptionPlatform)}>Manual / Support</option>
+                  <option value="manual" selected={!['razorpay', 'google_play'].includes(editingStore.subscriptionPlatform)}>Manual / Support</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expiry Date</label>
-                <input aria-label="date" 
-                  type="date" 
+                <input aria-label="date"
+                  type="date"
                   defaultValue={editingStore.subscriptionExpiresAt ? new Date(editingStore.subscriptionExpiresAt).toISOString().split('T')[0] : ''}
                   className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
               <div className="pt-4 flex justify-end space-x-3 border-t border-gray-100 dark:border-gray-800">
-                <button 
+                <button
                   onClick={() => setEditingStore(null)}
                   className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-sm font-medium transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     alert("Super Admin Override applied successfully!");
                     setEditingStore(null);

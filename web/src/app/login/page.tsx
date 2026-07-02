@@ -1,9 +1,9 @@
-import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState } from 'react';
 import { Phone, Lock, ChevronRight } from 'lucide-react';
 import { auth } from '@/lib/firebase';
+import { sanitizeInput } from '@/lib/sanitize';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 import { login } from '@/app/actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -67,17 +67,17 @@ export default function LoginPage() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!confirmationResult) return;
-    
+
     setLoading(true);
     setError('');
 
     try {
       const result = await confirmationResult.confirm(otp);
       const user = result.user;
-      
+
       const idToken = await user.getIdToken();
       const res = await login(idToken);
-      
+
       if (res.success) {
         window.location.href = '/'; // redirect to dashboard
       } else {
@@ -103,7 +103,7 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, dummyEmail, staffPassword);
       const idToken = await userCredential.user.getIdToken();
       const res = await login(idToken);
-      
+
       if (res.success) {
         window.location.href = '/';
       } else {
@@ -155,86 +155,86 @@ export default function LoginPage() {
 
           {!isStaff ? (
             step === 'PHONE' ? (
-            <form onSubmit={handleSendOtp} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Mobile Number</label>
-                <div className="relative flex rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus-within:ring-2 focus-within:ring-teal-500 transition-all overflow-hidden">
-                  <div className="flex items-center pl-3 bg-gray-100 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
-                    <Phone className="h-4 w-4 text-gray-500 mr-1" />
-                    <select
-                      value={countryCode}
-                      onChange={(e) => setCountryCode(sanitizeInput(e.target.value))}
-                      className="bg-transparent text-sm font-medium text-gray-700 dark:text-gray-300 border-none focus:ring-0 py-3 pr-2 pl-1 cursor-pointer outline-none appearance-none"
-                    >
-                      {countryCodes.map((c) => (
-                        <option key={c.country + c.code} value={c.code} className="text-gray-900 dark:text-gray-900">
-                          {c.country} ({c.code})
-                        </option>
-                      ))}
-                    </select>
+              <form onSubmit={handleSendOtp} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Mobile Number</label>
+                  <div className="relative flex rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus-within:ring-2 focus-within:ring-teal-500 transition-all overflow-hidden">
+                    <div className="flex items-center pl-3 bg-gray-100 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
+                      <Phone className="h-4 w-4 text-gray-500 mr-1" />
+                      <select
+                        value={countryCode}
+                        onChange={(e) => setCountryCode(sanitizeInput(e.target.value))}
+                        className="bg-transparent text-sm font-medium text-gray-700 dark:text-gray-300 border-none focus:ring-0 py-3 pr-2 pl-1 cursor-pointer outline-none appearance-none"
+                      >
+                        {countryCodes.map((c) => (
+                          <option key={c.country + c.code} value={c.code} className="text-gray-900 dark:text-gray-900">
+                            {c.country} ({c.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <input aria-label="tel"
+                      type="tel"
+                      required
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="block w-full px-3 py-3 bg-transparent text-gray-900 dark:text-white border-none focus:ring-0 outline-none"
+                      placeholder="Enter mobile number"
+                    />
                   </div>
-                  <input aria-label="tel"
-                    type="tel"
-                    required
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
-                    className="block w-full px-3 py-3 bg-transparent text-gray-900 dark:text-white border-none focus:ring-0 outline-none"
-                    placeholder="Enter mobile number"
-                  />
                 </div>
-              </div>
 
-              <div id="recaptcha-container"></div>
+                <div id="recaptcha-container"></div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full btn-primary flex justify-center items-center py-3 rounded-xl disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                ) : (
-                  <>
-                    <span>Send OTP</span>
-                    <ChevronRight size={18} className="ml-2" />
-                  </>
-                )}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Enter OTP</label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                  Sent to {formatPhoneNumber(phoneNumber)}{' '}
-                  <button type="button" onClick={() => setStep('PHONE')} className="text-teal-600 hover:underline">Change</button>
-                </p>
-                <div className="flex gap-2">
-                  <input aria-label="text"
-                    type="text"
-                    required
-                    maxLength={6}
-                    value={otp}
-                    onChange={(e) => setOtp(sanitizeInput(e.target.value).replace(/[^0-9]/g, ''))}
-                    className="block w-full text-center tracking-[0.5em] font-mono text-2xl py-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
-                    placeholder="------"
-                  />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full btn-primary flex justify-center items-center py-3 rounded-xl disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                  ) : (
+                    <>
+                      <span>Send OTP</span>
+                      <ChevronRight size={18} className="ml-2" />
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyOtp} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Enter OTP</label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    Sent to {formatPhoneNumber(phoneNumber)}{' '}
+                    <button type="button" onClick={() => setStep('PHONE')} className="text-teal-600 hover:underline">Change</button>
+                  </p>
+                  <div className="flex gap-2">
+                    <input aria-label="text"
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={otp}
+                      onChange={(e) => setOtp(sanitizeInput(e.target.value).replace(/[^0-9]/g, ''))}
+                      className="block w-full text-center tracking-[0.5em] font-mono text-2xl py-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+                      placeholder="------"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                disabled={loading || otp.length !== 6}
-                className="w-full btn-primary flex justify-center items-center py-3 rounded-xl disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                ) : (
-                  <span>Verify & Login</span>
-                )}
-              </button>
-            </form>
-          )) : (
+                <button
+                  type="submit"
+                  disabled={loading || otp.length !== 6}
+                  className="w-full btn-primary flex justify-center items-center py-3 rounded-xl disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                  ) : (
+                    <span>Verify & Login</span>
+                  )}
+                </button>
+              </form>
+            )) : (
             <form onSubmit={handleStaffLogin} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username</label>

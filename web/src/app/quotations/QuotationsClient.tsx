@@ -1,4 +1,3 @@
-import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,6 +5,7 @@ import { Plus, Search, Trash2, Download, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { dataConnect } from '@/lib/firebase';
+import { sanitizeInput } from '@/lib/sanitize';
 import { getActiveSales, softDeleteSale } from '@/dataconnect';
 import Pagination from '@/app/components/Pagination';
 import { FormattedAmount } from '@/components/FormattedAmount';

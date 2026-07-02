@@ -1,8 +1,8 @@
-import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Download, FileText, Calendar, Filter, Loader2 } from 'lucide-react';
+import { sanitizeInput } from '@/lib/sanitize';
 import { dataConnect } from '@/lib/firebase';
 import { getActiveSales } from '@/dataconnect';
 
@@ -14,7 +14,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
     let isMounted = true;
     const fetchSales = async () => {
       try {
-        const res = await getActiveSales(dataConnect, { storeId });
+        const res = await getActiveSales(dataConnect, { storeId, type: 'SALE' });
         if (isMounted) setSales(res.data.sales);
       } catch (err) {
         console.error(err);
@@ -31,7 +31,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
   const generateGSTR1 = () => {
     // Generate CSV
     const headers = ['Invoice ID', 'Date', 'Customer Name', 'Total Amount', 'Taxable Amount', 'Tax Rate', 'Tax Amount'];
-    
+
     const now = Date.now();
     let cutoff = 0;
     if (dateRange === 'month') cutoff = now - 30 * 24 * 60 * 60 * 1000;
@@ -46,7 +46,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
       const taxable = total / 1.18;
       const tax = total - taxable;
       const date = new Date(sale.timestamp || (sale.updatedAt * 1000)).toLocaleDateString('en-IN');
-      
+
       return [
         sale.id.substring(0, 8),
         date,
@@ -75,7 +75,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Financial Reports</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Generate and export compliance reports.</p>
         </div>
-        <select 
+        <select
           value={dateRange}
           onChange={(e) => setDateRange(sanitizeInput(e.target.value) as any)}
           className="px-4 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm"
@@ -102,7 +102,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
             Generate a CSV file formatted for direct import into Tally or other CA software. Contains all B2B and B2C sales.
           </p>
-          <button 
+          <button
             onClick={generateGSTR1}
             disabled={loading}
             className="w-full btn-primary flex justify-center items-center space-x-2 py-3"

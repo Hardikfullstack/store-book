@@ -1,4 +1,3 @@
-import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,6 +5,7 @@ import { Plus, Search, UserCheck, UserMinus, Trash2, Loader2, ArrowDownCircle, M
 import { fetchMoreData } from '@/app/actions';
 import Pagination from '@/app/components/Pagination';
 import { dataConnect } from '@/lib/firebase';
+import { sanitizeInput } from '@/lib/sanitize';
 import { getActiveUdhaars, syncUdhaar, softDeleteUdhaar } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import { useDispatch, useSelector } from 'react-redux';
