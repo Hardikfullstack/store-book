@@ -7,6 +7,7 @@ import { dataConnect } from '@/lib/firebase';
 import { sanitizeInput } from '@/lib/sanitize';
 import { getActiveExpenses, syncExpense, softDeleteExpense } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
+import Pagination from '@/app/components/Pagination';
 
 export default function ExpensesClient({
   initialExpenses,
@@ -18,12 +19,32 @@ export default function ExpensesClient({
   isPremium?: boolean
 }) {
   const [expenses, setExpenses] = useState(initialExpenses);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isPremium || !storeId) return;
+    // Fetch total count once
+    const fetchTotal = async () => {
+      try {
+        const resp = await getActiveExpenses(dataConnect, { storeId });
+        const filtered = resp.data.expenseEntries;
+        setTotalItems(filtered.length);
+      } catch (e) {
+        console.error('Count fetch error:', e);
+      }
+    };
+    fetchTotal();
+  }, [isPremium, storeId]);
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
 
     let isMounted = true;
     const fetchExpenses = async () => {
+      setIsLoading(true);
       try {
         const response = await getActiveExpenses(dataConnect, { storeId });
         if (!isMounted) return;
@@ -38,6 +59,8 @@ export default function ExpensesClient({
         setExpenses(updated);
       } catch (error) {
         console.error("Data Connect expense sync error:", error);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
 
@@ -48,29 +71,9 @@ export default function ExpensesClient({
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId]);
+  }, [isPremium, storeId, currentPage]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(initialExpenses.length === 20);
-
-  const handleLoadMore = async () => {
-    if (loadingMore || !hasMore || expenses.length === 0) return;
-    setLoadingMore(true);
-    try {
-      const lastItem = expenses[expenses.length - 1];
-      const nextBatch = await fetchMoreData('expenses', lastItem.updated_at || lastItem.timestamp || Date.now(), 20);
-      if (nextBatch.length < 20) {
-        setHasMore(false);
-      }
-      setExpenses(prev => [...prev, ...nextBatch]);
-    } catch (error) {
-      console.error("Load more failed", error);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
-
   const [formData, setFormData] = useState({
     type: 'supplies',
     description: '',
@@ -161,7 +164,16 @@ export default function ExpensesClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-              {(() => {
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <div className="flex items-center justify-center space-x-2 text-gray-400 dark:text-gray-500">
+                      <Loader2 size={20} className="animate-spin" />
+                      <span className="text-sm">Loading expenses...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (() => {
                 const filteredExpenses = expenses.filter((expense: any) => {
                   return (
                     (expense.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -208,19 +220,13 @@ export default function ExpensesClient({
             </tbody>
           </table>
         </div>
-
-        {hasMore && !searchQuery && (
-          <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-center">
-            <button
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              className="px-6 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
-            >
-              {loadingMore ? <Loader2 size={16} className="animate-spin" /> : <ArrowDownCircle size={16} />}
-              Load More from Server
-            </button>
-          </div>
-        )}
+        <Pagination
+          currentPage={currentPage}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          isLoading={isLoading}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {showModal && (
