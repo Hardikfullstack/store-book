@@ -6,7 +6,7 @@ import { getSession } from '@/lib/session';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { getDataConnect } from 'firebase-admin/data-connect';
-import { serializeDoc } from '@/lib/serializeDoc';
+
 
 export async function login(idToken: string) {
   const expiresIn = 60 * 60 * 24 * 5 * 1000;
@@ -55,16 +55,7 @@ export async function switchStore(storeId: string) {
   revalidatePath('/');
 }
 
-// -- MIGRATED CRUD ACTIONS (No longer used as client calls DataConnect directly) --
-export async function addItem(data: any) {}
-export async function updateItem(id: string, data: any) {}
-export async function deleteItem(id: string) {}
-export async function addSale(data: any) {}
-export async function deleteSale(id: string) {}
-export async function addUdhaar(data: any) {}
-export async function deleteUdhaar(id: string) {}
-export async function addExpense(data: any) {}
-export async function deleteExpense(id: string) {}
+// -- MIGRATED CRUD ACTIONS DELETED --
 
 export async function createStore(name: string) {
   // Requires Store table migration in schema.gql
@@ -87,16 +78,16 @@ export async function purgeStoreData(storeId: string): Promise<{ success: boolea
     const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
     // Soft delete the store first
     await dc.executeGraphql(
-      `mutation PurgeStore($id: String!) { store_update(id: $id, data: { isActive: false }) { id } }`,
+      `mutation PurgeStore($id: String!) { store_update(id: $id, data: { isActive: false }) }`,
       { variables: { id: storeId } }
     );
     // In a real GDPR purge, we would execute destructive deletes across all tables (sales, udhaar, items)
     // For now, we log the action to the immutable audit log
     await dc.executeGraphql(
       `mutation CreateAudit($adminId: String!, $adminUsername: String!, $action: String!, $targetId: String!, $ts: Float!) {
-        adminAuditLog_insert(data: { adminId: $adminId, adminUsername: $adminUsername, action: $action, targetId: $targetId, timestamp: $ts }) { id }
+        adminAuditLog_insert(data: { adminId: $adminId, adminUsername: $adminUsername, action: $action, targetId: $targetId, timestamp: $ts })
       }`,
-      { variables: { adminId: session.userId, adminUsername: session.username || 'Admin', action: 'GDPR_PURGE', targetId: storeId, ts: Math.floor(Date.now() / 1000) } }
+      { variables: { adminId: session.uid, adminUsername: (session as any).username || 'Admin', action: 'GDPR_PURGE', targetId: storeId, ts: Math.floor(Date.now() / 1000) } }
     );
     
     return { success: true };
@@ -135,7 +126,7 @@ export async function getStoresPaginated(lastId?: string, limitCount = 20) {
         }
       }`, {}
     );
-    return response.data?.stores || [];
+    return (response.data as any)?.stores || [];
   } catch (error) {
     console.error("Error fetching stores:", error);
     return [];
@@ -157,7 +148,7 @@ export async function getUsersPaginated(lastId?: string, limitCount = 20) {
         }
       }`, {}
     );
-    return response.data?.users || [];
+    return (response.data as any)?.users || [];
   } catch (error) {
     console.error("Error fetching users:", error);
     return [];
@@ -174,7 +165,7 @@ export async function toggleStoreStatus(storeId: string, isActive: boolean) {
     const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
     await dc.executeGraphql(
       `mutation ToggleStoreStatus($id: String!, $isActive: Boolean) {
-        store_update(id: $id, data: { isActive: $isActive }) { id }
+        store_update(id: $id, data: { isActive: $isActive })
       }`,
       { variables: { id: storeId, isActive } }
     );
@@ -211,7 +202,7 @@ export async function createStaffAccount(username: string, rawPin: string, permi
     
     await dc.executeGraphql(
       `mutation CreateUser($id: String!, $role: String!, $createdAt: Float!, $storeId: String!, $canViewProfit: Boolean, $canDelete: Boolean) {
-        user_upsert(data: { id: $id, role: $role, createdAt: $createdAt, storeId: $storeId, canViewProfit: $canViewProfit, canDelete: $canDelete }) { id }
+        user_upsert(data: { id: $id, role: $role, createdAt: $createdAt, storeId: $storeId, canViewProfit: $canViewProfit, canDelete: $canDelete })
       }`,
       { variables: { id: userRecord.uid, role: 'staff', createdAt: Math.floor(Date.now() / 1000), storeId: session.storeId, canViewProfit: permissions.canViewProfit, canDelete: permissions.canDelete } }
     );

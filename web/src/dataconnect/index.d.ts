@@ -31,6 +31,19 @@ export interface CreateAdminAuditLogVariables {
   timestamp: number;
 }
 
+export interface CreateUserData {
+  user_upsert: User_Key;
+}
+
+export interface CreateUserVariables {
+  id: string;
+  role: string;
+  createdAt: number;
+  storeId: string;
+  canViewProfit?: boolean | null;
+  canDelete?: boolean | null;
+}
+
 export interface DeleteAnnouncementData {
   announcement_delete?: Announcement_Key | null;
 }
@@ -73,14 +86,22 @@ export interface GetActiveItemsData {
     id: string;
     name: string;
     quantity: number;
-    sellPrice: number;
+    unit: string;
     buyPrice: number;
+    sellPrice: number;
+    lowStockThreshold: number;
     category: string;
+    photoPath?: string | null;
+    hsnCode?: string | null;
+    isDeleted: boolean;
+    updatedAt: number;
   } & Item_Key)[];
 }
 
 export interface GetActiveItemsVariables {
   storeId: string;
+  limit?: number | null;
+  offset?: number | null;
 }
 
 export interface GetActiveSaleItemsData {
@@ -181,6 +202,16 @@ export interface GetGlobalSettingsData {
   } & GlobalSetting_Key)[];
 }
 
+export interface GetItemsCountData {
+  items: ({
+    id: string;
+  } & Item_Key)[];
+}
+
+export interface GetItemsCountVariables {
+  storeId: string;
+}
+
 export interface GetPromoCodesData {
   promoCodes: ({
     id: string;
@@ -259,6 +290,14 @@ export interface PurchaseItemDetail_Key {
 export interface Purchase_Key {
   id: string;
   __typename?: 'Purchase_Key';
+}
+
+export interface PurgeStoreData {
+  store_update?: Store_Key | null;
+}
+
+export interface PurgeStoreVariables {
+  id: string;
 }
 
 export interface SaleItemDetail_Key {
@@ -565,6 +604,15 @@ export interface SyncUserVariables {
   subscriptionId?: string | null;
 }
 
+export interface ToggleStoreStatusData {
+  store_update?: Store_Key | null;
+}
+
+export interface ToggleStoreStatusVariables {
+  id: string;
+  isActive?: boolean | null;
+}
+
 export interface UdhaarEntry_Key {
   id: string;
   __typename?: 'UdhaarEntry_Key';
@@ -802,6 +850,30 @@ export function deletePromoCode(vars: DeletePromoCodeVariables): MutationPromise
 export function deletePromoCode(dc: DataConnect, vars: DeletePromoCodeVariables): MutationPromise<DeletePromoCodeData, DeletePromoCodeVariables>;
 
 /* Allow users to create refs without passing in DataConnect */
+export function toggleStoreStatusRef(vars: ToggleStoreStatusVariables): MutationRef<ToggleStoreStatusData, ToggleStoreStatusVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function toggleStoreStatusRef(dc: DataConnect, vars: ToggleStoreStatusVariables): MutationRef<ToggleStoreStatusData, ToggleStoreStatusVariables>;
+
+export function toggleStoreStatus(vars: ToggleStoreStatusVariables): MutationPromise<ToggleStoreStatusData, ToggleStoreStatusVariables>;
+export function toggleStoreStatus(dc: DataConnect, vars: ToggleStoreStatusVariables): MutationPromise<ToggleStoreStatusData, ToggleStoreStatusVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function purgeStoreRef(vars: PurgeStoreVariables): MutationRef<PurgeStoreData, PurgeStoreVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function purgeStoreRef(dc: DataConnect, vars: PurgeStoreVariables): MutationRef<PurgeStoreData, PurgeStoreVariables>;
+
+export function purgeStore(vars: PurgeStoreVariables): MutationPromise<PurgeStoreData, PurgeStoreVariables>;
+export function purgeStore(dc: DataConnect, vars: PurgeStoreVariables): MutationPromise<PurgeStoreData, PurgeStoreVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function createUserRef(vars: CreateUserVariables): MutationRef<CreateUserData, CreateUserVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function createUserRef(dc: DataConnect, vars: CreateUserVariables): MutationRef<CreateUserData, CreateUserVariables>;
+
+export function createUser(vars: CreateUserVariables): MutationPromise<CreateUserData, CreateUserVariables>;
+export function createUser(dc: DataConnect, vars: CreateUserVariables): MutationPromise<CreateUserData, CreateUserVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
 export function syncItemsRef(vars: SyncItemsVariables): QueryRef<SyncItemsData, SyncItemsVariables>;
 /* Allow users to pass in custom DataConnect instances */
 export function syncItemsRef(dc: DataConnect, vars: SyncItemsVariables): QueryRef<SyncItemsData, SyncItemsVariables>;
@@ -832,6 +904,14 @@ export function getActiveItemsRef(dc: DataConnect, vars: GetActiveItemsVariables
 
 export function getActiveItems(vars: GetActiveItemsVariables): QueryPromise<GetActiveItemsData, GetActiveItemsVariables>;
 export function getActiveItems(dc: DataConnect, vars: GetActiveItemsVariables): QueryPromise<GetActiveItemsData, GetActiveItemsVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getItemsCountRef(vars: GetItemsCountVariables): QueryRef<GetItemsCountData, GetItemsCountVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function getItemsCountRef(dc: DataConnect, vars: GetItemsCountVariables): QueryRef<GetItemsCountData, GetItemsCountVariables>;
+
+export function getItemsCount(vars: GetItemsCountVariables): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
+export function getItemsCount(dc: DataConnect, vars: GetItemsCountVariables): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
 
 /* Allow users to create refs without passing in DataConnect */
 export function syncUdhaarsRef(vars: SyncUdhaarsVariables): QueryRef<SyncUdhaarsData, SyncUdhaarsVariables>;

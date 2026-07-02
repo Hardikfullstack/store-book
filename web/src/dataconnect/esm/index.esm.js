@@ -206,6 +206,36 @@ export function deletePromoCode(dcOrVars, vars) {
   return executeMutation(deletePromoCodeRef(dcOrVars, vars));
 }
 
+export function toggleStoreStatusRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ToggleStoreStatus', inputVars);
+}
+
+export function toggleStoreStatus(dcOrVars, vars) {
+  return executeMutation(toggleStoreStatusRef(dcOrVars, vars));
+}
+
+export function purgeStoreRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'PurgeStore', inputVars);
+}
+
+export function purgeStore(dcOrVars, vars) {
+  return executeMutation(purgeStoreRef(dcOrVars, vars));
+}
+
+export function createUserRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateUser', inputVars);
+}
+
+export function createUser(dcOrVars, vars) {
+  return executeMutation(createUserRef(dcOrVars, vars));
+}
+
 export function syncItemsRef(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -244,6 +274,16 @@ export function getActiveItemsRef(dcOrVars, vars) {
 
 export function getActiveItems(dcOrVars, vars) {
   return executeQuery(getActiveItemsRef(dcOrVars, vars));
+}
+
+export function getItemsCountRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetItemsCount', inputVars);
+}
+
+export function getItemsCount(dcOrVars, vars) {
+  return executeQuery(getItemsCountRef(dcOrVars, vars));
 }
 
 export function syncUdhaarsRef(dcOrVars, vars) {

@@ -316,3 +316,15 @@ mutation UpsertPromoCode($id: String!, $code: String!, $discountPercent: Float, 
 mutation DeletePromoCode($id: String!) @auth(level: USER) {
   promoCode_delete(id: $id)
 }
+
+mutation ToggleStoreStatus($id: String!, $isActive: Boolean) @auth(level: USER) {
+  store_update(id: $id, data: { isActive: $isActive })
+}
+
+mutation PurgeStore($id: String!) @auth(level: USER) {
+  store_update(id: $id, data: { isActive: false })
+}
+
+mutation CreateUser($id: String!, $role: String!, $createdAt: Float!, $storeId: String!, $canViewProfit: Boolean, $canDelete: Boolean) @auth(level: USER) {
+  user_upsert(data: { id: $id, role: $role, createdAt: $createdAt, storeId: $storeId, canViewProfit: $canViewProfit, canDelete: $canDelete })
+}

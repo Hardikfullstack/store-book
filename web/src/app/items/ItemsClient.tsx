@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Edit2, Loader2, ArrowDownCircle } from 'lucide-react';
-import { addItem, updateItem, deleteItem, fetchMoreData } from '@/app/actions';
+import { fetchMoreData } from '@/app/actions';
 import ExportButtons from '@/app/ExportButtons';
 import { dataConnect } from '@/lib/firebase';
-import { getActiveItems, syncItem, softDeleteItem } from '@/dataconnect';
+import { getActiveItems, syncItem, softDeleteItem, getItemsCount } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import RestockQuantity from '@/components/models/RestockQuantity';
 import { useDispatch, useSelector } from 'react-redux';
@@ -602,7 +602,19 @@ export default function ItemsClient({
           };
 
           setItems((prev) => prev.map((item: any) => item.id === reStockQuantity.id ? updatedItem : item));
-          await updateItem(reStockQuantity.id, updatedItem);
+          await syncItem(dataConnect, {
+            id: reStockQuantity.id,
+            storeId: storeId as string,
+            name: updatedItem.name,
+            quantity: updatedItem.quantity,
+            unit: updatedItem.unit || 'pcs',
+            buyPrice: updatedItem.buy_price,
+            sellPrice: updatedItem.sell_price,
+            lowStockThreshold: updatedItem.low_stock_threshold,
+            category: updatedItem.category,
+            isDeleted: false,
+            updatedAt: Math.floor(updatedItem.updated_at / 1000)
+          });
           setReStockQuantity(null);
         }}
       />

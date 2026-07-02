@@ -31,6 +31,7 @@ interface CartItem {
 export default function SalesPOS({
   storeId,
   type = 'SALE',
+  userRole = 'owner',
   onClose,
   onSuccess
 }: {
@@ -238,8 +239,6 @@ export default function SalesPOS({
             sellPrice: c.item.sellPrice,
             lowStockThreshold: c.item.lowStockThreshold || 0,
             category: c.item.category || '',
-            photoPath: c.item.photoPath || '',
-            hsnCode: c.item.hsnCode || '',
             isDeleted: false,
             updatedAt
           });

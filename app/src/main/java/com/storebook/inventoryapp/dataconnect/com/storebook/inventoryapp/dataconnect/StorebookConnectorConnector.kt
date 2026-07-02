@@ -20,6 +20,8 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
   
     public val createAdminAuditLog: CreateAdminAuditLogMutation
   
+    public val createUser: CreateUserMutation
+  
     public val deleteAnnouncement: DeleteAnnouncementMutation
   
     public val deletePromoCode: DeletePromoCodeMutation
@@ -42,6 +44,8 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
   
     public val getGlobalSettings: GetGlobalSettingsQuery
   
+    public val getItemsCount: GetItemsCountQuery
+  
     public val getPromoCodes: GetPromoCodesQuery
   
     public val getStoresPaginated: GetStoresPaginatedQuery
@@ -49,6 +53,8 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
     public val getUser: GetUserQuery
   
     public val getUsersPaginated: GetUsersPaginatedQuery
+  
+    public val purgeStore: PurgeStoreMutation
   
     public val softDeleteExpense: SoftDeleteExpenseMutation
   
@@ -83,6 +89,8 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
     public val syncUdhaars: SyncUdhaarsQuery
   
     public val syncUser: SyncUserMutation
+  
+    public val toggleStoreStatus: ToggleStoreStatusMutation
   
     public val updateStore: UpdateStoreMutation
   
@@ -137,6 +145,10 @@ private class StorebookConnectorConnectorImpl(
       CreateAdminAuditLogMutationImpl(this)
     }
   
+    override val createUser by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      CreateUserMutationImpl(this)
+    }
+  
     override val deleteAnnouncement by lazy(LazyThreadSafetyMode.PUBLICATION) {
       DeleteAnnouncementMutationImpl(this)
     }
@@ -181,6 +193,10 @@ private class StorebookConnectorConnectorImpl(
       GetGlobalSettingsQueryImpl(this)
     }
   
+    override val getItemsCount by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetItemsCountQueryImpl(this)
+    }
+  
     override val getPromoCodes by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetPromoCodesQueryImpl(this)
     }
@@ -195,6 +211,10 @@ private class StorebookConnectorConnectorImpl(
   
     override val getUsersPaginated by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetUsersPaginatedQueryImpl(this)
+    }
+  
+    override val purgeStore by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      PurgeStoreMutationImpl(this)
     }
   
     override val softDeleteExpense by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -265,6 +285,10 @@ private class StorebookConnectorConnectorImpl(
       SyncUserMutationImpl(this)
     }
   
+    override val toggleStoreStatus by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      ToggleStoreStatusMutationImpl(this)
+    }
+  
     override val updateStore by lazy(LazyThreadSafetyMode.PUBLICATION) {
       UpdateStoreMutationImpl(this)
     }
@@ -294,8 +318,10 @@ private class StorebookConnectorConnectorImpl(
   override fun mutations(): List<com.google.firebase.dataconnect.generated.GeneratedMutation<StorebookConnectorConnector, *, *>> =
     listOf(
       createAdminAuditLog,
+        createUser,
         deleteAnnouncement,
         deletePromoCode,
+        purgeStore,
         softDeleteExpense,
         softDeleteItem,
         softDeleteSale,
@@ -308,6 +334,7 @@ private class StorebookConnectorConnectorImpl(
         syncSupplier,
         syncUdhaar,
         syncUser,
+        toggleStoreStatus,
         updateStore,
         updateUser,
         upsertAnnouncement,
@@ -328,6 +355,7 @@ private class StorebookConnectorConnectorImpl(
         getAdminAuditLogs,
         getAnnouncements,
         getGlobalSettings,
+        getItemsCount,
         getPromoCodes,
         getStoresPaginated,
         getUser,
@@ -484,6 +512,21 @@ private class CreateAdminAuditLogMutationImpl(
     CreateAdminAuditLogMutation.Companion.operationName,
     CreateAdminAuditLogMutation.Companion.dataDeserializer,
     CreateAdminAuditLogMutation.Companion.variablesSerializer,
+  )
+
+
+private class CreateUserMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  CreateUserMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      CreateUserMutation.Data,
+      CreateUserMutation.Variables
+  >(
+    connector,
+    CreateUserMutation.Companion.operationName,
+    CreateUserMutation.Companion.dataDeserializer,
+    CreateUserMutation.Companion.variablesSerializer,
   )
 
 
@@ -652,6 +695,21 @@ private class GetGlobalSettingsQueryImpl(
   )
 
 
+private class GetItemsCountQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetItemsCountQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetItemsCountQuery.Data,
+      GetItemsCountQuery.Variables
+  >(
+    connector,
+    GetItemsCountQuery.Companion.operationName,
+    GetItemsCountQuery.Companion.dataDeserializer,
+    GetItemsCountQuery.Companion.variablesSerializer,
+  )
+
+
 private class GetPromoCodesQueryImpl(
   connector: StorebookConnectorConnector
 ):
@@ -709,6 +767,21 @@ private class GetUsersPaginatedQueryImpl(
     GetUsersPaginatedQuery.Companion.operationName,
     GetUsersPaginatedQuery.Companion.dataDeserializer,
     GetUsersPaginatedQuery.Companion.variablesSerializer,
+  )
+
+
+private class PurgeStoreMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  PurgeStoreMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      PurgeStoreMutation.Data,
+      PurgeStoreMutation.Variables
+  >(
+    connector,
+    PurgeStoreMutation.Companion.operationName,
+    PurgeStoreMutation.Companion.dataDeserializer,
+    PurgeStoreMutation.Companion.variablesSerializer,
   )
 
 
@@ -964,6 +1037,21 @@ private class SyncUserMutationImpl(
     SyncUserMutation.Companion.operationName,
     SyncUserMutation.Companion.dataDeserializer,
     SyncUserMutation.Companion.variablesSerializer,
+  )
+
+
+private class ToggleStoreStatusMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  ToggleStoreStatusMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      ToggleStoreStatusMutation.Data,
+      ToggleStoreStatusMutation.Variables
+  >(
+    connector,
+    ToggleStoreStatusMutation.Companion.operationName,
+    ToggleStoreStatusMutation.Companion.dataDeserializer,
+    ToggleStoreStatusMutation.Companion.variablesSerializer,
   )
 
 

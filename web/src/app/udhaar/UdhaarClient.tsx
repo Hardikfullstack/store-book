@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Search, UserCheck, UserMinus, Trash2, Loader2, ArrowDownCircle, MessageCircle } from 'lucide-react';
-import { addUdhaar, deleteUdhaar, fetchMoreData } from '@/app/actions';
+import { fetchMoreData } from '@/app/actions';
 import { dataConnect } from '@/lib/firebase';
 import { getActiveUdhaars, syncUdhaar, softDeleteUdhaar } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';

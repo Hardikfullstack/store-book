@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Search, Tag, Trash2, Loader2, ArrowDownCircle } from 'lucide-react';
-import { addExpense, deleteExpense, fetchMoreData } from '@/app/actions';
+import { fetchMoreData } from '@/app/actions';
 import { dataConnect } from '@/lib/firebase';
 import { getActiveExpenses, syncExpense, softDeleteExpense } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';

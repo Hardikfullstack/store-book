@@ -167,6 +167,30 @@ exports.deletePromoCodeRef = function deletePromoCodeRef(dcOrVars, vars) {
 exports.deletePromoCode = function deletePromoCode(dcOrVars, vars) {
   return executeMutation(deletePromoCodeRef(dcOrVars, vars));
 };
+exports.toggleStoreStatusRef = function toggleStoreStatusRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ToggleStoreStatus', inputVars);
+}
+exports.toggleStoreStatus = function toggleStoreStatus(dcOrVars, vars) {
+  return executeMutation(toggleStoreStatusRef(dcOrVars, vars));
+};
+exports.purgeStoreRef = function purgeStoreRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'PurgeStore', inputVars);
+}
+exports.purgeStore = function purgeStore(dcOrVars, vars) {
+  return executeMutation(purgeStoreRef(dcOrVars, vars));
+};
+exports.createUserRef = function createUserRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateUser', inputVars);
+}
+exports.createUser = function createUser(dcOrVars, vars) {
+  return executeMutation(createUserRef(dcOrVars, vars));
+};
 exports.syncItemsRef = function syncItemsRef(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -198,6 +222,14 @@ exports.getActiveItemsRef = function getActiveItemsRef(dcOrVars, vars) {
 }
 exports.getActiveItems = function getActiveItems(dcOrVars, vars) {
   return executeQuery(getActiveItemsRef(dcOrVars, vars));
+};
+exports.getItemsCountRef = function getItemsCountRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetItemsCount', inputVars);
+}
+exports.getItemsCount = function getItemsCount(dcOrVars, vars) {
+  return executeQuery(getItemsCountRef(dcOrVars, vars));
 };
 exports.syncUdhaarsRef = function syncUdhaarsRef(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);

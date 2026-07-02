@@ -20,9 +20,9 @@ export default async function AdminSettingsPage() {
 
     return (
       <SettingsClient 
-        initialSettings={settingsRes.data?.globalSettings || []}
-        initialPromoCodes={promosRes.data?.promoCodes || []}
-        initialAnnouncements={announcementsRes.data?.announcements || []}
+        initialSettings={(settingsRes.data as any)?.globalSettings || []}
+        initialPromoCodes={(promosRes.data as any)?.promoCodes || []}
+        initialAnnouncements={(announcementsRes.data as any)?.announcements || []}
       />
     );
   } catch (error) {

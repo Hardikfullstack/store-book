@@ -14,7 +14,7 @@ export default function DashboardCharts({
   itemsData: any[],
   saleItemsData?: any[]
 }) {
-  const [chartType, setChartType] = useState<'customer' | 'product' | 'fast' | 'dead'>('customer');
+  const [chartType, setChartType] = useState<'customer' | 'product' | 'fast' | 'dead' | 'profit'>('customer');
 
   const customerData = salesData.reduce((acc: any, sale: any) => {
     const name = sale.customer_name || 'Walk-in';

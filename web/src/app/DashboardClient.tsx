@@ -179,7 +179,7 @@ export default function DashboardClient({
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Here's what's happening with your store today. (SSR via Firebase)</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Here's what's happening with your store today. (Data Connect)</p>
         </div>
         <div>
           <select 
