@@ -1,3 +1,4 @@
+import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState } from 'react';
@@ -80,7 +81,7 @@ export default function UsersClient({ initialUsers, availableStores }: { initial
                   <td className="p-4">
                     <select 
                       value={user.role || 'client'} 
-                      onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                      onChange={(e) => handleRoleChange(user.id, sanitizeInput(e.target.value))}
                       disabled={user.id === '+919999999999'}
                       className="text-sm p-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white disabled:opacity-50"
                     >
@@ -91,7 +92,7 @@ export default function UsersClient({ initialUsers, availableStores }: { initial
                   <td className="p-4">
                     <select 
                       value={user.storeId || 'none'} 
-                      onChange={(e) => handleStoreChange(user.id, e.target.value)}
+                      onChange={(e) => handleStoreChange(user.id, sanitizeInput(e.target.value))}
                       disabled={user.role === 'admin' || user.id === '+919999999999'}
                       className="text-sm p-1.5 w-full max-w-[200px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white disabled:opacity-50"
                     >

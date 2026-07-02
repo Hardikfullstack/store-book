@@ -1,3 +1,4 @@
+import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState } from 'react';
@@ -83,7 +84,7 @@ export default function DashboardCharts({
         <h3 className="font-bold text-gray-900 dark:text-white">{title}</h3>
         <select 
           value={chartType} 
-          onChange={(e) => setChartType(e.target.value as any)}
+          onChange={(e) => setChartType(sanitizeInput(e.target.value) as any)}
           className="text-sm border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg dark:text-gray-200 p-1 outline-none"
         >
           <option value="customer">By Customer</option>

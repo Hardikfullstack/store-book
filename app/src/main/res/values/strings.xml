@@ -261,5 +261,5 @@
     <string name="ana_date_this_month">This Month</string>
     <string name="ana_date_custom">Custom Date</string>
     <string name="ana_date_all_time">All Time</string>
-    <string name="ui_element_desc">UI Element</string>
+    <string name="ui_element_desc" translatable="false">UI Element</string>
 </resources>

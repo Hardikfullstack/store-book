@@ -22,6 +22,10 @@
   - [*GetAdminAuditLogs*](#getadminauditlogs)
   - [*GetAnnouncements*](#getannouncements)
   - [*GetPromoCodes*](#getpromocodes)
+  - [*SyncSuppliers*](#syncsuppliers)
+  - [*SyncPurchases*](#syncpurchases)
+  - [*SyncPurchaseItems*](#syncpurchaseitems)
+  - [*SyncItemBatches*](#syncitembatches)
 - [**Mutations**](#mutations)
   - [*SyncItem*](#syncitem)
   - [*SyncSale*](#syncsale)
@@ -46,6 +50,9 @@
   - [*ToggleStoreStatus*](#togglestorestatus)
   - [*PurgeStore*](#purgestore)
   - [*CreateUser*](#createuser)
+  - [*SyncPurchase*](#syncpurchase)
+  - [*SyncPurchaseItem*](#syncpurchaseitem)
+  - [*SyncItemBatch*](#syncitembatch)
 
 # Generated TypeScript README
 This README will guide you through the process of using the generated TypeScript SDK package for the connector `storebook-connector`. It will also provide examples on how to use your generated SDK to call your Data Connect queries and mutations.
@@ -249,6 +256,7 @@ export interface SyncSalesData {
     customerAddress?: string | null;
     businessAddress?: string | null;
     type: string;
+    notes?: string | null;
     isDeleted: boolean;
     updatedAt: number;
   } & Sale_Key)[];
@@ -1960,6 +1968,438 @@ console.log(data.promoCodes);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.promoCodes);
+});
+```
+
+## SyncSuppliers
+You can execute the `SyncSuppliers` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```javascript
+syncSuppliers(vars: SyncSuppliersVariables): QueryPromise<SyncSuppliersData, SyncSuppliersVariables>;
+
+syncSuppliersRef(vars: SyncSuppliersVariables): QueryRef<SyncSuppliersData, SyncSuppliersVariables>;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```javascript
+syncSuppliers(dc: DataConnect, vars: SyncSuppliersVariables): QueryPromise<SyncSuppliersData, SyncSuppliersVariables>;
+
+syncSuppliersRef(dc: DataConnect, vars: SyncSuppliersVariables): QueryRef<SyncSuppliersData, SyncSuppliersVariables>;
+```
+
+### Variables
+The `SyncSuppliers` query requires an argument of type `SyncSuppliersVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```javascript
+export interface SyncSuppliersVariables {
+  storeId: string;
+  lastSync: number;
+}
+```
+### Return Type
+Recall that executing the `SyncSuppliers` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `SyncSuppliersData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```javascript
+export interface SyncSuppliersData {
+  suppliers: ({
+    id: string;
+    storeId: string;
+    name: string;
+    phone?: string | null;
+    gstin?: string | null;
+    address?: string | null;
+    isDeleted: boolean;
+    updatedAt: number;
+  } & Supplier_Key)[];
+}
+```
+### Using `SyncSuppliers`'s action shortcut function
+
+```javascript
+import { getDataConnect, DataConnect } from 'firebase/data-connect';
+import { connectorConfig, syncSuppliers, SyncSuppliersVariables } from '@storebook/dataconnect';
+
+// The `SyncSuppliers` query requires an argument of type `SyncSuppliersVariables`:
+const syncSuppliersVars: SyncSuppliersVariables = {
+  storeId: ..., 
+  lastSync: ..., 
+};
+
+// Call the `syncSuppliers()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await syncSuppliers(syncSuppliersVars);
+// Variables can be defined inline as well.
+const { data } = await syncSuppliers({ storeId: ..., lastSync: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await syncSuppliers(dataConnect, syncSuppliersVars);
+
+console.log(data.suppliers);
+
+// Or, you can use the `Promise` API.
+syncSuppliers(syncSuppliersVars).then((response) => {
+  const data = response.data;
+  console.log(data.suppliers);
+});
+```
+
+### Using `SyncSuppliers`'s `QueryRef` function
+
+```javascript
+import { getDataConnect, DataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, syncSuppliersRef, SyncSuppliersVariables } from '@storebook/dataconnect';
+
+// The `SyncSuppliers` query requires an argument of type `SyncSuppliersVariables`:
+const syncSuppliersVars: SyncSuppliersVariables = {
+  storeId: ..., 
+  lastSync: ..., 
+};
+
+// Call the `syncSuppliersRef()` function to get a reference to the query.
+const ref = syncSuppliersRef(syncSuppliersVars);
+// Variables can be defined inline as well.
+const ref = syncSuppliersRef({ storeId: ..., lastSync: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = syncSuppliersRef(dataConnect, syncSuppliersVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.suppliers);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.suppliers);
+});
+```
+
+## SyncPurchases
+You can execute the `SyncPurchases` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```javascript
+syncPurchases(vars: SyncPurchasesVariables): QueryPromise<SyncPurchasesData, SyncPurchasesVariables>;
+
+syncPurchasesRef(vars: SyncPurchasesVariables): QueryRef<SyncPurchasesData, SyncPurchasesVariables>;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```javascript
+syncPurchases(dc: DataConnect, vars: SyncPurchasesVariables): QueryPromise<SyncPurchasesData, SyncPurchasesVariables>;
+
+syncPurchasesRef(dc: DataConnect, vars: SyncPurchasesVariables): QueryRef<SyncPurchasesData, SyncPurchasesVariables>;
+```
+
+### Variables
+The `SyncPurchases` query requires an argument of type `SyncPurchasesVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```javascript
+export interface SyncPurchasesVariables {
+  storeId: string;
+  lastSync: number;
+}
+```
+### Return Type
+Recall that executing the `SyncPurchases` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `SyncPurchasesData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```javascript
+export interface SyncPurchasesData {
+  purchases: ({
+    id: string;
+    storeId: string;
+    supplierId: string;
+    supplierName: string;
+    totalAmount: number;
+    taxAmount: number;
+    type: string;
+    timestamp: number;
+    notes?: string | null;
+    isDeleted: boolean;
+    updatedAt: number;
+  } & Purchase_Key)[];
+}
+```
+### Using `SyncPurchases`'s action shortcut function
+
+```javascript
+import { getDataConnect, DataConnect } from 'firebase/data-connect';
+import { connectorConfig, syncPurchases, SyncPurchasesVariables } from '@storebook/dataconnect';
+
+// The `SyncPurchases` query requires an argument of type `SyncPurchasesVariables`:
+const syncPurchasesVars: SyncPurchasesVariables = {
+  storeId: ..., 
+  lastSync: ..., 
+};
+
+// Call the `syncPurchases()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await syncPurchases(syncPurchasesVars);
+// Variables can be defined inline as well.
+const { data } = await syncPurchases({ storeId: ..., lastSync: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await syncPurchases(dataConnect, syncPurchasesVars);
+
+console.log(data.purchases);
+
+// Or, you can use the `Promise` API.
+syncPurchases(syncPurchasesVars).then((response) => {
+  const data = response.data;
+  console.log(data.purchases);
+});
+```
+
+### Using `SyncPurchases`'s `QueryRef` function
+
+```javascript
+import { getDataConnect, DataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, syncPurchasesRef, SyncPurchasesVariables } from '@storebook/dataconnect';
+
+// The `SyncPurchases` query requires an argument of type `SyncPurchasesVariables`:
+const syncPurchasesVars: SyncPurchasesVariables = {
+  storeId: ..., 
+  lastSync: ..., 
+};
+
+// Call the `syncPurchasesRef()` function to get a reference to the query.
+const ref = syncPurchasesRef(syncPurchasesVars);
+// Variables can be defined inline as well.
+const ref = syncPurchasesRef({ storeId: ..., lastSync: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = syncPurchasesRef(dataConnect, syncPurchasesVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.purchases);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.purchases);
+});
+```
+
+## SyncPurchaseItems
+You can execute the `SyncPurchaseItems` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```javascript
+syncPurchaseItems(vars: SyncPurchaseItemsVariables): QueryPromise<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+
+syncPurchaseItemsRef(vars: SyncPurchaseItemsVariables): QueryRef<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```javascript
+syncPurchaseItems(dc: DataConnect, vars: SyncPurchaseItemsVariables): QueryPromise<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+
+syncPurchaseItemsRef(dc: DataConnect, vars: SyncPurchaseItemsVariables): QueryRef<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+```
+
+### Variables
+The `SyncPurchaseItems` query requires an argument of type `SyncPurchaseItemsVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```javascript
+export interface SyncPurchaseItemsVariables {
+  storeId: string;
+  lastSync: number;
+}
+```
+### Return Type
+Recall that executing the `SyncPurchaseItems` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `SyncPurchaseItemsData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```javascript
+export interface SyncPurchaseItemsData {
+  purchaseItemDetails: ({
+    id: string;
+    storeId: string;
+    purchaseId: string;
+    itemId: string;
+    itemName: string;
+    quantity: number;
+    unit: string;
+    buyPrice: number;
+    isDeleted: boolean;
+    updatedAt: number;
+  } & PurchaseItemDetail_Key)[];
+}
+```
+### Using `SyncPurchaseItems`'s action shortcut function
+
+```javascript
+import { getDataConnect, DataConnect } from 'firebase/data-connect';
+import { connectorConfig, syncPurchaseItems, SyncPurchaseItemsVariables } from '@storebook/dataconnect';
+
+// The `SyncPurchaseItems` query requires an argument of type `SyncPurchaseItemsVariables`:
+const syncPurchaseItemsVars: SyncPurchaseItemsVariables = {
+  storeId: ..., 
+  lastSync: ..., 
+};
+
+// Call the `syncPurchaseItems()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await syncPurchaseItems(syncPurchaseItemsVars);
+// Variables can be defined inline as well.
+const { data } = await syncPurchaseItems({ storeId: ..., lastSync: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await syncPurchaseItems(dataConnect, syncPurchaseItemsVars);
+
+console.log(data.purchaseItemDetails);
+
+// Or, you can use the `Promise` API.
+syncPurchaseItems(syncPurchaseItemsVars).then((response) => {
+  const data = response.data;
+  console.log(data.purchaseItemDetails);
+});
+```
+
+### Using `SyncPurchaseItems`'s `QueryRef` function
+
+```javascript
+import { getDataConnect, DataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, syncPurchaseItemsRef, SyncPurchaseItemsVariables } from '@storebook/dataconnect';
+
+// The `SyncPurchaseItems` query requires an argument of type `SyncPurchaseItemsVariables`:
+const syncPurchaseItemsVars: SyncPurchaseItemsVariables = {
+  storeId: ..., 
+  lastSync: ..., 
+};
+
+// Call the `syncPurchaseItemsRef()` function to get a reference to the query.
+const ref = syncPurchaseItemsRef(syncPurchaseItemsVars);
+// Variables can be defined inline as well.
+const ref = syncPurchaseItemsRef({ storeId: ..., lastSync: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = syncPurchaseItemsRef(dataConnect, syncPurchaseItemsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.purchaseItemDetails);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.purchaseItemDetails);
+});
+```
+
+## SyncItemBatches
+You can execute the `SyncItemBatches` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```javascript
+syncItemBatches(vars: SyncItemBatchesVariables): QueryPromise<SyncItemBatchesData, SyncItemBatchesVariables>;
+
+syncItemBatchesRef(vars: SyncItemBatchesVariables): QueryRef<SyncItemBatchesData, SyncItemBatchesVariables>;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```javascript
+syncItemBatches(dc: DataConnect, vars: SyncItemBatchesVariables): QueryPromise<SyncItemBatchesData, SyncItemBatchesVariables>;
+
+syncItemBatchesRef(dc: DataConnect, vars: SyncItemBatchesVariables): QueryRef<SyncItemBatchesData, SyncItemBatchesVariables>;
+```
+
+### Variables
+The `SyncItemBatches` query requires an argument of type `SyncItemBatchesVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```javascript
+export interface SyncItemBatchesVariables {
+  storeId: string;
+  lastSync: number;
+}
+```
+### Return Type
+Recall that executing the `SyncItemBatches` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `SyncItemBatchesData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```javascript
+export interface SyncItemBatchesData {
+  itemBatches: ({
+    id: string;
+    storeId: string;
+    itemId: string;
+    batchNumber?: string | null;
+    expiryDate?: number | null;
+    quantity: number;
+    costPrice: number;
+    timestamp: number;
+    notes?: string | null;
+    isDeleted: boolean;
+    updatedAt: number;
+  } & ItemBatch_Key)[];
+}
+```
+### Using `SyncItemBatches`'s action shortcut function
+
+```javascript
+import { getDataConnect, DataConnect } from 'firebase/data-connect';
+import { connectorConfig, syncItemBatches, SyncItemBatchesVariables } from '@storebook/dataconnect';
+
+// The `SyncItemBatches` query requires an argument of type `SyncItemBatchesVariables`:
+const syncItemBatchesVars: SyncItemBatchesVariables = {
+  storeId: ..., 
+  lastSync: ..., 
+};
+
+// Call the `syncItemBatches()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await syncItemBatches(syncItemBatchesVars);
+// Variables can be defined inline as well.
+const { data } = await syncItemBatches({ storeId: ..., lastSync: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await syncItemBatches(dataConnect, syncItemBatchesVars);
+
+console.log(data.itemBatches);
+
+// Or, you can use the `Promise` API.
+syncItemBatches(syncItemBatchesVars).then((response) => {
+  const data = response.data;
+  console.log(data.itemBatches);
+});
+```
+
+### Using `SyncItemBatches`'s `QueryRef` function
+
+```javascript
+import { getDataConnect, DataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, syncItemBatchesRef, SyncItemBatchesVariables } from '@storebook/dataconnect';
+
+// The `SyncItemBatches` query requires an argument of type `SyncItemBatchesVariables`:
+const syncItemBatchesVars: SyncItemBatchesVariables = {
+  storeId: ..., 
+  lastSync: ..., 
+};
+
+// Call the `syncItemBatchesRef()` function to get a reference to the query.
+const ref = syncItemBatchesRef(syncItemBatchesVars);
+// Variables can be defined inline as well.
+const ref = syncItemBatchesRef({ storeId: ..., lastSync: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = syncItemBatchesRef(dataConnect, syncItemBatchesVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.itemBatches);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.itemBatches);
 });
 ```
 
@@ -4503,6 +4943,375 @@ console.log(data.user_upsert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.user_upsert);
+});
+```
+
+## SyncPurchase
+You can execute the `SyncPurchase` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```javascript
+syncPurchase(vars: SyncPurchaseVariables): MutationPromise<SyncPurchaseData, SyncPurchaseVariables>;
+
+syncPurchaseRef(vars: SyncPurchaseVariables): MutationRef<SyncPurchaseData, SyncPurchaseVariables>;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```javascript
+syncPurchase(dc: DataConnect, vars: SyncPurchaseVariables): MutationPromise<SyncPurchaseData, SyncPurchaseVariables>;
+
+syncPurchaseRef(dc: DataConnect, vars: SyncPurchaseVariables): MutationRef<SyncPurchaseData, SyncPurchaseVariables>;
+```
+
+### Variables
+The `SyncPurchase` mutation requires an argument of type `SyncPurchaseVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```javascript
+export interface SyncPurchaseVariables {
+  id: string;
+  storeId: string;
+  supplierId: string;
+  supplierName: string;
+  totalAmount: number;
+  taxAmount: number;
+  type: string;
+  timestamp: number;
+  notes?: string | null;
+  isDeleted: boolean;
+  updatedAt: number;
+}
+```
+### Return Type
+Recall that executing the `SyncPurchase` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `SyncPurchaseData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```javascript
+export interface SyncPurchaseData {
+  purchase_upsert: Purchase_Key;
+}
+```
+### Using `SyncPurchase`'s action shortcut function
+
+```javascript
+import { getDataConnect, DataConnect } from 'firebase/data-connect';
+import { connectorConfig, syncPurchase, SyncPurchaseVariables } from '@storebook/dataconnect';
+
+// The `SyncPurchase` mutation requires an argument of type `SyncPurchaseVariables`:
+const syncPurchaseVars: SyncPurchaseVariables = {
+  id: ..., 
+  storeId: ..., 
+  supplierId: ..., 
+  supplierName: ..., 
+  totalAmount: ..., 
+  taxAmount: ..., 
+  type: ..., 
+  timestamp: ..., 
+  notes: ..., // optional
+  isDeleted: ..., 
+  updatedAt: ..., 
+};
+
+// Call the `syncPurchase()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await syncPurchase(syncPurchaseVars);
+// Variables can be defined inline as well.
+const { data } = await syncPurchase({ id: ..., storeId: ..., supplierId: ..., supplierName: ..., totalAmount: ..., taxAmount: ..., type: ..., timestamp: ..., notes: ..., isDeleted: ..., updatedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await syncPurchase(dataConnect, syncPurchaseVars);
+
+console.log(data.purchase_upsert);
+
+// Or, you can use the `Promise` API.
+syncPurchase(syncPurchaseVars).then((response) => {
+  const data = response.data;
+  console.log(data.purchase_upsert);
+});
+```
+
+### Using `SyncPurchase`'s `MutationRef` function
+
+```javascript
+import { getDataConnect, DataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, syncPurchaseRef, SyncPurchaseVariables } from '@storebook/dataconnect';
+
+// The `SyncPurchase` mutation requires an argument of type `SyncPurchaseVariables`:
+const syncPurchaseVars: SyncPurchaseVariables = {
+  id: ..., 
+  storeId: ..., 
+  supplierId: ..., 
+  supplierName: ..., 
+  totalAmount: ..., 
+  taxAmount: ..., 
+  type: ..., 
+  timestamp: ..., 
+  notes: ..., // optional
+  isDeleted: ..., 
+  updatedAt: ..., 
+};
+
+// Call the `syncPurchaseRef()` function to get a reference to the mutation.
+const ref = syncPurchaseRef(syncPurchaseVars);
+// Variables can be defined inline as well.
+const ref = syncPurchaseRef({ id: ..., storeId: ..., supplierId: ..., supplierName: ..., totalAmount: ..., taxAmount: ..., type: ..., timestamp: ..., notes: ..., isDeleted: ..., updatedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = syncPurchaseRef(dataConnect, syncPurchaseVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.purchase_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.purchase_upsert);
+});
+```
+
+## SyncPurchaseItem
+You can execute the `SyncPurchaseItem` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```javascript
+syncPurchaseItem(vars: SyncPurchaseItemVariables): MutationPromise<SyncPurchaseItemData, SyncPurchaseItemVariables>;
+
+syncPurchaseItemRef(vars: SyncPurchaseItemVariables): MutationRef<SyncPurchaseItemData, SyncPurchaseItemVariables>;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```javascript
+syncPurchaseItem(dc: DataConnect, vars: SyncPurchaseItemVariables): MutationPromise<SyncPurchaseItemData, SyncPurchaseItemVariables>;
+
+syncPurchaseItemRef(dc: DataConnect, vars: SyncPurchaseItemVariables): MutationRef<SyncPurchaseItemData, SyncPurchaseItemVariables>;
+```
+
+### Variables
+The `SyncPurchaseItem` mutation requires an argument of type `SyncPurchaseItemVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```javascript
+export interface SyncPurchaseItemVariables {
+  id: string;
+  storeId: string;
+  purchaseId: string;
+  itemId: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  buyPrice: number;
+  isDeleted: boolean;
+  updatedAt: number;
+}
+```
+### Return Type
+Recall that executing the `SyncPurchaseItem` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `SyncPurchaseItemData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```javascript
+export interface SyncPurchaseItemData {
+  purchaseItemDetail_upsert: PurchaseItemDetail_Key;
+}
+```
+### Using `SyncPurchaseItem`'s action shortcut function
+
+```javascript
+import { getDataConnect, DataConnect } from 'firebase/data-connect';
+import { connectorConfig, syncPurchaseItem, SyncPurchaseItemVariables } from '@storebook/dataconnect';
+
+// The `SyncPurchaseItem` mutation requires an argument of type `SyncPurchaseItemVariables`:
+const syncPurchaseItemVars: SyncPurchaseItemVariables = {
+  id: ..., 
+  storeId: ..., 
+  purchaseId: ..., 
+  itemId: ..., 
+  itemName: ..., 
+  quantity: ..., 
+  unit: ..., 
+  buyPrice: ..., 
+  isDeleted: ..., 
+  updatedAt: ..., 
+};
+
+// Call the `syncPurchaseItem()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await syncPurchaseItem(syncPurchaseItemVars);
+// Variables can be defined inline as well.
+const { data } = await syncPurchaseItem({ id: ..., storeId: ..., purchaseId: ..., itemId: ..., itemName: ..., quantity: ..., unit: ..., buyPrice: ..., isDeleted: ..., updatedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await syncPurchaseItem(dataConnect, syncPurchaseItemVars);
+
+console.log(data.purchaseItemDetail_upsert);
+
+// Or, you can use the `Promise` API.
+syncPurchaseItem(syncPurchaseItemVars).then((response) => {
+  const data = response.data;
+  console.log(data.purchaseItemDetail_upsert);
+});
+```
+
+### Using `SyncPurchaseItem`'s `MutationRef` function
+
+```javascript
+import { getDataConnect, DataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, syncPurchaseItemRef, SyncPurchaseItemVariables } from '@storebook/dataconnect';
+
+// The `SyncPurchaseItem` mutation requires an argument of type `SyncPurchaseItemVariables`:
+const syncPurchaseItemVars: SyncPurchaseItemVariables = {
+  id: ..., 
+  storeId: ..., 
+  purchaseId: ..., 
+  itemId: ..., 
+  itemName: ..., 
+  quantity: ..., 
+  unit: ..., 
+  buyPrice: ..., 
+  isDeleted: ..., 
+  updatedAt: ..., 
+};
+
+// Call the `syncPurchaseItemRef()` function to get a reference to the mutation.
+const ref = syncPurchaseItemRef(syncPurchaseItemVars);
+// Variables can be defined inline as well.
+const ref = syncPurchaseItemRef({ id: ..., storeId: ..., purchaseId: ..., itemId: ..., itemName: ..., quantity: ..., unit: ..., buyPrice: ..., isDeleted: ..., updatedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = syncPurchaseItemRef(dataConnect, syncPurchaseItemVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.purchaseItemDetail_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.purchaseItemDetail_upsert);
+});
+```
+
+## SyncItemBatch
+You can execute the `SyncItemBatch` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```javascript
+syncItemBatch(vars: SyncItemBatchVariables): MutationPromise<SyncItemBatchData, SyncItemBatchVariables>;
+
+syncItemBatchRef(vars: SyncItemBatchVariables): MutationRef<SyncItemBatchData, SyncItemBatchVariables>;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```javascript
+syncItemBatch(dc: DataConnect, vars: SyncItemBatchVariables): MutationPromise<SyncItemBatchData, SyncItemBatchVariables>;
+
+syncItemBatchRef(dc: DataConnect, vars: SyncItemBatchVariables): MutationRef<SyncItemBatchData, SyncItemBatchVariables>;
+```
+
+### Variables
+The `SyncItemBatch` mutation requires an argument of type `SyncItemBatchVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```javascript
+export interface SyncItemBatchVariables {
+  id: string;
+  storeId: string;
+  itemId: string;
+  batchNumber?: string | null;
+  expiryDate?: number | null;
+  quantity: number;
+  costPrice: number;
+  timestamp: number;
+  notes?: string | null;
+  isDeleted: boolean;
+  updatedAt: number;
+}
+```
+### Return Type
+Recall that executing the `SyncItemBatch` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `SyncItemBatchData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```javascript
+export interface SyncItemBatchData {
+  itemBatch_upsert: ItemBatch_Key;
+}
+```
+### Using `SyncItemBatch`'s action shortcut function
+
+```javascript
+import { getDataConnect, DataConnect } from 'firebase/data-connect';
+import { connectorConfig, syncItemBatch, SyncItemBatchVariables } from '@storebook/dataconnect';
+
+// The `SyncItemBatch` mutation requires an argument of type `SyncItemBatchVariables`:
+const syncItemBatchVars: SyncItemBatchVariables = {
+  id: ..., 
+  storeId: ..., 
+  itemId: ..., 
+  batchNumber: ..., // optional
+  expiryDate: ..., // optional
+  quantity: ..., 
+  costPrice: ..., 
+  timestamp: ..., 
+  notes: ..., // optional
+  isDeleted: ..., 
+  updatedAt: ..., 
+};
+
+// Call the `syncItemBatch()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await syncItemBatch(syncItemBatchVars);
+// Variables can be defined inline as well.
+const { data } = await syncItemBatch({ id: ..., storeId: ..., itemId: ..., batchNumber: ..., expiryDate: ..., quantity: ..., costPrice: ..., timestamp: ..., notes: ..., isDeleted: ..., updatedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await syncItemBatch(dataConnect, syncItemBatchVars);
+
+console.log(data.itemBatch_upsert);
+
+// Or, you can use the `Promise` API.
+syncItemBatch(syncItemBatchVars).then((response) => {
+  const data = response.data;
+  console.log(data.itemBatch_upsert);
+});
+```
+
+### Using `SyncItemBatch`'s `MutationRef` function
+
+```javascript
+import { getDataConnect, DataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, syncItemBatchRef, SyncItemBatchVariables } from '@storebook/dataconnect';
+
+// The `SyncItemBatch` mutation requires an argument of type `SyncItemBatchVariables`:
+const syncItemBatchVars: SyncItemBatchVariables = {
+  id: ..., 
+  storeId: ..., 
+  itemId: ..., 
+  batchNumber: ..., // optional
+  expiryDate: ..., // optional
+  quantity: ..., 
+  costPrice: ..., 
+  timestamp: ..., 
+  notes: ..., // optional
+  isDeleted: ..., 
+  updatedAt: ..., 
+};
+
+// Call the `syncItemBatchRef()` function to get a reference to the mutation.
+const ref = syncItemBatchRef(syncItemBatchVars);
+// Variables can be defined inline as well.
+const ref = syncItemBatchRef({ id: ..., storeId: ..., itemId: ..., batchNumber: ..., expiryDate: ..., quantity: ..., costPrice: ..., timestamp: ..., notes: ..., isDeleted: ..., updatedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = syncItemBatchRef(dataConnect, syncItemBatchVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.itemBatch_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.itemBatch_upsert);
 });
 ```
 

@@ -33,6 +33,7 @@ query SyncSales($storeId: String!, $lastSync: Float!) @auth(level: USER) {
     customerAddress
     businessAddress
     type
+    notes
     isDeleted
     updatedAt
   }
@@ -261,5 +262,70 @@ query GetPromoCodes @auth(level: USER) {
     currentUses
     expiresAt
     isActive
+  }
+}
+
+
+# Pull updated suppliers since last sync
+query SyncSuppliers($storeId: String!, $lastSync: Float!) @auth(level: USER) {
+  suppliers(where: { storeId: { eq: $storeId }, updatedAt: { gt: $lastSync } }) {
+    id
+    storeId
+    name
+    phone
+    gstin
+    address
+    isDeleted
+    updatedAt
+  }
+}
+
+# Pull updated purchases since last sync
+query SyncPurchases($storeId: String!, $lastSync: Float!) @auth(level: USER) {
+  purchases(where: { storeId: { eq: $storeId }, updatedAt: { gt: $lastSync } }) {
+    id
+    storeId
+    supplierId
+    supplierName
+    totalAmount
+    taxAmount
+    type
+    timestamp
+    notes
+    isDeleted
+    updatedAt
+  }
+}
+
+# Pull updated purchase items since last sync
+query SyncPurchaseItems($storeId: String!, $lastSync: Float!) @auth(level: USER) {
+  purchaseItemDetails(where: { storeId: { eq: $storeId }, updatedAt: { gt: $lastSync } }) {
+    id
+    storeId
+    purchaseId
+    itemId
+    itemName
+    quantity
+    unit
+    buyPrice
+    isDeleted
+    updatedAt
+  }
+}
+
+# Pull updated item batches since last sync
+query SyncItemBatches($storeId: String!, $lastSync: Float!) @auth(level: USER) {
+  itemBatches(where: { storeId: { eq: $storeId }, updatedAt: { gt: $lastSync } }) {
+    id
+    storeId
+    itemId
+    batchNumber
+    expiryDate
+    quantity
+    costPrice
+    timestamp
+    notes
+    isDeleted
+    updatedAt
   }
 }

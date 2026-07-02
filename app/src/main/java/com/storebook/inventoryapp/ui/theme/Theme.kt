@@ -25,6 +25,7 @@ class ManualThemeManager(
         try {
             AppThemeMode.valueOf(prefs.getString(KEY_THEME_MODE, AppThemeMode.INK_BLUE.name) ?: AppThemeMode.INK_BLUE.name)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             AppThemeMode.INK_BLUE
         }
     )

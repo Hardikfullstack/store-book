@@ -236,6 +236,36 @@ export function createUser(dcOrVars, vars) {
   return executeMutation(createUserRef(dcOrVars, vars));
 }
 
+export function syncPurchaseRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'SyncPurchase', inputVars);
+}
+
+export function syncPurchase(dcOrVars, vars) {
+  return executeMutation(syncPurchaseRef(dcOrVars, vars));
+}
+
+export function syncPurchaseItemRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'SyncPurchaseItem', inputVars);
+}
+
+export function syncPurchaseItem(dcOrVars, vars) {
+  return executeMutation(syncPurchaseItemRef(dcOrVars, vars));
+}
+
+export function syncItemBatchRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'SyncItemBatch', inputVars);
+}
+
+export function syncItemBatch(dcOrVars, vars) {
+  return executeMutation(syncItemBatchRef(dcOrVars, vars));
+}
+
 export function syncItemsRef(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -424,5 +454,45 @@ export function getPromoCodesRef(dc) {
 
 export function getPromoCodes(dc) {
   return executeQuery(getPromoCodesRef(dc));
+}
+
+export function syncSuppliersRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SyncSuppliers', inputVars);
+}
+
+export function syncSuppliers(dcOrVars, vars) {
+  return executeQuery(syncSuppliersRef(dcOrVars, vars));
+}
+
+export function syncPurchasesRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SyncPurchases', inputVars);
+}
+
+export function syncPurchases(dcOrVars, vars) {
+  return executeQuery(syncPurchasesRef(dcOrVars, vars));
+}
+
+export function syncPurchaseItemsRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SyncPurchaseItems', inputVars);
+}
+
+export function syncPurchaseItems(dcOrVars, vars) {
+  return executeQuery(syncPurchaseItemsRef(dcOrVars, vars));
+}
+
+export function syncItemBatchesRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SyncItemBatches', inputVars);
+}
+
+export function syncItemBatches(dcOrVars, vars) {
+  return executeQuery(syncItemBatchesRef(dcOrVars, vars));
 }
 

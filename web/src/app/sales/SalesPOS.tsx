@@ -1,3 +1,4 @@
+import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -133,7 +134,10 @@ export default function SalesPOS({
             oscillator.connect(audioCtx.destination);
             oscillator.start();
             oscillator.stop(audioCtx.currentTime + 0.1);
-          } catch (e) {}
+          } catch (e) {
+            console.error("Audio Context Error:", e);
+            alert("Error playing beep sound.");
+          }
         }
         barcode = '';
       } else if (e.key !== 'Enter' && e.key !== 'Shift') {
@@ -282,7 +286,7 @@ export default function SalesPOS({
                 <input aria-label="text" 
                   type="text" 
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
                   placeholder="Search products by name or category..."
                   className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-teal-500 dark:text-white transition-all"
                 />
@@ -404,7 +408,7 @@ export default function SalesPOS({
                     type="text" 
                     placeholder="Customer Name (Optional)" 
                     value={customerName}
-                    onChange={e => setCustomerName(e.target.value)}
+                    onChange={e => setCustomerName(sanitizeInput(e.target.value))}
                     className="w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 dark:text-white text-sm focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
@@ -429,7 +433,7 @@ export default function SalesPOS({
                       type="text" 
                       placeholder="Notes (e.g. UPI, Cash)" 
                       value={notes}
-                      onChange={e => setNotes(e.target.value)}
+                      onChange={e => setNotes(sanitizeInput(e.target.value))}
                       className="w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 dark:text-white text-sm focus:ring-2 focus:ring-teal-500"
                     />
                   </div>

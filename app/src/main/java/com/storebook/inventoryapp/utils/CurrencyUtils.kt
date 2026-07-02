@@ -60,6 +60,7 @@ fun Double.toRupee(): String {
     val bd = try {
         BigDecimal(this.toString()).setScale(0, RoundingMode.HALF_UP)
     } catch (e: Exception) {
+        if (e is kotlinx.coroutines.CancellationException) throw e
         BigDecimal(this).setScale(0, RoundingMode.HALF_UP)
     }
     val format = NumberFormat.getNumberInstance(CurrencySettings.currencyLocale)
@@ -75,6 +76,7 @@ fun Double.toRupeeWithDecimals(): String {
     val bd = try {
         BigDecimal(this.toString()).setScale(CurrencySettings.maxDecimalPlaces, RoundingMode.HALF_UP)
     } catch (e: Exception) {
+        if (e is kotlinx.coroutines.CancellationException) throw e
         BigDecimal(this).setScale(CurrencySettings.maxDecimalPlaces, RoundingMode.HALF_UP)
     }
     val format = NumberFormat.getNumberInstance(CurrencySettings.currencyLocale)
@@ -88,6 +90,7 @@ fun Double.toBigDecimal(): BigDecimal {
     return try {
         BigDecimal(this.toString())
     } catch (e: Exception) {
+        if (e is kotlinx.coroutines.CancellationException) throw e
         BigDecimal(this)
     }
 }

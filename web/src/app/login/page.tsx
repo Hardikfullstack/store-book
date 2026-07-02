@@ -1,3 +1,4 @@
+import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState } from 'react';
@@ -162,7 +163,7 @@ export default function LoginPage() {
                     <Phone className="h-4 w-4 text-gray-500 mr-1" />
                     <select
                       value={countryCode}
-                      onChange={(e) => setCountryCode(e.target.value)}
+                      onChange={(e) => setCountryCode(sanitizeInput(e.target.value))}
                       className="bg-transparent text-sm font-medium text-gray-700 dark:text-gray-300 border-none focus:ring-0 py-3 pr-2 pl-1 cursor-pointer outline-none appearance-none"
                     >
                       {countryCodes.map((c) => (
@@ -214,7 +215,7 @@ export default function LoginPage() {
                     required
                     maxLength={6}
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                    onChange={(e) => setOtp(sanitizeInput(e.target.value).replace(/[^0-9]/g, ''))}
                     className="block w-full text-center tracking-[0.5em] font-mono text-2xl py-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
                     placeholder="------"
                   />
@@ -241,7 +242,7 @@ export default function LoginPage() {
                   type="text"
                   required
                   value={staffUsername}
-                  onChange={(e) => setStaffUsername(e.target.value)}
+                  onChange={(e) => setStaffUsername(sanitizeInput(e.target.value))}
                   className="block w-full px-3 py-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
                   placeholder="Enter username"
                 />
@@ -252,7 +253,7 @@ export default function LoginPage() {
                   type="password"
                   required
                   value={staffPassword}
-                  onChange={(e) => setStaffPassword(e.target.value)}
+                  onChange={(e) => setStaffPassword(sanitizeInput(e.target.value))}
                   className="block w-full px-3 py-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
                   placeholder="Enter password"
                 />

@@ -1,3 +1,4 @@
+import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -266,7 +267,7 @@ export default function ItemsClient({
             <input aria-label="text"
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
               className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all dark:text-gray-100"
               placeholder="Search items by name or category..."
             />
@@ -447,19 +448,19 @@ export default function ItemsClient({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium dark:text-gray-300">Name</label>
-                <input aria-label="text" required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                <input aria-label="text" required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: sanitizeInput(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Category</label>
-                  <input aria-label="text" type="text" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                  <input aria-label="text" type="text" value={formData.category} onChange={e => setFormData({ ...formData, category: sanitizeInput(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Unit</label>
                   <select
                     required
                     value={formData.unit}
-                    onChange={(e) => setFormData({ ...formData, unit: e.target.value as UnitOption })}
+                    onChange={(e) => setFormData({ ...formData, unit: sanitizeInput(e.target.value) as UnitOption })}
                     className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
                   >
                     {UNIT_OPTIONS.map((u) => (
@@ -527,7 +528,7 @@ export default function ItemsClient({
                       <input aria-label="text"
                         type="text"
                         value={formData.hsn_code}
-                        onChange={(e) => setFormData({ ...formData, hsn_code: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, hsn_code: sanitizeInput(e.target.value) })}
                         className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
                       />
                     </div>
@@ -554,7 +555,7 @@ export default function ItemsClient({
                         type="text"
                         value={formData.batch_lot_number}
                         onChange={(e) =>
-                          setFormData({ ...formData, batch_lot_number: e.target.value })
+                          setFormData({ ...formData, batch_lot_number: sanitizeInput(e.target.value) })
                         }
                         className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
                       />
@@ -567,7 +568,7 @@ export default function ItemsClient({
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            expiry_date: e.target.value
+                            expiry_date: sanitizeInput(e.target.value)
                           })
                         }
                         className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"

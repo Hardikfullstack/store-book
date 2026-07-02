@@ -1,3 +1,4 @@
+@file:android.annotation.SuppressLint("LocalContextGetResourceValueCall")
 package com.storebook.inventoryapp.ui.screens.storebook
 
 import android.content.Intent
@@ -724,6 +725,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                                 try {
                                                     context.startActivity(intent)
                                                 } catch (e: Exception) {
+                                                    if (e is kotlinx.coroutines.CancellationException) throw e
                                                     // Fallback if WhatsApp is not installed
                                                     val fallbackIntent = Intent(Intent.ACTION_VIEW).apply {
                                                         data = Uri.parse("https://api.whatsapp.com/send?text=${URLEncoder.encode(template, "UTF-8")}")

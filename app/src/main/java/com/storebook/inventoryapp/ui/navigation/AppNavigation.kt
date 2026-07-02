@@ -528,7 +528,8 @@ fun AppNavigation() {
                                     restoreState = tab.route != Routes.Dashboard
                                 }
                             } catch (e: Exception) {
-                                android.util.Log.e("AppNav", "Navigation error", e)
+                                if (e is kotlinx.coroutines.CancellationException) throw e
+                                if (com.storebook.inventoryapp.BuildConfig.DEBUG) android.util.Log.e("AppNav", "Navigation error", e)
                             }
                         }
                     },

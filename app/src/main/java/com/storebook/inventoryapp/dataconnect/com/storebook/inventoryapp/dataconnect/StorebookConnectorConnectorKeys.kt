@@ -56,6 +56,16 @@ package com.storebook.inventoryapp.dataconnect
   }
 
   @kotlinx.serialization.Serializable
+  public data class ItemBatchKey(
+  
+    val id:
+    String
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
   public data class ItemKey(
   
     val id:
@@ -67,6 +77,26 @@ package com.storebook.inventoryapp.dataconnect
 
   @kotlinx.serialization.Serializable
   public data class PromoCodeKey(
+  
+    val id:
+    String
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
+  public data class PurchaseItemDetailKey(
+  
+    val id:
+    String
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
+  public data class PurchaseKey(
   
     val id:
     String

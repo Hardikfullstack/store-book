@@ -1,10 +1,16 @@
+import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Package, TrendingUp, Users, Receipt, ArrowUpRight, ArrowDownRight, Store } from 'lucide-react';
 import DashboardCharts from './DashboardCharts';
-import { dataConnect } from '@/lib/firebase';
-import { getActiveItems, getActiveSales, getActiveUdhaars, getActiveExpenses, getActiveSaleItems } from '@/dataconnect';
+import { dataConnect, rtdb } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
+import { get, set } from 'idb-keyval';
+import { 
+  getActiveItems, getActiveSales, getActiveUdhaars, getActiveExpenses, getActiveSaleItems,
+  syncItems, syncSales, syncUdhaars, syncExpenses, syncSaleItems
+} from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 
 interface Stats {
@@ -40,11 +46,6 @@ export default function DashboardClient({
   useEffect(() => {
     if (!isPremium || !storeId) return;
 
-    let itemsList: any[] = [];
-    let salesList: any[] = [];
-    let udhaarList: any[] = [];
-    let expensesList: any[] = [];
-
     const updateStats = () => {
       const now = Date.now();
       let cutoff = 0;
@@ -52,11 +53,12 @@ export default function DashboardClient({
       if (dateRange === 'week') cutoff = now - 7 * 24 * 60 * 60 * 1000;
       if (dateRange === 'month') cutoff = now - 30 * 24 * 60 * 60 * 1000;
 
-      const filteredSales = rawSales.filter(s => ((s.timestamp || s.updated_at) * 1000) >= cutoff);
-      const filteredUdhaar = rawUdhaars.filter(u => ((u.timestamp || u.updated_at) * 1000) >= cutoff);
-      const filteredExpenses = rawExpenses.filter(e => ((e.timestamp || e.updated_at) * 1000) >= cutoff);
+      const filteredSales = rawSales.filter(s => ((s.timestamp || s.updated_at) * 1000) >= cutoff && !s.isDeleted);
+      const filteredUdhaar = rawUdhaars.filter(u => ((u.timestamp || u.updated_at) * 1000) >= cutoff && !u.isDeleted);
+      const filteredExpenses = rawExpenses.filter(e => ((e.timestamp || e.updated_at) * 1000) >= cutoff && !e.isDeleted);
+      const activeItems = itemsList.filter(i => !i.isDeleted);
 
-      const totalItems = itemsList.length;
+      const totalItems = activeItems.length;
       const totalSales = filteredSales.reduce((acc, doc) => acc + (doc.total_amount || 0), 0);
       const totalUdhaar = filteredUdhaar.reduce((acc, doc) => acc + (doc.amount || 0), 0);
       const totalExpenses = filteredExpenses.reduce((acc, doc) => acc + (doc.amount || 0), 0);
@@ -68,63 +70,169 @@ export default function DashboardClient({
         totalUdhaar,
         totalExpenses,
         salesData: [...filteredSales],
-        itemsData: [...itemsList],
-        saleItemsData: [...rawSaleItems]
+        itemsData: [...activeItems],
+        saleItemsData: [...rawSaleItems.filter(si => !si.isDeleted)]
       }));
     };
 
     updateStats();
-  }, [dateRange, rawSales, rawUdhaars, rawExpenses, rawSaleItems, itemsList]); // We will define itemsList outside or memoize
+  }, [dateRange, rawSales, rawUdhaars, rawExpenses, rawSaleItems, itemsList]);
 
-  // Separate effect for fetching
+  // Delta Sync & Cache Logic
   useEffect(() => {
     if (!isPremium || !storeId) return;
 
     let isMounted = true;
-    
-    const fetchDashboardData = async () => {
+    const cacheKey = `dashboard_data_${storeId}`;
+    let isFetching = false;
+
+    const loadFromCache = async () => {
       try {
-        const [itemsRes, salesRes, udhaarsRes, expensesRes, saleItemsRes] = await Promise.all([
-          getActiveItems(dataConnect, { storeId }),
-          getActiveSales(dataConnect, { storeId }),
-          getActiveUdhaars(dataConnect, { storeId }),
-          getActiveExpenses(dataConnect, { storeId }),
-          getActiveSaleItems(dataConnect, { storeId })
-        ]);
-        
-        if (!isMounted) return;
+        const cached = await get(cacheKey);
+        if (cached && isMounted) {
+          setItemsList(cached.items || []);
+          setRawSales(cached.sales || []);
+          setRawUdhaars(cached.udhaars || []);
+          setRawExpenses(cached.expenses || []);
+          setRawSaleItems(cached.saleItems || []);
+          return cached.lastSync || 0;
+        }
+      } catch (e) {
+        console.error("Cache read error", e);
+      }
+      return 0;
+    };
 
-        const parsedItems = itemsRes.data.items.map((item: any) => {
-          if (userRole === 'staff') delete item.buyPrice;
-          return { id: item.id, ...item };
-        });
+    const mergeDelta = (oldArr: any[], newArr: any[]) => {
+      const newMap = new Map(newArr.map(i => [i.id, i]));
+      const merged = oldArr.map(i => newMap.has(i.id) ? newMap.get(i.id) : i);
+      newArr.forEach(i => {
+        if (!oldArr.find(o => o.id === i.id)) merged.push(i);
+      });
+      // Purge soft-deleted records from persistent cache to prevent bloat
+      return merged.filter(i => !i.isDeleted);
+    };
 
-        const parsedSales = salesRes.data.sales
-          .filter((sale: any) => sale.type === 'SALE')
-          .map((sale: any) => ({
-            id: sale.id, ...sale, total_amount: sale.totalAmount, updated_at: sale.updatedAt
-          }));
+    let syncRequested = false;
 
-        const parsedUdhaars = udhaarsRes.data.udhaarEntries.map((u: any) => ({ id: u.id, ...u, updated_at: u.updatedAt }));
-        const parsedExpenses = expensesRes.data.expenseEntries.map((e: any) => ({ id: e.id, ...e, updated_at: e.updatedAt }));
-        const parsedSaleItems = saleItemsRes.data.saleItemDetails;
+    const performSync = async (lastSync: number) => {
+      if (isFetching) {
+        syncRequested = true;
+        return;
+      }
+      isFetching = true;
+      syncRequested = false;
 
-        setRawSales(parsedSales);
-        setRawUdhaars(parsedUdhaars);
-        setRawExpenses(parsedExpenses);
-        setRawSaleItems(parsedSaleItems);
-        setItemsList(parsedItems);
+      try {
+        if (lastSync === 0) {
+          // Full initial fetch
+          const [itemsRes, salesRes, udhaarsRes, expensesRes, saleItemsRes] = await Promise.all([
+            getActiveItems(dataConnect, { storeId }),
+            getActiveSales(dataConnect, { storeId }),
+            getActiveUdhaars(dataConnect, { storeId }),
+            getActiveExpenses(dataConnect, { storeId }),
+            getActiveSaleItems(dataConnect, { storeId })
+          ]);
+          
+          if (!isMounted) return;
+
+          const parsedItems = itemsRes.data.items.map((item: any) => {
+            if (userRole === 'staff') delete item.buyPrice;
+            return { id: item.id, ...item };
+          });
+          const parsedSales = salesRes.data.sales.filter((sale: any) => sale.type === 'SALE')
+            .map((sale: any) => ({ id: sale.id, ...sale, total_amount: sale.totalAmount, updated_at: sale.updatedAt }));
+          const parsedUdhaars = udhaarsRes.data.udhaarEntries.map((u: any) => ({ id: u.id, ...u, updated_at: u.updatedAt }));
+          const parsedExpenses = expensesRes.data.expenseEntries.map((e: any) => ({ id: e.id, ...e, updated_at: e.updatedAt }));
+          const parsedSaleItems = saleItemsRes.data.saleItemDetails;
+
+          const newData = {
+            items: parsedItems, sales: parsedSales, udhaars: parsedUdhaars, expenses: parsedExpenses, saleItems: parsedSaleItems,
+            lastSync: Date.now() // Use milliseconds matching Android System.currentTimeMillis()
+          };
+          
+          await set(cacheKey, newData);
+          setItemsList(parsedItems);
+          setRawSales(parsedSales);
+          setRawUdhaars(parsedUdhaars);
+          setRawExpenses(parsedExpenses);
+          setRawSaleItems(parsedSaleItems);
+
+        } else {
+          // Delta fetch
+          const [itemsRes, salesRes, udhaarsRes, expensesRes, saleItemsRes] = await Promise.all([
+            syncItems(dataConnect, { storeId, lastSync }),
+            syncSales(dataConnect, { storeId, lastSync }),
+            syncUdhaars(dataConnect, { storeId, lastSync }),
+            syncExpenses(dataConnect, { storeId, lastSync }),
+            syncSaleItems(dataConnect, { storeId, lastSync })
+          ]);
+
+          if (!isMounted) return;
+
+          const cached = await get(cacheKey) || { items: [], sales: [], udhaars: [], expenses: [], saleItems: [] };
+          
+          const pItems = itemsRes.data.items.map((item: any) => {
+            if (userRole === 'staff') delete item.buyPrice;
+            return { id: item.id, ...item };
+          });
+          const pSales = salesRes.data.sales.filter((sale: any) => sale.type === 'SALE')
+            .map((sale: any) => ({ id: sale.id, ...sale, total_amount: sale.totalAmount, updated_at: sale.updatedAt }));
+          const pUdhaars = udhaarsRes.data.udhaarEntries.map((u: any) => ({ id: u.id, ...u, updated_at: u.updatedAt }));
+          const pExpenses = expensesRes.data.expenseEntries.map((e: any) => ({ id: e.id, ...e, updated_at: e.updatedAt }));
+          const pSaleItems = saleItemsRes.data.saleItemDetails;
+
+          const newItems = mergeDelta(cached.items, pItems);
+          const newSales = mergeDelta(cached.sales, pSales);
+          const newUdhaars = mergeDelta(cached.udhaars, pUdhaars);
+          const newExpenses = mergeDelta(cached.expenses, pExpenses);
+          const newSaleItems = mergeDelta(cached.saleItems, pSaleItems);
+
+          const newData = {
+            items: newItems, sales: newSales, udhaars: newUdhaars, expenses: newExpenses, saleItems: newSaleItems,
+            lastSync: Date.now() // Use milliseconds
+          };
+          
+          await set(cacheKey, newData);
+          setItemsList(newItems);
+          setRawSales(newSales);
+          setRawUdhaars(newUdhaars);
+          setRawExpenses(newExpenses);
+          setRawSaleItems(newSaleItems);
+        }
       } catch (error) {
         console.error("Dashboard DataConnect sync error:", error);
+      } finally {
+        isFetching = false;
+        if (syncRequested) {
+           performSync(localLastSync).then(() => { localLastSync = Date.now(); });
+        }
       }
     };
 
-    fetchDashboardData();
-    const intervalId = setInterval(fetchDashboardData, 30000);
+    let localLastSync = 0;
+    
+    // Init Cache & RTDB Listener
+    loadFromCache().then((syncTime) => {
+      localLastSync = syncTime;
+      // If cache is empty, fetch immediately
+      if (syncTime === 0) performSync(0);
+      
+      // Setup RTDB Ping Listener
+      const updateRef = ref(rtdb, `store_updates/${storeId}/last_update`);
+      onValue(updateRef, (snapshot) => {
+        const serverUpdate = snapshot.val() || 0;
+        // serverUpdate is in ms, localLastSync is in ms
+        if (serverUpdate > localLastSync) {
+           performSync(localLastSync).then(() => {
+             localLastSync = Date.now();
+           });
+        }
+      });
+    });
 
     return () => {
       isMounted = false;
-      clearInterval(intervalId);
     };
   }, [isPremium, storeId, userRole]);
 
@@ -179,12 +287,12 @@ export default function DashboardClient({
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Here's what's happening with your store today. (Data Connect)</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Real-time sync via Data Connect Delta.</p>
         </div>
         <div>
           <select 
             value={dateRange}
-            onChange={e => setDateRange(e.target.value as any)}
+            onChange={e => setDateRange(sanitizeInput(e.target.value) as any)}
             className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-teal-500"
           >
             <option value="all">All Time</option>

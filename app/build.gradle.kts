@@ -93,6 +93,7 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-messaging")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-dataconnect:16.0.0-beta01")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
@@ -107,6 +108,7 @@ dependencies {
     implementation(libs.play.scanner.mlkit)
     implementation(libs.play.scanner.code)
     implementation(libs.androidx.datastore.preferences)
+    implementation("androidx.security:security-crypto-ktx:1.1.0-alpha06")
     implementation(libs.pdfbox.android)
     implementation(libs.android.pdf.viewer)
     implementation(libs.reorderable)

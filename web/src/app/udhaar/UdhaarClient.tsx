@@ -1,3 +1,4 @@
+import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -152,7 +153,7 @@ export default function UdhaarClient({
             <input aria-label="text" 
               type="text" 
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
               className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:text-gray-100"
               placeholder="Search customer or notes..."
             />
@@ -259,12 +260,12 @@ export default function UdhaarClient({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium dark:text-gray-300">Customer Name</label>
-                <input aria-label="text" required type="text" value={formData.customer_name} onChange={e => setFormData({...formData, customer_name: e.target.value})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                <input aria-label="text" required type="text" value={formData.customer_name} onChange={e => setFormData({...formData, customer_name: sanitizeInput(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Type</label>
-                  <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white">
+                  <select value={formData.type} onChange={e => setFormData({...formData, type: sanitizeInput(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white">
                     <option value="given">Given</option>
                     <option value="received">Received</option>
                   </select>
@@ -276,7 +277,7 @@ export default function UdhaarClient({
               </div>
               <div>
                 <label className="block text-sm font-medium dark:text-gray-300">Notes</label>
-                <input aria-label="text" type="text" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                <input aria-label="text" type="text" value={formData.notes} onChange={e => setFormData({...formData, notes: sanitizeInput(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
               </div>
               <div className="flex justify-end space-x-3 mt-6">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>

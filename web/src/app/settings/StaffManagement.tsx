@@ -1,3 +1,4 @@
+import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState } from 'react';
@@ -70,7 +71,7 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
                 type="text" 
                 required
                 value={username}
-                onChange={e => setUsername(e.target.value.replace(/\s+/g, '').toLowerCase())}
+                onChange={e => setUsername(sanitizeInput(e.target.value).replace(/\s+/g, '').toLowerCase())}
                 placeholder="e.g. rahulstaff"
                 className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-teal-500 outline-none text-sm dark:text-white"
               />
@@ -81,7 +82,7 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
                 type="password" 
                 required
                 value={pin}
-                onChange={e => setPin(e.target.value)}
+                onChange={e => setPin(sanitizeInput(e.target.value))}
                 placeholder="4-6 digit PIN"
                 className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-teal-500 outline-none text-sm dark:text-white"
               />

@@ -393,6 +393,45 @@ export interface SyncExpensesVariables {
   lastSync: number;
 }
 
+export interface SyncItemBatchData {
+  itemBatch_upsert: ItemBatch_Key;
+}
+
+export interface SyncItemBatchVariables {
+  id: string;
+  storeId: string;
+  itemId: string;
+  batchNumber?: string | null;
+  expiryDate?: number | null;
+  quantity: number;
+  costPrice: number;
+  timestamp: number;
+  notes?: string | null;
+  isDeleted: boolean;
+  updatedAt: number;
+}
+
+export interface SyncItemBatchesData {
+  itemBatches: ({
+    id: string;
+    storeId: string;
+    itemId: string;
+    batchNumber?: string | null;
+    expiryDate?: number | null;
+    quantity: number;
+    costPrice: number;
+    timestamp: number;
+    notes?: string | null;
+    isDeleted: boolean;
+    updatedAt: number;
+  } & ItemBatch_Key)[];
+}
+
+export interface SyncItemBatchesVariables {
+  storeId: string;
+  lastSync: number;
+}
+
 export interface SyncItemData {
   item_upsert: Item_Key;
 }
@@ -434,6 +473,82 @@ export interface SyncItemsData {
 }
 
 export interface SyncItemsVariables {
+  storeId: string;
+  lastSync: number;
+}
+
+export interface SyncPurchaseData {
+  purchase_upsert: Purchase_Key;
+}
+
+export interface SyncPurchaseItemData {
+  purchaseItemDetail_upsert: PurchaseItemDetail_Key;
+}
+
+export interface SyncPurchaseItemVariables {
+  id: string;
+  storeId: string;
+  purchaseId: string;
+  itemId: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  buyPrice: number;
+  isDeleted: boolean;
+  updatedAt: number;
+}
+
+export interface SyncPurchaseItemsData {
+  purchaseItemDetails: ({
+    id: string;
+    storeId: string;
+    purchaseId: string;
+    itemId: string;
+    itemName: string;
+    quantity: number;
+    unit: string;
+    buyPrice: number;
+    isDeleted: boolean;
+    updatedAt: number;
+  } & PurchaseItemDetail_Key)[];
+}
+
+export interface SyncPurchaseItemsVariables {
+  storeId: string;
+  lastSync: number;
+}
+
+export interface SyncPurchaseVariables {
+  id: string;
+  storeId: string;
+  supplierId: string;
+  supplierName: string;
+  totalAmount: number;
+  taxAmount: number;
+  type: string;
+  timestamp: number;
+  notes?: string | null;
+  isDeleted: boolean;
+  updatedAt: number;
+}
+
+export interface SyncPurchasesData {
+  purchases: ({
+    id: string;
+    storeId: string;
+    supplierId: string;
+    supplierName: string;
+    totalAmount: number;
+    taxAmount: number;
+    type: string;
+    timestamp: number;
+    notes?: string | null;
+    isDeleted: boolean;
+    updatedAt: number;
+  } & Purchase_Key)[];
+}
+
+export interface SyncPurchasesVariables {
   storeId: string;
   lastSync: number;
 }
@@ -509,6 +624,7 @@ export interface SyncSalesData {
     customerAddress?: string | null;
     businessAddress?: string | null;
     type: string;
+    notes?: string | null;
     isDeleted: boolean;
     updatedAt: number;
   } & Sale_Key)[];
@@ -547,6 +663,24 @@ export interface SyncSupplierVariables {
   address?: string | null;
   isDeleted: boolean;
   updatedAt: number;
+}
+
+export interface SyncSuppliersData {
+  suppliers: ({
+    id: string;
+    storeId: string;
+    name: string;
+    phone?: string | null;
+    gstin?: string | null;
+    address?: string | null;
+    isDeleted: boolean;
+    updatedAt: number;
+  } & Supplier_Key)[];
+}
+
+export interface SyncSuppliersVariables {
+  storeId: string;
+  lastSync: number;
 }
 
 export interface SyncUdhaarData {
@@ -874,6 +1008,30 @@ export function createUser(vars: CreateUserVariables): MutationPromise<CreateUse
 export function createUser(dc: DataConnect, vars: CreateUserVariables): MutationPromise<CreateUserData, CreateUserVariables>;
 
 /* Allow users to create refs without passing in DataConnect */
+export function syncPurchaseRef(vars: SyncPurchaseVariables): MutationRef<SyncPurchaseData, SyncPurchaseVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncPurchaseRef(dc: DataConnect, vars: SyncPurchaseVariables): MutationRef<SyncPurchaseData, SyncPurchaseVariables>;
+
+export function syncPurchase(vars: SyncPurchaseVariables): MutationPromise<SyncPurchaseData, SyncPurchaseVariables>;
+export function syncPurchase(dc: DataConnect, vars: SyncPurchaseVariables): MutationPromise<SyncPurchaseData, SyncPurchaseVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function syncPurchaseItemRef(vars: SyncPurchaseItemVariables): MutationRef<SyncPurchaseItemData, SyncPurchaseItemVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncPurchaseItemRef(dc: DataConnect, vars: SyncPurchaseItemVariables): MutationRef<SyncPurchaseItemData, SyncPurchaseItemVariables>;
+
+export function syncPurchaseItem(vars: SyncPurchaseItemVariables): MutationPromise<SyncPurchaseItemData, SyncPurchaseItemVariables>;
+export function syncPurchaseItem(dc: DataConnect, vars: SyncPurchaseItemVariables): MutationPromise<SyncPurchaseItemData, SyncPurchaseItemVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function syncItemBatchRef(vars: SyncItemBatchVariables): MutationRef<SyncItemBatchData, SyncItemBatchVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncItemBatchRef(dc: DataConnect, vars: SyncItemBatchVariables): MutationRef<SyncItemBatchData, SyncItemBatchVariables>;
+
+export function syncItemBatch(vars: SyncItemBatchVariables): MutationPromise<SyncItemBatchData, SyncItemBatchVariables>;
+export function syncItemBatch(dc: DataConnect, vars: SyncItemBatchVariables): MutationPromise<SyncItemBatchData, SyncItemBatchVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
 export function syncItemsRef(vars: SyncItemsVariables): QueryRef<SyncItemsData, SyncItemsVariables>;
 /* Allow users to pass in custom DataConnect instances */
 export function syncItemsRef(dc: DataConnect, vars: SyncItemsVariables): QueryRef<SyncItemsData, SyncItemsVariables>;
@@ -1024,4 +1182,36 @@ export function getPromoCodesRef(dc: DataConnect): QueryRef<GetPromoCodesData, u
 
 export function getPromoCodes(): QueryPromise<GetPromoCodesData, undefined>;
 export function getPromoCodes(dc: DataConnect): QueryPromise<GetPromoCodesData, undefined>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function syncSuppliersRef(vars: SyncSuppliersVariables): QueryRef<SyncSuppliersData, SyncSuppliersVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncSuppliersRef(dc: DataConnect, vars: SyncSuppliersVariables): QueryRef<SyncSuppliersData, SyncSuppliersVariables>;
+
+export function syncSuppliers(vars: SyncSuppliersVariables): QueryPromise<SyncSuppliersData, SyncSuppliersVariables>;
+export function syncSuppliers(dc: DataConnect, vars: SyncSuppliersVariables): QueryPromise<SyncSuppliersData, SyncSuppliersVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function syncPurchasesRef(vars: SyncPurchasesVariables): QueryRef<SyncPurchasesData, SyncPurchasesVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncPurchasesRef(dc: DataConnect, vars: SyncPurchasesVariables): QueryRef<SyncPurchasesData, SyncPurchasesVariables>;
+
+export function syncPurchases(vars: SyncPurchasesVariables): QueryPromise<SyncPurchasesData, SyncPurchasesVariables>;
+export function syncPurchases(dc: DataConnect, vars: SyncPurchasesVariables): QueryPromise<SyncPurchasesData, SyncPurchasesVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function syncPurchaseItemsRef(vars: SyncPurchaseItemsVariables): QueryRef<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncPurchaseItemsRef(dc: DataConnect, vars: SyncPurchaseItemsVariables): QueryRef<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+
+export function syncPurchaseItems(vars: SyncPurchaseItemsVariables): QueryPromise<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+export function syncPurchaseItems(dc: DataConnect, vars: SyncPurchaseItemsVariables): QueryPromise<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function syncItemBatchesRef(vars: SyncItemBatchesVariables): QueryRef<SyncItemBatchesData, SyncItemBatchesVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function syncItemBatchesRef(dc: DataConnect, vars: SyncItemBatchesVariables): QueryRef<SyncItemBatchesData, SyncItemBatchesVariables>;
+
+export function syncItemBatches(vars: SyncItemBatchesVariables): QueryPromise<SyncItemBatchesData, SyncItemBatchesVariables>;
+export function syncItemBatches(dc: DataConnect, vars: SyncItemBatchesVariables): QueryPromise<SyncItemBatchesData, SyncItemBatchesVariables>;
 

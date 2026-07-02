@@ -15,7 +15,7 @@ class StoreBookRepository(
         private val context: Context,
         val storeId: String,
 ) {
-    private val dbHelper = StoreBookDbHelper(context, storeId)
+    val dbHelper = StoreBookDbHelper(context, storeId)
 
     // --- Inventory Operations ---
 
@@ -376,6 +376,7 @@ class StoreBookRepository(
                     db.setTransactionSuccessful()
                     true
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     false
                 } finally {
                     db.endTransaction()
@@ -726,6 +727,7 @@ class StoreBookRepository(
                         }
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     e.printStackTrace()
                 }
                 Pair(gstin, address)
@@ -936,6 +938,7 @@ class StoreBookRepository(
                     db.setTransactionSuccessful()
                     true
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     false
                 } finally {
                     db.endTransaction()
@@ -1067,6 +1070,7 @@ class StoreBookRepository(
 
                     db.setTransactionSuccessful()
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     e.printStackTrace()
                 } finally {
                     db.endTransaction()
@@ -1089,6 +1093,7 @@ class StoreBookRepository(
             }
             db.setTransactionSuccessful()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             e.printStackTrace()
         } finally {
             db.endTransaction()
@@ -1479,6 +1484,7 @@ class StoreBookRepository(
             db.execSQL("DELETE FROM ${StoreBookDbHelper.TABLE_PURCHASE_ITEMS}")
             db.setTransactionSuccessful()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             e.printStackTrace()
         } finally {
             db.endTransaction()
@@ -1691,8 +1697,6 @@ class StoreBookRepository(
         db.update("sale_items", cv, "id = ?", arrayOf(id.toString()))
     }
 
-}
-
 
 data class SyncItem(
     val id: Long, val name: String, val quantity: Double, val unit: String,
@@ -1713,3 +1717,163 @@ data class SyncSaleItem(
     val unit: String, val quantity: Double, val sellPrice: Double, val buyPrice: Double,
     val isDeleted: Boolean, val updatedAt: Long
 )
+
+    fun getUnsyncedUdhaars(): List<SyncUdhaar> {
+        val list = mutableListOf<SyncUdhaar>()
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM udhaar WHERE is_synced = 0", null)
+        if (cursor.moveToFirst()) {
+            do {
+                list.add(
+                    SyncUdhaar(
+                        id = cursor.getLong(cursor.getColumnIndexOrThrow("id")),
+                        customerName = cursor.getString(cursor.getColumnIndexOrThrow("customer_name")),
+                        amount = cursor.getDouble(cursor.getColumnIndexOrThrow("amount")),
+                        type = cursor.getString(cursor.getColumnIndexOrThrow("type")),
+                        timestamp = cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")),
+                        notes = cursor.getString(cursor.getColumnIndexOrThrow("notes")),
+                        isDeleted = cursor.getInt(cursor.getColumnIndexOrThrow("is_deleted")) == 1,
+                        updatedAt = cursor.getLong(cursor.getColumnIndexOrThrow("updated_at"))
+                    )
+                )
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        return list
+    }
+
+    fun markUdhaarSynced(id: Long, cloudId: String) {
+        val db = dbHelper.writableDatabase
+        val cv = android.content.ContentValues().apply { put("is_synced", 1); put("cloud_id", cloudId) }
+        db.update("udhaar", cv, "id = ?", arrayOf(id.toString()))
+    }
+
+    fun getUnsyncedExpenses(): List<SyncExpense> {
+        val list = mutableListOf<SyncExpense>()
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM expenses WHERE is_synced = 0", null)
+        if (cursor.moveToFirst()) {
+            do {
+                list.add(
+                    SyncExpense(
+                        id = cursor.getLong(cursor.getColumnIndexOrThrow("id")),
+                        type = cursor.getString(cursor.getColumnIndexOrThrow("type")),
+                        description = cursor.getString(cursor.getColumnIndexOrThrow("description")),
+                        amount = cursor.getDouble(cursor.getColumnIndexOrThrow("amount")),
+                        timestamp = cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")),
+                        supplierName = cursor.getString(cursor.getColumnIndexOrThrow("supplier")),
+                        supplierPhone = cursor.getString(cursor.getColumnIndexOrThrow("phone")),
+                        isDeleted = cursor.getInt(cursor.getColumnIndexOrThrow("is_deleted")) == 1,
+                        updatedAt = cursor.getLong(cursor.getColumnIndexOrThrow("updated_at"))
+                    )
+                )
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        return list
+    }
+
+    fun markExpenseSynced(id: Long, cloudId: String) {
+        val db = dbHelper.writableDatabase
+        val cv = android.content.ContentValues().apply { put("is_synced", 1); put("cloud_id", cloudId) }
+        db.update("expenses", cv, "id = ?", arrayOf(id.toString()))
+    }
+
+    fun getUnsyncedSuppliers(): List<SyncSupplier> {
+        val list = mutableListOf<SyncSupplier>()
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM suppliers WHERE is_synced = 0", null)
+        if (cursor.moveToFirst()) {
+            do {
+                list.add(
+                    SyncSupplier(
+                        id = cursor.getLong(cursor.getColumnIndexOrThrow("id")),
+                        name = cursor.getString(cursor.getColumnIndexOrThrow("name")),
+                        phone = cursor.getString(cursor.getColumnIndexOrThrow("phone")),
+                        gstin = cursor.getString(cursor.getColumnIndexOrThrow("gstin")),
+                        address = cursor.getString(cursor.getColumnIndexOrThrow("address")),
+                        isDeleted = cursor.getInt(cursor.getColumnIndexOrThrow("is_deleted")) == 1,
+                        updatedAt = cursor.getLong(cursor.getColumnIndexOrThrow("updated_at"))
+                    )
+                )
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        return list
+    }
+
+    fun markSupplierSynced(id: Long, cloudId: String) {
+        val db = dbHelper.writableDatabase
+        val cv = android.content.ContentValues().apply { put("is_synced", 1); put("cloud_id", cloudId) }
+        db.update("suppliers", cv, "id = ?", arrayOf(id.toString()))
+    }
+
+    fun getUnsyncedPurchases(): List<SyncPurchase> {
+        val list = mutableListOf<SyncPurchase>()
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM purchases WHERE is_synced = 0", null)
+        if (cursor.moveToFirst()) {
+            do {
+                list.add(
+                    SyncPurchase(
+                        id = cursor.getLong(cursor.getColumnIndexOrThrow("id")),
+                        supplierId = cursor.getLong(cursor.getColumnIndexOrThrow("supplier_id")),
+                        supplierName = cursor.getString(cursor.getColumnIndexOrThrow("supplier_name")),
+                        totalAmount = cursor.getDouble(cursor.getColumnIndexOrThrow("total_amount")),
+                        taxAmount = cursor.getDouble(cursor.getColumnIndexOrThrow("tax_amount")),
+                        type = cursor.getString(cursor.getColumnIndexOrThrow("type")),
+                        timestamp = cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")),
+                        notes = cursor.getString(cursor.getColumnIndexOrThrow("notes")),
+                        isDeleted = cursor.getInt(cursor.getColumnIndexOrThrow("is_deleted")) == 1,
+                        updatedAt = cursor.getLong(cursor.getColumnIndexOrThrow("updated_at"))
+                    )
+                )
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        return list
+    }
+
+    fun markPurchaseSynced(id: Long, cloudId: String) {
+        val db = dbHelper.writableDatabase
+        val cv = android.content.ContentValues().apply { put("is_synced", 1); put("cloud_id", cloudId) }
+        db.update("purchases", cv, "id = ?", arrayOf(id.toString()))
+    }
+    
+    fun getUnsyncedPurchaseItems(): List<SyncPurchaseItem> {
+        val list = mutableListOf<SyncPurchaseItem>()
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM purchase_items WHERE is_synced = 0", null)
+        if (cursor.moveToFirst()) {
+            do {
+                list.add(
+                    SyncPurchaseItem(
+                        id = cursor.getLong(cursor.getColumnIndexOrThrow("id")),
+                        purchaseId = cursor.getLong(cursor.getColumnIndexOrThrow("purchase_id")),
+                        itemId = cursor.getLong(cursor.getColumnIndexOrThrow("item_id")),
+                        itemName = cursor.getString(cursor.getColumnIndexOrThrow("item_name")),
+                        quantity = cursor.getDouble(cursor.getColumnIndexOrThrow("quantity")),
+                        unit = cursor.getString(cursor.getColumnIndexOrThrow("unit")),
+                        buyPrice = cursor.getDouble(cursor.getColumnIndexOrThrow("buy_price")),
+                        isDeleted = cursor.getInt(cursor.getColumnIndexOrThrow("is_deleted")) == 1,
+                        updatedAt = cursor.getLong(cursor.getColumnIndexOrThrow("updated_at"))
+                    )
+                )
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        return list
+    }
+
+    fun markPurchaseItemSynced(id: Long, cloudId: String) {
+        val db = dbHelper.writableDatabase
+        val cv = android.content.ContentValues().apply { put("is_synced", 1); put("cloud_id", cloudId) }
+        db.update("purchase_items", cv, "id = ?", arrayOf(id.toString()))
+    }
+}
+
+data class SyncUdhaar(val id: Long, val customerName: String, val amount: Double, val type: String, val timestamp: Long, val notes: String?, val isDeleted: Boolean, val updatedAt: Long)
+data class SyncExpense(val id: Long, val type: String, val description: String, val amount: Double, val timestamp: Long, val supplierName: String?, val supplierPhone: String?, val isDeleted: Boolean, val updatedAt: Long)
+data class SyncSupplier(val id: Long, val name: String, val phone: String?, val gstin: String?, val address: String?, val isDeleted: Boolean, val updatedAt: Long)
+data class SyncPurchase(val id: Long, val supplierId: Long, val supplierName: String, val totalAmount: Double, val taxAmount: Double, val type: String, val timestamp: Long, val notes: String?, val isDeleted: Boolean, val updatedAt: Long)
+data class SyncPurchaseItem(val id: Long, val purchaseId: Long, val itemId: Long, val itemName: String, val quantity: Double, val unit: String, val buyPrice: Double, val isDeleted: Boolean, val updatedAt: Long)

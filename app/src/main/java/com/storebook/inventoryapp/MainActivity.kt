@@ -41,10 +41,11 @@ class MainActivity : AppCompatActivity() {
         val lang =
             try {
                 val l = runBlocking { languageManager.appLanguage.first() }
-                android.util.Log.d("MainActivity", "attachBaseContext read lang: $l")
+                if (com.storebook.inventoryapp.BuildConfig.DEBUG) android.util.Log.d("MainActivity", "attachBaseContext read lang: $l")
                 l
             } catch (e: Exception) {
-                android.util.Log.e("MainActivity", "attachBaseContext read error", e)
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                if (com.storebook.inventoryapp.BuildConfig.DEBUG) android.util.Log.e("MainActivity", "attachBaseContext read error", e)
                 "en"
             }
         val context = LocaleHelper.wrap(newBase, lang)
@@ -62,11 +63,12 @@ class MainActivity : AppCompatActivity() {
                 try {
                     languageManager.appLanguage.first()
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     "en"
                 }
             val currentLocales = AppCompatDelegate.getApplicationLocales()
             if (currentLocales.isEmpty || currentLocales.get(0)?.language != savedLang) {
-                android.util.Log.d(
+                if (com.storebook.inventoryapp.BuildConfig.DEBUG) android.util.Log.d(
                     "MainActivity",
                     "App locales disagree with saved config ($savedLang). Setting locales...",
                 )
@@ -94,7 +96,7 @@ class MainActivity : AppCompatActivity() {
             val themeMode by themeManager.themeMode
 
             // Reset theme to INK_BLUE if free user tries to use a premium theme
-            val storebookPrefs = remember { getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE) }
+            val storebookPrefs = remember { com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(this) }
             val isPremium = remember { mutableStateOf(storebookPrefs.getBoolean("is_premium", false) || storebookPrefs.getString("user_role", "owner") == "staff") }
 
             DisposableEffect(Unit) {

@@ -1,3 +1,4 @@
+@file:android.annotation.SuppressLint("LocalContextGetResourceValueCall")
 package com.storebook.inventoryapp.ui.screens.storebook
 
 import android.app.Activity
@@ -906,6 +907,7 @@ fun MoreScreen(
                                                                                                         )
                                                                                         )
                                                                         } catch (e: Exception) {
+                                                                                if (e is kotlinx.coroutines.CancellationException) throw e
                                                                                 activity?.let {
                                                                                         it.recreate()
                                                                                         if (Build.VERSION

@@ -1,3 +1,4 @@
+@file:android.annotation.SuppressLint("LocalContextGetResourceValueCall")
 package com.storebook.inventoryapp.ui.screens.storebook
 
 import androidx.compose.animation.AnimatedVisibility

@@ -27,7 +27,7 @@ class FirestoreSyncManager(
             withContext(Dispatchers.IO) {
                 val user = auth.currentUser
                 if (user == null) {
-                    Log.w("SyncManager", "User not logged in. Aborting sync.")
+                    if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.w("SyncManager", "User not logged in. Aborting sync.")
                     return@withContext
                 }
                 val userId =
@@ -247,9 +247,10 @@ class FirestoreSyncManager(
                     )
 
                     onProgress(100, "Sync Complete!")
-                    Log.i("SyncManager", "Sync complete for store $storeId")
+                    if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.i("SyncManager", "Sync complete for store $storeId")
                 } catch (e: Exception) {
-                    Log.e("SyncManager", "Sync failed: ${e.message}", e)
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.e("SyncManager", "Sync failed: ${e.message}", e)
                 }
             }
 
@@ -522,7 +523,7 @@ class FirestoreSyncManager(
                             .collection(tableName)
                             .addSnapshotListener { snapshots, e ->
                                 if (e != null) {
-                                    Log.w("SyncManager", "Listen failed for table $tableName", e)
+                                    if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.w("SyncManager", "Listen failed for table $tableName", e)
                                     return@addSnapshotListener
                                 }
 
@@ -622,7 +623,7 @@ class FirestoreSyncManager(
                                         }
 
                                         if (localDbUpdated) {
-                                            Log.i(
+                                            if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.i(
                                                     "SyncManager",
                                                     "Local database updated from real-time changes on $tableName"
                                             )

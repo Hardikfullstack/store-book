@@ -6,6 +6,7 @@ import { getSession } from '@/lib/session';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { getDataConnect } from 'firebase-admin/data-connect';
+import { sanitizeInput } from '@/lib/sanitize';
 
 
 export async function login(idToken: string) {
@@ -58,6 +59,7 @@ export async function switchStore(storeId: string) {
 // -- MIGRATED CRUD ACTIONS DELETED --
 
 export async function createStore(name: string) {
+  const sanitizedName = sanitizeInput(name);
   // Requires Store table migration in schema.gql
   return { success: false, error: "Not implemented in DataConnect yet." };
 }
@@ -184,6 +186,7 @@ export async function fetchMoreData(collectionName: string, lastUpdatedAt: numbe
 }
 
 export async function createStaffAccount(username: string, rawPin: string, permissions: { canViewProfit: boolean, canDelete: boolean } = { canViewProfit: false, canDelete: false }) {
+  const sanitizedUsername = sanitizeInput(username);
   const session = await getSession();
   if (session?.role !== 'owner' || !session.storeId) {
     throw new Error("Only owners can create staff accounts");
@@ -195,7 +198,7 @@ export async function createStaffAccount(username: string, rawPin: string, permi
     const userRecord = await adminAuth.createUser({
       email: virtualEmail,
       password: rawPin,
-      displayName: username
+      displayName: sanitizedUsername
     });
     
     const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });

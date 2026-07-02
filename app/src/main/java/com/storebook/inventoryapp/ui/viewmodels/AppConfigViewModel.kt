@@ -133,7 +133,8 @@ class AppConfigViewModel(
                     // Handle failure or non-200 code
                 }
             } catch (e: Exception) {
-                Log.e(AppConfigViewModel::class.java.simpleName, "Failed to fetch app data: ${e.message}", e)
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.e(AppConfigViewModel::class.java.simpleName, "Failed to fetch app data: ${e.message}", e)
             }
         }
     }

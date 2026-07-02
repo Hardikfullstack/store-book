@@ -1,3 +1,4 @@
+import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -136,7 +137,7 @@ export default function ExpensesClient({
             <input aria-label="text" 
               type="text" 
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
               className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all dark:text-gray-100"
               placeholder="Search expenses by description, type or supplier..."
             />
@@ -229,12 +230,12 @@ export default function ExpensesClient({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium dark:text-gray-300">Description</label>
-                <input aria-label="text" required type="text" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                <input aria-label="text" required type="text" value={formData.description} onChange={e => setFormData({...formData, description: sanitizeInput(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Type/Category</label>
-                  <input aria-label="text" type="text" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                  <input aria-label="text" type="text" value={formData.type} onChange={e => setFormData({...formData, type: sanitizeInput(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Amount</label>
@@ -243,7 +244,7 @@ export default function ExpensesClient({
               </div>
               <div>
                 <label className="block text-sm font-medium dark:text-gray-300">Supplier (Optional)</label>
-                <input aria-label="text" type="text" value={formData.supplier_name} onChange={e => setFormData({...formData, supplier_name: e.target.value})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                <input aria-label="text" type="text" value={formData.supplier_name} onChange={e => setFormData({...formData, supplier_name: sanitizeInput(e.target.value)})} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
               </div>
               <div className="flex justify-end space-x-3 mt-6">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>

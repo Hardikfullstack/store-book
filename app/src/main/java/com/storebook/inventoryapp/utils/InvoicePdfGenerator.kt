@@ -218,6 +218,7 @@ object InvoicePdfGenerator {
         try {
             document.writeTo(FileOutputStream(file))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             e.printStackTrace()
             document.close()
             return null
@@ -455,6 +456,7 @@ object InvoicePdfGenerator {
         try {
             document.writeTo(FileOutputStream(file))
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             e.printStackTrace()
             document.close()
             return null

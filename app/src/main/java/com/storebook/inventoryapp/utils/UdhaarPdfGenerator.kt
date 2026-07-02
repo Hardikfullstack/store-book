@@ -83,6 +83,7 @@ object UdhaarPdfGenerator {
             document.close()
             return file
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             e.printStackTrace()
             document.close()
             return null

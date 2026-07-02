@@ -25,7 +25,7 @@ class PlayBillingManager(
         BillingClient
             .newBuilder(appContext.applicationContext)
             .setListener { billingResult, purchaseList ->
-                Log.d(TAG, "PurchaseUpdated: code=${billingResult.responseCode} n=${purchaseList?.size}")
+                if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.d(TAG, "PurchaseUpdated: code=${billingResult.responseCode} n=${purchaseList?.size}")
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     purchaseList
                         ?.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
@@ -87,7 +87,7 @@ class PlayBillingManager(
     }
 
     private fun updateProUnlocked(purchases: MutableList<Purchase>?) {
-        Log.d(TAG, "Query result: count=${purchases?.size}")
+        if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.d(TAG, "Query result: count=${purchases?.size}")
         if (purchases?.isNotEmpty() == true) {
             val activeIds =
                 purchases
@@ -220,7 +220,8 @@ class PlayBillingManager(
         try {
             billingClient.endConnection()
         } catch (e: Exception) {
-            Log.w(TAG, "Error disconnecting billing client", e)
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.w(TAG, "Error disconnecting billing client", e)
         }
     }
 }

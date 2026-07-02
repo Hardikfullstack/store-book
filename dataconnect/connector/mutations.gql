@@ -328,3 +328,91 @@ mutation PurgeStore($id: String!) @auth(level: USER) {
 mutation CreateUser($id: String!, $role: String!, $createdAt: Float!, $storeId: String!, $canViewProfit: Boolean, $canDelete: Boolean) @auth(level: USER) {
   user_upsert(data: { id: $id, role: $role, createdAt: $createdAt, storeId: $storeId, canViewProfit: $canViewProfit, canDelete: $canDelete })
 }
+
+mutation SyncPurchase(
+  $id: String!
+  $storeId: String!
+  $supplierId: String!
+  $supplierName: String!
+  $totalAmount: Float!
+  $taxAmount: Float!
+  $type: String!
+  $timestamp: Float!
+  $notes: String
+  $isDeleted: Boolean!
+  $updatedAt: Float!
+) @auth(level: USER) {
+  purchase_upsert(
+    data: {
+      id: $id
+      storeId: $storeId
+      supplierId: $supplierId
+      supplierName: $supplierName
+      totalAmount: $totalAmount
+      taxAmount: $taxAmount
+      type: $type
+      timestamp: $timestamp
+      notes: $notes
+      isDeleted: $isDeleted
+      updatedAt: $updatedAt
+    }
+  )
+}
+
+mutation SyncPurchaseItem(
+  $id: String!
+  $storeId: String!
+  $purchaseId: String!
+  $itemId: String!
+  $itemName: String!
+  $quantity: Float!
+  $unit: String!
+  $buyPrice: Float!
+  $isDeleted: Boolean!
+  $updatedAt: Float!
+) @auth(level: USER) {
+  purchaseItemDetail_upsert(
+    data: {
+      id: $id
+      storeId: $storeId
+      purchaseId: $purchaseId
+      itemId: $itemId
+      itemName: $itemName
+      quantity: $quantity
+      unit: $unit
+      buyPrice: $buyPrice
+      isDeleted: $isDeleted
+      updatedAt: $updatedAt
+    }
+  )
+}
+
+mutation SyncItemBatch(
+  $id: String!
+  $storeId: String!
+  $itemId: String!
+  $batchNumber: String
+  $expiryDate: Float
+  $quantity: Float!
+  $costPrice: Float!
+  $timestamp: Float!
+  $notes: String
+  $isDeleted: Boolean!
+  $updatedAt: Float!
+) @auth(level: USER) {
+  itemBatch_upsert(
+    data: {
+      id: $id
+      storeId: $storeId
+      itemId: $itemId
+      batchNumber: $batchNumber
+      expiryDate: $expiryDate
+      quantity: $quantity
+      costPrice: $costPrice
+      timestamp: $timestamp
+      notes: $notes
+      isDeleted: $isDeleted
+      updatedAt: $updatedAt
+    }
+  )
+}

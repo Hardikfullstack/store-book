@@ -81,6 +81,7 @@ enum class UserRole(val permissions: Set<AppPermission>) {
             return try {
                 valueOf(role.uppercase())
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 if (role.lowercase() == "staff") BILLER else OWNER
             }
         }
@@ -667,6 +668,7 @@ class StoreBookViewModel(
                     onSuccess(saleId, total)
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 errorMessage = e.message ?: "An error occurred during checkout"
             }
         }
@@ -853,6 +855,7 @@ class StoreBookViewModel(
 
                 withContext(Dispatchers.Main) { onSuccess() }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 withContext(Dispatchers.Main) { onError(e.message ?: "Unknown Error") }
             }
         }
@@ -940,6 +943,7 @@ class StoreBookViewModel(
                     }
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 withContext(Dispatchers.Main) { onError(e.message ?: "CSV Import failed") }
             }
         }

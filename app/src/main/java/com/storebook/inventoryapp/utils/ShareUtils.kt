@@ -46,6 +46,7 @@ object ShareUtils {
         try {
             context.startActivity(intent)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             // Handle no PDF viewer installed
             android.widget.Toast
                 .makeText(
@@ -99,6 +100,7 @@ object ShareUtils {
                 context.startActivity(intent)
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             try {
                 // Secondary fallback: Try opening as a generic resource folder
                 val parentFile = file.parentFile ?: file

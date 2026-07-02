@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { createStore } from '@/app/actions';
+import { sanitizeInput } from '@/lib/sanitize';
 
 export default function CreateStoreModal({ onClose }: { onClose: () => void }) {
   const [storeName, setStoreName] = useState('');
@@ -11,7 +12,8 @@ export default function CreateStoreModal({ onClose }: { onClose: () => void }) {
     if (!storeName.trim()) return;
     setLoading(true);
     try {
-      await createStore(storeName);
+      const sanitizedName = sanitizeInput(storeName);
+      await createStore(sanitizedName);
       window.location.href = '/';
     } catch (err) {
       console.error(err);
@@ -31,7 +33,7 @@ export default function CreateStoreModal({ onClose }: { onClose: () => void }) {
               required 
               type="text" 
               value={storeName} 
-              onChange={e => setStoreName(e.target.value)} 
+              onChange={e => setStoreName(sanitizeInput(e.target.value))} 
               className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" 
               placeholder="e.g. My Second Shop"
             />

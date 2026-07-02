@@ -1,3 +1,4 @@
+import { sanitizeInput } from '@/lib/sanitize';
 import React, { useEffect, useState } from 'react';
 import { dataConnect } from '@/lib/firebase';
 import { getActiveSuppliers, syncSupplier } from '@/dataconnect';
@@ -197,7 +198,7 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
               min="0"
               step="any"
               value={quantity}
-              onChange={(event) => setQuantity(event.target.value)}
+              onChange={(event) => setQuantity(sanitizeInput(event.target.value))}
               placeholder="Enter quantity"
               className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-teal-500"
             />
@@ -227,7 +228,7 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
                 min="0"
                 step="0.01"
                 value={buyPrice}
-                onChange={(event) => setBuyPrice(event.target.value)}
+                onChange={(event) => setBuyPrice(sanitizeInput(event.target.value))}
                 placeholder="0.00"
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-teal-500"
               />
@@ -254,7 +255,7 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
                   <input aria-label="text"
                     type="text"
                     value={supplierSearch}
-                    onChange={(event) => setSupplierSearch(event.target.value)}
+                    onChange={(event) => setSupplierSearch(sanitizeInput(event.target.value))}
                     placeholder="Search supplier..."
                     className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-sm text-gray-900 outline-none focus:border-teal-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
                   />

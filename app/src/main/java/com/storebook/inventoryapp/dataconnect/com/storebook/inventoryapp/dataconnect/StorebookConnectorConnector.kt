@@ -70,7 +70,19 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
   
     public val syncItem: SyncItemMutation
   
+    public val syncItemBatch: SyncItemBatchMutation
+  
+    public val syncItemBatches: SyncItemBatchesQuery
+  
     public val syncItems: SyncItemsQuery
+  
+    public val syncPurchase: SyncPurchaseMutation
+  
+    public val syncPurchaseItem: SyncPurchaseItemMutation
+  
+    public val syncPurchaseItems: SyncPurchaseItemsQuery
+  
+    public val syncPurchases: SyncPurchasesQuery
   
     public val syncSale: SyncSaleMutation
   
@@ -83,6 +95,8 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
     public val syncStore: SyncStoreMutation
   
     public val syncSupplier: SyncSupplierMutation
+  
+    public val syncSuppliers: SyncSuppliersQuery
   
     public val syncUdhaar: SyncUdhaarMutation
   
@@ -245,8 +259,32 @@ private class StorebookConnectorConnectorImpl(
       SyncItemMutationImpl(this)
     }
   
+    override val syncItemBatch by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SyncItemBatchMutationImpl(this)
+    }
+  
+    override val syncItemBatches by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SyncItemBatchesQueryImpl(this)
+    }
+  
     override val syncItems by lazy(LazyThreadSafetyMode.PUBLICATION) {
       SyncItemsQueryImpl(this)
+    }
+  
+    override val syncPurchase by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SyncPurchaseMutationImpl(this)
+    }
+  
+    override val syncPurchaseItem by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SyncPurchaseItemMutationImpl(this)
+    }
+  
+    override val syncPurchaseItems by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SyncPurchaseItemsQueryImpl(this)
+    }
+  
+    override val syncPurchases by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SyncPurchasesQueryImpl(this)
     }
   
     override val syncSale by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -271,6 +309,10 @@ private class StorebookConnectorConnectorImpl(
   
     override val syncSupplier by lazy(LazyThreadSafetyMode.PUBLICATION) {
       SyncSupplierMutationImpl(this)
+    }
+  
+    override val syncSuppliers by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      SyncSuppliersQueryImpl(this)
     }
   
     override val syncUdhaar by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -328,6 +370,9 @@ private class StorebookConnectorConnectorImpl(
         softDeleteUdhaar,
         syncExpense,
         syncItem,
+        syncItemBatch,
+        syncPurchase,
+        syncPurchaseItem,
         syncSale,
         syncSaleItem,
         syncStore,
@@ -361,9 +406,13 @@ private class StorebookConnectorConnectorImpl(
         getUser,
         getUsersPaginated,
         syncExpenses,
+        syncItemBatches,
         syncItems,
+        syncPurchaseItems,
+        syncPurchases,
         syncSaleItems,
         syncSales,
+        syncSuppliers,
         syncUdhaars,
         
     )
@@ -890,6 +939,36 @@ private class SyncItemMutationImpl(
   )
 
 
+private class SyncItemBatchMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  SyncItemBatchMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      SyncItemBatchMutation.Data,
+      SyncItemBatchMutation.Variables
+  >(
+    connector,
+    SyncItemBatchMutation.Companion.operationName,
+    SyncItemBatchMutation.Companion.dataDeserializer,
+    SyncItemBatchMutation.Companion.variablesSerializer,
+  )
+
+
+private class SyncItemBatchesQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  SyncItemBatchesQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      SyncItemBatchesQuery.Data,
+      SyncItemBatchesQuery.Variables
+  >(
+    connector,
+    SyncItemBatchesQuery.Companion.operationName,
+    SyncItemBatchesQuery.Companion.dataDeserializer,
+    SyncItemBatchesQuery.Companion.variablesSerializer,
+  )
+
+
 private class SyncItemsQueryImpl(
   connector: StorebookConnectorConnector
 ):
@@ -902,6 +981,66 @@ private class SyncItemsQueryImpl(
     SyncItemsQuery.Companion.operationName,
     SyncItemsQuery.Companion.dataDeserializer,
     SyncItemsQuery.Companion.variablesSerializer,
+  )
+
+
+private class SyncPurchaseMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  SyncPurchaseMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      SyncPurchaseMutation.Data,
+      SyncPurchaseMutation.Variables
+  >(
+    connector,
+    SyncPurchaseMutation.Companion.operationName,
+    SyncPurchaseMutation.Companion.dataDeserializer,
+    SyncPurchaseMutation.Companion.variablesSerializer,
+  )
+
+
+private class SyncPurchaseItemMutationImpl(
+  connector: StorebookConnectorConnector
+):
+  SyncPurchaseItemMutation,
+  StorebookConnectorConnectorGeneratedMutationImpl<
+      SyncPurchaseItemMutation.Data,
+      SyncPurchaseItemMutation.Variables
+  >(
+    connector,
+    SyncPurchaseItemMutation.Companion.operationName,
+    SyncPurchaseItemMutation.Companion.dataDeserializer,
+    SyncPurchaseItemMutation.Companion.variablesSerializer,
+  )
+
+
+private class SyncPurchaseItemsQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  SyncPurchaseItemsQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      SyncPurchaseItemsQuery.Data,
+      SyncPurchaseItemsQuery.Variables
+  >(
+    connector,
+    SyncPurchaseItemsQuery.Companion.operationName,
+    SyncPurchaseItemsQuery.Companion.dataDeserializer,
+    SyncPurchaseItemsQuery.Companion.variablesSerializer,
+  )
+
+
+private class SyncPurchasesQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  SyncPurchasesQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      SyncPurchasesQuery.Data,
+      SyncPurchasesQuery.Variables
+  >(
+    connector,
+    SyncPurchasesQuery.Companion.operationName,
+    SyncPurchasesQuery.Companion.dataDeserializer,
+    SyncPurchasesQuery.Companion.variablesSerializer,
   )
 
 
@@ -992,6 +1131,21 @@ private class SyncSupplierMutationImpl(
     SyncSupplierMutation.Companion.operationName,
     SyncSupplierMutation.Companion.dataDeserializer,
     SyncSupplierMutation.Companion.variablesSerializer,
+  )
+
+
+private class SyncSuppliersQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  SyncSuppliersQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      SyncSuppliersQuery.Data,
+      SyncSuppliersQuery.Variables
+  >(
+    connector,
+    SyncSuppliersQuery.Companion.operationName,
+    SyncSuppliersQuery.Companion.dataDeserializer,
+    SyncSuppliersQuery.Companion.variablesSerializer,
   )
 
 

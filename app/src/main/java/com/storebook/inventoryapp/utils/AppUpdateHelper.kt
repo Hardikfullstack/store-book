@@ -57,7 +57,7 @@ class AppUpdateHelper(
                 activity,
                 requestCode,
             )
-        } catch (e: Exception) {
+        } catch (e: android.content.IntentSender.SendIntentException) {
             e.printStackTrace()
         }
     }
@@ -70,7 +70,9 @@ class AppUpdateHelper(
                         popupSnackBarForCompleteUpdate()
                     }
                 }
-            appUpdateManager.registerListener(installStateListener!!)
+            installStateListener?.let {
+                appUpdateManager.registerListener(it)
+            }
         }
     }
 
@@ -94,7 +96,7 @@ class AppUpdateHelper(
                         activity,
                         requestCode,
                     )
-                } catch (e: Exception) {
+                } catch (e: android.content.IntentSender.SendIntentException) {
                     e.printStackTrace()
                 }
             } else if (appUpdateInfo.installStatus() == InstallStatus.DOWNLOADED) {

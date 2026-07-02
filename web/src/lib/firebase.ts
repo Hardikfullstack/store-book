@@ -1,6 +1,7 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getDataConnect, connectDataConnectEmulator } from 'firebase/data-connect';
+import { getDatabase } from 'firebase/database';
 import { connectorConfig } from '../dataconnect';
 
 const firebaseConfig = {
@@ -16,3 +17,4 @@ export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getA
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const dataConnect = getDataConnect(app, connectorConfig);
+export const rtdb = getDatabase(app);

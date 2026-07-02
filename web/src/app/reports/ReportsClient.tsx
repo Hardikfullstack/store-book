@@ -1,3 +1,4 @@
+import { sanitizeInput } from '@/lib/sanitize';
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -76,7 +77,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
         </div>
         <select 
           value={dateRange}
-          onChange={(e) => setDateRange(e.target.value as any)}
+          onChange={(e) => setDateRange(sanitizeInput(e.target.value) as any)}
           className="px-4 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm"
         >
           <option value="month">Current Month</option>

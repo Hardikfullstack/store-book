@@ -19,11 +19,11 @@ import kotlinx.coroutines.flow.filterNotNull as _flow_filterNotNull
 import kotlinx.coroutines.flow.map as _flow_map
 
 
-public interface SyncSalesQuery :
+public interface SyncItemBatchesQuery :
     com.google.firebase.dataconnect.generated.GeneratedQuery<
       StorebookConnectorConnector,
-      SyncSalesQuery.Data,
-      SyncSalesQuery.Variables
+      SyncItemBatchesQuery.Data,
+      SyncItemBatchesQuery.Variables
     >
 {
   
@@ -44,34 +44,30 @@ public interface SyncSalesQuery :
     @kotlinx.serialization.Serializable
   public data class Data(
   
-    val sales:
-    List<SalesItem>
+    val itemBatches:
+    List<ItemBatchesItem>
   ) {
     
       
         @kotlinx.serialization.Serializable
-  public data class SalesItem(
+  public data class ItemBatchesItem(
   
     val id:
     String,
+    val storeId:
+    String,
+    val itemId:
+    String,
+    val batchNumber:
+    String?,
+    val expiryDate:
+    Double?,
+    val quantity:
+    Double,
+    val costPrice:
+    Double,
     val timestamp:
     Double,
-    val totalAmount:
-    Double,
-    val discountAmount:
-    Double,
-    val customerName:
-    String?,
-    val customerGstin:
-    String?,
-    val businessGstin:
-    String?,
-    val customerAddress:
-    String?,
-    val businessAddress:
-    String?,
-    val type:
-    String,
     val notes:
     String?,
     val isDeleted:
@@ -89,7 +85,7 @@ public interface SyncSalesQuery :
   
 
   public companion object {
-    public val operationName: String = "SyncSales"
+    public val operationName: String = "SyncItemBatches"
 
     public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
       kotlinx.serialization.serializer()
@@ -99,32 +95,32 @@ public interface SyncSalesQuery :
   }
 }
 
-public fun SyncSalesQuery.ref(
+public fun SyncItemBatchesQuery.ref(
   
     storeId: String,lastSync: Double,
   
   
 ): com.google.firebase.dataconnect.QueryRef<
-    SyncSalesQuery.Data,
-    SyncSalesQuery.Variables
+    SyncItemBatchesQuery.Data,
+    SyncItemBatchesQuery.Variables
   > =
   ref(
     
-      SyncSalesQuery.Variables(
+      SyncItemBatchesQuery.Variables(
         storeId=storeId,lastSync=lastSync,
   
       )
     
   )
 
-public suspend fun SyncSalesQuery.execute(
+public suspend fun SyncItemBatchesQuery.execute(
   
     storeId: String,lastSync: Double,
   
   
   ): com.google.firebase.dataconnect.QueryResult<
-    SyncSalesQuery.Data,
-    SyncSalesQuery.Variables
+    SyncItemBatchesQuery.Data,
+    SyncItemBatchesQuery.Variables
   > =
   ref(
     
@@ -134,12 +130,12 @@ public suspend fun SyncSalesQuery.execute(
   ).execute()
 
 
-  public fun SyncSalesQuery.flow(
+  public fun SyncItemBatchesQuery.flow(
     
       storeId: String,lastSync: Double,
   
     
-    ): kotlinx.coroutines.flow.Flow<SyncSalesQuery.Data> =
+    ): kotlinx.coroutines.flow.Flow<SyncItemBatchesQuery.Data> =
     ref(
         
           storeId=storeId,lastSync=lastSync,

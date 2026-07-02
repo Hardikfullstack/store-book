@@ -1,3 +1,4 @@
+@file:android.annotation.SuppressLint("LocalContextGetResourceValueCall")
 package com.storebook.inventoryapp.ui.screens.auth
 
 import android.app.Activity
@@ -597,7 +598,7 @@ fun AuthScreen(
                                                             val role = doc.getString("role") ?: "staff"
                                                             val storeId = doc.getString("storeId") ?: "default"
                                                             val appContext = auth.app.applicationContext
-                                                            val prefs = appContext.getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE)
+                                                            val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(appContext)
                                                             prefs.edit().putString("user_role", role).putString("active_store_id", storeId).apply()
 
                                                             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
@@ -609,7 +610,8 @@ fun AuthScreen(
                                                                         }
                                                                     }
                                                                 } catch (e: Exception) {
-                                                                    android.util.Log.e("AuthScreen", "Initial staff sync failed", e)
+                                                                    if (e is kotlinx.coroutines.CancellationException) throw e
+                                                                    if (com.storebook.inventoryapp.BuildConfig.DEBUG) android.util.Log.e("AuthScreen", "Initial staff sync failed", e)
                                                                 }
                                                                 kotlinx.coroutines.delay(800) // Wait for 100% animation to finish
                                                                 android.os.Handler(android.os.Looper.getMainLooper()).post {
@@ -819,7 +821,7 @@ private fun signInWithPhoneAuthCredential(
                             val isPremium = subscription != null && subscription["plan"] == "pro" && subscription["status"] == "active"
 
                             val appContext = auth.app.applicationContext
-                            val prefs = appContext.getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE)
+                            val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(appContext)
                             val oldStoreId = prefs.getString("active_store_id", "default")
 
                             if (oldStoreId == "default" && storeId != "default") {
@@ -849,7 +851,8 @@ private fun signInWithPhoneAuthCredential(
                                         }
                                     }
                                 } catch (e: Exception) {
-                                    android.util.Log.e("AuthScreen", "Initial owner sync failed", e)
+                                    if (e is kotlinx.coroutines.CancellationException) throw e
+                                    if (com.storebook.inventoryapp.BuildConfig.DEBUG) android.util.Log.e("AuthScreen", "Initial owner sync failed", e)
                                 }
                                 kotlinx.coroutines.delay(800)
                                 android.os.Handler(android.os.Looper.getMainLooper()).post {
