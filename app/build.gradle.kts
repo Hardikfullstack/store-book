@@ -92,7 +92,6 @@ dependencies {
     implementation("com.google.firebase:firebase-crashlytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-messaging")
-    implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-dataconnect:16.0.0-beta01")
     implementation("androidx.work:work-runtime-ktx:2.9.0")

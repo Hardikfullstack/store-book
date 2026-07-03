@@ -33,7 +33,6 @@ import com.storebook.inventoryapp.data.repository.StoreBookRepository
 import com.storebook.inventoryapp.shared.domain.models.Supplier
 import com.storebook.inventoryapp.shared.domain.models.SupplierBalance
 import com.storebook.inventoryapp.shared.domain.models.UdhaarEntry
-import com.storebook.inventoryapp.data.sync.FirestoreSyncManager
 import com.storebook.inventoryapp.data.sync.SyncWorker
 import com.storebook.inventoryapp.utils.InvoicePdfGenerator
 import com.storebook.inventoryapp.utils.ExcelExporter
@@ -117,7 +116,9 @@ class StoreBookViewModel(
     }
 
     val billingManager = PlayBillingManager(application.applicationContext)
-    private val syncManager = FirestoreSyncManager(application.applicationContext)
+
+    private var rtdbListener: com.google.firebase.database.ValueEventListener? = null
+    private var rtdbRef: com.google.firebase.database.DatabaseReference? = null
 
     // Data Flows
     private val _allItems = MutableStateFlow<List<Item>>(emptyList())
@@ -279,19 +280,41 @@ class StoreBookViewModel(
                     triggerSync()
                     startSyncManagerRealtime()
                 } else {
-                    syncManager.stopRealtimeSync()
+                    stopRealtimeSync()
                 }
             }
         }
     }
 
+    private fun stopRealtimeSync() {
+        rtdbListener?.let { rtdbRef?.removeEventListener(it) }
+        rtdbListener = null
+    }
+
     private fun startSyncManagerRealtime() {
         if (isPremiumUser && activeStoreId != "default") {
-            syncManager.registerDataChangedCallback {
-                // When other users edit the data, reload it locally (without triggering sync cycle)
-                loadAllData(triggerSync = false)
+            // Setup new RTDB ping listener
+            rtdbListener?.let { rtdbRef?.removeEventListener(it) }
+            
+            rtdbRef = com.google.firebase.database.FirebaseDatabase.getInstance()
+                .getReference("store_updates")
+                .child(activeStoreId)
+                .child("last_update")
+                
+            rtdbListener = object : com.google.firebase.database.ValueEventListener {
+                override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                    val serverUpdate = snapshot.getValue(Long::class.java) ?: 0L
+                    val localLastSync = prefs.getLong("last_sync_timestamp", 0L)
+                    if (serverUpdate > localLastSync) {
+                        triggerSync()
+                    }
+                }
+                
+                override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
+                    if (com.storebook.inventoryapp.BuildConfig.DEBUG) android.util.Log.e("StoreBookVM", "RTDB Listener cancelled", error.toException())
+                }
             }
-            syncManager.startRealtimeSync(activeStoreId)
+            rtdbRef?.addValueEventListener(rtdbListener!!)
         }
     }
 
@@ -310,7 +333,7 @@ class StoreBookViewModel(
             if (isPremiumUser) {
                 startSyncManagerRealtime()
             } else {
-                syncManager.stopRealtimeSync()
+                stopRealtimeSync()
             }
         }
     }
@@ -333,7 +356,7 @@ class StoreBookViewModel(
             if (isPremiumUser) {
                 startSyncManagerRealtime()
             } else {
-                syncManager.stopRealtimeSync()
+                stopRealtimeSync()
             }
         }
     }
@@ -395,7 +418,7 @@ class StoreBookViewModel(
 
     override fun onCleared() {
         super.onCleared()
-        syncManager.stopRealtimeSync()
+        stopRealtimeSync()
         billingManager.endConnection()
     }
 

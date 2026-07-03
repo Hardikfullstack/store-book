@@ -395,7 +395,7 @@ class StoreBookDbHelper(
         newVersion: Int,
     ) {
         // Handle database downgrades by wiping and recreating tables.
-        // The FirestoreSyncManager will pull the data from the cloud back into the fresh DB.
+        // The SyncWorker will pull the data from the cloud back into the fresh DB.
         val tables = listOf(
             TABLE_ITEMS, TABLE_SALES, TABLE_SALE_ITEMS, TABLE_UDHAAR, TABLE_EXPENSES,
             TABLE_SUPPLIERS, TABLE_PURCHASES, TABLE_PURCHASE_ITEMS, TABLE_ITEM_BATCHES

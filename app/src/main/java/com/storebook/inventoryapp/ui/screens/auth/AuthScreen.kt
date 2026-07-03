@@ -57,6 +57,7 @@ import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import com.storebook.inventoryapp.R
+import com.storebook.inventoryapp.dataconnect.*
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.launch
 import com.storebook.inventoryapp.ui.theme.PrimaryButton
@@ -591,36 +592,32 @@ fun AuthScreen(
                                     auth.signInWithEmailAndPassword(dummyEmail, staffPassword)
                                         .addOnCompleteListener { task ->
                                             if (task.isSuccessful) {
-                                                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
                                                 val uid = auth.currentUser?.uid ?: ""
                                                 if (uid.isNotEmpty()) {
-                                                    db.collection("users").document(uid).get()
-                                                        .addOnSuccessListener { doc ->
-                                                            val role = doc.getString("role") ?: "staff"
-                                                            val storeId = doc.getString("storeId") ?: "default"
-                                                            val appContext = auth.app.applicationContext
-                                                            val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(appContext)
-                                                            prefs.edit().putString("user_role", role).putString("active_store_id", storeId).apply()
+                                                    val appContext = auth.app.applicationContext
+                                                    val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(appContext)
 
-                                                            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-                                                                try {
-                                                                    com.storebook.inventoryapp.data.sync.FirestoreSyncManager(appContext).syncAllData { progress, message ->
-                                                                        android.os.Handler(android.os.Looper.getMainLooper()).post {
-                                                                            syncProgress = progress
-                                                                            syncMessage = message
-                                                                        }
-                                                                    }
-                                                                } catch (e: Exception) {
-                                                                    if (e is kotlinx.coroutines.CancellationException) throw e
-                                                                    if (com.storebook.inventoryapp.BuildConfig.DEBUG) android.util.Log.e("AuthScreen", "Initial staff sync failed", e)
-                                                                }
-                                                                kotlinx.coroutines.delay(800) // Wait for 100% animation to finish
-                                                                android.os.Handler(android.os.Looper.getMainLooper()).post {
-                                                                    onAuthSuccess()
-                                                                }
+                                                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                                                        try {
+                                                            val connector = com.storebook.inventoryapp.dataconnect.StorebookConnectorConnector.instance
+                                                            val userRes = connector.getUser.execute(uid)
+                                                            val user = userRes.data.user
+                                                            val role = user?.role ?: "staff"
+                                                            val storeId = user?.storeId ?: "default"
+
+                                                            prefs.edit().putString("user_role", role).putString("active_store_id", storeId).apply()
+                                                            
+                                                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                                                onAuthSuccess()
+                                                            }
+                                                        } catch (e: Exception) {
+                                                            if (e is kotlinx.coroutines.CancellationException) throw e
+                                                            if (com.storebook.inventoryapp.BuildConfig.DEBUG) android.util.Log.e("AuthScreen", "Staff auth fetch failed", e)
+                                                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                                                onAuthSuccess()
                                                             }
                                                         }
-                                                        .addOnFailureListener { onAuthSuccess() }
+                                                    }
                                                 } else {
                                                     onAuthSuccess()
                                                 }
@@ -809,22 +806,47 @@ private fun signInWithPhoneAuthCredential(
         .signInWithCredential(credential)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
                 val uid = auth.currentUser?.phoneNumber ?: auth.currentUser?.uid ?: ""
                 if (uid.isNotEmpty()) {
-                    db.collection("users").document(uid).get()
-                        .addOnSuccessListener { doc ->
-                            val role = doc.getString("role") ?: "client"
-                            val stores = doc.get("stores") as? List<String> ?: emptyList()
-                            val storeId = if (stores.isNotEmpty()) stores[0] else "default"
+                    val appContext = auth.app.applicationContext
+                    val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(appContext)
 
-                            val subscription = doc.get("subscription") as? Map<*, *>
-                            val isPremium = subscription != null && subscription["plan"] == "pro" && subscription["status"] == "active"
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                        try {
+                            val connector = com.storebook.inventoryapp.dataconnect.StorebookConnectorConnector.instance
+                            var role = "client"
+                            var storeId = "default"
+                            var stores = emptyList<String>()
+                            var isPremium = false
 
-                            val appContext = auth.app.applicationContext
-                            val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(appContext)
+                            val userRes = connector.getUser.execute(uid)
+                            val user = userRes.data.user
+                            if (user != null) {
+                                role = user.role
+                                stores = user.stores ?: emptyList()
+                                storeId = if (stores.isNotEmpty()) stores[0] else (user.storeId ?: "default")
+                                // Assume false for now, real check is done in ViewModels if needed
+                            } else {
+                                storeId = java.util.UUID.randomUUID().toString()
+                                stores = listOf(storeId)
+                                role = "owner"
+                                
+                                connector.syncStore.execute(id = storeId) {
+                                    name = "My Mobile Store"
+                                    isActive = true
+                                    this.isPremium = false
+                                }
+                                
+                                connector.syncUser.execute(
+                                    id = uid, role = role, createdAt = System.currentTimeMillis().toDouble()
+                                ) {
+                                    phoneNumber = auth.currentUser?.phoneNumber
+                                    this.stores = stores
+                                    this.storeId = storeId
+                                }
+                            }
+
                             val oldStoreId = prefs.getString("active_store_id", "default")
-
                             if (oldStoreId == "default" && storeId != "default") {
                                 val oldDbFile = appContext.getDatabasePath("storebook_default.db")
                                 val newDbFile = appContext.getDatabasePath("storebook_$storeId.db")
@@ -844,26 +866,17 @@ private fun signInWithPhoneAuthCredential(
                                 .putBoolean("is_premium", isPremium)
                                 .apply()
 
-                            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-                                try {
-                                    com.storebook.inventoryapp.data.sync.FirestoreSyncManager(appContext).syncAllData { progress, message ->
-                                        android.os.Handler(android.os.Looper.getMainLooper()).post {
-                                            onSyncProgress(progress, message)
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                    if (e is kotlinx.coroutines.CancellationException) throw e
-                                    if (com.storebook.inventoryapp.BuildConfig.DEBUG) android.util.Log.e("AuthScreen", "Initial owner sync failed", e)
-                                }
-                                kotlinx.coroutines.delay(800)
-                                android.os.Handler(android.os.Looper.getMainLooper()).post {
-                                    onSuccess()
-                                }
+                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                onSuccess()
+                            }
+                        } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
+                            if (com.storebook.inventoryapp.BuildConfig.DEBUG) android.util.Log.e("AuthScreen", "Auth sync failed", e)
+                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                onSuccess()
                             }
                         }
-                        .addOnFailureListener {
-                            onSuccess()
-                        }
+                    }
                 } else {
                     onSuccess()
                 }
