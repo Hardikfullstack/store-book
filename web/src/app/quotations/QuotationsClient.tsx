@@ -30,7 +30,7 @@ export default function QuotationsClient({
   useEffect(() => {
     if (!isPremium || !storeId) return;
     // Fetch total count
-    getActiveSales(dataConnect, { storeId, type: 'ESTIMATE' })
+    getSalesCount(dataConnect, { storeId, type: 'ESTIMATE' })
       .then(res => {
         setTotalItems(res.data.sales.length);
       })

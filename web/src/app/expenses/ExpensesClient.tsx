@@ -29,7 +29,7 @@ export default function ExpensesClient({
     // Fetch total count once
     const fetchTotal = async () => {
       try {
-        const resp = await getActiveExpenses(dataConnect, { storeId });
+        const resp = await getExpenseEntriesCount(dataConnect, { storeId });
         const filtered = resp.data.expenseEntries;
         setTotalItems(filtered.length);
       } catch (e) {
