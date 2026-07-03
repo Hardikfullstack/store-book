@@ -30,7 +30,7 @@ export default function SalesClient({
     // Fetch total count once
     const fetchTotal = async () => {
       try {
-        const resp = await getActiveSales(dataConnect, { storeId, type: 'SALE' });
+        const resp = await getSalesCount(dataConnect, { storeId, type: 'SALE' });
         setTotalItems(resp.data.sales.length);
       } catch (e) {
         console.error('Count fetch error:', e);

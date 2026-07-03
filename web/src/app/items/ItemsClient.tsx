@@ -71,10 +71,10 @@ export default function ItemsClient({
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch total count once on mount using getActiveItems without limit/offset
+  // Fetch total count once on mount using lightweight ID query
   useEffect(() => {
     if (!isPremium || !storeId) return;
-    getActiveItems(dataConnect, { storeId })
+    getItemsCount(dataConnect, { storeId })
       .then(res => {
         if (res.data?.items) setTotalItems(res.data.items.length);
       })

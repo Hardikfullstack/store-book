@@ -34,7 +34,7 @@ export default function UdhaarClient({
     // Fetch total count once
     const fetchTotal = async () => {
       try {
-        const resp = await getActiveUdhaars(dataConnect, { storeId });
+        const resp = await getUdhaarEntriesCount(dataConnect, { storeId });
         const filtered = resp.data.udhaarEntries;
         setTotalItems(filtered.length);
       } catch (e) {
