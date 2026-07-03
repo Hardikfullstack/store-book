@@ -94,6 +94,7 @@ import com.storebook.inventoryapp.ui.screens.storebook.UdhaarScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SupplierLedgerScreen
 import com.storebook.inventoryapp.ui.screens.storebook.GSTReportScreen
 import com.storebook.inventoryapp.ui.theme.Poppins
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 data class BottomNavTab(
     val route: Any,
@@ -235,7 +236,7 @@ fun AppNavigation() {
                 }
             },
             confirmButton = {
-                androidx.compose.material3.Button(onClick = {
+                PrimaryButton(onClick = {
                     val amt = quickExpenseAmount.toDoubleOrNull()
                     if (amt != null && quickExpenseDesc.isNotBlank()) {
                         storeBookViewModel.logOverheadExpense(quickExpenseDesc.trim(), amt)
@@ -293,7 +294,7 @@ fun AppNavigation() {
                 }
             },
             confirmButton = {
-                androidx.compose.material3.Button(onClick = {
+                PrimaryButton(onClick = {
                     val amt = quickSaleAmount.toDoubleOrNull()
                     if (amt != null && amt > 0) {
                         storeBookViewModel.clearCart()
@@ -376,7 +377,7 @@ fun AppNavigation() {
                 }
             },
             confirmButton = {
-                androidx.compose.material3.Button(onClick = {
+                PrimaryButton(onClick = {
                     val qty = quickRestockQty.toDoubleOrNull() ?: 0.0
                     val price = quickRestockPrice.toDoubleOrNull() ?: 0.0
                     if (quickRestockName.isNotBlank() && price > 0.0) {
@@ -468,7 +469,7 @@ fun AppNavigation() {
                 }
             },
             confirmButton = {
-                androidx.compose.material3.Button(onClick = {
+                PrimaryButton(onClick = {
                     val amt = quickPartyAmount.toDoubleOrNull()
                     if (amt != null && quickPartyName.isNotBlank()) {
                         storeBookViewModel.recordUdhaarEntry(quickPartyName.trim(), amt, quickPartyType, "Quick Entry")

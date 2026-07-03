@@ -129,6 +129,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -787,7 +788,7 @@ fun MoreScreen(
                         title = { Text("Store Limit Reached", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
                         text = { Text("You can only create up to 2 local stores on the free plan. Upgrade to Pro to create unlimited stores, sync to cloud, and access premium features!", textAlign = TextAlign.Center) },
                         confirmButton = {
-                            Button(
+                            androidx.compose.material3.Button(
                                 onClick = {
                                     showUpgradeDialog = false
                                     navController.navigate(Routes.PremiumPlans)
@@ -822,12 +823,12 @@ fun MoreScreen(
                             }
                         },
                         confirmButton = {
-                            Button(
+                            androidx.compose.material3.Button(
                                 onClick = {
                                     showLogoutConfirmation = false
                                     auth.signOut()
                                     currentUser = null
-                                    val prefs = context.getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE)
+                                    val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(context)
                                     prefs.edit().remove("current_store_id").remove("is_premium").apply()
                                     viewModel.refreshUserState()
                                     navController.navigate(Routes.Auth) {
@@ -858,7 +859,7 @@ fun MoreScreen(
                         title = { Text("Clear Local Data?", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
                         text = { Text("This will permanently delete all your local inventory, sales, Udhaar, and expense data from this device. Are you absolutely sure?", textAlign = TextAlign.Center) },
                         confirmButton = {
-                            Button(
+                            androidx.compose.material3.Button(
                                 onClick = {
                                     showClearDataDialog = false
                                     viewModel.clearLocalDatabase()
@@ -1175,7 +1176,7 @@ fun MoreScreen(
                                                         }
                                                         var useThermalPrinter by remember {
                                                                 mutableStateOf(
-                                                                        context.getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE)
+                                                                        com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(context)
                                                                                 .getBoolean("use_thermal_printer", false)
                                                                 )
                                                         }
@@ -1210,14 +1211,14 @@ fun MoreScreen(
                                                                         onCheckedChange = { useHapticFeedback = it }
                                                                 )
                                                         }
-                                                        Button(
+                                                        PrimaryButton(
                                                                 onClick = {
                                                                         val trimmedGstin = gstinInput.trim().uppercase()
                                                                         if (trimmedGstin.isNotEmpty() && !trimmedGstin.matches(Regex("\\d{2}[A-Z]{5}\\d{4}[A-Z]{1}[A-Z\\d]{1}[Z]{1}[A-Z\\d]{1}"))) {
                                                                                 android.widget.Toast.makeText(context, "Invalid GSTIN format (e.g. 22AAAAA0000A1Z5)", android.widget.Toast.LENGTH_SHORT).show()
-                                                                                return@Button
+                                                                                return@PrimaryButton
                                                                         }
-                                                                        context.getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE)
+                                                                        com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(context)
                                                                                 .edit()
                                                                                 .putBoolean("use_thermal_printer", useThermalPrinter)
                                                                                 .apply()
@@ -1313,7 +1314,7 @@ fun MoreScreen(
                                                         singleLine = true,
                                                         shape = RoundedCornerShape(12.dp),
                                                 )
-                                                Button(
+                                                PrimaryButton(
                                                         onClick = {
                                                             if (newStoreIdInput.isNotBlank()) {
                                                                 if (!viewModel.userStores.contains(newStoreIdInput) && !viewModel.isPremiumUser && viewModel.userStores.size >= 2) {
@@ -1810,7 +1811,7 @@ fun ExpenseSheetContent(
                         )
                 }
 
-                Button(
+                PrimaryButton(
                         onClick = onSave,
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(14.dp),
@@ -2160,7 +2161,7 @@ fun RestockSheetContent(
                         shape = RoundedCornerShape(12.dp),
                 )
 
-                Button(
+                PrimaryButton(
                         onClick = onSave,
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(14.dp)

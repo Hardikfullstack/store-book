@@ -19,6 +19,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.storebook.inventoryapp.ui.theme.primaryGradient
 
 @Composable
 fun AlphabetScrubber(
@@ -43,7 +44,7 @@ fun AlphabetScrubber(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
+                    .background(MaterialTheme.primaryGradient),
                 contentAlignment = Alignment.Center
             ) {
                 Text(

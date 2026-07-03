@@ -23,7 +23,7 @@ object InvoicePdfGenerator {
         shopAddress: String,
         shopGstin: String,
     ): File? {
-        val prefs = context.getSharedPreferences("storebook_prefs", Context.MODE_PRIVATE)
+        val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(context)
         val isThermal = prefs.getBoolean("use_thermal_printer", false)
 
         return if (isThermal) {

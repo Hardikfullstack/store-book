@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import com.storebook.inventoryapp.ui.theme.primaryGradient
 
 @Composable
 fun DynamicFastScroller(
@@ -104,7 +105,7 @@ fun DynamicFastScroller(
                         .height(36.dp)
                         .padding(horizontal = 16.dp)
                         .clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.primary),
+                        .background(MaterialTheme.primaryGradient),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

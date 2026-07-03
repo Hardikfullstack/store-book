@@ -91,11 +91,7 @@ enum class UserRole(val permissions: Set<AppPermission>) {
 class StoreBookViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
-    private val prefs =
-        application.getSharedPreferences(
-            "storebook_prefs",
-            Context.MODE_PRIVATE
-        )
+    private val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(application)
 
     var activeStoreId: String by mutableStateOf(prefs.getString("active_store_id", "default") ?: "default")
         private set
@@ -415,13 +411,17 @@ class StoreBookViewModel(
     ) {
         viewModelScope.launch {
             _isLoadingItems.value = true
-            _filteredItems.value =
-                repository.getActiveItemsFiltered(
-                    search = search,
-                    category = category,
-                    sortBy = sortBy
-                )
-            _isLoadingItems.value = false
+            try {
+                _filteredItems.value =
+                    repository.getActiveItemsFiltered(
+                        search = search,
+                        category = category,
+                        sortBy = sortBy,
+                        limit = 50 // Added limit to fix loading too many items and making UI sluggish
+                    )
+            } finally {
+                _isLoadingItems.value = false
+            }
         }
     }
 

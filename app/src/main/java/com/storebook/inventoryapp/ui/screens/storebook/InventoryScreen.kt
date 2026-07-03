@@ -125,6 +125,8 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.graphics.luminance
+import com.storebook.inventoryapp.ui.theme.primaryGradient
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 private const val PAGE_SIZE = 50
 
@@ -539,17 +541,17 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                 }
             },
             confirmButton = {
-                Button(onClick = {
+                PrimaryButton(onClick = {
                     val addedQty = addQtyInput.toDoubleOrNull()
                     val finalBuyPrice = if (viewModel.userRole == "staff") refillItem.buyPrice else buyPriceInput.toDoubleOrNull()
 
                     if (addedQty == null || addedQty <= 0.0) {
                         android.widget.Toast.makeText(context, "Please enter a valid positive quantity", android.widget.Toast.LENGTH_SHORT).show()
-                        return@Button
+                        return@PrimaryButton
                     }
                     if (finalBuyPrice == null || finalBuyPrice < 0.0) {
                         android.widget.Toast.makeText(context, "Please enter a valid buy price", android.widget.Toast.LENGTH_SHORT).show()
-                        return@Button
+                        return@PrimaryButton
                     }
                     if (addedQty > 0) {
                         val purchase = Purchase(
@@ -609,7 +611,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primary)
+                        .background(MaterialTheme.primaryGradient)
                         .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 10.dp),
             ) {
@@ -1060,12 +1062,30 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             .padding(bottom = 32.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text(
-                            "Filters & Categories",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Filters & Categories",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            if (selectedCategory != "All" || filterMode != "All") {
+                                androidx.compose.material3.TextButton(
+                                    onClick = {
+                                        selectedCategory = "All"
+                                        filterMode = "All"
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                    modifier = Modifier.height(32.dp)
+                                ) {
+                                    Text("Reset", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
 
                         Text(
                             "Quick Filters",
@@ -1507,7 +1527,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                             }
                         }
 
-                        Button(
+                        PrimaryButton(
                             onClick = {
                                 val name = inputName.trim()
                                 val qty = inputQty.toDoubleOrNull()
@@ -1524,9 +1544,9 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 sellPriceError = sell == null || sell <= 0.0
                                 qtyError = qty == null || qty < 0.0
 
-                                if (nameError || qtyError || buyPriceError || sellPriceError) return@Button
+                                if (nameError || qtyError || buyPriceError || sellPriceError) return@PrimaryButton
                                 priceError = buy == null || sell == null || buy < 0.0 || sell <= 0.0
-                                if (nameError || qtyError || priceError || buyPriceError || sellPriceError) return@Button
+                                if (nameError || qtyError || priceError || buyPriceError || sellPriceError) return@PrimaryButton
 
                                 if (editingItem == null) {
                                     viewModel.addItem(
@@ -1755,8 +1775,8 @@ fun InventoryItemCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Add Stock Button (Full width)
-            Button(
+            // Add Stock PrimaryButton(Full width)
+            androidx.compose.material3.Button(
                 onClick = onRefillClick,
                 modifier = Modifier.fillMaxWidth().height(40.dp),
                 shape = RoundedCornerShape(12.dp),
@@ -1804,11 +1824,18 @@ fun FilterChip(
         animationSpec = tween(200),
         label = "chip_text",
     )
+
+    val bgModifier = if (isSelected && !onPrimaryBg) {
+        Modifier.background(MaterialTheme.primaryGradient)
+    } else {
+        Modifier.background(bgColor)
+    }
+
     Box(
         modifier =
             Modifier
                 .clip(RoundedCornerShape(20.dp))
-                .background(bgColor)
+                .then(bgModifier)
                 .clickable(onClickLabel = "Action") { onClick() }
                 .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {

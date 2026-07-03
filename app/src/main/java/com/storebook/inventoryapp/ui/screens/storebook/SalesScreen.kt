@@ -108,6 +108,8 @@ import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import com.storebook.inventoryapp.utils.toRupee
 import java.net.URLEncoder
+import com.storebook.inventoryapp.ui.theme.primaryGradient
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 // ─── Sales Screen ─────────────────────────────────────────────────────────────
 
@@ -299,7 +301,7 @@ fun SalesScreen(
                                 Modifier
                                     .size(44.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
+                                    .background(MaterialTheme.primaryGradient)
                                     .clickable(onClickLabel = "Action") {
                                         val cur = editingQtyText.text.toDoubleOrNull() ?: step
                                         val next = (cur - step).coerceAtLeast(step)
@@ -363,7 +365,7 @@ fun SalesScreen(
                                 Modifier
                                     .size(44.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
+                                    .background(MaterialTheme.primaryGradient)
                                     .clickable(onClickLabel = "Action") {
                                         val cur = editingQtyText.text.toDoubleOrNull() ?: 0.0
                                         val next = cur + step
@@ -397,7 +399,7 @@ fun SalesScreen(
                                 modifier =
                                     Modifier
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(MaterialTheme.colorScheme.primary)
+                                        .background(MaterialTheme.primaryGradient)
                                         .clickable(onClickLabel = "Action") {
                                             val cur = editingQtyText.text.toDoubleOrNull() ?: 0.0
                                             val next = cur + presetVal
@@ -456,7 +458,7 @@ fun SalesScreen(
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Button(
+                        androidx.compose.material3.Button(
                             onClick = { editingQtyItem = null },
                             modifier = Modifier.weight(1f),
                             colors =
@@ -468,7 +470,7 @@ fun SalesScreen(
                         ) {
                             Text(stringResource(id = R.string.btn_cancel), fontWeight = FontWeight.Bold)
                         }
-                        Button(
+                        PrimaryButton(
                             onClick = {
                                 val qty = editingQtyText.text.toDoubleOrNull()
                                 if (qty != null && qty > 0.0) {
@@ -783,7 +785,7 @@ fun SalesScreen(
                 }
 
                 // ── Checkout Button ─────────────────────────────────────
-                Button(
+                androidx.compose.material3.Button(
                     onClick = {
                         // Validate: Udhaar requires customer name
                         if (isUdhaarMode && viewModel.cartCustomerName.trim().isBlank()) {
@@ -875,7 +877,7 @@ fun SalesScreen(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primary)
+                        .background(MaterialTheme.primaryGradient)
                         .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -887,7 +889,6 @@ fun SalesScreen(
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
                             .clickable(onClickLabel = "Action") {
-                                viewModel.clearCart()
                                 customerNameError = false
                                 navController.popBackStack()
                             },
@@ -900,7 +901,7 @@ fun SalesScreen(
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(id = R.string.tab_sales),
                         fontSize = 18.sp,
@@ -917,6 +918,20 @@ fun SalesScreen(
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                         fontWeight = FontWeight.Medium,
                     )
+                }
+                
+                if (viewModel.cartItems.isNotEmpty()) {
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            viewModel.clearCart()
+                            customerNameError = false
+                        },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Text("Clear", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         },
@@ -963,7 +978,7 @@ fun SalesScreen(
                                     fontWeight = FontWeight.Medium,
                                 )
                             }
-                            Button(
+                            androidx.compose.material3.Button(
                                 onClick = {
                                     viewModel.undoLastSale {
                                         android.widget.Toast
@@ -1177,7 +1192,7 @@ fun SalesScreen(
                                                 Modifier
                                                     .height(36.dp)
                                                     .clip(RoundedCornerShape(18.dp))
-                                                    .background(MaterialTheme.colorScheme.primary),
+                                                    .background(MaterialTheme.primaryGradient),
                                             verticalAlignment = Alignment.CenterVertically,
                                         ) {
                                             Box(
@@ -1387,7 +1402,7 @@ fun SalesScreen(
                                                     modifier = Modifier
                                                         .size(30.dp)
                                                         .clip(CircleShape)
-                                                        .background(MaterialTheme.colorScheme.primary),
+                                                        .background(MaterialTheme.primaryGradient),
                                                     contentAlignment = Alignment.Center,
                                                 ) {
                                                     Text(
@@ -1483,7 +1498,7 @@ fun SalesScreen(
                         }
 
                         // Quick Charge Button
-                        Button(
+                        androidx.compose.material3.Button(
                             onClick = {
                                 if (viewModel.cartPaymentMode == "Udhaar" && viewModel.cartCustomerName.trim().isBlank()) {
                                     showCheckoutSheet = true
@@ -1720,7 +1735,7 @@ fun SalesSuccessScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        Button(
+        androidx.compose.material3.Button(
             onClick = {
                 val intent =
                     Intent(Intent.ACTION_VIEW).apply {
@@ -1738,7 +1753,7 @@ fun SalesSuccessScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        Button(
+        androidx.compose.material3.Button(
             onClick = onBack,
             modifier = Modifier.fillMaxWidth().height(52.dp),
             colors =

@@ -44,6 +44,7 @@ import com.storebook.inventoryapp.utils.sumOfBigDecimal
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 enum class GSTReportType(val title: String, val subtitle: String) {
     GSTR1("GSTR-1", "Sales / Outward Supplies"),
@@ -539,7 +540,7 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
             }
 
             // 6. Sticky Bottom Share Action Button
-            Button(
+            androidx.compose.material3.Button(
                 onClick = {
                     val monthName = monthNames[selectedMonth]
                     when (activeReportType) {

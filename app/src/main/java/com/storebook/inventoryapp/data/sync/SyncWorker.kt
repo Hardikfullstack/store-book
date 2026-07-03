@@ -146,11 +146,21 @@ class SyncWorker(
             val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(applicationContext)
             val lastSync = prefs.getLong("last_sync_timestamp", 0L)
             
+            // 1. Fetch data from network outside transaction
+            val itemsRes = connector.syncItems.execute(storeId, lastSync.toDouble())
+            val salesRes = connector.syncSales.execute(storeId, lastSync.toDouble())
+            val saleItemsRes = connector.syncSaleItems.execute(storeId, lastSync.toDouble())
+            val udhaarsRes = connector.syncUdhaars.execute(storeId, lastSync.toDouble())
+            val expensesRes = connector.syncExpenses.execute(storeId, lastSync.toDouble())
+            val suppliersRes = connector.syncSuppliers.execute(storeId, lastSync.toDouble())
+            val purchasesRes = connector.syncPurchases.execute(storeId, lastSync.toDouble())
+            val purchaseItemsRes = connector.syncPurchaseItems.execute(storeId, lastSync.toDouble())
+            val batchesRes = connector.syncItemBatches.execute(storeId, lastSync.toDouble())
+            
             val db = repository.dbHelper.writableDatabase
             db.beginTransaction()
             try {
-                // 1. Pull Items
-                val itemsRes = connector.syncItems.execute(storeId, lastSync.toDouble())
+                // 2. Insert Items
                 for (item in itemsRes.data.items) {
                     val pId = item.id.toLongOrNull(); if (pId == null) continue
                     val cv = ContentValues().apply {
@@ -171,8 +181,7 @@ class SyncWorker(
                     db.insertWithOnConflict("items", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
                 }
 
-                // 2. Pull Sales
-                val salesRes = connector.syncSales.execute(storeId, lastSync.toDouble())
+                // 3. Pull Sales
                 for (sale in salesRes.data.sales) {
                     val pId = sale.id.toLongOrNull(); if (pId == null) continue
                     val cv = ContentValues().apply {
@@ -194,8 +203,7 @@ class SyncWorker(
                     db.insertWithOnConflict("sales", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
                 }
                 
-                // 3. Pull Sale Items
-                val saleItemsRes = connector.syncSaleItems.execute(storeId, lastSync.toDouble())
+                // 4. Pull Sale Items
                 for (si in saleItemsRes.data.saleItemDetails) {
                     val pId = si.id.toLongOrNull(); if (pId == null) continue
                     val cv = ContentValues().apply {
@@ -214,8 +222,7 @@ class SyncWorker(
                     db.insertWithOnConflict("sale_items", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
                 }
                 
-                // 4. Pull Udhaars
-                val udhaarsRes = connector.syncUdhaars.execute(storeId, lastSync.toDouble())
+                // 5. Pull Udhaars
                 for (u in udhaarsRes.data.udhaarEntries) {
                     val pId = u.id.toLongOrNull(); if (pId == null) continue
                     val cv = ContentValues().apply {
@@ -232,8 +239,7 @@ class SyncWorker(
                     db.insertWithOnConflict("udhaar", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
                 }
 
-                // 5. Pull Expenses
-                val expensesRes = connector.syncExpenses.execute(storeId, lastSync.toDouble())
+                // 6. Pull Expenses
                 for (e in expensesRes.data.expenseEntries) {
                     val pId = e.id.toLongOrNull(); if (pId == null) continue
                     val cv = ContentValues().apply {
@@ -251,8 +257,7 @@ class SyncWorker(
                     db.insertWithOnConflict("expenses", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
                 }
                 
-                // 6. Pull Suppliers
-                val suppliersRes = connector.syncSuppliers.execute(storeId, lastSync.toDouble())
+                // 7. Pull Suppliers
                 for (s in suppliersRes.data.suppliers) {
                     val pId = s.id.toLongOrNull(); if (pId == null) continue
                     val cv = ContentValues().apply {
@@ -268,8 +273,7 @@ class SyncWorker(
                     db.insertWithOnConflict("suppliers", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
                 }
                 
-                // 7. Pull Purchases
-                val purchasesRes = connector.syncPurchases.execute(storeId, lastSync.toDouble())
+                // 8. Pull Purchases
                 for (p in purchasesRes.data.purchases) {
                     val pId = p.id.toLongOrNull(); if (pId == null) continue
                     val cv = ContentValues().apply {
@@ -288,8 +292,7 @@ class SyncWorker(
                     db.insertWithOnConflict("purchases", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
                 }
                 
-                // 8. Pull Purchase Items
-                val purchaseItemsRes = connector.syncPurchaseItems.execute(storeId, lastSync.toDouble())
+                // 9. Pull Purchase Items
                 for (pi in purchaseItemsRes.data.purchaseItemDetails) {
                     val pId = pi.id.toLongOrNull(); if (pId == null) continue
                     val cv = ContentValues().apply {
@@ -307,8 +310,7 @@ class SyncWorker(
                     db.insertWithOnConflict("purchase_items", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
                 }
                 
-                // 9. Pull Item Batches
-                val batchesRes = connector.syncItemBatches.execute(storeId, lastSync.toDouble())
+                // 10. Pull Item Batches
                 for (b in batchesRes.data.itemBatches) {
                     val pId = b.id.toLongOrNull(); if (pId == null) continue
                     val cv = ContentValues().apply {

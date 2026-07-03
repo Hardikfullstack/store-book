@@ -47,6 +47,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
+import com.storebook.inventoryapp.ui.theme.primaryGradient
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -191,7 +193,7 @@ fun QuotationCard(
                         Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
+                            .background(MaterialTheme.primaryGradient),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -266,7 +268,7 @@ fun QuotationCard(
                     }
                     if (!isConverted) {
                         Spacer(modifier = Modifier.width(8.dp))
-                        Button(
+                        androidx.compose.material3.Button(
                             onClick = onConvert,
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                             modifier = Modifier.height(36.dp),

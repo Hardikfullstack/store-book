@@ -102,6 +102,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
+import com.storebook.inventoryapp.ui.theme.primaryGradient
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -161,7 +163,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primary)
+                        .background(MaterialTheme.primaryGradient)
                         .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 10.dp),
             ) {
@@ -183,7 +185,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                         )
                     }
-                    Button(
+                    androidx.compose.material3.Button(
                         onClick = {
                             selectedCustomer = null
                             inputCustomerName = ""
@@ -262,7 +264,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                             modifier =
                                 Modifier
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.primary)
+                                    .background(MaterialTheme.primaryGradient)
                                     .padding(horizontal = 10.dp, vertical = 6.dp),
                         ) {
                             Text(
@@ -441,7 +443,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                                         .size(
                                                             32.dp,
                                                         ).clip(CircleShape)
-                                                        .background(MaterialTheme.colorScheme.primary),
+                                                        .background(MaterialTheme.primaryGradient),
                                                 contentAlignment = Alignment.Center,
                                             ) {
                                                 Text(
@@ -648,7 +650,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                         Modifier
                                             .size(44.dp)
                                             .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.primary),
+                                            .background(MaterialTheme.primaryGradient),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Text(
@@ -830,7 +832,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Button(
+                            androidx.compose.material3.Button(
                                 onClick = {
                                     inputCustomerName = customer.customerName
                                     inputAmount = ""
@@ -848,7 +850,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     color = MaterialTheme.colorScheme.onError,
                                 )
                             }
-                            Button(
+                            androidx.compose.material3.Button(
                                 onClick = {
                                     inputCustomerName = customer.customerName
                                     inputAmount = ""
@@ -1024,7 +1026,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
-                                Button(
+                                androidx.compose.material3.Button(
                                     onClick = { showDialog = false },
                                     modifier = Modifier.weight(1f),
                                     colors =
@@ -1037,7 +1039,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                                     Text(stringResource(id = R.string.btn_cancel), fontWeight = FontWeight.Bold)
                                 }
 
-                                Button(
+                                androidx.compose.material3.Button(
                                     onClick = {
                                         val name = inputCustomerName.trim()
                                         val amt = inputAmount.toDoubleOrNull()

@@ -88,6 +88,8 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.storebook.inventoryapp.ui.theme.primaryGradient
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -184,7 +186,7 @@ fun SupplierLedgerScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(MaterialTheme.primaryGradient)
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
@@ -250,7 +252,7 @@ fun SupplierLedgerScreen(
             }
         },
         floatingActionButton = {
-            Button(
+            androidx.compose.material3.Button(
                 onClick = { openAddSupplier() },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -538,7 +540,7 @@ fun SupplierLedgerScreen(
                                     )
                                 }
 
-                                Button(
+                                androidx.compose.material3.Button(
                                     onClick = { showAddPaymentDialog = true },
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary
@@ -717,12 +719,12 @@ fun SupplierLedgerScreen(
                             maxLines = 3
                         )
 
-                        Button(
+                        PrimaryButton(
                             onClick = {
                                 val name = supplierName.trim()
                                 if (name.isBlank()) {
                                     formError = true
-                                    return@Button
+                                    return@PrimaryButton
                                 }
 
                                 if (editingSupplier == null) {
@@ -802,7 +804,7 @@ fun SupplierLedgerScreen(
                         }
                     },
                     confirmButton = {
-                        Button(
+                        PrimaryButton(
                             onClick = {
                                 val amt = paymentAmount.toDoubleOrNull() ?: 0.0
                                 if (amt > 0) {
