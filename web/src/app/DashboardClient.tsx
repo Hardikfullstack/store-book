@@ -12,6 +12,7 @@ import {
   syncItems, syncSales, syncUdhaars, syncExpenses, syncSaleItems
 } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
+import SetupProgress from '@/components/SetupProgress';
 
 interface Stats {
   totalItems: number;
@@ -42,6 +43,13 @@ export default function DashboardClient({
   const [rawExpenses, setRawExpenses] = useState<any[]>([]);
   const [rawSaleItems, setRawSaleItems] = useState<any[]>([]);
   const [itemsList, setItemsList] = useState<any[]>([]);
+  const [isPreparing, setIsPreparing] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const shouldShowSetup = globalThis.sessionStorage.getItem('storebook_setup_pending') === '1';
+    setIsPreparing(shouldShowSetup);
+  }, []);
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
@@ -95,6 +103,8 @@ export default function DashboardClient({
           setRawUdhaars(cached.udhaars || []);
           setRawExpenses(cached.expenses || []);
           setRawSaleItems(cached.saleItems || []);
+          globalThis.sessionStorage.removeItem('storebook_setup_pending');
+          setIsPreparing(false);
           return cached.lastSync || 0;
         }
       } catch (e) {
@@ -157,6 +167,8 @@ export default function DashboardClient({
           setRawUdhaars(parsedUdhaars);
           setRawExpenses(parsedExpenses);
           setRawSaleItems(parsedSaleItems);
+          globalThis.sessionStorage.removeItem('storebook_setup_pending');
+          setIsPreparing(false);
 
         } else {
           // Delta fetch
@@ -199,6 +211,8 @@ export default function DashboardClient({
           setRawUdhaars(newUdhaars);
           setRawExpenses(newExpenses);
           setRawSaleItems(newSaleItems);
+          globalThis.sessionStorage.removeItem('storebook_setup_pending');
+          setIsPreparing(false);
         }
       } catch (error) {
         console.error("Dashboard DataConnect sync error:", error);
@@ -284,6 +298,11 @@ export default function DashboardClient({
 
   return (
     <div className="space-y-6">
+      <SetupProgress
+        open={isPreparing}
+        title="Setting up your store"
+        message="We are preparing your dashboard and syncing your data."
+      />
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Phone, Lock, ChevronRight } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { sanitizeInput } from '@/lib/sanitize';
@@ -8,14 +9,17 @@ import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'fi
 import { login } from '@/app/actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { countryCodes } from '@/lib/constants';
+import SetupProgress from '@/components/SetupProgress';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [countryCode, setCountryCode] = useState('+91');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isPreparing, setIsPreparing] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   // Staff login state
@@ -79,7 +83,9 @@ export default function LoginPage() {
       const res = await login(idToken);
 
       if (res.success) {
-        window.location.href = '/'; // redirect to dashboard
+        setIsPreparing(true);
+        globalThis.sessionStorage.setItem('storebook_setup_pending', '1');
+        globalThis.setTimeout(() => router.push('/'), 800);
       } else {
         setError(res.error || 'Failed to create session');
       }
@@ -105,7 +111,9 @@ export default function LoginPage() {
       const res = await login(idToken);
 
       if (res.success) {
-        window.location.href = '/';
+        setIsPreparing(true);
+        globalThis.sessionStorage.setItem('storebook_setup_pending', '1');
+        globalThis.setTimeout(() => router.push('/'), 800);
       } else {
         setError(res.error || 'Failed to create session');
       }
@@ -119,6 +127,11 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
+      <SetupProgress
+        open={isPreparing}
+        title="Setting up your store"
+        message="We are preparing your dashboard and syncing your data."
+      />
       <div className="absolute top-0 right-0 p-4">
         <ThemeToggle />
       </div>
@@ -166,8 +179,8 @@ export default function LoginPage() {
                         onChange={(e) => setCountryCode(sanitizeInput(e.target.value))}
                         className="bg-transparent text-sm font-medium text-gray-700 dark:text-gray-300 border-none focus:ring-0 py-3 pr-2 pl-1 cursor-pointer outline-none appearance-none"
                       >
-                        {countryCodes.map((c) => (
-                          <option key={c.country + c.code} value={c.code} className="text-gray-900 dark:text-gray-900">
+                        {countryCodes.map((c, index) => (
+                          <option key={`${c.code}-${c.country}-${index}`} value={c.code} className="text-gray-900 dark:text-gray-900">
                             {c.country} ({c.code})
                           </option>
                         ))}
