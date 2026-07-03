@@ -217,36 +217,37 @@ class StoreBookViewModel(
     var convertingQuotationId by mutableStateOf<Long?>(null)
         private set
 
-    var businessName by
-    mutableStateOf(
-        prefs.getString("business_name", "StoreBook Kirana") ?: "StoreBook Kirana"
-    )
+    fun getStoreName(storeId: String): String {
+        return prefs.getString("business_name_$storeId", null) ?: "Store ${storeId.take(4).uppercase()}"
+    }
+
+    var businessName by mutableStateOf(prefs.getString("business_name_$activeStoreId", prefs.getString("business_name", "StoreBook Kirana") ?: "StoreBook Kirana") ?: "StoreBook Kirana")
         private set
-    var businessGstin by mutableStateOf(prefs.getString("business_gstin", "") ?: "")
+    var businessGstin by mutableStateOf(prefs.getString("business_gstin_$activeStoreId", prefs.getString("business_gstin", "")) ?: "")
         private set
-    var businessAddress by mutableStateOf(prefs.getString("business_address", "") ?: "")
+    var businessAddress by mutableStateOf(prefs.getString("business_address_$activeStoreId", prefs.getString("business_address", "")) ?: "")
         private set
-    var businessCurrency by mutableStateOf(prefs.getString("business_currency", "INR") ?: "INR")
+    var businessCurrency by mutableStateOf(prefs.getString("business_currency_$activeStoreId", prefs.getString("business_currency", "INR")) ?: "INR")
         private set
 
     fun updateBusinessName(name: String) {
         businessName = name
-        prefs.edit { putString("business_name", name) }
+        prefs.edit { putString("business_name_$activeStoreId", name) }
     }
 
     fun updateBusinessGstin(gstin: String) {
         businessGstin = gstin
-        prefs.edit { putString("business_gstin", gstin) }
+        prefs.edit { putString("business_gstin_$activeStoreId", gstin) }
     }
 
     fun updateBusinessAddress(address: String) {
         businessAddress = address
-        prefs.edit { putString("business_address", address) }
+        prefs.edit { putString("business_address_$activeStoreId", address) }
     }
 
     fun updateBusinessCurrency(currencyCode: String) {
         businessCurrency = currencyCode
-        prefs.edit { putString("business_currency", currencyCode) }
+        prefs.edit { putString("business_currency_$activeStoreId", currencyCode) }
         com.storebook.inventoryapp.utils.updateCurrencyConfig(currencyCode)
     }
 
@@ -284,6 +285,19 @@ class StoreBookViewModel(
                 }
             }
         }
+
+        androidx.work.WorkManager.getInstance(application)
+            .getWorkInfosForUniqueWorkLiveData("StoreBookSync")
+            .observeForever { workInfos ->
+                if (workInfos != null && workInfos.isNotEmpty()) {
+                    val workInfo = workInfos[0]
+                    if (workInfo.state == androidx.work.WorkInfo.State.SUCCEEDED) {
+                        viewModelScope.launch {
+                            loadAllData(triggerSync = false)
+                        }
+                    }
+                }
+            }
     }
 
     private fun stopRealtimeSync() {
@@ -304,7 +318,7 @@ class StoreBookViewModel(
             rtdbListener = object : com.google.firebase.database.ValueEventListener {
                 override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
                     val serverUpdate = snapshot.getValue(Long::class.java) ?: 0L
-                    val localLastSync = prefs.getLong("last_sync_timestamp", 0L)
+                    val localLastSync = prefs.getLong("last_sync_timestamp_$activeStoreId", 0L)
                     if (serverUpdate > localLastSync) {
                         triggerSync()
                     }
@@ -341,6 +355,11 @@ class StoreBookViewModel(
     fun switchStore(newStoreId: String) {
         activeStoreId = newStoreId
         prefs.edit { putString("active_store_id", newStoreId) }
+        businessName = prefs.getString("business_name_$newStoreId", prefs.getString("business_name", "StoreBook Kirana") ?: "StoreBook Kirana") ?: "StoreBook Kirana"
+        businessGstin = prefs.getString("business_gstin_$newStoreId", prefs.getString("business_gstin", "")) ?: ""
+        businessAddress = prefs.getString("business_address_$newStoreId", prefs.getString("business_address", "")) ?: ""
+        businessCurrency = prefs.getString("business_currency_$newStoreId", prefs.getString("business_currency", "INR")) ?: "INR"
+        com.storebook.inventoryapp.utils.updateCurrencyConfig(businessCurrency)
 
         val stores = prefs.getStringSet("user_stores", setOf("default"))?.toMutableSet() ?: mutableSetOf("default")
         if (!stores.contains(newStoreId)) {

@@ -1284,7 +1284,7 @@ fun MoreScreen(
                                                         fontWeight = FontWeight.Bold
                                                 )
                                                 Text(
-                                                    text = "Current Store: ${viewModel.activeStoreId}",
+                                                    text = "Current Store: ${viewModel.getStoreName(viewModel.activeStoreId)}",
                                                     fontSize = 14.sp,
                                                     color = MaterialTheme.colorScheme.primary
                                                 )
@@ -1292,16 +1292,17 @@ fun MoreScreen(
                                                 if (viewModel.userStores.isNotEmpty()) {
                                                     Text("Your Associated Stores:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                                                     viewModel.userStores.forEach { sId ->
+                                                        val storeName = viewModel.getStoreName(sId)
                                                         Card(
                                                             modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Action") {
                                                                 viewModel.switchStore(sId)
                                                                 showSheet = false
-                                                                android.widget.Toast.makeText(context, "Switched to $sId", android.widget.Toast.LENGTH_SHORT).show()
+                                                                android.widget.Toast.makeText(context, "Switched to $storeName", android.widget.Toast.LENGTH_SHORT).show()
                                                             },
                                                             colors = CardDefaults.cardColors(containerColor = if (sId == viewModel.activeStoreId) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant),
                                                             shape = RoundedCornerShape(12.dp)
                                                         ) {
-                                                            Text(sId, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold, color = if (sId == viewModel.activeStoreId) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                                            Text(storeName, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold, color = if (sId == viewModel.activeStoreId) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
                                                         }
                                                     }
                                                 }

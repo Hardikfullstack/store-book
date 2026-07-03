@@ -605,8 +605,21 @@ fun AuthScreen(
                                                             val role = user?.role ?: "staff"
                                                             val storeId = user?.storeId ?: "default"
 
-                                                            prefs.edit().putString("user_role", role).putString("active_store_id", storeId).apply()
+                                                            prefs.edit().putString("user_role", role).putString("active_store_id", storeId).putLong("last_sync_timestamp_$storeId", 0L).apply()
                                                             
+                                                            try {
+                                                                com.storebook.inventoryapp.data.sync.SyncWorker.performSync(appContext, storeId) { progress, message ->
+                                                                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                                                        syncProgress = progress
+                                                                        syncMessage = message
+                                                                    }
+                                                                }
+                                                            } catch (e: Exception) {
+                                                                if (e is kotlinx.coroutines.CancellationException) throw e
+                                                                if (com.storebook.inventoryapp.BuildConfig.DEBUG) android.util.Log.e("AuthScreen", "Initial staff sync failed", e)
+                                                            }
+                                                            
+                                                            kotlinx.coroutines.delay(800) // Wait for 100% animation to finish
                                                             android.os.Handler(android.os.Looper.getMainLooper()).post {
                                                                 onAuthSuccess()
                                                             }
@@ -806,7 +819,7 @@ private fun signInWithPhoneAuthCredential(
         .signInWithCredential(credential)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                val uid = auth.currentUser?.phoneNumber ?: auth.currentUser?.uid ?: ""
+                val uid = auth.currentUser?.uid ?: ""
                 if (uid.isNotEmpty()) {
                     val appContext = auth.app.applicationContext
                     val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(appContext)
@@ -825,7 +838,7 @@ private fun signInWithPhoneAuthCredential(
                                 role = user.role
                                 stores = user.stores ?: emptyList()
                                 storeId = if (stores.isNotEmpty()) stores[0] else (user.storeId ?: "default")
-                                // Assume false for now, real check is done in ViewModels if needed
+                                isPremium = user.subscriptionPlan == "pro" && user.subscriptionStatus == "active"
                             } else {
                                 storeId = java.util.UUID.randomUUID().toString()
                                 stores = listOf(storeId)
@@ -840,7 +853,7 @@ private fun signInWithPhoneAuthCredential(
                                 connector.syncUser.execute(
                                     id = uid, role = role, createdAt = System.currentTimeMillis().toDouble()
                                 ) {
-                                    phoneNumber = auth.currentUser?.phoneNumber
+                                    phoneNumber = auth.currentUser?.phoneNumber ?: ""
                                     this.stores = stores
                                     this.storeId = storeId
                                 }
@@ -864,8 +877,21 @@ private fun signInWithPhoneAuthCredential(
                                 .putString("active_store_id", storeId)
                                 .putStringSet("user_stores", stores.toSet())
                                 .putBoolean("is_premium", isPremium)
+                                .putLong("last_sync_timestamp_$storeId", 0L)
                                 .apply()
 
+                            try {
+                                com.storebook.inventoryapp.data.sync.SyncWorker.performSync(appContext, storeId) { progress, message ->
+                                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                        onSyncProgress(progress, message)
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                if (e is kotlinx.coroutines.CancellationException) throw e
+                                if (com.storebook.inventoryapp.BuildConfig.DEBUG) android.util.Log.e("AuthScreen", "Initial owner sync failed", e)
+                            }
+                            
+                            kotlinx.coroutines.delay(800)
                             android.os.Handler(android.os.Looper.getMainLooper()).post {
                                 onSuccess()
                             }

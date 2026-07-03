@@ -192,6 +192,8 @@ query GetUser($id: String!) @auth(level: USER) {
     role
     stores
     storeId
+    subscriptionPlan
+    subscriptionStatus
   }
 }
 

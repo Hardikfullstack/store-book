@@ -1331,6 +1331,8 @@ export interface GetUserData {
     role: string;
     stores?: string[] | null;
     storeId?: string | null;
+    subscriptionPlan?: string | null;
+    subscriptionStatus?: string | null;
   } & User_Key;
 }
 ```

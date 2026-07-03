@@ -59,6 +59,10 @@ public interface GetUserQuery :
     val stores:
     List<String>?,
     val storeId:
+    String?,
+    val subscriptionPlan:
+    String?,
+    val subscriptionStatus:
     String?
   ) {
     
