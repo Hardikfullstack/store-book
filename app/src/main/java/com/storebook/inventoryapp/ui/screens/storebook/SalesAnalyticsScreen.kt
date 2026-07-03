@@ -82,6 +82,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
+import com.storebook.inventoryapp.ui.theme.primaryGradient
 
 enum class GroupBy { DATE, PRODUCT, CUSTOMER }
 
@@ -716,7 +717,7 @@ fun FlatLineItemCard(
                                 .size(
                                     16.dp,
                                 ).clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary),
+                                .background(MaterialTheme.primaryGradient),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(

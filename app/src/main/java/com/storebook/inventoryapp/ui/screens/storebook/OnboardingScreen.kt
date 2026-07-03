@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.R
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 data class OnboardingStep(
     val titleRes: Int,
@@ -195,7 +196,7 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                 }
 
                 // Call to Action
-                Button(
+                androidx.compose.material3.Button(
                     onClick = {
                         if (currentStepIdx < steps.size - 1) {
                             currentStepIdx++

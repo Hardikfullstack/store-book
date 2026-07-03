@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import kotlinx.coroutines.launch
+import com.storebook.inventoryapp.ui.theme.primaryGradient
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,7 +73,7 @@ fun InviteStaffScreen(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(MaterialTheme.primaryGradient)
                     .padding(16.dp),
                 tint = MaterialTheme.colorScheme.onPrimary
             )
@@ -116,11 +118,11 @@ fun InviteStaffScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Button(
+            PrimaryButton(
                 onClick = {
                     if (staffUsername.isBlank() || staffPassword.isBlank()) {
                         Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
-                        return@Button
+                        return@PrimaryButton
                     }
                     isLoading = true
                     coroutineScope.launch {

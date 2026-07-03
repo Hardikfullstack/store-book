@@ -16,8 +16,7 @@ import kotlinx.coroutines.withContext
 class FirestoreSyncManager(
         private val context: Context,
 ) {
-    private val prefs =
-            context.applicationContext.getSharedPreferences("storebook_prefs", Context.MODE_PRIVATE)
+    private val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(context.applicationContext)
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private var syncJob = kotlinx.coroutines.SupervisorJob()
@@ -607,7 +606,7 @@ class FirestoreSyncManager(
                                                             }
 
                                                     if (shouldInsert) {
-                                                        db.insert(tableName, null, cv)
+                                                        db.insertWithOnConflict(tableName, null, cv, android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE)
                                                         localDbUpdated = true
                                                     } else if (shouldUpdate) {
                                                         db.update(

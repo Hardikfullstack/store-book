@@ -94,6 +94,8 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
+import com.storebook.inventoryapp.ui.theme.primaryGradient
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -294,7 +296,7 @@ fun DashboardScreen(
                 }
             },
             confirmButton = {
-                Button(onClick = {
+                PrimaryButton(onClick = {
                     val addedQty = addQtyInput.toDoubleOrNull() ?: 0.0
                     if (addedQty > 0) {
                         viewModel.updateItem(
@@ -328,7 +330,7 @@ fun DashboardScreen(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primary)
+                        .background(MaterialTheme.primaryGradient)
                         .statusBarsPadding()
                         .padding(horizontal = 24.dp, vertical = 22.dp),
             ) {
@@ -616,7 +618,7 @@ fun DashboardScreen(
                                             color = MaterialTheme.colorScheme.error,
                                         )
                                     }
-                                    Button(
+                                    androidx.compose.material3.Button(
                                         onClick = { quickRefillItem = item },
                                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
                                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
@@ -665,7 +667,7 @@ fun DashboardScreen(
                                         fontWeight = FontWeight.Medium,
                                     )
                                 }
-                                Button(
+                                androidx.compose.material3.Button(
                                     onClick = {
                                         viewModel.undoLastSale {
                                             android.widget.Toast
@@ -785,7 +787,7 @@ fun DashboardScreen(
                                 .fillMaxWidth()
                                 .height(56.dp)
                                 .clip(RoundedCornerShape(20.dp))
-                                .background(MaterialTheme.colorScheme.primary)
+                                .background(MaterialTheme.primaryGradient)
                                 .clickable(onClickLabel = "Action") {
                                     navController.navigate(Routes.Sales) {
                                         popUpTo<Routes.Dashboard> {
@@ -1126,7 +1128,7 @@ fun SaleTimelineCard(
                     Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
+                        .background(MaterialTheme.primaryGradient),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -1231,7 +1233,7 @@ fun SaleTimelineCard(
                 }
             },
             confirmButton = {
-                Button(onClick = { showPopup = false }) {
+                PrimaryButton(onClick = { showPopup = false }) {
                     Text(stringResource(id = R.string.btn_close))
                 }
             },

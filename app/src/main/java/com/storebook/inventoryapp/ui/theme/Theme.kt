@@ -10,7 +10,21 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
-
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonElevation
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 enum class AppThemeMode { INK_BLUE, SUNSET_ORANGE, FOREST_GREEN, AMETHYST_PURPLE, CRIMSON_RUBY, CHARCOAL_OBSIDIAN }
 
 class ManualThemeManager(
@@ -406,3 +420,50 @@ fun StoreBookTheme(
         content = content,
     )
 }
+
+val MaterialTheme.primaryGradient: Brush
+    @Composable
+    get() = if (isSystemInDarkTheme()) {
+        SolidColor(colorScheme.primary)
+    } else {
+        Brush.linearGradient(listOf(colorScheme.primary, colorScheme.tertiary))
+    }
+
+@Composable
+fun PrimaryButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: Shape = ButtonDefaults.shape,
+    colors: ButtonColors = ButtonDefaults.buttonColors(
+        containerColor = Color.Transparent,
+        contentColor = Color.White,
+        disabledContainerColor = Color.Transparent
+    ),
+    elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
+    border: BorderStroke? = null,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+    content: @Composable RowScope.() -> Unit
+) {
+    val gradient = MaterialTheme.primaryGradient
+    val backgroundModifier = if (enabled) {
+        Modifier.background(brush = gradient, shape = shape)
+    } else {
+        Modifier.background(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), shape = shape)
+    }
+
+    Button(
+        onClick = onClick,
+        modifier = modifier.then(backgroundModifier),
+        enabled = enabled,
+        shape = shape,
+        colors = colors,
+        elevation = elevation,
+        border = border,
+        contentPadding = contentPadding,
+        interactionSource = interactionSource,
+        content = content
+    )
+}
+

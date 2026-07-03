@@ -19,7 +19,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         super.onNewToken(token)
         // Store token in Firestore for the user if necessary
         // to send targeted notifications
-        val prefs = getSharedPreferences("storebook_prefs", Context.MODE_PRIVATE)
+        val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(this)
         prefs.edit().putString("fcm_token", token).apply()
     }
 

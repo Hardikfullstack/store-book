@@ -16,7 +16,7 @@ class ExpiryCheckWorker(
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        val prefs = applicationContext.getSharedPreferences("storebook_prefs", Context.MODE_PRIVATE)
+        val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(applicationContext)
         val activeStoreId = prefs.getString("active_store_id", "default") ?: "default"
         val repository = StoreBookRepository(applicationContext, activeStoreId)
         

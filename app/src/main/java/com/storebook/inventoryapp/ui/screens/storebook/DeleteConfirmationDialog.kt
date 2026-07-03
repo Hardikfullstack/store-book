@@ -44,6 +44,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.ui.theme.Coral500
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 private const val PREF_FILE = "storebook_prefs"
 private const val PREF_SKIP_ITEM_DELETE = "skip_delete_item_confirm"
@@ -51,14 +52,12 @@ private const val PREF_SKIP_UDHAAR_DELETE = "skip_delete_udhaar_confirm"
 
 /** Returns true if the user has checked "Don't show again" for inventory deletes. */
 fun shouldSkipInventoryDeleteConfirm(context: Context): Boolean =
-    context
-        .getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
+    com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(context)
         .getBoolean(PREF_SKIP_ITEM_DELETE, false)
 
 /** Returns true if the user has checked "Don't show again" for Udhaar entry deletes. */
 fun shouldSkipUdhaarDeleteConfirm(context: Context): Boolean =
-    context
-        .getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
+    com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(context)
         .getBoolean(PREF_SKIP_UDHAAR_DELETE, false)
 
 private fun persistSkipPref(
@@ -66,8 +65,7 @@ private fun persistSkipPref(
     prefKey: String,
     skip: Boolean,
 ) {
-    context
-        .getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
+    com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(context)
         .edit()
         .putBoolean(prefKey, skip)
         .apply()
@@ -192,7 +190,7 @@ fun DeleteConfirmationDialog(
                         )
                     }
 
-                    Button(
+                    androidx.compose.material3.Button(
                         onClick = {
                             if (dontShowAgain) {
                                 persistSkipPref(context, prefKey, true)

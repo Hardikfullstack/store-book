@@ -59,6 +59,7 @@ import com.google.firebase.auth.PhoneAuthProvider
 import com.storebook.inventoryapp.R
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.launch
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 data class TabItem(
     val label: String,
@@ -343,7 +344,7 @@ fun AuthScreen(
                             Spacer(modifier = Modifier.height(24.dp))
 
                             val isPhoneBtnEnabled = !isLoading && phoneNumber.length == 10
-                            Button(
+                            androidx.compose.material3.Button(
                                 onClick = {
                                     focusManager.clearFocus()
                                     if (phoneNumber.length >= 10 && activity != null) {
@@ -446,7 +447,7 @@ fun AuthScreen(
                             Spacer(modifier = Modifier.height(24.dp))
 
                             val isOtpBtnEnabled = !isLoading && otpCode.length == 6
-                            Button(
+                            androidx.compose.material3.Button(
                                 onClick = {
                                     focusManager.clearFocus()
                                     if (otpCode.length == 6) {
@@ -581,7 +582,7 @@ fun AuthScreen(
                         Spacer(modifier = Modifier.height(24.dp))
 
                         val isStaffBtnEnabled = !isLoading && staffUsername.isNotBlank() && staffPassword.isNotBlank()
-                        Button(
+                        androidx.compose.material3.Button(
                             onClick = {
                                 focusManager.clearFocus()
                                 if (staffUsername.isNotBlank() && staffPassword.isNotBlank()) {

@@ -44,6 +44,7 @@ import com.storebook.inventoryapp.data.play.PlayBillingManager
 import com.storebook.inventoryapp.ui.theme.Gold200
 import com.storebook.inventoryapp.ui.theme.Gold400
 import com.storebook.inventoryapp.ui.theme.StoreBookTheme
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -261,7 +262,7 @@ fun ProBillingView(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 if (isActuallyPro) {
-                    Button(
+                    androidx.compose.material3.Button(
                         onClick = {
                             val intent = android.content.Intent(
                                 android.content.Intent.ACTION_VIEW,
@@ -299,7 +300,7 @@ fun ProBillingView(
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
-                        Button(
+                        androidx.compose.material3.Button(
                             onClick = {
                                 if (auth.currentUser == null) {
                                     onRequireSignIn()
@@ -365,7 +366,7 @@ fun ProBillingView(
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
-                        Button(
+                        androidx.compose.material3.Button(
                             onClick = {
                                 if (auth.currentUser == null) {
                                     onRequireSignIn()
