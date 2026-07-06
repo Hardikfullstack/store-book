@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Trash2, Download, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { dataConnect } from '@/lib/firebase';
+import { executeQuery } from 'firebase/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveSales, softDeleteSale , getSalesCount } from '@/dataconnect';
+import { getActiveSalesRef, softDeleteSale, getSalesCountRef } from '@/dataconnect';
 import Pagination from '@/app/components/Pagination';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import SalesPOS from '@/app/sales/SalesPOS';
+import DynamicTable, { TableColumn, TableRowAction } from '@/components/DynamicTable';
 
 export default function QuotationsClient({
   storeId,
@@ -26,16 +28,19 @@ export default function QuotationsClient({
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const refetchRef = useRef(false);
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
+    const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
     // Fetch total count
-    getSalesCount(dataConnect, { storeId, type: 'ESTIMATE' })
+    executeQuery(getSalesCountRef(dataConnect, { storeId, type: 'ESTIMATE' }), options)
       .then(res => {
         setTotalItems(res.data.sales.length);
       })
       .catch(err => console.error('Count fetch error:', err));
-  }, [isPremium, storeId]);
+  }, [isPremium, storeId, refreshTrigger]);
 
   // Fetch paginated quotations
   useEffect(() => {
@@ -45,7 +50,14 @@ export default function QuotationsClient({
       setIsLoading(true);
       try {
         const offset = (currentPage - 1) * pageSize;
-        const response = await getActiveSales(dataConnect, { storeId, limit: pageSize, offset, type: 'ESTIMATE' });
+        const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+
+        const response = await executeQuery(getActiveSalesRef(dataConnect, { storeId, limit: pageSize, offset, type: 'ESTIMATE' }), options);
+
+        if (refetchRef.current) {
+          refetchRef.current = false;
+        }
+
         if (!isMounted) return;
         const updated = response.data.sales.map((q: any) => ({
           ...q,
@@ -62,13 +74,15 @@ export default function QuotationsClient({
       }
     };
     fetchQuotations();
-  }, [isPremium, storeId, currentPage]);
+  }, [isPremium, storeId, currentPage, refreshTrigger]);
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this quotation?')) {
       try {
         await softDeleteSale(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
-        setQuotations(prev => prev.filter(q => q.id !== id));
+        refetchRef.current = true;
+        setCurrentPage(1);
+        setRefreshTrigger(prev => prev + 1);
       } catch (err) {
         console.error("Failed to delete quotation:", err);
       }
@@ -194,60 +208,71 @@ export default function QuotationsClient({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
-            <thead className="bg-gray-50/50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
-              <tr>
-                <th className="px-6 py-4 font-medium">Estimate ID</th>
-                <th className="px-6 py-4 font-medium">Date</th>
-                <th className="px-6 py-4 font-medium">Customer</th>
-                <th className="px-6 py-4 font-medium text-right">Total Amount</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-              {(() => {
-                const filtered = quotations.filter((q: any) => {
-                  return (
-                    (q.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    (q.id || '').toLowerCase().includes(searchQuery.toLowerCase())
-                  );
-                });
+          {(() => {
+            const filtered = quotations.filter((q: any) => {
+              return (
+                (q.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (q.id || '').toLowerCase().includes(searchQuery.toLowerCase())
+              );
+            });
 
-                if (filtered.length === 0) {
-                  return (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                        <div className="flex flex-col items-center justify-center">
-                          <FileText size={48} className="text-gray-300 dark:text-gray-600 mb-4" />
-                          <p>No estimates found.</p>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }
+            const columns: TableColumn[] = [
+              {
+                key: 'id',
+                label: 'Estimate ID',
+                render: (value) => <span className="font-medium text-purple-600 dark:text-purple-400">#{`EST-${value.substring(0, 8)}`}</span>
+              },
+              {
+                key: 'timestamp',
+                label: 'Date',
+                render: (value, row) => formatDate(value || row.updated_at)
+              },
+              {
+                key: 'customer_name',
+                label: 'Customer',
+                render: (value) => <span className="font-medium text-gray-900 dark:text-gray-100">{value || 'Walk-in Customer'}</span>
+              },
+              {
+                key: 'total_amount',
+                label: 'Total Amount',
+                textAlign: 'right',
+                className: 'font-bold text-gray-900 dark:text-gray-100',
+                render: (value) => <FormattedAmount amount={value || 0} />
+              }
+            ];
 
-                return (
-                  <>
-                    {filtered.map((quote: any) => (
-                      <tr key={quote.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-purple-600 dark:text-purple-400">#EST-{quote.id.substring(0, 8)}</td>
-                        <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{formatDate(quote.timestamp || quote.updated_at)}</td>
-                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{quote.customer_name || 'Walk-in Customer'}</td>
-                        <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100">
-                          <FormattedAmount amount={quote.total_amount || 0} />
-                        </td>
-                        <td className="px-6 py-4 text-right space-x-3 flex justify-end">
-                          <button onClick={() => handleConvertToSale(quote)} className="text-emerald-500 hover:text-emerald-700 transition-colors" title="Convert to Sale"><Plus size={16} /></button>
-                          <button onClick={() => generatePDF(quote)} className="text-purple-600 hover:text-purple-800 transition-colors" title="Download PDF"><Download size={16} /></button>
-                          <button onClick={() => handleDelete(quote.id)} className="text-red-500 hover:text-red-700 transition-colors" title="Delete Estimate"><Trash2 size={16} /></button>
-                        </td>
-                      </tr>
-                    ))}
-                  </>
-                );
-              })()}
-            </tbody>
-          </table>
+            const rowActions: TableRowAction[] = [
+              {
+                icon: <Plus size={16} />,
+                onClick: (quote) => handleConvertToSale(quote),
+                className: 'text-emerald-500 hover:text-emerald-700 transition-colors',
+                title: 'Convert to Sale'
+              },
+              {
+                icon: <Download size={16} />,
+                onClick: (quote) => generatePDF(quote),
+                className: 'text-purple-600 hover:text-purple-800 transition-colors',
+                title: 'Download PDF'
+              },
+              {
+                icon: <Trash2 size={16} />,
+                onClick: (quote) => handleDelete(quote.id),
+                className: 'text-red-500 hover:text-red-700 transition-colors',
+                title: 'Delete Estimate'
+              }
+            ];
+
+            return (
+              <DynamicTable
+                columns={columns}
+                rows={filtered}
+                isLoading={isLoading}
+                emptyMessage="No estimates found."
+                rowKey="id"
+                rowActions={rowActions}
+              />
+            );
+          })()}
         </div>
         <Pagination
           currentPage={currentPage}
@@ -265,7 +290,9 @@ export default function QuotationsClient({
           onClose={() => setShowModal(false)}
           onSuccess={() => {
             setShowModal(false);
-            window.location.reload();
+            refetchRef.current = true;
+            setCurrentPage(1);
+            setRefreshTrigger(prev => prev + 1);
           }}
         />
       )}

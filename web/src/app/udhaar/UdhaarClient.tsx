@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, Search, UserCheck, UserMinus, Trash2, Loader2, ArrowDownCircle, MessageCircle } from 'lucide-react';
 import { fetchMoreData } from '@/app/actions';
 import Pagination from '@/app/components/Pagination';
 import { dataConnect } from '@/lib/firebase';
+import { executeQuery } from 'firebase/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveUdhaars, syncUdhaar, softDeleteUdhaar , getUdhaarEntriesCount } from '@/dataconnect';
+import { getActiveUdhaarsRef, syncUdhaar, softDeleteUdhaar , getUdhaarEntriesCountRef } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { setUdhaars, removeUdhaarRecord } from '@/store/udhaarSlice';
+import DynamicTable, { TableColumn, TableRowAction } from '@/components/DynamicTable';
 
 export default function UdhaarClient({
   initialUdhaar,
@@ -28,13 +30,16 @@ export default function UdhaarClient({
   const lastSynced = useSelector((state: RootState) => state.udhaar.lastSynced);
 
   const [udhaar, setUdhaar] = useState<any[]>(cachedUdhaars.length > 0 ? cachedUdhaars : initialUdhaar);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const refetchRef = useRef(false);
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
+    const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
     // Fetch total count once
     const fetchTotal = async () => {
       try {
-        const resp = await getUdhaarEntriesCount(dataConnect, { storeId });
+        const resp = await executeQuery(getUdhaarEntriesCountRef(dataConnect, { storeId }), options);
         const filtered = resp.data.udhaarEntries;
         setTotalItems(filtered.length);
       } catch (e) {
@@ -42,7 +47,7 @@ export default function UdhaarClient({
       }
     };
     fetchTotal();
-  }, [isPremium, storeId]);
+  }, [isPremium, storeId, refreshTrigger]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,7 +63,14 @@ export default function UdhaarClient({
       setIsLoading(true);
       try {
         const offset = (currentPage - 1) * pageSize;
-        const response = await getActiveUdhaars(dataConnect, { storeId, limit: pageSize, offset });
+        const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+
+        const response = await executeQuery(getActiveUdhaarsRef(dataConnect, { storeId, limit: pageSize, offset }), options);
+
+        if (refetchRef.current) {
+          refetchRef.current = false;
+        }
+
         if (!isMounted) return;
         const updated = response.data.udhaarEntries.map((record: any) => ({
           ...record,
@@ -80,7 +92,7 @@ export default function UdhaarClient({
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId, currentPage]);
+  }, [isPremium, storeId, currentPage, refreshTrigger]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -108,7 +120,9 @@ export default function UdhaarClient({
         updatedAt: Math.floor(now / 1000)
       });
       setShowModal(false);
-      window.location.reload();
+      refetchRef.current = true;
+      setCurrentPage(1);
+      setRefreshTrigger(prev => prev + 1);
     } catch (err) {
       console.error("Failed to save udhaar:", err);
     }
@@ -117,8 +131,9 @@ export default function UdhaarClient({
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this record?')) {
       // Optimistic Update
-      setUdhaar(prev => prev.filter(r => r.id !== id));
-      dispatch(removeUdhaarRecord(id));
+      refetchRef.current = true;
+      setCurrentPage(1);
+      setRefreshTrigger(prev => prev + 1);
 
       try {
         await softDeleteUdhaar(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
@@ -161,91 +176,91 @@ export default function UdhaarClient({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
-            <thead className="bg-gray-50/50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
-              <tr>
-                <th className="px-6 py-4 font-medium">Date</th>
-                <th className="px-6 py-4 font-medium">Customer Name</th>
-                <th className="px-6 py-4 font-medium">Type</th>
-                <th className="px-6 py-4 font-medium">Notes</th>
-                <th className="px-6 py-4 font-medium text-right">Amount</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <div className="flex items-center justify-center space-x-2 text-gray-400 dark:text-gray-500">
-                      <Loader2 size={20} className="animate-spin" />
-                      <span className="text-sm">Loading udhaars...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (() => {
-                const filteredUdhaar = udhaar.filter((record: any) => {
-                  return (
-                    (record.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    (record.notes || '').toLowerCase().includes(searchQuery.toLowerCase())
-                  );
-                });
+          {(() => {
+            const filteredUdhaar = udhaar.filter((record: any) => {
+              return (
+                (record.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (record.notes || '').toLowerCase().includes(searchQuery.toLowerCase())
+              );
+            });
 
-                if (filteredUdhaar.length === 0) {
+            const columns: TableColumn[] = [
+              {
+                key: 'timestamp',
+                label: 'Date',
+                render: (value, row) => new Date(value || row.updated_at).toLocaleDateString('en-IN')
+              },
+              {
+                key: 'customer_name',
+                label: 'Customer Name',
+                render: (value) => <span className="font-medium text-gray-900 dark:text-gray-100">{value}</span>
+              },
+              {
+                key: 'type',
+                label: 'Type',
+                render: (value) => {
+                  if (value?.toLowerCase() === 'given') {
+                    return (
+                      <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                        <UserMinus size={14} className="mr-1" /> Given
+                      </span>
+                    );
+                  }
                   return (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                        No udhaar records found matching your search.
-                      </td>
-                    </tr>
+                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400">
+                      <UserCheck size={14} className="mr-1" /> Received
+                    </span>
                   );
                 }
+              },
+              {
+                key: 'notes',
+                label: 'Notes',
+                className: 'text-gray-500 dark:text-gray-400 truncate max-w-xs',
+                render: (value) => value || '-'
+              },
+              {
+                key: 'amount',
+                label: 'Amount',
+                textAlign: 'right',
+                render: (value, row) => (
+                  <span className={`font-bold ${row.type?.toLowerCase() === 'given' ? 'text-red-600 dark:text-red-400' : 'text-teal-600 dark:text-teal-400'}`}>
+                    <FormattedAmount amount={value} />
+                  </span>
+                )
+              }
+            ];
 
-                return (
-                  <>
-                    {filteredUdhaar.map((record: any) => (
-                      <tr key={record.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {new Date(record.timestamp || record.updated_at).toLocaleDateString('en-IN')}
-                        </td>
-                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{record.customer_name}</td>
-                        <td className="px-6 py-4">
-                          {record.type?.toLowerCase() === 'given' ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                              <UserMinus size={14} className="mr-1" /> Given
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400">
-                              <UserCheck size={14} className="mr-1" /> Received
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-gray-500 dark:text-gray-400 truncate max-w-xs" title={record.notes}>
-                          {record.notes || '-'}
-                        </td>
-                        <td className={`px-6 py-4 text-right font-bold ${record.type?.toLowerCase() === 'given' ? 'text-red-600 dark:text-red-400' : 'text-teal-600 dark:text-teal-400'}`}>
-                          <FormattedAmount amount={record.amount} />
-                        </td>
-                        <td className="px-6 py-4 text-right space-x-3">
-                          <button
-                            onClick={() => {
-                              const text = encodeURIComponent(storeName ? `Hi ${record.customer_name}, this is a reminder regarding your pending Udhaar balance of Rs. ${record.amount} at ${storeName}. Please clear your dues at the earliest. Thank you!` : `Hi ${record.customer_name}, this is a reminder regarding your pending Udhaar balance of Rs. ${record.amount}. Please clear your dues at the earliest. Thank you!`);
-                              window.open(`https://wa.me/?text=${text}`, '_blank');
-                            }}
-                            className="inline-flex items-center space-x-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 px-2.5 py-1.5 rounded-lg font-medium text-xs transition-colors border border-green-200 dark:border-green-800"
-                            title="Send WhatsApp Reminder"
-                          >
-                            <MessageCircle size={14} />
-                            <span>Remind</span>
-                          </button>
-                          <button onClick={() => handleDelete(record.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"><Trash2 size={16} /></button>
-                        </td>
-                      </tr>
-                    ))}
-                  </>
-                );
-              })()}
-            </tbody>
-          </table>
+            const rowActions: TableRowAction[] = [
+              {
+                label: 'Remind',
+                icon: <MessageCircle size={14} />,
+                onClick: (record) => {
+                  const text = encodeURIComponent(storeName ? `Hi ${record.customer_name}, this is a reminder regarding your pending Udhaar balance of Rs. ${record.amount} at ${storeName}. Please clear your dues at the earliest. Thank you!` : `Hi ${record.customer_name}, this is a reminder regarding your pending Udhaar balance of Rs. ${record.amount}. Please clear your dues at the earliest. Thank you!`);
+                  window.open(`https://wa.me/?text=${text}`, '_blank');
+                },
+                className: 'inline-flex items-center space-x-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 px-2.5 py-1.5 rounded-lg font-medium text-xs transition-colors border border-green-200 dark:border-green-800',
+                title: 'Send WhatsApp Reminder'
+              },
+              {
+                icon: <Trash2 size={16} />,
+                onClick: (record) => handleDelete(record.id),
+                className: 'p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors',
+                title: 'Delete Record'
+              }
+            ];
+
+            return (
+              <DynamicTable
+                columns={columns}
+                rows={filteredUdhaar}
+                isLoading={isLoading}
+                emptyMessage="No udhaar records found matching your search."
+                rowKey="id"
+                rowActions={rowActions}
+              />
+            );
+          })()}
         </div>
 
         <Pagination

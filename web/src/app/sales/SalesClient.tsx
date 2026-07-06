@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Calendar, Trash2, Edit2, Loader2, ArrowDownCircle, Download } from 'lucide-react';
 import { fetchMoreData } from '@/app/actions';
 import Pagination from '@/app/components/Pagination';
@@ -8,10 +8,12 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportButtons from '@/app/ExportButtons';
 import { dataConnect } from '@/lib/firebase';
+import { executeQuery } from 'firebase/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveSales, syncSale, softDeleteSale , getSalesCount } from '@/dataconnect';
+import { getActiveSalesRef, syncSale, softDeleteSale , getSalesCountRef } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import SalesPOS from './SalesPOS';
+import DynamicTable, { TableColumn, TableRowAction } from '@/components/DynamicTable';
 
 export default function SalesClient({
   initialSales,
@@ -25,26 +27,29 @@ export default function SalesClient({
   isPremium?: boolean
 }) {
   const [sales, setSales] = useState(initialSales);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const refetchRef = useRef(false);
+
   useEffect(() => {
     if (!isPremium || !storeId) return;
+    const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
     // Fetch total count once
     const fetchTotal = async () => {
       try {
-        const resp = await getSalesCount(dataConnect, { storeId, type: 'SALE' });
+        const resp = await executeQuery(getSalesCountRef(dataConnect, { storeId, type: 'SALE' }), options);
         setTotalItems(resp.data.sales.length);
       } catch (e) {
         console.error('Count fetch error:', e);
       }
     };
     fetchTotal();
-  }, [isPremium, storeId]);
+  }, [isPremium, storeId, refreshTrigger]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-
   // Fetch paginated sales
   useEffect(() => {
     if (!isPremium || !storeId) return;
@@ -53,7 +58,14 @@ export default function SalesClient({
       setIsLoading(true);
       try {
         const offset = (currentPage - 1) * pageSize;
-        const response = await getActiveSales(dataConnect, { storeId, limit: pageSize, offset, type: 'SALE' });
+        const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+
+        const response = await executeQuery(getActiveSalesRef(dataConnect, { storeId, limit: pageSize, offset, type: 'SALE' }), options);
+        
+        if (refetchRef.current) {
+          refetchRef.current = false;
+        }
+
         if (!isMounted) return;
         const updated = response.data.sales
           .map((sale: any) => ({
@@ -76,7 +88,7 @@ export default function SalesClient({
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId, currentPage]);
+  }, [isPremium, storeId, currentPage, refreshTrigger]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   // Loading state handled by isLoading from pagination
@@ -87,7 +99,9 @@ export default function SalesClient({
     if (confirm('Are you sure you want to delete this sale?')) {
       try {
         await softDeleteSale(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
-        window.location.reload();
+        refetchRef.current = true;
+        setCurrentPage(1);
+        setRefreshTrigger(prev => prev + 1);
       } catch (err) {
         console.error("Failed to delete sale:", err);
       }
@@ -179,59 +193,73 @@ export default function SalesClient({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
-            <thead className="bg-gray-50/50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
-              <tr>
-                <th className="px-6 py-4 font-medium">Invoice ID</th>
-                <th className="px-6 py-4 font-medium">Date & Time</th>
-                <th className="px-6 py-4 font-medium">Customer</th>
-                <th className="px-6 py-4 font-medium text-right">Notes</th>
-                <th className="px-6 py-4 font-medium text-right">Total Amount</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-              {(() => {
-                const filteredSales = sales.filter((sale: any) => {
-                  const searchId = sale.cloud_id || sale.id;
-                  return (
-                    (sale.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    (searchId || '').toLowerCase().includes(searchQuery.toLowerCase())
-                  );
-                });
+          {(() => {
+            const filteredSales = sales.filter((sale: any) => {
+              const searchId = sale.cloud_id || sale.id;
+              return (
+                (sale.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (searchId || '').toLowerCase().includes(searchQuery.toLowerCase())
+              );
+            });
 
-                if (filteredSales.length === 0) {
-                  return (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                        No sales found matching your search.
-                      </td>
-                    </tr>
-                  );
-                }
+            const columns: TableColumn[] = [
+              {
+                key: 'id',
+                label: 'Invoice ID',
+                render: (value, row) => <span className="font-medium text-teal-600 dark:text-teal-400">#{`INV-${(row.cloud_id || value).substring(0, 8)}`}</span>
+              },
+              {
+                key: 'timestamp',
+                label: 'Date & Time',
+                render: (value, row) => formatDate(value || row.updated_at)
+              },
+              {
+                key: 'customer_name',
+                label: 'Customer',
+                render: (value) => <span className="font-medium text-gray-900 dark:text-gray-100">{value || 'Walk-in Customer'}</span>
+              },
+              {
+                key: 'notes',
+                label: 'Notes',
+                textAlign: 'right',
+                className: 'text-gray-500 dark:text-gray-400 truncate max-w-[150px]',
+                render: (value) => value || '-'
+              },
+              {
+                key: 'total_amount',
+                label: 'Total Amount',
+                textAlign: 'right',
+                className: 'font-bold text-gray-900 dark:text-gray-100',
+                render: (value) => <FormattedAmount amount={value || 0} />
+              }
+            ];
 
-                return (
-                  <>
-                    {filteredSales.map((sale: any) => (
-                      <tr key={sale.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-teal-600 dark:text-teal-400">#INV-{(sale.cloud_id || sale.id).substring(0, 8)}</td>
-                        <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{formatDate(sale.timestamp || sale.updated_at)}</td>
-                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{sale.customer_name || 'Walk-in Customer'}</td>
-                        <td className="px-6 py-4 text-right text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{sale.notes || '-'}</td>
-                        <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100">
-                          <FormattedAmount amount={sale.total_amount || 0} />
-                        </td>
-                        <td className="px-6 py-4 text-right space-x-3">
-                          <button onClick={() => generateInvoice(sale)} className="text-teal-600 hover:text-teal-800 transition-colors" title="Download Invoice"><Download size={16} /></button>
-                          <button onClick={() => handleDelete(sale.id)} className="text-red-500 hover:text-red-700 transition-colors" title="Delete Sale"><Trash2 size={16} /></button>
-                        </td>
-                      </tr>
-                    ))}
-                  </>
-                );
-              })()}
-            </tbody>
-          </table>
+            const rowActions: TableRowAction[] = [
+              {
+                icon: <Download size={16} />,
+                onClick: (sale) => generateInvoice(sale),
+                className: 'text-teal-600 hover:text-teal-800 transition-colors',
+                title: 'Download Invoice'
+              },
+              {
+                icon: <Trash2 size={16} />,
+                onClick: (sale) => handleDelete(sale.id),
+                className: 'text-red-500 hover:text-red-700 transition-colors',
+                title: 'Delete Sale'
+              }
+            ];
+
+            return (
+              <DynamicTable
+                columns={columns}
+                rows={filteredSales}
+                isLoading={isLoading}
+                emptyMessage="No sales found matching your search."
+                rowKey="id"
+                rowActions={rowActions}
+              />
+            );
+          })()}
         </div>
         <Pagination
           currentPage={currentPage}
@@ -248,7 +276,9 @@ export default function SalesClient({
           onClose={() => setShowModal(false)}
           onSuccess={() => {
             setShowModal(false);
-            window.location.reload();
+            refetchRef.current = true;
+            setCurrentPage(1);
+            setRefreshTrigger(prev => prev + 1);
           }}
         />
       )}

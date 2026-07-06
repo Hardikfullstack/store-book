@@ -14,6 +14,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { setInventory, updateInventoryItem } from '@/store/inventorySlice';
 import Pagination from '../components/Pagination';
+import DynamicTable, { TableColumn, TableRowAction } from '@/components/DynamicTable';
 
 type UnitOption = 'pcs' | 'kg' | 'g' | 'litre' | 'ml' | 'dozen' | 'box' | 'packet';
 
@@ -295,130 +296,105 @@ export default function ItemsClient({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
-            <thead className="bg-gray-50/50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item Name</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Stock Level</th>
-                {userRole !== 'staff' && (
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Buy Price</th>
-                )}
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sell Price</th>
-                {userRole !== 'staff' && (
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Margin</th>
-                )}
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <div className="flex items-center justify-center space-x-2 text-gray-400 dark:text-gray-500">
-                      <Loader2 size={20} className="animate-spin" />
-                      <span className="text-sm">Loading items...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (() => {
-                const filteredItems = items.filter((item: any) =>
-                  (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  (item.category || '').toLowerCase().includes(searchQuery.toLowerCase())
-                );
+          {
+            (() => {
+            const filteredItems = items.filter((item: any) =>
+              (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (item.category || '').toLowerCase().includes(searchQuery.toLowerCase())
+            );
 
-                if (filteredItems.length === 0) {
-                  return (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                        No items found matching your search.
-                      </td>
-                    </tr>
-                  );
+            const columns: TableColumn[] = [
+              {
+                key: 'name',
+                label: 'Item Name',
+                render: (value, row) => (
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-gray-100">{value}</div>
+                    {row.expiry_date && (
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Exp: {row.expiry_date}</div>
+                    )}
+                  </div>
+                )
+              },
+              {
+                key: 'category',
+                label: 'Category',
+                render: (value) => (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                    {value || 'Uncategorized'}
+                  </span>
+                )
+              },
+              {
+                key: 'quantity',
+                label: 'Stock Level',
+                render: (value, row) => (
+                  <span className="text-sm text-gray-900 dark:text-white">
+                    {value} <span className="text-gray-400 dark:text-gray-500 text-xs">{row.unit}</span>
+                  </span>
+                )
+              },
+              ...(userRole !== 'staff' ? [{
+                key: 'buy_price',
+                label: 'Buy Price',
+                render: (value: any) => <FormattedAmount amount={value} />
+              }] : []),
+              {
+                key: 'sell_price',
+                label: 'Sell Price',
+                className: 'font-medium',
+                render: (value: any) => <FormattedAmount amount={value} />
+              },
+              ...(userRole !== 'staff' ? [{
+                key: 'buy_price',
+                label: 'Margin',
+                render: (value: any, row: any) => {
+                  if (value > 0) {
+                    const marginPercent = (((row.sell_price - value) / value) * 100).toFixed(0);
+                    const isPositive = Number(marginPercent) >= 0;
+                    return (
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${isPositive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                        {marginPercent}%
+                      </span>
+                    );
+                  }
+                  return '-';
                 }
+              }] : [])
+            ];
 
-                return (
-                  <>
-                    {filteredItems.map((item: any) => {
-                      const now = Date.now();
-                      const expiryDate = item.expiry_date ? new Date(item.expiry_date).getTime() : NaN;
-                      let rowClass = "hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors";
+            const rowActions: TableRowAction[] = [
+              {
+                icon: <Plus size={18} />,
+                onClick: (item) => setReStockQuantity(item),
+                className: 'text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors',
+                title: 'Restock'
+              },
+              {
+                icon: <Edit2 size={18} />,
+                onClick: (item) => handleEdit(item),
+                className: 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 transition-colors',
+                title: 'Edit'
+              },
+              ...(userRole !== 'staff' ? [{
+                icon: <Trash2 size={18} />,
+                onClick: (item: any) => handleDelete(item.id),
+                className: 'text-red-500 hover:text-red-700 transition-colors',
+                title: 'Delete'
+              }] : [])
+            ];
 
-                      if (!isNaN(expiryDate)) {
-                        const daysUntilExpiry = (expiryDate - now) / (1000 * 60 * 60 * 24);
-                        if (daysUntilExpiry <= 0) {
-                          rowClass = "bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors";
-                        } else if (daysUntilExpiry <= 30) {
-                          rowClass = "bg-orange-50 dark:bg-orange-900/30 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors";
-                        }
-                      }
-
-                      return (
-                        <tr key={item.id} className={rowClass}>
-                          <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">
-                            {item.name}
-                            {item.expiry_date && (
-                              <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Exp: {item.expiry_date}</div>
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                              {item.category || 'Uncategorized'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                            {item.quantity} <span className="text-gray-400 dark:text-gray-500 text-xs">{item.unit}</span>
-                          </td>
-                          {userRole !== 'staff' && (
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                              <FormattedAmount amount={item.buy_price} />
-                            </td>
-                          )}
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
-                            <FormattedAmount amount={item.sell_price} />
-                          </td>
-                          {userRole !== 'staff' && (
-                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              {item.buy_price > 0 ? (
-                                <span className={`px-2 py-1 rounded text-xs font-bold ${((item.sell_price - item.buy_price) / item.buy_price * 100) >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                                  {(((item.sell_price - item.buy_price) / item.buy_price) * 100).toFixed(0)}%
-                                </span>
-                              ) : '-'}
-                            </td>
-                          )}
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button
-                              onClick={() => setReStockQuantity(item)}
-                              className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 mr-4 transition-colors"
-                              title="Restock"
-                            >
-                              <Plus size={18} />
-                            </button>
-                            <button
-                              onClick={() => handleEdit(item)}
-                              className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-4 transition-colors"
-                              title="Edit"
-                            >
-                              <Edit2 size={18} />
-                            </button>
-                            {userRole !== 'staff' && (
-                              <button
-                                onClick={() => handleDelete(item.id)}
-                                className="text-red-500 hover:text-red-700 transition-colors"
-                                title="Delete"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </>
-                );
-              })()}
-            </tbody>
-          </table>
+            return (
+              <DynamicTable
+                columns={columns}
+                rows={filteredItems}
+                isLoading={isLoading}
+                emptyMessage="No udhaar records found matching your search."
+                rowKey="id"
+                rowActions={rowActions}
+              />
+            );
+          })()}
         </div>
         <Pagination
           currentPage={currentPage}

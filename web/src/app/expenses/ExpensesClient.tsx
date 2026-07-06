@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Tag, Trash2, Loader2, ArrowDownCircle } from 'lucide-react';
 import { fetchMoreData } from '@/app/actions';
 import { dataConnect } from '@/lib/firebase';
+import { executeQuery } from 'firebase/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveExpenses, syncExpense, softDeleteExpense , getExpenseEntriesCount } from '@/dataconnect';
+import { getActiveExpensesRef, syncExpense, softDeleteExpense , getExpenseEntriesCountRef } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import Pagination from '@/app/components/Pagination';
+import DynamicTable, { TableColumn, TableRowAction } from '@/components/DynamicTable';
 
 export default function ExpensesClient({
   initialExpenses,
@@ -23,13 +25,17 @@ export default function ExpensesClient({
   const pageSize = 10;
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const refetchRef = useRef(false);
+
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
+    const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
     // Fetch total count once
     const fetchTotal = async () => {
       try {
-        const resp = await getExpenseEntriesCount(dataConnect, { storeId });
+        const resp = await executeQuery(getExpenseEntriesCountRef(dataConnect, { storeId }), options);
         const filtered = resp.data.expenseEntries;
         setTotalItems(filtered.length);
       } catch (e) {
@@ -37,7 +43,7 @@ export default function ExpensesClient({
       }
     };
     fetchTotal();
-  }, [isPremium, storeId]);
+  }, [isPremium, storeId, refreshTrigger]);
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
@@ -47,11 +53,18 @@ export default function ExpensesClient({
       setIsLoading(true);
       try {
         const offset = (currentPage - 1) * pageSize;
-        const response = await getActiveExpenses(dataConnect, {
+        const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+
+        const response = await executeQuery(getActiveExpensesRef(dataConnect, {
           storeId,
           limit: pageSize,
           offset
-        });
+        }), options);
+
+        if (refetchRef.current) {
+          refetchRef.current = false;
+        }
+
         if (!isMounted) return;
 
         const updated = response.data.expenseEntries.map((record: any) => ({
@@ -76,7 +89,7 @@ export default function ExpensesClient({
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId, currentPage]);
+  }, [isPremium, storeId, currentPage, refreshTrigger]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState({
@@ -103,7 +116,9 @@ export default function ExpensesClient({
         updatedAt: Math.floor(now / 1000)
       });
       setShowModal(false);
-      window.location.reload();
+      refetchRef.current = true;
+      setCurrentPage(1);
+      setRefreshTrigger(prev => prev + 1);
     } catch (err) {
       console.error("Failed to save expense:", err);
     }
@@ -113,7 +128,9 @@ export default function ExpensesClient({
     if (confirm('Are you sure you want to delete this expense?')) {
       try {
         await softDeleteExpense(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
-        window.location.reload();
+        refetchRef.current = true;
+        setCurrentPage(1);
+        setRefreshTrigger(prev => prev + 1);
       } catch (err) {
         console.error("Failed to delete expense:", err);
       }
@@ -157,73 +174,69 @@ export default function ExpensesClient({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
-            <thead className="bg-gray-50/50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
-              <tr>
-                <th className="px-6 py-4 font-medium">Date</th>
-                <th className="px-6 py-4 font-medium">Type</th>
-                <th className="px-6 py-4 font-medium">Description</th>
-                <th className="px-6 py-4 font-medium">Supplier</th>
-                <th className="px-6 py-4 font-medium text-right">Amount</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <div className="flex items-center justify-center space-x-2 text-gray-400 dark:text-gray-500">
-                      <Loader2 size={20} className="animate-spin" />
-                      <span className="text-sm">Loading expenses...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (() => {
-                const filteredExpenses = expenses.filter((expense: any) => {
-                  return (
-                    (expense.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    (expense.type || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    (expense.supplier_name || '').toLowerCase().includes(searchQuery.toLowerCase())
-                  );
-                });
+          {(() => {
+            const filteredExpenses = expenses.filter((expense: any) => {
+              return (
+                (expense.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (expense.type || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (expense.supplier_name || '').toLowerCase().includes(searchQuery.toLowerCase())
+              );
+            });
 
-                if (filteredExpenses.length === 0) {
-                  return (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                        No expenses found matching your search.
-                      </td>
-                    </tr>
-                  );
-                }
+            const columns: TableColumn[] = [
+              {
+                key: 'timestamp',
+                label: 'Date',
+                render: (value, row) => new Date(value || row.updated_at).toLocaleDateString('en-IN')
+              },
+              {
+                key: 'type',
+                label: 'Type',
+                render: (value) => (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                    {value}
+                  </span>
+                )
+              },
+              {
+                key: 'description',
+                label: 'Description',
+                render: (value) => <span className="text-gray-900 dark:text-gray-100">{value}</span>
+              },
+              {
+                key: 'supplier_name',
+                label: 'Supplier',
+                render: (value) => <span className="text-gray-500 dark:text-gray-400">{value || '-'}</span>
+              },
+              {
+                key: 'amount',
+                label: 'Amount',
+                textAlign: 'right',
+                className: 'font-bold text-orange-600 dark:text-orange-400',
+                render: (value) => <FormattedAmount amount={value} />
+              }
+            ];
 
-                return (
-                  <>
-                    {filteredExpenses.map((expense: any) => (
-                      <tr key={expense.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {new Date(expense.timestamp || expense.updated_at).toLocaleDateString('en-IN')}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                            {expense.type}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-gray-900 dark:text-gray-100">{expense.description}</td>
-                        <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{expense.supplier_name || '-'}</td>
-                        <td className="px-6 py-4 text-right font-bold text-orange-600 dark:text-orange-400">
-                          <FormattedAmount amount={expense.amount} />
-                        </td>
-                        <td className="px-6 py-4 text-right space-x-3">
-                          <button onClick={() => handleDelete(expense.id)} className="text-red-500 hover:text-red-700 transition-colors"><Trash2 size={16} /></button>
-                        </td>
-                      </tr>
-                    ))}
-                  </>
-                );
-              })()}
-            </tbody>
-          </table>
+            const rowActions: TableRowAction[] = [
+              {
+                icon: <Trash2 size={16} />,
+                onClick: (expense) => handleDelete(expense.id),
+                className: 'text-red-500 hover:text-red-700 transition-colors',
+                title: 'Delete Expense'
+              }
+            ];
+
+            return (
+              <DynamicTable
+                columns={columns}
+                rows={filteredExpenses}
+                isLoading={isLoading}
+                emptyMessage="No expenses found matching your search."
+                rowKey="id"
+                rowActions={rowActions}
+              />
+            );
+          })()}
         </div>
         <Pagination
           currentPage={currentPage}
