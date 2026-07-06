@@ -372,7 +372,7 @@ export default function SalesPOS({
                         </button>
                         <input aria-label="text"
                           type="text"
-                          defaultValue={c.quantity}
+                          value={c.quantity}
                           onBlur={(e) => {
                             const val = e.target.value.toLowerCase().trim();
                             let parsed = parseFloat(val) || 0;

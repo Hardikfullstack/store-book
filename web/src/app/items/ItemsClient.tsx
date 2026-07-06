@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Trash2, Edit2, Loader2, ArrowDownCircle } from 'lucide-react';
 import { fetchMoreData } from '@/app/actions';
 import ExportButtons from '@/app/ExportButtons';
 import { sanitizeInput } from '@/lib/sanitize';
 import { dataConnect } from '@/lib/firebase';
-import { getActiveItems, syncItem, softDeleteItem, getItemsCount } from '@/dataconnect';
+import { executeQuery } from 'firebase/data-connect';
+import { getActiveItemsRef, syncItem, softDeleteItem, getItemsCountRef } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import RestockQuantity from '@/components/models/RestockQuantity';
 import { useDispatch, useSelector } from 'react-redux';
@@ -70,16 +71,19 @@ export default function ItemsClient({
   const pageSize = 10;
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const refetchRef = useRef(false);
 
-  // Fetch total count once on mount using lightweight ID query
+  // Fetch total count once on mount and whenever data is updated
   useEffect(() => {
     if (!isPremium || !storeId) return;
-    getItemsCount(dataConnect, { storeId })
+    const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+    executeQuery(getItemsCountRef(dataConnect, { storeId }), options)
       .then(res => {
         if (res.data?.items) setTotalItems(res.data.items.length);
       })
       .catch(err => console.error('Count fetch error:', err));
-  }, [isPremium, storeId]);
+  }, [isPremium, storeId, refreshTrigger]);
 
   // Fetch paginated items whenever page changes and poll regularly
   useEffect(() => {
@@ -89,13 +93,19 @@ export default function ItemsClient({
       setIsLoading(true);
       try {
         const offset = (currentPage - 1) * pageSize;
-        const response = await getActiveItems(dataConnect, {
+        const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+
+        const response = await executeQuery(getActiveItemsRef(dataConnect, {
           storeId,
           limit: pageSize,
           offset
-        });
-        if (!isMounted) return;
+        }), options);
 
+        if (refetchRef.current) {
+          refetchRef.current = false;
+        }
+
+        if (!isMounted) return;
         const updated = response.data.items.map((item: any) => ({
           ...item,
           is_deleted: 0,
@@ -127,7 +137,7 @@ export default function ItemsClient({
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId, userRole, currentPage, pageSize]);
+  }, [isPremium, storeId, userRole, currentPage, pageSize, refreshTrigger]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -163,33 +173,37 @@ export default function ItemsClient({
         lowStockThreshold: formData.low_stock_threshold,
         category: formData.category,
         isDeleted: false,
-        updatedAt: Math.floor(Date.now() / 1000),
+        updatedAt: Date.now(),
         ...payload,
       });
       setShowModal(false);
-      // Let polling or a forced refetch handle it, but for simple UX:
-      // We will optimistic update here too:
-      const updatedItem = {
-        id,
-        name: formData.name,
-        quantity: formData.quantity,
-        unit: formData.unit,
-        buy_price: formData.buy_price,
-        sell_price: formData.sell_price,
-        low_stock_threshold: formData.low_stock_threshold,
-        category: formData.category,
-        ...payload,
-      };
-      setItems(prev => {
-        const idx = prev.findIndex(i => i.id === id);
-        if (idx > -1) {
-          const next = [...prev];
-          next[idx] = { ...next[idx], ...updatedItem };
-          return next;
-        }
-        return [updatedItem, ...prev];
-      });
-      dispatch(updateInventoryItem(updatedItem));
+      if (editingId) {
+        const updatedItem = {
+          id,
+          name: formData.name,
+          quantity: formData.quantity,
+          unit: formData.unit,
+          buy_price: formData.buy_price,
+          sell_price: formData.sell_price,
+          low_stock_threshold: formData.low_stock_threshold,
+          category: formData.category,
+          ...payload,
+        };
+        setItems(prev => {
+          const idx = prev.findIndex(i => i.id === id);
+          if (idx > -1) {
+            const next = [...prev];
+            next[idx] = { ...next[idx], ...updatedItem };
+            return next;
+          }
+          return [updatedItem, ...prev];
+        });
+        dispatch(updateInventoryItem(updatedItem));
+      } else {
+        refetchRef.current = true;
+        setCurrentPage(1);
+        setRefreshTrigger(prev => prev + 1);
+      }
     } catch (err) {
       console.error("Failed to save item:", err);
     }
@@ -227,9 +241,11 @@ export default function ItemsClient({
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this item?')) {
-      setItems(prev => prev.filter(i => i.id !== id));
       try {
-        await softDeleteItem(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
+        await softDeleteItem(dataConnect, { id, updatedAt: Date.now() });
+        refetchRef.current = true;
+        setCurrentPage(1);
+        setRefreshTrigger(prev => prev + 1);
       } catch (err) {
         console.error("Failed to delete item:", err);
       }
@@ -574,7 +590,10 @@ export default function ItemsClient({
             updated_at: Date.now(),
           };
 
+          // Optimistic update
           setItems((prev) => prev.map((item: any) => item.id === reStockQuantity.id ? updatedItem : item));
+          dispatch(updateInventoryItem(updatedItem));
+
           await syncItem(dataConnect, {
             id: reStockQuantity.id,
             storeId: storeId as string,
@@ -586,8 +605,11 @@ export default function ItemsClient({
             lowStockThreshold: updatedItem.low_stock_threshold,
             category: updatedItem.category,
             isDeleted: false,
-            updatedAt: Math.floor(updatedItem.updated_at / 1000)
+            updatedAt: updatedItem.updated_at
           });
+          refetchRef.current = true;
+          setCurrentPage(1);
+          setRefreshTrigger(prev => prev + 1);
           setReStockQuantity(null);
         }}
       />
