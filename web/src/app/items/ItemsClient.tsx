@@ -73,15 +73,48 @@ export default function ItemsClient({
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const refetchRef = useRef(false);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [dataVersion, setDataVersion] = useState(0);
+  const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
+
+  const sortFieldMap: Record<string, string> = {
+    buy_price: 'buyPrice',
+    sell_price: 'sellPrice'
+  };
+
+  const buildOrderBy = () => {
+    const field = sortField ? sortFieldMap[sortField] || sortField : '';
+    if (!field) return undefined;
+    return { [field]: sortDirection === 'asc' ? 'ASC' : 'DESC' };
+  };
+
+  const invalidateAllPages = () => {
+    setDataVersion(v => v + 1);
+    fetchedPagesAtVersionRef.current = new Map();
+  };
+
+  const handleSort = (field: string) => {
+    invalidateAllPages();
+    setCurrentPage(1);
+    if (field === sortField) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   // Fetch total count once on mount and whenever data is updated
   useEffect(() => {
     if (!isPremium || !storeId) return;
-    const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+    const countKey = `count`;
+    const needsServerFetch = (fetchedPagesAtVersionRef.current.get(countKey) ?? -1) < dataVersion;
+    const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
     executeQuery(getItemsCountRef(dataConnect, { storeId }), options)
       .then(res => {
         if (res.data?.items) setTotalItems(res.data.items.length);
+        fetchedPagesAtVersionRef.current.set(countKey, dataVersion);
       })
       .catch(err => console.error('Count fetch error:', err));
   }, [isPremium, storeId, refreshTrigger]);
@@ -94,19 +127,22 @@ export default function ItemsClient({
       setIsLoading(true);
       try {
         const offset = (currentPage - 1) * pageSize;
-        const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}`;
+        const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
+        const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
         const response = await executeQuery(getActiveItemsRef(dataConnect, {
           storeId,
           limit: pageSize,
-          offset
+          offset,
+          orderBy: buildOrderBy()
         }), options);
 
-        if (refetchRef.current) {
-          refetchRef.current = false;
-        }
-
         if (!isMounted) return;
+
+        // Mark this page as fetched at current version
+        fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
+
         const updated = response.data.items.map((item: any) => ({
           ...item,
           is_deleted: 0,
@@ -138,7 +174,7 @@ export default function ItemsClient({
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId, userRole, currentPage, pageSize, refreshTrigger]);
+  }, [isPremium, storeId, userRole, currentPage, pageSize, refreshTrigger, dataVersion]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -201,7 +237,7 @@ export default function ItemsClient({
         });
         dispatch(updateInventoryItem(updatedItem));
       } else {
-        refetchRef.current = true;
+        invalidateAllPages();
         setCurrentPage(1);
         setRefreshTrigger(prev => prev + 1);
       }
@@ -244,7 +280,7 @@ export default function ItemsClient({
     if (confirm('Are you sure you want to delete this item?')) {
       try {
         await softDeleteItem(dataConnect, { id, updatedAt: Date.now() });
-        refetchRef.current = true;
+        invalidateAllPages();
         setCurrentPage(1);
         setRefreshTrigger(prev => prev + 1);
       } catch (err) {
@@ -298,103 +334,111 @@ export default function ItemsClient({
         <div className="overflow-x-auto">
           {
             (() => {
-            const filteredItems = items.filter((item: any) =>
-              (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-              (item.category || '').toLowerCase().includes(searchQuery.toLowerCase())
-            );
+              const filteredItems = items.filter((item: any) =>
+                (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (item.category || '').toLowerCase().includes(searchQuery.toLowerCase())
+              );
 
-            const columns: TableColumn[] = [
-              {
-                key: 'name',
-                label: 'Item Name',
-                render: (value, row) => (
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100">{value}</div>
-                    {row.expiry_date && (
-                      <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Exp: {row.expiry_date}</div>
-                    )}
-                  </div>
-                )
-              },
-              {
-                key: 'category',
-                label: 'Category',
-                render: (value) => (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                    {value || 'Uncategorized'}
-                  </span>
-                )
-              },
-              {
-                key: 'quantity',
-                label: 'Stock Level',
-                render: (value, row) => (
-                  <span className="text-sm text-gray-900 dark:text-white">
-                    {value} <span className="text-gray-400 dark:text-gray-500 text-xs">{row.unit}</span>
-                  </span>
-                )
-              },
-              ...(userRole !== 'staff' ? [{
-                key: 'buy_price',
-                label: 'Buy Price',
-                render: (value: any) => <FormattedAmount amount={value} />
-              }] : []),
-              {
-                key: 'sell_price',
-                label: 'Sell Price',
-                className: 'font-medium',
-                render: (value: any) => <FormattedAmount amount={value} />
-              },
-              ...(userRole !== 'staff' ? [{
-                key: 'buy_price',
-                label: 'Margin',
-                render: (value: any, row: any) => {
-                  if (value > 0) {
-                    const marginPercent = (((row.sell_price - value) / value) * 100).toFixed(0);
-                    const isPositive = Number(marginPercent) >= 0;
-                    return (
-                      <span className={`px-2 py-1 rounded text-xs font-bold ${isPositive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                        {marginPercent}%
-                      </span>
-                    );
+              const columns: TableColumn[] = [
+                {
+                  key: 'name',
+                  label: 'Item Name',
+                  sortable: true,
+                  render: (value, row) => (
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{value}</div>
+                      {row.expiry_date && (
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Exp: {row.expiry_date}</div>
+                      )}
+                    </div>
+                  )
+                },
+                {
+                  key: 'category',
+                  label: 'Category',
+                  sortable: true,
+                  render: (value) => (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                      {value || 'Uncategorized'}
+                    </span>
+                  )
+                },
+                {
+                  key: 'quantity',
+                  label: 'Stock Level',
+                  sortable: true,
+                  render: (value, row) => (
+                    <span className="text-sm text-gray-900 dark:text-white">
+                      {value} <span className="text-gray-400 dark:text-gray-500 text-xs">{row.unit}</span>
+                    </span>
+                  )
+                },
+                ...(userRole !== 'staff' ? [{
+                  key: 'buy_price',
+                  label: 'Buy Price',
+                  sortable: true,
+                  render: (value: any) => <FormattedAmount amount={value} />
+                }] : []),
+                {
+                  key: 'sell_price',
+                  label: 'Sell Price',
+                  sortable: true,
+                  className: 'font-medium',
+                  render: (value: any) => <FormattedAmount amount={value} />
+                },
+                ...(userRole !== 'staff' ? [{
+                  key: 'buy_price',
+                  label: 'Margin',
+                  render: (value: any, row: any) => {
+                    if (value > 0) {
+                      const marginPercent = (((row.sell_price - value) / value) * 100).toFixed(0);
+                      const isPositive = Number(marginPercent) >= 0;
+                      return (
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${isPositive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                          {marginPercent}%
+                        </span>
+                      );
+                    }
+                    return '-';
                   }
-                  return '-';
-                }
-              }] : [])
-            ];
+                }] : [])
+              ];
 
-            const rowActions: TableRowAction[] = [
-              {
-                icon: <Plus size={18} />,
-                onClick: (item) => setReStockQuantity(item),
-                className: 'text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors',
-                title: 'Restock'
-              },
-              {
-                icon: <Edit2 size={18} />,
-                onClick: (item) => handleEdit(item),
-                className: 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 transition-colors',
-                title: 'Edit'
-              },
-              ...(userRole !== 'staff' ? [{
-                icon: <Trash2 size={18} />,
-                onClick: (item: any) => handleDelete(item.id),
-                className: 'text-red-500 hover:text-red-700 transition-colors',
-                title: 'Delete'
-              }] : [])
-            ];
+              const rowActions: TableRowAction[] = [
+                {
+                  icon: <Plus size={18} />,
+                  onClick: (item) => setReStockQuantity(item),
+                  className: 'text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors',
+                  title: 'Restock'
+                },
+                {
+                  icon: <Edit2 size={18} />,
+                  onClick: (item) => handleEdit(item),
+                  className: 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 transition-colors',
+                  title: 'Edit'
+                },
+                ...(userRole !== 'staff' ? [{
+                  icon: <Trash2 size={18} />,
+                  onClick: (item: any) => handleDelete(item.id),
+                  className: 'text-red-500 hover:text-red-700 transition-colors',
+                  title: 'Delete'
+                }] : [])
+              ];
 
-            return (
-              <DynamicTable
-                columns={columns}
-                rows={filteredItems}
-                isLoading={isLoading}
-                emptyMessage="No udhaar records found matching your search."
-                rowKey="id"
-                rowActions={rowActions}
-              />
-            );
-          })()}
+              return (
+                <DynamicTable
+                  columns={columns}
+                  rows={filteredItems}
+                  isLoading={isLoading}
+                  emptyMessage="No udhaar records found matching your search."
+                  rowKey="id"
+                  rowActions={rowActions}
+                  sortField={sortField || ""}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                />
+              );
+            })()}
         </div>
         <Pagination
           currentPage={currentPage}
@@ -583,7 +627,7 @@ export default function ItemsClient({
             isDeleted: false,
             updatedAt: updatedItem.updated_at
           });
-          refetchRef.current = true;
+          invalidateAllPages();
           setCurrentPage(1);
           setRefreshTrigger(prev => prev + 1);
           setReStockQuantity(null);

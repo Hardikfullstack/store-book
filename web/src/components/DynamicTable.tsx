@@ -8,6 +8,7 @@ export type TableColumn = {
   className?: string;
   textAlign?: 'left' | 'right' | 'center';
   render?: (value: any, row: any) => React.ReactNode;
+  sortable?: boolean;
 };
 
 export type TableRowAction = {
@@ -26,6 +27,9 @@ interface DynamicTableProps {
   rowKey?: string;
   rowActions?: TableRowAction[];
   onRowClick?: (row: any) => void;
+  sortField?: string;
+  sortDirection?: 'asc' | 'desc';
+  onSort?: (field: string) => void;
 }
 
 export default function DynamicTable({
@@ -35,7 +39,10 @@ export default function DynamicTable({
   emptyMessage,
   rowKey = 'id',
   rowActions,
-  onRowClick
+  onRowClick,
+  sortField,
+  sortDirection,
+  onSort
 }: DynamicTableProps) {
   const getTextAlignClass = (align?: 'left' | 'right' | 'center') => {
     switch (align) {
@@ -58,7 +65,20 @@ export default function DynamicTable({
                 key={`${column.key}-${index}`}
                 className={`px-6 py-4 font-medium ${getTextAlignClass(column.textAlign)} ${column.className || ''}`}
               >
-                {column.label}
+                {column.sortable && onSort ? (
+                  <button
+                    type="button"
+                    onClick={() => onSort(column.key)}
+                    className="inline-flex items-center gap-2 text-left"
+                  >
+                    <span>{column.label}</span>
+                    <span className="text-xs text-gray-400">
+                      {sortField === column.key ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                    </span>
+                  </button>
+                ) : (
+                  column.label
+                )}
               </th>
             ))}
             {rowActions && rowActions.length > 0 && (

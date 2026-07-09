@@ -81,6 +81,7 @@ export interface GetActiveExpensesVariables {
   storeId: string;
   limit?: number | null;
   offset?: number | null;
+  orderBy?: any | null;
 }
 
 export interface GetActiveItemsData {
@@ -104,6 +105,7 @@ export interface GetActiveItemsVariables {
   storeId: string;
   limit?: number | null;
   offset?: number | null;
+  orderBy?: any | null;
 }
 
 export interface GetActiveSaleItemsData {
@@ -140,6 +142,7 @@ export interface GetActiveSalesVariables {
   type?: string | null;
   limit?: number | null;
   offset?: number | null;
+  orderBy?: any | null;
 }
 
 export interface GetActiveSuppliersData {
@@ -173,6 +176,7 @@ export interface GetActiveUdhaarsVariables {
   storeId: string;
   limit?: number | null;
   offset?: number | null;
+  orderBy?: any | null;
 }
 
 export interface GetAdminAuditLogsData {

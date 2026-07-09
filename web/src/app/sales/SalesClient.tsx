@@ -10,7 +10,7 @@ import ExportButtons from '@/app/ExportButtons';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveSalesRef, syncSale, softDeleteSale , getSalesCountRef } from '@/dataconnect';
+import { getActiveSalesRef, syncSale, softDeleteSale, getSalesCountRef } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import SalesPOS from './SalesPOS';
 import DynamicTable, { TableColumn, TableRowAction } from '@/components/DynamicTable';
@@ -28,16 +28,49 @@ export default function SalesClient({
 }) {
   const [sales, setSales] = useState(initialSales);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const refetchRef = useRef(false);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [dataVersion, setDataVersion] = useState(0);
+  const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
+
+  const sortFieldMap: Record<string, string> = {
+    total_amount: 'totalAmount',
+    customer_name: 'customerName'
+  };
+
+  const buildOrderBy = () => {
+    const field = sortField ? sortFieldMap[sortField] || sortField : '';
+    if (!field) return undefined;
+    return { [field]: sortDirection === 'asc' ? 'ASC' : 'DESC' };
+  };
+
+  const invalidateAllPages = () => {
+    setDataVersion(v => v + 1);
+    fetchedPagesAtVersionRef.current = new Map();
+  };
+
+  const handleSort = (field: string) => {
+    invalidateAllPages();
+    setCurrentPage(1);
+    if (field === sortField) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
-    const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+    const countKey = `count`;
+    const needsServerFetch = (fetchedPagesAtVersionRef.current.get(countKey) ?? -1) < dataVersion;
+    const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
     // Fetch total count once
     const fetchTotal = async () => {
       try {
         const resp = await executeQuery(getSalesCountRef(dataConnect, { storeId, type: 'SALE' }), options);
         setTotalItems(resp.data.sales.length);
+        fetchedPagesAtVersionRef.current.set(countKey, dataVersion);
       } catch (e) {
         console.error('Count fetch error:', e);
       }
@@ -58,15 +91,17 @@ export default function SalesClient({
       setIsLoading(true);
       try {
         const offset = (currentPage - 1) * pageSize;
-        const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}`;
+        const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
+        const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
-        const response = await executeQuery(getActiveSalesRef(dataConnect, { storeId, limit: pageSize, offset, type: 'SALE' }), options);
-        
-        if (refetchRef.current) {
-          refetchRef.current = false;
-        }
+        const response = await executeQuery(getActiveSalesRef(dataConnect, { storeId, limit: pageSize, offset, type: 'SALE', orderBy: buildOrderBy() }), options);
 
         if (!isMounted) return;
+
+        // Mark this page as fetched at current version
+        fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
+
         const updated = response.data.sales
           .map((sale: any) => ({
             ...sale,
@@ -88,7 +123,7 @@ export default function SalesClient({
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId, currentPage, refreshTrigger]);
+  }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   // Loading state handled by isLoading from pagination
@@ -99,7 +134,7 @@ export default function SalesClient({
     if (confirm('Are you sure you want to delete this sale?')) {
       try {
         await softDeleteSale(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
-        refetchRef.current = true;
+        invalidateAllPages();
         setCurrentPage(1);
         setRefreshTrigger(prev => prev + 1);
       } catch (err) {
@@ -211,11 +246,13 @@ export default function SalesClient({
               {
                 key: 'timestamp',
                 label: 'Date & Time',
+                sortable: true,
                 render: (value, row) => formatDate(value || row.updated_at)
               },
               {
                 key: 'customer_name',
                 label: 'Customer',
+                sortable: true,
                 render: (value) => <span className="font-medium text-gray-900 dark:text-gray-100">{value || 'Walk-in Customer'}</span>
               },
               {
@@ -228,6 +265,7 @@ export default function SalesClient({
               {
                 key: 'total_amount',
                 label: 'Total Amount',
+                sortable: true,
                 textAlign: 'right',
                 className: 'font-bold text-gray-900 dark:text-gray-100',
                 render: (value) => <FormattedAmount amount={value || 0} />
@@ -257,6 +295,9 @@ export default function SalesClient({
                 emptyMessage="No sales found matching your search."
                 rowKey="id"
                 rowActions={rowActions}
+                sortField={sortField || ""}
+                sortDirection={sortDirection}
+                onSort={handleSort}
               />
             );
           })()}
@@ -276,7 +317,7 @@ export default function SalesClient({
           onClose={() => setShowModal(false)}
           onSuccess={() => {
             setShowModal(false);
-            refetchRef.current = true;
+            invalidateAllPages();
             setCurrentPage(1);
             setRefreshTrigger(prev => prev + 1);
           }}

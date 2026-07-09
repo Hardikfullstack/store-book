@@ -7,7 +7,7 @@ import Pagination from '@/app/components/Pagination';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveUdhaarsRef, syncUdhaar, softDeleteUdhaar , getUdhaarEntriesCountRef } from '@/dataconnect';
+import { getActiveUdhaarsRef, syncUdhaar, softDeleteUdhaar, getUdhaarEntriesCountRef } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
@@ -31,17 +31,49 @@ export default function UdhaarClient({
 
   const [udhaar, setUdhaar] = useState<any[]>(cachedUdhaars.length > 0 ? cachedUdhaars : initialUdhaar);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const refetchRef = useRef(false);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [dataVersion, setDataVersion] = useState(0);
+  const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
+
+  const sortFieldMap: Record<string, string> = {
+    customer_name: 'customerName'
+  };
+
+  const buildOrderBy = () => {
+    const field = sortField ? sortFieldMap[sortField] || sortField : '';
+    if (!field) return undefined;
+    return { [field]: sortDirection === 'asc' ? 'ASC' : 'DESC' };
+  };
+
+  const invalidateAllPages = () => {
+    setDataVersion(v => v + 1);
+    fetchedPagesAtVersionRef.current = new Map();
+  };
+
+  const handleSort = (field: string) => {
+    invalidateAllPages();
+    setCurrentPage(1);
+    if (field === sortField) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
-    const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+    const countKey = `count`;
+    const needsServerFetch = (fetchedPagesAtVersionRef.current.get(countKey) ?? -1) < dataVersion;
+    const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
     // Fetch total count once
     const fetchTotal = async () => {
       try {
         const resp = await executeQuery(getUdhaarEntriesCountRef(dataConnect, { storeId }), options);
         const filtered = resp.data.udhaarEntries;
         setTotalItems(filtered.length);
+        fetchedPagesAtVersionRef.current.set(countKey, dataVersion);
       } catch (e) {
         console.error('Count fetch error:', e);
       }
@@ -49,7 +81,6 @@ export default function UdhaarClient({
     fetchTotal();
   }, [isPremium, storeId, refreshTrigger]);
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const [totalItems, setTotalItems] = useState(0);
@@ -63,15 +94,17 @@ export default function UdhaarClient({
       setIsLoading(true);
       try {
         const offset = (currentPage - 1) * pageSize;
-        const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}`;
+        const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
+        const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
-        const response = await executeQuery(getActiveUdhaarsRef(dataConnect, { storeId, limit: pageSize, offset }), options);
-
-        if (refetchRef.current) {
-          refetchRef.current = false;
-        }
+        const response = await executeQuery(getActiveUdhaarsRef(dataConnect, { storeId, limit: pageSize, offset, orderBy: buildOrderBy() }), options);
 
         if (!isMounted) return;
+
+        // Mark this page as fetched at current version
+        fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
+
         const updated = response.data.udhaarEntries.map((record: any) => ({
           ...record,
           is_deleted: 0,
@@ -92,7 +125,7 @@ export default function UdhaarClient({
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId, currentPage, refreshTrigger]);
+  }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -120,7 +153,7 @@ export default function UdhaarClient({
         updatedAt: Math.floor(now / 1000)
       });
       setShowModal(false);
-      refetchRef.current = true;
+      invalidateAllPages();
       setCurrentPage(1);
       setRefreshTrigger(prev => prev + 1);
     } catch (err) {
@@ -130,13 +163,11 @@ export default function UdhaarClient({
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this record?')) {
-      // Optimistic Update
-      refetchRef.current = true;
-      setCurrentPage(1);
-      setRefreshTrigger(prev => prev + 1);
-
       try {
         await softDeleteUdhaar(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
+        invalidateAllPages();
+        setCurrentPage(1);
+        setRefreshTrigger(prev => prev + 1);
       } catch (err) {
         console.error("Failed to delete udhaar:", err);
       }
@@ -188,16 +219,19 @@ export default function UdhaarClient({
               {
                 key: 'timestamp',
                 label: 'Date',
+                sortable: true,
                 render: (value, row) => new Date(value || row.updated_at).toLocaleDateString('en-IN')
               },
               {
                 key: 'customer_name',
                 label: 'Customer Name',
+                sortable: true,
                 render: (value) => <span className="font-medium text-gray-900 dark:text-gray-100">{value}</span>
               },
               {
                 key: 'type',
                 label: 'Type',
+                sortable: true,
                 render: (value) => {
                   if (value?.toLowerCase() === 'given') {
                     return (
@@ -222,6 +256,7 @@ export default function UdhaarClient({
               {
                 key: 'amount',
                 label: 'Amount',
+                sortable: true,
                 textAlign: 'right',
                 render: (value, row) => (
                   <span className={`font-bold ${row.type?.toLowerCase() === 'given' ? 'text-red-600 dark:text-red-400' : 'text-teal-600 dark:text-teal-400'}`}>
@@ -258,6 +293,9 @@ export default function UdhaarClient({
                 emptyMessage="No udhaar records found matching your search."
                 rowKey="id"
                 rowActions={rowActions}
+                sortField={sortField || ""}
+                sortDirection={sortDirection}
+                onSort={handleSort}
               />
             );
           })()}

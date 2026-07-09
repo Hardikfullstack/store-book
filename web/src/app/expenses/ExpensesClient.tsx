@@ -6,7 +6,7 @@ import { fetchMoreData } from '@/app/actions';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveExpensesRef, syncExpense, softDeleteExpense , getExpenseEntriesCountRef } from '@/dataconnect';
+import { getActiveExpensesRef, syncExpense, softDeleteExpense, getExpenseEntriesCountRef } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import Pagination from '@/app/components/Pagination';
 import DynamicTable, { TableColumn, TableRowAction } from '@/components/DynamicTable';
@@ -26,18 +26,50 @@ export default function ExpensesClient({
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const refetchRef = useRef(false);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [dataVersion, setDataVersion] = useState(0);
+  const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
+
+  const sortFieldMap: Record<string, string> = {
+    supplier_name: 'supplierName'
+  };
+
+  const buildOrderBy = () => {
+    const field = sortField ? sortFieldMap[sortField] || sortField : '';
+    if (!field) return undefined;
+    return { [field]: sortDirection === 'asc' ? 'ASC' : 'DESC' };
+  };
+
+  const invalidateAllPages = () => {
+    setDataVersion(v => v + 1);
+    fetchedPagesAtVersionRef.current = new Map();
+  };
+
+  const handleSort = (field: string) => {
+    invalidateAllPages();
+    setCurrentPage(1);
+    if (field === sortField) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
-    const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+    const countKey = `count`;
+    const needsServerFetch = (fetchedPagesAtVersionRef.current.get(countKey) ?? -1) < dataVersion;
+    const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
     // Fetch total count once
     const fetchTotal = async () => {
       try {
         const resp = await executeQuery(getExpenseEntriesCountRef(dataConnect, { storeId }), options);
         const filtered = resp.data.expenseEntries;
         setTotalItems(filtered.length);
+        fetchedPagesAtVersionRef.current.set(countKey, dataVersion);
       } catch (e) {
         console.error('Count fetch error:', e);
       }
@@ -53,19 +85,21 @@ export default function ExpensesClient({
       setIsLoading(true);
       try {
         const offset = (currentPage - 1) * pageSize;
-        const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}`;
+        const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
+        const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
         const response = await executeQuery(getActiveExpensesRef(dataConnect, {
           storeId,
           limit: pageSize,
-          offset
+          offset,
+          orderBy: buildOrderBy()
         }), options);
 
-        if (refetchRef.current) {
-          refetchRef.current = false;
-        }
-
         if (!isMounted) return;
+
+        // Mark this page as fetched at current version
+        fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
 
         const updated = response.data.expenseEntries.map((record: any) => ({
           ...record,
@@ -89,7 +123,7 @@ export default function ExpensesClient({
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId, currentPage, refreshTrigger]);
+  }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState({
@@ -116,7 +150,7 @@ export default function ExpensesClient({
         updatedAt: Math.floor(now / 1000)
       });
       setShowModal(false);
-      refetchRef.current = true;
+      invalidateAllPages();
       setCurrentPage(1);
       setRefreshTrigger(prev => prev + 1);
     } catch (err) {
@@ -128,7 +162,7 @@ export default function ExpensesClient({
     if (confirm('Are you sure you want to delete this expense?')) {
       try {
         await softDeleteExpense(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
-        refetchRef.current = true;
+        invalidateAllPages();
         setCurrentPage(1);
         setRefreshTrigger(prev => prev + 1);
       } catch (err) {
@@ -187,11 +221,13 @@ export default function ExpensesClient({
               {
                 key: 'timestamp',
                 label: 'Date',
+                sortable: true,
                 render: (value, row) => new Date(value || row.updated_at).toLocaleDateString('en-IN')
               },
               {
                 key: 'type',
                 label: 'Type',
+                sortable: true,
                 render: (value) => (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
                     {value}
@@ -206,11 +242,13 @@ export default function ExpensesClient({
               {
                 key: 'supplier_name',
                 label: 'Supplier',
+                sortable: true,
                 render: (value) => <span className="text-gray-500 dark:text-gray-400">{value || '-'}</span>
               },
               {
                 key: 'amount',
                 label: 'Amount',
+                sortable: true,
                 textAlign: 'right',
                 className: 'font-bold text-orange-600 dark:text-orange-400',
                 render: (value) => <FormattedAmount amount={value} />
@@ -234,6 +272,9 @@ export default function ExpensesClient({
                 emptyMessage="No expenses found matching your search."
                 rowKey="id"
                 rowActions={rowActions}
+                sortField={sortField || ""}
+                sortDirection={sortDirection}
+                onSort={handleSort}
               />
             );
           })()}

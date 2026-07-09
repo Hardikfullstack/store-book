@@ -29,15 +29,48 @@ export default function QuotationsClient({
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const refetchRef = useRef(false);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [dataVersion, setDataVersion] = useState(0);
+  const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
+
+  const sortFieldMap: Record<string, string> = {
+    total_amount: 'totalAmount',
+    customer_name: 'customerName'
+  };
+
+  const buildOrderBy = () => {
+    const field = sortField ? sortFieldMap[sortField] || sortField : '';
+    if (!field) return undefined;
+    return { [field]: sortDirection === 'asc' ? 'ASC' : 'DESC' };
+  };
+
+  const invalidateAllPages = () => {
+    setDataVersion(v => v + 1);
+    fetchedPagesAtVersionRef.current = new Map();
+  };
+
+  const handleSort = (field: string) => {
+    invalidateAllPages();
+    setCurrentPage(1);
+    if (field === sortField) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   useEffect(() => {
     if (!isPremium || !storeId) return;
-    const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+    const countKey = `count`;
+    const needsServerFetch = (fetchedPagesAtVersionRef.current.get(countKey) ?? -1) < dataVersion;
+    const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
     // Fetch total count
     executeQuery(getSalesCountRef(dataConnect, { storeId, type: 'ESTIMATE' }), options)
       .then(res => {
         setTotalItems(res.data.sales.length);
+        fetchedPagesAtVersionRef.current.set(countKey, dataVersion);
       })
       .catch(err => console.error('Count fetch error:', err));
   }, [isPremium, storeId, refreshTrigger]);
@@ -50,15 +83,17 @@ export default function QuotationsClient({
       setIsLoading(true);
       try {
         const offset = (currentPage - 1) * pageSize;
-        const options = refetchRef.current ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}`;
+        const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
+        const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
-        const response = await executeQuery(getActiveSalesRef(dataConnect, { storeId, limit: pageSize, offset, type: 'ESTIMATE' }), options);
-
-        if (refetchRef.current) {
-          refetchRef.current = false;
-        }
+        const response = await executeQuery(getActiveSalesRef(dataConnect, { storeId, limit: pageSize, offset, type: 'ESTIMATE', orderBy: buildOrderBy() }), options);
 
         if (!isMounted) return;
+
+        // Mark this page as fetched at current version
+        fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
+
         const updated = response.data.sales.map((q: any) => ({
           ...q,
           is_deleted: 0,
@@ -74,13 +109,13 @@ export default function QuotationsClient({
       }
     };
     fetchQuotations();
-  }, [isPremium, storeId, currentPage, refreshTrigger]);
+  }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion]);
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this quotation?')) {
       try {
         await softDeleteSale(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
-        refetchRef.current = true;
+        invalidateAllPages();
         setCurrentPage(1);
         setRefreshTrigger(prev => prev + 1);
       } catch (err) {
@@ -225,16 +260,19 @@ export default function QuotationsClient({
               {
                 key: 'timestamp',
                 label: 'Date',
+                sortable: true,
                 render: (value, row) => formatDate(value || row.updated_at)
               },
               {
                 key: 'customer_name',
                 label: 'Customer',
+                sortable: true,
                 render: (value) => <span className="font-medium text-gray-900 dark:text-gray-100">{value || 'Walk-in Customer'}</span>
               },
               {
                 key: 'total_amount',
                 label: 'Total Amount',
+                sortable: true,
                 textAlign: 'right',
                 className: 'font-bold text-gray-900 dark:text-gray-100',
                 render: (value) => <FormattedAmount amount={value || 0} />
@@ -270,6 +308,9 @@ export default function QuotationsClient({
                 emptyMessage="No estimates found."
                 rowKey="id"
                 rowActions={rowActions}
+                sortField={sortField || ""}
+                sortDirection={sortDirection}
+                onSort={handleSort}
               />
             );
           })()}
@@ -290,7 +331,7 @@ export default function QuotationsClient({
           onClose={() => setShowModal(false)}
           onSuccess={() => {
             setShowModal(false);
-            refetchRef.current = true;
+            invalidateAllPages();
             setCurrentPage(1);
             setRefreshTrigger(prev => prev + 1);
           }}
