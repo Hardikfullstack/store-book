@@ -76,11 +76,15 @@ query GetActiveItems(
 ) @auth(level: USER) {
   items(
     where: {
-      storeId: { eq: $storeId },
-      isDeleted: { eq: false },
-      _or: [
-        { name: { contains: $searchTerm } },
-        { category: { contains: $searchTerm } }
+      _and: [
+        { storeId: { eq: $storeId } },
+        { isDeleted: { eq: false } },
+        {
+          _or: [
+            { name: { contains: $searchTerm } },
+            { category: { contains: $searchTerm } }
+          ]
+        }
       ]
     }
     limit: $limit
@@ -152,11 +156,15 @@ query GetActiveSales(
 ) @auth(level: USER) {
   sales(
     where: {
-      storeId: { eq: $storeId },
-      type: { eq: $type },
-      isDeleted: { eq: false },
-      _or: [
-        { customerName: { contains: $searchTerm } }
+      _and: [
+        { storeId: { eq: $storeId } },
+        { type: { eq: $type } },
+        { isDeleted: { eq: false } },
+        {
+          _or: [
+            { customerName: { contains: $searchTerm } }
+          ]
+        }
       ]
     }
     limit: $limit
@@ -202,11 +210,15 @@ query GetActiveUdhaars(
 ) @auth(level: USER) {
   udhaarEntries(
     where: {
-      storeId: { eq: $storeId },
-      isDeleted: { eq: false },
-      _or: [
-        { customerName: { contains: $searchTerm } },
-        { type: { contains: $searchTerm } }
+      _and: [
+        { storeId: { eq: $storeId } },
+        { isDeleted: { eq: false } },
+        {
+          _or: [
+            { customerName: { contains: $searchTerm } },
+            { type: { contains: $searchTerm } }
+          ]
+        }
       ]
     }
     limit: $limit
@@ -240,11 +252,15 @@ query GetActiveExpenses(
 ) @auth(level: USER) {
   expenseEntries(
     where: {
-      storeId: { eq: $storeId },
-      isDeleted: { eq: false },
-      _or: [
-        { supplierName: { contains: $searchTerm } },
-        { type: { contains: $searchTerm } }
+      _and: [
+        { storeId: { eq: $storeId } },
+        { isDeleted: { eq: false } },
+        {
+          _or: [
+            { supplierName: { contains: $searchTerm } },
+            { type: { contains: $searchTerm } }
+          ]
+        }
       ]
     }
     limit: $limit

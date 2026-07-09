@@ -36,6 +36,8 @@ public interface GetActiveUdhaarsQuery :
     com.google.firebase.dataconnect.OptionalVariable<Int?>,
     val offset:
     com.google.firebase.dataconnect.OptionalVariable<Int?>,
+    val searchTerm:
+    com.google.firebase.dataconnect.OptionalVariable<String?>,
     val orderByTimestamp:
     com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>,
     val orderByCustomerName:
@@ -55,6 +57,7 @@ public interface GetActiveUdhaarsQuery :
         public var storeId: String
         public var limit: Int?
         public var offset: Int?
+        public var searchTerm: String?
         public var orderByTimestamp: OrderDirection?
         public var orderByCustomerName: OrderDirection?
         public var orderByType: OrderDirection?
@@ -72,6 +75,8 @@ public interface GetActiveUdhaarsQuery :
             var limit: com.google.firebase.dataconnect.OptionalVariable<Int?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
             var offset: com.google.firebase.dataconnect.OptionalVariable<Int?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var searchTerm: com.google.firebase.dataconnect.OptionalVariable<String?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
             var orderByTimestamp: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
@@ -96,6 +101,10 @@ public interface GetActiveUdhaarsQuery :
               get() = throw UnsupportedOperationException("getting builder values is not supported")
               set(value_) { offset = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
               
+            override var searchTerm: String?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { searchTerm = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
             override var orderByTimestamp: OrderDirection?
               get() = throw UnsupportedOperationException("getting builder values is not supported")
               set(value_) { orderByTimestamp = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
@@ -116,7 +125,7 @@ public interface GetActiveUdhaarsQuery :
           }.apply(block_)
           .let {
             Variables(
-              storeId=storeId,limit=limit,offset=offset,orderByTimestamp=orderByTimestamp,orderByCustomerName=orderByCustomerName,orderByType=orderByType,orderByAmount=orderByAmount,
+              storeId=storeId,limit=limit,offset=offset,searchTerm=searchTerm,orderByTimestamp=orderByTimestamp,orderByCustomerName=orderByCustomerName,orderByType=orderByType,orderByAmount=orderByAmount,
             )
           }
         }

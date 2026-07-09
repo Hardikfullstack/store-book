@@ -36,6 +36,8 @@ public interface GetActiveItemsQuery :
     com.google.firebase.dataconnect.OptionalVariable<Int?>,
     val offset:
     com.google.firebase.dataconnect.OptionalVariable<Int?>,
+    val searchTerm:
+    com.google.firebase.dataconnect.OptionalVariable<String?>,
     val orderByName:
     com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>,
     val orderByQuantity:
@@ -59,6 +61,7 @@ public interface GetActiveItemsQuery :
         public var storeId: String
         public var limit: Int?
         public var offset: Int?
+        public var searchTerm: String?
         public var orderByName: OrderDirection?
         public var orderByQuantity: OrderDirection?
         public var orderByBuyPrice: OrderDirection?
@@ -78,6 +81,8 @@ public interface GetActiveItemsQuery :
             var limit: com.google.firebase.dataconnect.OptionalVariable<Int?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
             var offset: com.google.firebase.dataconnect.OptionalVariable<Int?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var searchTerm: com.google.firebase.dataconnect.OptionalVariable<String?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
             var orderByName: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
@@ -105,6 +110,10 @@ public interface GetActiveItemsQuery :
             override var offset: Int?
               get() = throw UnsupportedOperationException("getting builder values is not supported")
               set(value_) { offset = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
+            override var searchTerm: String?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { searchTerm = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
               
             override var orderByName: OrderDirection?
               get() = throw UnsupportedOperationException("getting builder values is not supported")
@@ -134,7 +143,7 @@ public interface GetActiveItemsQuery :
           }.apply(block_)
           .let {
             Variables(
-              storeId=storeId,limit=limit,offset=offset,orderByName=orderByName,orderByQuantity=orderByQuantity,orderByBuyPrice=orderByBuyPrice,orderBySellPrice=orderBySellPrice,orderByCategory=orderByCategory,orderByUpdatedAt=orderByUpdatedAt,
+              storeId=storeId,limit=limit,offset=offset,searchTerm=searchTerm,orderByName=orderByName,orderByQuantity=orderByQuantity,orderByBuyPrice=orderByBuyPrice,orderBySellPrice=orderBySellPrice,orderByCategory=orderByCategory,orderByUpdatedAt=orderByUpdatedAt,
             )
           }
         }

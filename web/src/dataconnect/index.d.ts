@@ -87,11 +87,11 @@ export interface GetActiveExpensesVariables {
   storeId: string;
   limit?: number | null;
   offset?: number | null;
+  searchTerm?: string | null;
   orderByTimestamp?: OrderDirection | null;
   orderByType?: OrderDirection | null;
   orderBySupplierName?: OrderDirection | null;
   orderByAmount?: OrderDirection | null;
-  searchTerm?: string;
 }
 
 export interface GetActiveItemsData {
@@ -115,13 +115,13 @@ export interface GetActiveItemsVariables {
   storeId: string;
   limit?: number | null;
   offset?: number | null;
+  searchTerm?: string | null;
   orderByName?: OrderDirection | null;
   orderByQuantity?: OrderDirection | null;
   orderByBuyPrice?: OrderDirection | null;
   orderBySellPrice?: OrderDirection | null;
   orderByCategory?: OrderDirection | null;
   orderByUpdatedAt?: OrderDirection | null;
-  searchTerm?: string;
 }
 
 export interface GetActiveSaleItemsData {
@@ -158,10 +158,10 @@ export interface GetActiveSalesVariables {
   type?: string | null;
   limit?: number | null;
   offset?: number | null;
+  searchTerm?: string | null;
   orderByTimestamp?: OrderDirection | null;
   orderByCustomerName?: OrderDirection | null;
   orderByTotalAmount?: OrderDirection | null;
-  searchTerm?: string;
 }
 
 export interface GetActiveSuppliersData {
@@ -195,11 +195,11 @@ export interface GetActiveUdhaarsVariables {
   storeId: string;
   limit?: number | null;
   offset?: number | null;
+  searchTerm?: string | null;
   orderByTimestamp?: OrderDirection | null;
   orderByCustomerName?: OrderDirection | null;
   orderByType?: OrderDirection | null;
   orderByAmount?: OrderDirection | null;
-  searchTerm?: string;
 }
 
 export interface GetAdminAuditLogsData {

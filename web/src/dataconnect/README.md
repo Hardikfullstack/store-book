@@ -460,6 +460,7 @@ export interface GetActiveItemsVariables {
   storeId: string;
   limit?: number | null;
   offset?: number | null;
+  searchTerm?: string | null;
   orderByName?: OrderDirection | null;
   orderByQuantity?: OrderDirection | null;
   orderByBuyPrice?: OrderDirection | null;
@@ -501,6 +502,7 @@ const getActiveItemsVars: GetActiveItemsVariables = {
   storeId: ..., 
   limit: ..., // optional
   offset: ..., // optional
+  searchTerm: ..., // optional
   orderByName: ..., // optional
   orderByQuantity: ..., // optional
   orderByBuyPrice: ..., // optional
@@ -513,7 +515,7 @@ const getActiveItemsVars: GetActiveItemsVariables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await getActiveItems(getActiveItemsVars);
 // Variables can be defined inline as well.
-const { data } = await getActiveItems({ storeId: ..., limit: ..., offset: ..., orderByName: ..., orderByQuantity: ..., orderByBuyPrice: ..., orderBySellPrice: ..., orderByCategory: ..., orderByUpdatedAt: ..., });
+const { data } = await getActiveItems({ storeId: ..., limit: ..., offset: ..., searchTerm: ..., orderByName: ..., orderByQuantity: ..., orderByBuyPrice: ..., orderBySellPrice: ..., orderByCategory: ..., orderByUpdatedAt: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -539,6 +541,7 @@ const getActiveItemsVars: GetActiveItemsVariables = {
   storeId: ..., 
   limit: ..., // optional
   offset: ..., // optional
+  searchTerm: ..., // optional
   orderByName: ..., // optional
   orderByQuantity: ..., // optional
   orderByBuyPrice: ..., // optional
@@ -550,7 +553,7 @@ const getActiveItemsVars: GetActiveItemsVariables = {
 // Call the `getActiveItemsRef()` function to get a reference to the query.
 const ref = getActiveItemsRef(getActiveItemsVars);
 // Variables can be defined inline as well.
-const ref = getActiveItemsRef({ storeId: ..., limit: ..., offset: ..., orderByName: ..., orderByQuantity: ..., orderByBuyPrice: ..., orderBySellPrice: ..., orderByCategory: ..., orderByUpdatedAt: ..., });
+const ref = getActiveItemsRef({ storeId: ..., limit: ..., offset: ..., searchTerm: ..., orderByName: ..., orderByQuantity: ..., orderByBuyPrice: ..., orderBySellPrice: ..., orderByCategory: ..., orderByUpdatedAt: ..., });
 
 // You can also pass in a `DataConnect` instance to the `QueryRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -807,6 +810,7 @@ export interface GetActiveSalesVariables {
   type?: string | null;
   limit?: number | null;
   offset?: number | null;
+  searchTerm?: string | null;
   orderByTimestamp?: OrderDirection | null;
   orderByCustomerName?: OrderDirection | null;
   orderByTotalAmount?: OrderDirection | null;
@@ -842,6 +846,7 @@ const getActiveSalesVars: GetActiveSalesVariables = {
   type: ..., // optional
   limit: ..., // optional
   offset: ..., // optional
+  searchTerm: ..., // optional
   orderByTimestamp: ..., // optional
   orderByCustomerName: ..., // optional
   orderByTotalAmount: ..., // optional
@@ -851,7 +856,7 @@ const getActiveSalesVars: GetActiveSalesVariables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await getActiveSales(getActiveSalesVars);
 // Variables can be defined inline as well.
-const { data } = await getActiveSales({ storeId: ..., type: ..., limit: ..., offset: ..., orderByTimestamp: ..., orderByCustomerName: ..., orderByTotalAmount: ..., });
+const { data } = await getActiveSales({ storeId: ..., type: ..., limit: ..., offset: ..., searchTerm: ..., orderByTimestamp: ..., orderByCustomerName: ..., orderByTotalAmount: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -878,6 +883,7 @@ const getActiveSalesVars: GetActiveSalesVariables = {
   type: ..., // optional
   limit: ..., // optional
   offset: ..., // optional
+  searchTerm: ..., // optional
   orderByTimestamp: ..., // optional
   orderByCustomerName: ..., // optional
   orderByTotalAmount: ..., // optional
@@ -886,7 +892,7 @@ const getActiveSalesVars: GetActiveSalesVariables = {
 // Call the `getActiveSalesRef()` function to get a reference to the query.
 const ref = getActiveSalesRef(getActiveSalesVars);
 // Variables can be defined inline as well.
-const ref = getActiveSalesRef({ storeId: ..., type: ..., limit: ..., offset: ..., orderByTimestamp: ..., orderByCustomerName: ..., orderByTotalAmount: ..., });
+const ref = getActiveSalesRef({ storeId: ..., type: ..., limit: ..., offset: ..., searchTerm: ..., orderByTimestamp: ..., orderByCustomerName: ..., orderByTotalAmount: ..., });
 
 // You can also pass in a `DataConnect` instance to the `QueryRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1029,6 +1035,7 @@ export interface GetActiveUdhaarsVariables {
   storeId: string;
   limit?: number | null;
   offset?: number | null;
+  searchTerm?: string | null;
   orderByTimestamp?: OrderDirection | null;
   orderByCustomerName?: OrderDirection | null;
   orderByType?: OrderDirection | null;
@@ -1063,6 +1070,7 @@ const getActiveUdhaarsVars: GetActiveUdhaarsVariables = {
   storeId: ..., 
   limit: ..., // optional
   offset: ..., // optional
+  searchTerm: ..., // optional
   orderByTimestamp: ..., // optional
   orderByCustomerName: ..., // optional
   orderByType: ..., // optional
@@ -1073,7 +1081,7 @@ const getActiveUdhaarsVars: GetActiveUdhaarsVariables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await getActiveUdhaars(getActiveUdhaarsVars);
 // Variables can be defined inline as well.
-const { data } = await getActiveUdhaars({ storeId: ..., limit: ..., offset: ..., orderByTimestamp: ..., orderByCustomerName: ..., orderByType: ..., orderByAmount: ..., });
+const { data } = await getActiveUdhaars({ storeId: ..., limit: ..., offset: ..., searchTerm: ..., orderByTimestamp: ..., orderByCustomerName: ..., orderByType: ..., orderByAmount: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1099,6 +1107,7 @@ const getActiveUdhaarsVars: GetActiveUdhaarsVariables = {
   storeId: ..., 
   limit: ..., // optional
   offset: ..., // optional
+  searchTerm: ..., // optional
   orderByTimestamp: ..., // optional
   orderByCustomerName: ..., // optional
   orderByType: ..., // optional
@@ -1108,7 +1117,7 @@ const getActiveUdhaarsVars: GetActiveUdhaarsVariables = {
 // Call the `getActiveUdhaarsRef()` function to get a reference to the query.
 const ref = getActiveUdhaarsRef(getActiveUdhaarsVars);
 // Variables can be defined inline as well.
-const ref = getActiveUdhaarsRef({ storeId: ..., limit: ..., offset: ..., orderByTimestamp: ..., orderByCustomerName: ..., orderByType: ..., orderByAmount: ..., });
+const ref = getActiveUdhaarsRef({ storeId: ..., limit: ..., offset: ..., searchTerm: ..., orderByTimestamp: ..., orderByCustomerName: ..., orderByType: ..., orderByAmount: ..., });
 
 // You can also pass in a `DataConnect` instance to the `QueryRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1149,6 +1158,7 @@ export interface GetActiveExpensesVariables {
   storeId: string;
   limit?: number | null;
   offset?: number | null;
+  searchTerm?: string | null;
   orderByTimestamp?: OrderDirection | null;
   orderByType?: OrderDirection | null;
   orderBySupplierName?: OrderDirection | null;
@@ -1183,6 +1193,7 @@ const getActiveExpensesVars: GetActiveExpensesVariables = {
   storeId: ..., 
   limit: ..., // optional
   offset: ..., // optional
+  searchTerm: ..., // optional
   orderByTimestamp: ..., // optional
   orderByType: ..., // optional
   orderBySupplierName: ..., // optional
@@ -1193,7 +1204,7 @@ const getActiveExpensesVars: GetActiveExpensesVariables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await getActiveExpenses(getActiveExpensesVars);
 // Variables can be defined inline as well.
-const { data } = await getActiveExpenses({ storeId: ..., limit: ..., offset: ..., orderByTimestamp: ..., orderByType: ..., orderBySupplierName: ..., orderByAmount: ..., });
+const { data } = await getActiveExpenses({ storeId: ..., limit: ..., offset: ..., searchTerm: ..., orderByTimestamp: ..., orderByType: ..., orderBySupplierName: ..., orderByAmount: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -1219,6 +1230,7 @@ const getActiveExpensesVars: GetActiveExpensesVariables = {
   storeId: ..., 
   limit: ..., // optional
   offset: ..., // optional
+  searchTerm: ..., // optional
   orderByTimestamp: ..., // optional
   orderByType: ..., // optional
   orderBySupplierName: ..., // optional
@@ -1228,7 +1240,7 @@ const getActiveExpensesVars: GetActiveExpensesVariables = {
 // Call the `getActiveExpensesRef()` function to get a reference to the query.
 const ref = getActiveExpensesRef(getActiveExpensesVars);
 // Variables can be defined inline as well.
-const ref = getActiveExpensesRef({ storeId: ..., limit: ..., offset: ..., orderByTimestamp: ..., orderByType: ..., orderBySupplierName: ..., orderByAmount: ..., });
+const ref = getActiveExpensesRef({ storeId: ..., limit: ..., offset: ..., searchTerm: ..., orderByTimestamp: ..., orderByType: ..., orderBySupplierName: ..., orderByAmount: ..., });
 
 // You can also pass in a `DataConnect` instance to the `QueryRef` function.
 const dataConnect = getDataConnect(connectorConfig);
