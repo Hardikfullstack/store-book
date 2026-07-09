@@ -8,7 +8,9 @@ import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.storebook.inventoryapp.R
-import com.storebook.inventoryapp.data.repository.StoreBookRepository
+import app.cash.sqldelight.driver.android.AndroidSqliteDriver
+import com.storebook.inventoryapp.shared.data.local.StoreBookDatabase
+import com.storebook.inventoryapp.shared.domain.repository.BatchRepository
 
 class ExpiryCheckWorker(
     appContext: Context,
@@ -18,25 +20,31 @@ class ExpiryCheckWorker(
     override suspend fun doWork(): Result {
         val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(applicationContext)
         val activeStoreId = prefs.getString("active_store_id", "default") ?: "default"
-        val repository = StoreBookRepository(applicationContext, activeStoreId)
-        
-        val nearExpiryBatches = repository.getNearExpiryBatches(30)
-        
+        val callback = object : app.cash.sqldelight.driver.android.AndroidSqliteDriver.Callback(StoreBookDatabase.Schema) {
+            override fun onDowngrade(db: androidx.sqlite.db.SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+        }
+        val driver = AndroidSqliteDriver(StoreBookDatabase.Schema, applicationContext, "storebook_${activeStoreId}.db", callback = callback)
+        val database = StoreBookDatabase(driver)
+        val repository = BatchRepository(database)
+
+        val threshold = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000)
+        val nearExpiryBatches = repository.getNearExpiryBatches(threshold)
+
         if (nearExpiryBatches.isNotEmpty()) {
             showNotification(nearExpiryBatches.size)
         }
-        
+
         return Result.success()
     }
 
     private fun showNotification(count: Int) {
         val manager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channelId = "expiry_alerts"
-        
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                channelId, 
-                "Expiry Alerts", 
+                channelId,
+                "Expiry Alerts",
                 NotificationManager.IMPORTANCE_HIGH
             )
             manager.createNotificationChannel(channel)

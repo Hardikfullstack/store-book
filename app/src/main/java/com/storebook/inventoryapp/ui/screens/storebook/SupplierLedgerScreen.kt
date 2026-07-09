@@ -82,7 +82,6 @@ import com.storebook.inventoryapp.shared.domain.models.Purchase
 import com.storebook.inventoryapp.shared.domain.models.SupplierBalance
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.components.AlphabetScrubber
-import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import com.storebook.inventoryapp.utils.toRupee
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -94,7 +93,7 @@ import com.storebook.inventoryapp.ui.theme.PrimaryButton
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SupplierLedgerScreen(
-    viewModel: StoreBookViewModel,
+    viewModel: com.storebook.inventoryapp.ui.viewmodel.SupplierViewModel,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current

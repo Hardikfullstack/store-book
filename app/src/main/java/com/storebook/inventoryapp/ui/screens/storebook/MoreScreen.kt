@@ -122,7 +122,6 @@ import com.storebook.inventoryapp.ui.theme.Emerald500
 import com.storebook.inventoryapp.ui.theme.Gold200
 import com.storebook.inventoryapp.ui.theme.Gold400
 import com.storebook.inventoryapp.ui.theme.AppThemeMode
-import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import com.storebook.inventoryapp.utils.LanguageManager
 import com.storebook.inventoryapp.utils.toRupee
 import java.text.SimpleDateFormat
@@ -130,12 +129,15 @@ import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
 import com.storebook.inventoryapp.ui.theme.PrimaryButton
+import com.storebook.inventoryapp.ui.viewmodels.UserRole
+import com.storebook.inventoryapp.ui.viewmodels.AppPermission
+import com.storebook.inventoryapp.ui.viewmodels.hasPermission
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoreScreen(
         navController: NavController,
-        viewModel: StoreBookViewModel,
+        viewModel: com.storebook.inventoryapp.ui.viewmodel.MoreViewModel,
 ) {
         val context = LocalContext.current
         val activity = context as? Activity
@@ -862,7 +864,7 @@ fun MoreScreen(
                             androidx.compose.material3.Button(
                                 onClick = {
                                     showClearDataDialog = false
-                                    viewModel.clearLocalDatabase()
+                                    viewModel.clearAllLocalData {}
                                     android.widget.Toast.makeText(context, "Local data cleared successfully", android.widget.Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),

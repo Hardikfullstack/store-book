@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.storebook.inventoryapp.R
-import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
+import com.storebook.inventoryapp.ui.viewmodel.SalesViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -57,7 +57,7 @@ import java.util.Locale
 @Composable
 fun SalesHistoryScreen(
     navController: NavController,
-    viewModel: StoreBookViewModel,
+    viewModel: SalesViewModel,
 ) {
     val salesHistory by viewModel.salesHistoryList.collectAsStateWithLifecycle()
 

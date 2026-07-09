@@ -39,7 +39,7 @@ import com.storebook.inventoryapp.shared.domain.models.Sale
 import com.storebook.inventoryapp.ui.navigation.Routes
 import com.storebook.inventoryapp.ui.theme.Coral500
 import com.storebook.inventoryapp.ui.theme.Emerald500
-import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
+import com.storebook.inventoryapp.ui.viewmodel.SalesViewModel
 import com.storebook.inventoryapp.utils.InvoicePdfGenerator
 import com.storebook.inventoryapp.utils.toRupee
 import com.storebook.inventoryapp.utils.toRupeeWithDecimals
@@ -54,9 +54,10 @@ import com.storebook.inventoryapp.ui.theme.PrimaryButton
 @Composable
 fun QuotationScreen(
     navController: NavController,
-    viewModel: StoreBookViewModel,
+    viewModel: SalesViewModel,
 ) {
-    val quotations by viewModel.quotationsList.collectAsStateWithLifecycle()
+    val salesHistoryList by viewModel.salesHistoryList.collectAsStateWithLifecycle()
+    val quotations = salesHistoryList.filter { it.type == "QUOTATION" }
     val allItems by viewModel.allItems.collectAsStateWithLifecycle()
 
     val displayFmt = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
@@ -127,7 +128,19 @@ fun QuotationScreen(
                             customerName = quote.customerName ?: "Walk-in Customer",
                             saleTime = quoteTime,
                             onConvert = {
-                                viewModel.loadQuotationToCart(quote)
+                                viewModel.cartItems = quote.items.map { saleItem ->
+                                    val actualItem = allItems.find { it.id == saleItem.itemId } ?: Item(
+                                        id = saleItem.itemId,
+                                        name = saleItem.itemName,
+                                        quantity = 0.0,
+                                        unit = saleItem.unit,
+                                        buyPrice = saleItem.buyPrice,
+                                        sellPrice = saleItem.sellPrice,
+                                        lowStockThreshold = 0.0,
+                                        category = "Imported"
+                                    )
+                                    CartItem(item = actualItem, quantity = saleItem.quantity)
+                                }
                                 navController.navigate(Routes.Sales) {
                                     popUpTo<Routes.Dashboard> { saveState = true }
                                 }

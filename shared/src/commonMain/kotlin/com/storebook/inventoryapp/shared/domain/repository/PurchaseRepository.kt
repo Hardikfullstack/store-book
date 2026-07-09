@@ -1,0 +1,37 @@
+package com.storebook.inventoryapp.shared.domain.repository
+
+import com.storebook.inventoryapp.shared.data.local.StoreBookDatabase
+import com.storebook.inventoryapp.shared.data.local.Purchases
+import com.storebook.inventoryapp.shared.data.local.Purchase_items
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+class PurchaseRepository(
+    private val database: StoreBookDatabase
+) {
+    private val queries = database.storeBookQueries
+
+    suspend fun getAllPurchases(): List<Purchases> = withContext(Dispatchers.IO) {
+        queries.getAllPurchases().executeAsList()
+    }
+
+    suspend fun getPurchasesByDateRange(startTs: Long, endTs: Long): List<Purchases> = withContext(Dispatchers.IO) {
+        queries.getPurchasesByDateRange(startTs, endTs).executeAsList()
+    }
+
+    suspend fun insertPurchase(
+        supplierId: Long, supplierName: String, totalAmount: Double, 
+        taxAmount: Double, type: String, notes: String?
+    ): Long = withContext(Dispatchers.IO) {
+        val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+        queries.insertPurchase(supplierId, supplierName, totalAmount, taxAmount, type, timestamp, notes, timestamp)
+        queries.getLastInsertRowId().executeAsOne()
+    }
+
+    suspend fun insertPurchaseItem(
+        purchaseId: Long, itemId: Long, itemName: String, quantity: Double, unit: String, buyPrice: Double
+    ) = withContext(Dispatchers.IO) {
+        val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+        queries.insertPurchaseItem(purchaseId, itemId, itemName, quantity, unit, buyPrice, timestamp)
+    }
+}

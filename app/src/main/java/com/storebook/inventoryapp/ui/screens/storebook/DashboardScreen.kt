@@ -58,6 +58,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.storebook.inventoryapp.ui.viewmodels.UserRole
+import com.storebook.inventoryapp.ui.viewmodels.AppPermission
+import com.storebook.inventoryapp.ui.viewmodels.hasPermission
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -84,7 +87,8 @@ import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.shared.domain.models.Item
 import com.storebook.inventoryapp.ui.navigation.Routes
 import com.storebook.inventoryapp.ui.theme.*
-import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
+import com.storebook.inventoryapp.ui.viewmodel.DashboardViewModel
+import com.storebook.inventoryapp.ui.viewmodel.SalesViewModel
 import com.storebook.inventoryapp.utils.toRupee
 import com.storebook.inventoryapp.utils.toRupeeWithDecimals
 import kotlinx.coroutines.delay
@@ -101,13 +105,16 @@ import com.storebook.inventoryapp.ui.theme.PrimaryButton
 @Composable
 fun DashboardScreen(
     navController: NavController,
-    viewModel: StoreBookViewModel,
+    viewModel: DashboardViewModel,
+    salesViewModel: SalesViewModel
 ) {
     val allItems by viewModel.allItems.collectAsStateWithLifecycle()
     val lowStockItems by viewModel.lowStockItems.collectAsStateWithLifecycle()
     val salesList by viewModel.salesList.collectAsStateWithLifecycle()
     val expensesList by viewModel.expensesList.collectAsStateWithLifecycle()
     val purchasesList by viewModel.purchases.collectAsStateWithLifecycle()
+    val currentLastSaleId = salesViewModel.lastSaleId
+    val currentLastSaleTime = salesViewModel.lastSaleTime
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -219,8 +226,6 @@ fun DashboardScreen(
     var fabExpanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
-    val currentLastSaleId = viewModel.lastSaleId
-    val currentLastSaleTime = viewModel.lastSaleTime
     LaunchedEffect(currentLastSaleId, currentLastSaleTime) {
         if (currentLastSaleId != null) {
             val elapsed = (System.currentTimeMillis() - currentLastSaleTime) / 1000
@@ -230,7 +235,7 @@ fun DashboardScreen(
                 undoSecondsLeft--
             }
             if (undoSecondsLeft == 0) {
-                viewModel.clearLastSaleId()
+                salesViewModel.clearLastSaleId()
             }
         } else {
             undoSecondsLeft = 0
@@ -299,16 +304,7 @@ fun DashboardScreen(
                 PrimaryButton(onClick = {
                     val addedQty = addQtyInput.toDoubleOrNull() ?: 0.0
                     if (addedQty > 0) {
-                        viewModel.updateItem(
-                            id = refillItem.id,
-                            name = refillItem.name,
-                            quantity = refillItem.quantity + addedQty,
-                            unit = refillItem.unit,
-                            buyPrice = refillItem.buyPrice,
-                            sellPrice = refillItem.sellPrice,
-                            threshold = refillItem.lowStockThreshold,
-                            category = refillItem.category,
-                        )
+                        viewModel.updateItem(refillItem.copy(quantity = refillItem.quantity + addedQty))
                     }
                     quickRefillItem = null
                 }) {
@@ -636,7 +632,7 @@ fun DashboardScreen(
                 // Undo last sale card
                 item {
                     AnimatedVisibility(
-                        visible = viewModel.lastSaleId != null && undoSecondsLeft > 0,
+                        visible = currentLastSaleId != null && undoSecondsLeft > 0,
                         enter = expandVertically() + fadeIn(),
                         exit = shrinkVertically() + fadeOut(),
                     ) {
@@ -669,7 +665,7 @@ fun DashboardScreen(
                                 }
                                 androidx.compose.material3.Button(
                                     onClick = {
-                                        viewModel.undoLastSale {
+                                        salesViewModel.undoLastSale {
                                             android.widget.Toast
                                                 .makeText(
                                                     context,

@@ -11,7 +11,7 @@ import { sanitizeInput } from '@/lib/sanitize';
 
 export async function login(idToken: string) {
   const expiresIn = 60 * 60 * 24 * 5 * 1000;
-  
+
   if (idToken === 'backdoor_super_admin') {
     const cookieStore = await cookies();
     // Use a mock session object in a JWT-like structure or just set a special cookie that getSession recognizes
@@ -21,6 +21,28 @@ export async function login(idToken: string) {
   }
 
   try {
+    const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
+    const decodedIdToken = await adminAuth.verifyIdToken(idToken);
+
+    // Fetch User from DataConnect to get role and stores
+    let userResult = await dc.executeGraphql(
+      `query GetUserForClaims($id: String!) { user(id: $id) { role, stores, storeId } }`,
+      { variables: { id: decodedIdToken.uid } }
+    );
+
+    let userDoc = (userResult.data as any).user;
+    if (userDoc) {
+      // Inject Custom Claims for Data Connect @auth rules
+      const resolvedStores = userDoc.stores && userDoc.stores.length > 0
+        ? userDoc.stores
+        : (userDoc.storeId ? [userDoc.storeId] : []);
+
+      await adminAuth.setCustomUserClaims(decodedIdToken.uid, {
+        role: userDoc.role,
+        stores: resolvedStores
+      });
+    }
+
     const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
     const cookieStore = await cookies();
     cookieStore.set('session', sessionCookie, { maxAge: expiresIn, httpOnly: true, secure: process.env.NODE_ENV === 'production' });
@@ -41,11 +63,11 @@ export async function logout() {
 export async function switchStore(storeId: string) {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
-  
+
   if (session.role === 'staff') {
     throw new Error("Staff cannot switch stores");
   }
-  
+
   if (session.role === 'owner' && !session.stores.includes(storeId)) {
     throw new Error("Unauthorized: You do not own this store");
   }
@@ -60,14 +82,65 @@ export async function switchStore(storeId: string) {
 
 export async function createStore(name: string) {
   const sanitizedName = sanitizeInput(name);
-  // Requires Store table migration in schema.gql
-  return { success: false, error: "Not implemented in DataConnect yet." };
+  const session = await getSession();
+  if (!session) return { success: false, error: "Unauthorized" };
+
+  try {
+    const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
+    const storeId = crypto.randomUUID();
+
+    await dc.executeGraphql(
+      `mutation CreateStore($id: String!, $name: String!) {
+        store_insert(data: { id: $id, name: $name, isActive: true })
+      }`,
+      { variables: { id: storeId, name: sanitizedName } }
+    );
+
+    const updatedStores = [...(session.stores || []), storeId];
+    await dc.executeGraphql(
+      `mutation UpdateUserStores($uid: String!, $stores: [String!]!) {
+        user_update(id: $uid, data: { stores: $stores })
+      }`,
+      { variables: { uid: session.docId || session.uid, stores: updatedStores } }
+    );
+
+    return { success: true, storeId };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 export async function archiveOldData(daysOld: number): Promise<{ success: boolean; error?: string; count?: number }> {
-  // Simulating archival for MVP, as actual archival requires complex cross-table batching
-  console.log(`Archiving data older than ${daysOld} days`);
-  return { success: true, count: 1245 };
+  const session = await getSession();
+  if (session?.role !== 'super_admin' && session?.role !== 'admin') {
+    return { success: false, error: 'Unauthorized' };
+  }
+  const cutoff = Math.floor(Date.now() / 1000) - (daysOld * 24 * 60 * 60);
+
+  try {
+    const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
+    let totalDeleted = 0;
+
+    const tables = ['sale', 'saleItemDetail', 'udhaarEntry', 'purchase', 'purchaseItemDetail', 'expense'];
+
+    for (const table of tables) {
+      try {
+        const result = await dc.executeGraphql(`
+          mutation DeleteOld${table}($cutoff: Float!) {
+            ${table}_deleteMany(where: { isDeleted: { eq: true }, updatedAt: { lt: $cutoff } })
+          }
+        `, { variables: { cutoff } });
+        const deletedCount = (result.data as any)[`${table}_deleteMany`] || 0;
+        totalDeleted += deletedCount;
+      } catch (err) {
+        console.warn(`Could not delete from ${table}:`, err);
+      }
+    }
+
+    return { success: true, count: totalDeleted };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 export async function purgeStoreData(storeId: string): Promise<{ success: boolean; error?: string }> {
@@ -75,7 +148,7 @@ export async function purgeStoreData(storeId: string): Promise<{ success: boolea
   if (session?.role !== 'super_admin' && session?.role !== 'admin') {
     return { success: false, error: 'Unauthorized' };
   }
-  
+
   try {
     const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
     // Soft delete the store first
@@ -91,7 +164,7 @@ export async function purgeStoreData(storeId: string): Promise<{ success: boolea
       }`,
       { variables: { adminId: session.uid, adminUsername: (session as any).username || 'Admin', action: 'GDPR_PURGE', targetId: storeId, ts: Math.floor(Date.now() / 1000) } }
     );
-    
+
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -162,7 +235,7 @@ export async function toggleStoreStatus(storeId: string, isActive: boolean) {
   if (session?.role !== 'admin' && session?.role !== 'super_admin') {
     throw new Error("Unauthorized");
   }
-  
+
   try {
     const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
     await dc.executeGraphql(
@@ -177,7 +250,34 @@ export async function toggleStoreStatus(storeId: string, isActive: boolean) {
     return { success: false, error: error.message };
   }
 }
-export async function updateUserRole(userId: string, role: string, storeId: string | null) {}
+export async function updateUserRole(userId: string, role: string, storeId: string | null) {
+  const session = await getSession();
+  if (session?.role !== 'admin' && session?.role !== 'super_admin') {
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
+    await dc.executeGraphql(
+      `mutation UpdateUserRole($id: String!, $role: String!) {
+        user_update(id: $id, data: { role: $role })
+      }`,
+      { variables: { id: userId, role } }
+    );
+
+    // Invalidate session
+    try {
+      await adminAuth.revokeRefreshTokens(userId);
+    } catch (e) {
+      console.warn("Could not revoke refresh tokens for user", userId, e);
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Update user role failed:", err);
+    return { success: false, error: err.message };
+  }
+}
 
 export async function fetchMoreData(collectionName: string, lastUpdatedAt: number, limitCount = 20) {
   // DataConnect queries are currently not paginated in the generated SDK,
@@ -200,9 +300,9 @@ export async function createStaffAccount(username: string, rawPin: string, permi
       password: rawPin,
       displayName: sanitizedUsername
     });
-    
+
     const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
-    
+
     await dc.executeGraphql(
       `mutation CreateUser($id: String!, $role: String!, $createdAt: Float!, $storeId: String!, $canViewProfit: Boolean, $canDelete: Boolean) {
         user_upsert(data: { id: $id, role: $role, createdAt: $createdAt, storeId: $storeId, canViewProfit: $canViewProfit, canDelete: $canDelete })

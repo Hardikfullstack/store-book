@@ -67,7 +67,7 @@ dependencies {
     implementation(libs.material)
 
     // SQLDelight
-        
+    implementation(libs.sqldelight.android.driver)
     // 2. Compose UI (Material 3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)

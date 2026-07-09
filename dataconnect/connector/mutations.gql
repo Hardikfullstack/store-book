@@ -133,7 +133,7 @@ mutation SyncUser(
   $subscriptionExpiresAt: Float
   $subscriptionPlatform: String
   $subscriptionId: String
-) @auth(level: PUBLIC) {
+) @auth(expr: "auth.uid == id") {
   user_upsert(data: {
     id: $id
     phoneNumber: $phoneNumber

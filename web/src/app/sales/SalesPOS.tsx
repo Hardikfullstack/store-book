@@ -9,6 +9,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { sanitizeInput } from '@/lib/sanitize';
 import { addToCart, updateQuantity, removeFromCart, clearCart } from '@/store/cartSlice';
+import { setInventory } from '@/store/inventorySlice';
+import { BillingEngine } from '@/lib/BillingEngine';
+import { InvoicePdfGenerator } from '@/lib/InvoicePdfGenerator';
 
 interface Item {
   id: string;
@@ -22,6 +25,7 @@ interface Item {
   is_deleted?: number;
   photoPath?: string;
   hsnCode?: string;
+  taxRate?: number;
 }
 
 interface CartItem {
@@ -42,12 +46,13 @@ export default function SalesPOS({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-
   const dispatch = useDispatch();
+  const cachedInventory = useSelector((state: RootState) => state.inventory);
   const cartState = useSelector((state: RootState) => state.cart.items);
+
+  const [items, setItems] = useState<Item[]>(cachedInventory.items || []);
+  const [loading, setLoading] = useState(!cachedInventory.items || cachedInventory.items.length === 0);
+  const [searchQuery, setSearchQuery] = useState('');
   // Re-map the Redux items to the local CartItem interface shape
   const cart = cartState.map(i => ({
     item: {
@@ -58,7 +63,9 @@ export default function SalesPOS({
       buyPrice: i.buy_price,
       sellPrice: i.sell_price,
       lowStockThreshold: 0,
-      category: ''
+      category: '',
+      taxRate: i.taxRate,
+      hsnCode: i.hsnCode
     },
     quantity: i.quantity
   }));
@@ -71,6 +78,13 @@ export default function SalesPOS({
   useEffect(() => {
     let isMounted = true;
     const fetchItems = async () => {
+      // If we have cached items and they are less than 5 minutes old, skip hard loading state
+      const isCacheValid = cachedInventory.items.length > 0 && (Date.now() - cachedInventory.lastSynced < 5 * 60 * 1000);
+      if (isCacheValid && isMounted) {
+        setItems(cachedInventory.items);
+        setLoading(false);
+      }
+
       try {
         const response = await getActiveItems(dataConnect, { storeId });
         if (!isMounted) return;
@@ -80,7 +94,10 @@ export default function SalesPOS({
           buyPrice: item.buyPrice || 0,
           sellPrice: item.sellPrice || 0,
         }));
+
+        // Update local state and Redux cache
         setItems(updated);
+        dispatch(setInventory(updated));
       } catch (error) {
         console.error("Failed to fetch items for POS:", error);
       } finally {
@@ -89,7 +106,7 @@ export default function SalesPOS({
     };
     fetchItems();
     return () => { isMounted = false; };
-  }, [storeId]);
+  }, [storeId, dispatch, cachedInventory.lastSynced]);
 
   // Barcode Scanner listener
   useEffect(() => {
@@ -123,7 +140,9 @@ export default function SalesPOS({
             sell_price: scannedItem.sellPrice,
             buy_price: scannedItem.buyPrice,
             unit: scannedItem.unit || 'pcs',
-            maxStock: scannedItem.quantity
+            maxStock: scannedItem.quantity,
+            taxRate: scannedItem.taxRate,
+            hsnCode: scannedItem.hsnCode
           }));
           // Play a small beep sound for feedback
           try {
@@ -159,7 +178,9 @@ export default function SalesPOS({
       sell_price: item.sellPrice,
       buy_price: item.buyPrice,
       unit: item.unit || 'pcs',
-      maxStock: item.quantity
+      maxStock: item.quantity,
+      taxRate: item.taxRate,
+      hsnCode: item.hsnCode
     }));
     setSearchQuery('');
   };
@@ -173,11 +194,24 @@ export default function SalesPOS({
     dispatch(removeFromCart(itemId));
   };
 
-  const subtotal = cart.reduce((sum, c) => sum + (c.item.sellPrice * c.quantity), 0);
+  const taxSummary = BillingEngine.calculateInvoiceTaxes(
+    cart.map(c => ({
+      id: c.item.id,
+      sell_price: c.item.sellPrice,
+      quantity: c.quantity,
+      taxRate: c.item.taxRate || 0
+    })),
+    discount || 0,
+    '', // storeGstin (can be added later if needed)
+    ''  // customerGstin
+  );
+
+  const subtotal = taxSummary.subTotal;
   const totalBuyPrice = cart.reduce((sum, c) => sum + (c.item.buyPrice * c.quantity), 0);
   const maxProfitMargin = Math.max(0, subtotal - totalBuyPrice);
 
-  const total = Math.max(0, subtotal - (discount || 0));
+  const total = taxSummary.grandTotal;
+  const totalTax = taxSummary.totalCgst + taxSummary.totalSgst + taxSummary.totalIgst;
 
   const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -247,6 +281,37 @@ export default function SalesPOS({
             updatedAt
           });
         }
+      }
+
+      // Generate PDF Invoice
+      try {
+        InvoicePdfGenerator.generateInvoicePdf(
+          {
+            id: saleId,
+            timestamp: now,
+            totalAmount: total,
+            discountAmount: discount || 0,
+            customerName: customerName,
+            type: type
+          },
+          cart.map(c => ({
+            item: {
+              id: c.item.id,
+              name: c.item.name,
+              unit: c.item.unit || 'pcs',
+              sellPrice: c.item.sellPrice,
+              buyPrice: c.item.buyPrice,
+              taxRate: c.item.taxRate,
+              hsnCode: c.item.hsnCode
+            },
+            quantity: c.quantity
+          })),
+          'StoreBook POS', // Can be fetched from Redux store settings
+          '',
+          ''
+        );
+      } catch (pdfError) {
+        console.error("Error generating PDF:", pdfError);
       }
 
       dispatch(clearCart());
@@ -449,6 +514,12 @@ export default function SalesPOS({
                   <div className="flex justify-between text-emerald-600 dark:text-emerald-400 text-sm font-medium">
                     <span>Discount</span>
                     <span>-<FormattedAmount amount={discount} /></span>
+                  </div>
+                )}
+                {totalTax > 0 && (
+                  <div className="flex justify-between text-gray-600 dark:text-gray-400 text-sm">
+                    <span>Tax (GST)</span>
+                    <span><FormattedAmount amount={totalTax} /></span>
                   </div>
                 )}
                 <div className="pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-between items-end">

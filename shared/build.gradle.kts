@@ -15,7 +15,7 @@ kotlin {
             }
         }
     }
-    
+
     targets.all {
         compilations.all {
             compilerOptions.configure {
@@ -23,7 +23,7 @@ kotlin {
             }
         }
     }
-    
+
     listOf(
         iosX64(),
         iosArm64(),
@@ -45,6 +45,7 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.sqldelight.coroutines)
             implementation(libs.kotlinx.serialization.json)
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0-RC.2")
         }
         androidMain.dependencies {
             implementation(libs.sqldelight.android.driver)

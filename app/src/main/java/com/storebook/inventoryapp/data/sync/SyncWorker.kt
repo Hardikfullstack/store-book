@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.storebook.inventoryapp.data.repository.StoreBookRepository
+import com.storebook.inventoryapp.data.sync.LegacySyncHelper
 import com.storebook.inventoryapp.dataconnect.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -32,11 +32,11 @@ class SyncWorker(
 
     companion object {
         suspend fun performSync(
-            appContext: Context, 
-            storeId: String, 
+            appContext: Context,
+            storeId: String,
             onProgress: (Int, String) -> Unit
         ) = withContext(Dispatchers.IO) {
-            val repository = StoreBookRepository(appContext, storeId)
+            val repository = LegacySyncHelper(appContext, storeId)
             val connector = StorebookConnectorConnector.instance
 
             if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.d("SyncWorker", "Starting sync for store: $storeId")
@@ -161,7 +161,7 @@ class SyncWorker(
             onProgress(40, "Pulling cloud updates...")
             val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(appContext)
             val lastSync = prefs.getLong("last_sync_timestamp_$storeId", 0L)
-            
+
 
 
             // 1. Fetch data from network outside transaction
@@ -174,7 +174,7 @@ class SyncWorker(
             val purchasesRes = try { connector.syncPurchases.execute(storeId, lastSync.toDouble()) } catch (e: Exception) { android.util.Log.e("SyncWorker", "Purchases failed", e); null }
             val purchaseItemsRes = try { connector.syncPurchaseItems.execute(storeId, lastSync.toDouble()) } catch (e: Exception) { android.util.Log.e("SyncWorker", "PurchaseItems failed", e); null }
             val batchesRes = try { connector.syncItemBatches.execute(storeId, lastSync.toDouble()) } catch (e: Exception) { android.util.Log.e("SyncWorker", "Batches failed", e); null }
-            
+
             val db = repository.dbHelper.writableDatabase
             db.beginTransaction()
             try {
@@ -219,7 +219,7 @@ class SyncWorker(
                         upsertEntity(db, "sales", sale.id, cv)
                     }
                 }
-                
+
                 // 4. Pull Sale Items
                 saleItemsRes?.data?.saleItemDetails?.let { saleItemDetails ->
                     for (si in saleItemDetails) {
@@ -239,7 +239,7 @@ class SyncWorker(
                         upsertEntity(db, "sale_items", si.id, cv)
                     }
                 }
-                
+
                 // 5. Pull Udhaars
                 udhaarsRes?.data?.udhaarEntries?.let { udhaarEntries ->
                     for (u in udhaarEntries) {
@@ -272,7 +272,7 @@ class SyncWorker(
                         upsertEntity(db, "expenses", e.id, cv)
                     }
                 }
-                
+
                 // 7. Pull Suppliers
                 suppliersRes?.data?.suppliers?.let { suppliers ->
                     for (s in suppliers) {
@@ -287,7 +287,7 @@ class SyncWorker(
                         upsertEntity(db, "suppliers", s.id, cv, "name", s.name)
                     }
                 }
-                
+
                 // 8. Pull Purchases
                 purchasesRes?.data?.purchases?.let { purchases ->
                     for (p in purchases) {
@@ -306,7 +306,7 @@ class SyncWorker(
                         upsertEntity(db, "purchases", p.id, cv)
                     }
                 }
-                
+
                 // 9. Pull Purchase Items
                 purchaseItemsRes?.data?.purchaseItemDetails?.let { purchaseItemDetails ->
                     for (pi in purchaseItemDetails) {
@@ -325,7 +325,7 @@ class SyncWorker(
                         upsertEntity(db, "purchase_items", pi.id, cv)
                     }
                 }
-                
+
                 // 10. Pull Item Batches
                 batchesRes?.data?.itemBatches?.let { itemBatches ->
                     for (b in itemBatches) {
@@ -353,7 +353,7 @@ class SyncWorker(
             }
 
             if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.d("SyncWorker", "Sync completed successfully")
-            
+
             try {
                 com.google.firebase.database.FirebaseDatabase.getInstance()
                     .getReference("store_updates")
@@ -361,17 +361,17 @@ class SyncWorker(
                     .child("last_update")
                     .setValue(System.currentTimeMillis())
             } catch (e: Exception) { android.util.Log.e("SyncWorker", "Error in pull phase", e) }
-            
+
             // Check items in DB
             val c = repository.dbHelper.readableDatabase.rawQuery("SELECT COUNT(*) FROM items", null)
             if (c.moveToFirst()) {
                 android.util.Log.d("SyncWorker", "Items in local DB after sync: ${c.getInt(0)}")
             }
             c.close()
-            
+
             onProgress(100, "Sync complete!")
         }
-    
+
         private fun resolveLocalId(db: android.database.sqlite.SQLiteDatabase, table: String, cloudId: String): Long {
             val asLong = cloudId.toLongOrNull()
             if (asLong != null) return asLong

@@ -8,6 +8,8 @@ export interface CartItem {
   buy_price: number;
   unit: string;
   maxStock: number;
+  taxRate?: number;
+  hsnCode?: string;
 }
 
 interface CartState {

@@ -38,7 +38,7 @@ import com.storebook.inventoryapp.shared.domain.models.Sale
 import com.storebook.inventoryapp.shared.domain.models.Purchase
 import com.storebook.inventoryapp.shared.domain.models.Supplier
 import com.storebook.inventoryapp.ui.theme.*
-import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
+import com.storebook.inventoryapp.ui.viewmodel.SalesViewModel
 import com.storebook.inventoryapp.utils.toBigDecimal
 import com.storebook.inventoryapp.utils.sumOfBigDecimal
 import kotlinx.coroutines.launch
@@ -55,7 +55,7 @@ enum class GSTReportType(val title: String, val subtitle: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel) {
+fun GSTReportScreen(navController: NavController, viewModel: com.storebook.inventoryapp.ui.viewmodel.DashboardViewModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -93,10 +93,10 @@ fun GSTReportScreen(navController: NavController, viewModel: StoreBookViewModel)
     LaunchedEffect(startTs, endTs) {
         isLoading = true
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            val fetchedSales = viewModel.repository.getSalesByDateRange(startTs, endTs)
-            val fetchedPurchases = viewModel.repository.getPurchasesByDateRange(startTs, endTs)
-            val fetchedSuppliers = viewModel.repository.getAllSuppliersMap()
-            val fetchedItems = viewModel.repository.getAllItemsMap()
+            val fetchedSales = viewModel.getSalesByDateRange(startTs, endTs)
+            val fetchedPurchases = viewModel.getPurchasesByDateRange(startTs, endTs)
+            val fetchedSuppliers = viewModel.getAllSuppliersMap()
+            val fetchedItems = viewModel.getAllItemsMap()
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                 sales = fetchedSales
                 purchases = fetchedPurchases

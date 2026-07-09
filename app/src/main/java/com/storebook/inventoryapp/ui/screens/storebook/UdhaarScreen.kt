@@ -94,7 +94,6 @@ import com.storebook.inventoryapp.shared.domain.models.CustomerBalance
 import com.storebook.inventoryapp.shared.domain.models.UdhaarEntry
 import com.storebook.inventoryapp.ui.components.AlphabetScrubber
 import com.storebook.inventoryapp.ui.theme.*
-import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
 import com.storebook.inventoryapp.utils.toRupee
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -103,11 +102,11 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 import com.storebook.inventoryapp.ui.theme.primaryGradient
-import com.storebook.inventoryapp.ui.theme.PrimaryButton
+import com.storebook.inventoryapp.ui.viewmodel.UdhaarViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UdhaarScreen(viewModel: StoreBookViewModel) {
+fun UdhaarScreen(viewModel: UdhaarViewModel) {
     val balances by viewModel.udhaarBalances.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -604,7 +603,7 @@ fun UdhaarScreen(viewModel: StoreBookViewModel) {
                     onLetterSelect = { char ->
                         val hasHeader = balances.filter { it.netBalance > 0 }.take(4).isNotEmpty()
                         val offset = if (hasHeader) 1 else 0
-                        
+
                         val index = filteredBalances.indexOfFirst { it.customerName.uppercase().firstOrNull()?.let { firstChar -> firstChar >= char } == true }
                         if (index != -1) {
                             coroutineScope.launch {

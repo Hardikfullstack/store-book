@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
+import com.storebook.inventoryapp.ui.viewmodel.MoreViewModel
 import kotlinx.coroutines.launch
 import com.storebook.inventoryapp.ui.theme.primaryGradient
 import com.storebook.inventoryapp.ui.theme.PrimaryButton
@@ -31,7 +31,7 @@ import com.storebook.inventoryapp.ui.theme.PrimaryButton
 @Composable
 fun InviteStaffScreen(
     navController: NavController,
-    viewModel: StoreBookViewModel,
+    viewModel: MoreViewModel,
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()

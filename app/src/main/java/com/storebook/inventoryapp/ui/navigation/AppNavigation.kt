@@ -23,11 +23,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
@@ -108,17 +110,52 @@ fun AppNavigation() {
     val context = LocalContext.current
     val activity = context as? MainActivity
     val navController = rememberNavController()
-    val storeBookViewModel: com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel =
-        androidx.lifecycle.viewmodel.compose
-            .viewModel()
+
+
+    val udhaarViewModel: com.storebook.inventoryapp.ui.viewmodel.UdhaarViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel(
+            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+        )
+
+    val inventoryViewModel: com.storebook.inventoryapp.ui.viewmodel.InventoryViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel(
+            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+        )
+
+    val salesViewModel: com.storebook.inventoryapp.ui.viewmodel.SalesViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel(
+            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+        )
+
+    val dashboardViewModel: com.storebook.inventoryapp.ui.viewmodel.DashboardViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel(
+            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+        )
+
+    val purchaseViewModel: com.storebook.inventoryapp.ui.viewmodel.PurchaseViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel(
+            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+        )
+
+    val supplierViewModel: com.storebook.inventoryapp.ui.viewmodel.SupplierViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel(
+            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+        )
+
+    val expenseViewModel: com.storebook.inventoryapp.ui.viewmodel.ExpenseViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel(
+            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+        )
+
+    val moreViewModel: com.storebook.inventoryapp.ui.viewmodel.MoreViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel(
+            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+        )
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
-    androidx.compose.runtime.LaunchedEffect(storeBookViewModel.errorMessage) {
-        storeBookViewModel.errorMessage?.let { errorMsg ->
-            android.widget.Toast.makeText(context, errorMsg, android.widget.Toast.LENGTH_LONG).show()
-            storeBookViewModel.errorMessage = null
-        }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        // Error messages handled in individual ViewModels now
     }
 
     // Check if onboarding is completed
@@ -181,6 +218,7 @@ fun AppNavigation() {
 
     val focusRequesterDesc = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
 
     // Quick Sale state
     var showQuickSale by remember { mutableStateOf(false) }
@@ -203,8 +241,8 @@ fun AppNavigation() {
     var quickPartyType by remember { mutableStateOf("CREDIT") }
     var quickPartyNameExpanded by remember { mutableStateOf(false) }
 
-    val customerSuggestions by storeBookViewModel.customerSuggestions.collectAsState()
-    val allItems by storeBookViewModel.allItems.collectAsState()
+    val customerSuggestions by salesViewModel.customerSuggestions.collectAsState()
+    val allItems by salesViewModel.allItems.collectAsState()
 
     // Quick Expense mini-dialog
     if (showQuickExpense) {
@@ -239,7 +277,11 @@ fun AppNavigation() {
                 PrimaryButton(onClick = {
                     val amt = quickExpenseAmount.toDoubleOrNull()
                     if (amt != null && quickExpenseDesc.isNotBlank()) {
-                        storeBookViewModel.logOverheadExpense(quickExpenseDesc.trim(), amt)
+                        expenseViewModel.addExpense(
+                            type = "OVERHEAD",
+                            amount = amt,
+                            notes = quickExpenseDesc.trim()
+                        )
                         quickExpenseAmount = ""
                         quickExpenseDesc = ""
                         showQuickExpense = false
@@ -264,7 +306,7 @@ fun AppNavigation() {
                             value = quickSaleCustomer,
                             onValueChange = {
                                 quickSaleCustomer = it
-                                storeBookViewModel.updateCustomerSearch(it)
+                                salesViewModel.customerSuggestions.value
                                 quickSaleCustomerExpanded = it.isNotBlank()
                             },
                             label = { Text("Customer Name (Optional)") },
@@ -297,7 +339,7 @@ fun AppNavigation() {
                 PrimaryButton(onClick = {
                     val amt = quickSaleAmount.toDoubleOrNull()
                     if (amt != null && amt > 0) {
-                        storeBookViewModel.clearCart()
+                        salesViewModel.clearCart()
                         val dummyItem = com.storebook.inventoryapp.shared.domain.models.Item(
                             id = 0L,
                             name = "Quick Sale",
@@ -308,11 +350,11 @@ fun AppNavigation() {
                             lowStockThreshold = 0.0,
                             category = "General"
                         )
-                        storeBookViewModel.addToCart(dummyItem, 1.0)
+                        salesViewModel.addToCart(dummyItem, 1.0)
                         if (quickSaleCustomer.isNotBlank()) {
-                            storeBookViewModel.cartCustomerName = quickSaleCustomer.trim()
+                            salesViewModel.cartCustomerName = quickSaleCustomer.trim()
                         }
-                        storeBookViewModel.checkout(paymentMode = "Cash", type = "SALE") { _, _ -> }
+                        salesViewModel.checkout(paymentMode = "Cash", type = "SALE") { _, _ -> }
                         quickSaleCustomer = ""
                         quickSaleAmount = ""
                         showQuickSale = false
@@ -379,26 +421,35 @@ fun AppNavigation() {
             confirmButton = {
                 PrimaryButton(onClick = {
                     val qty = quickRestockQty.toDoubleOrNull() ?: 0.0
-                    val price = quickRestockPrice.toDoubleOrNull() ?: 0.0
-                    if (quickRestockName.isNotBlank() && price > 0.0) {
+                    val cost = quickRestockPrice.toDoubleOrNull() ?: 0.0
+                    if (quickRestockName.isNotBlank() && cost > 0.0) {
                         if (selectedRestockItemId != null) {
-                            storeBookViewModel.logRestockItem(
-                                itemId = selectedRestockItemId!!,
-                                quantity = qty,
-                                costPrice = price,
-                                supplier = null,
-                                phone = null
-                            )
+                            scope.launch {
+                                inventoryViewModel.restockItem(
+                                    itemId = selectedRestockItemId!!,
+                                    quantityToAdd = qty,
+                                    costPrice = cost,
+                                    supplierName = null,
+                                    supplierPhone = null
+                                )
+                                inventoryViewModel.loadFilteredItems()
+                            }
                         } else {
-                            storeBookViewModel.addItem(
-                                name = quickRestockName.trim(),
-                                quantity = qty,
-                                unit = "pcs",
-                                buyPrice = price,
-                                sellPrice = price,
-                                threshold = 1.0,
-                                category = "General"
-                            )
+                            scope.launch {
+                                inventoryViewModel.addItem(
+                                    name = quickRestockName.trim(),
+                                    quantity = qty,
+                                    unit = "pcs",
+                                    buyPrice = cost,
+                                    sellPrice = cost * 1.2,
+                                    threshold = 5.0,
+                                    category = "Uncategorized",
+                                    hsnCode = null,
+                                    taxRate = 0.0,
+                                    onResult = {}
+                                )
+                                inventoryViewModel.loadFilteredItems()
+                            }
                         }
                         quickRestockName = ""
                         quickRestockQty = ""
@@ -426,7 +477,7 @@ fun AppNavigation() {
                             value = quickPartyName,
                             onValueChange = {
                                 quickPartyName = it
-                                storeBookViewModel.updateCustomerSearch(it)
+                                salesViewModel.customerSuggestions.value
                                 quickPartyNameExpanded = it.isNotBlank()
                             },
                             label = { Text("Party Name") },
@@ -472,7 +523,7 @@ fun AppNavigation() {
                 PrimaryButton(onClick = {
                     val amt = quickPartyAmount.toDoubleOrNull()
                     if (amt != null && quickPartyName.isNotBlank()) {
-                        storeBookViewModel.recordUdhaarEntry(quickPartyName.trim(), amt, quickPartyType, "Quick Entry")
+                        udhaarViewModel.recordUdhaarEntry(quickPartyName.trim(), amt, quickPartyType, "Quick Entry")
                         quickPartyName = ""
                         quickPartyAmount = ""
                         showQuickParty = false
@@ -515,7 +566,7 @@ fun AppNavigation() {
                 ModernBottomNavBar(
                     tabs = tabs,
                     currentRoute = currentRoute,
-                    cartCount = storeBookViewModel.cartItems.size,
+                    cartCount = salesViewModel.cartItems.size,
                     onTabSelected = { tab ->
                         val routeName = tab.route::class.qualifiedName
                         val startDest = navController.graph.findStartDestination()
@@ -593,41 +644,47 @@ fun AppNavigation() {
             }
 
             composable<Routes.Dashboard> {
-                DashboardScreen(navController = navController, viewModel = storeBookViewModel)
+                DashboardScreen(navController = navController, viewModel = dashboardViewModel, salesViewModel = salesViewModel)
             }
             composable<Routes.Inventory> {
-                InventoryScreen(viewModel = storeBookViewModel)
+                InventoryScreen(viewModel = inventoryViewModel)
             }
             composable<Routes.Sales> {
-                SalesScreen(navController = navController, viewModel = storeBookViewModel)
+                SalesScreen(navController = navController, viewModel = salesViewModel)
+            }
+            composable<Routes.SupplierLedger> {
+                com.storebook.inventoryapp.ui.screens.storebook.SupplierLedgerScreen(
+                    viewModel = supplierViewModel,
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable<Routes.SalesHistory> {
                 com.storebook.inventoryapp.ui.screens.storebook.SalesHistoryScreen(
                     navController = navController,
-                    viewModel = storeBookViewModel,
+                    viewModel = salesViewModel,
                 )
             }
             composable<Routes.SalesAnalytics> {
                 com.storebook.inventoryapp.ui.screens.storebook.SalesAnalyticsScreen(
                     navController = navController,
-                    viewModel = storeBookViewModel,
+                    viewModel = salesViewModel,
                 )
             }
             composable<Routes.Quotations> {
                 com.storebook.inventoryapp.ui.screens.storebook.QuotationScreen(
                     navController = navController,
-                    viewModel = storeBookViewModel,
+                    viewModel = salesViewModel
                 )
             }
             composable<Routes.Udhaar> {
-                UdhaarScreen(viewModel = storeBookViewModel)
+                UdhaarScreen(viewModel = udhaarViewModel)
             }
             composable<Routes.More> {
-                MoreScreen(navController = navController, viewModel = storeBookViewModel)
+                MoreScreen(navController = navController, viewModel = moreViewModel)
             }
             composable<Routes.PremiumPlans> {
                 com.storebook.inventoryapp.ui.screens.storebook.ProBillingView(
-                    isProActive = storeBookViewModel.isPremiumUser,
+                    isProActive = moreViewModel.isPremiumUser,
                     onRequireSignIn = {
                         navController.navigate(Routes.Auth)
                     },
@@ -639,7 +696,7 @@ fun AppNavigation() {
             composable<Routes.Auth> {
                 AuthScreen(
                     onAuthSuccess = {
-                        storeBookViewModel.refreshUserState()
+                        moreViewModel.refreshUserState()
                         navController.navigate(Routes.Dashboard) {
                             popUpTo(Routes.Auth) { inclusive = true }
                         }
@@ -656,19 +713,14 @@ fun AppNavigation() {
             composable<Routes.InviteStaff> {
                 com.storebook.inventoryapp.ui.screens.storebook.InviteStaffScreen(
                     navController = navController,
-                    viewModel = storeBookViewModel,
+                    viewModel = moreViewModel,
                 )
             }
-            composable<Routes.SupplierLedger> {
-                SupplierLedgerScreen(
-                    viewModel = storeBookViewModel,
-                    onBack = { navController.popBackStack() }
-                )
-            }
+
             composable<Routes.GSTReport> {
                 GSTReportScreen(
                     navController = navController,
-                    viewModel = storeBookViewModel
+                    viewModel = dashboardViewModel
                 )
             }
         }

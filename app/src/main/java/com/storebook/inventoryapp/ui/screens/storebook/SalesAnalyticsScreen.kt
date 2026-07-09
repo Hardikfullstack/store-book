@@ -70,9 +70,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.shared.domain.models.Sale
-import com.storebook.inventoryapp.data.repository.StoreBookRepository
 import com.storebook.inventoryapp.ui.theme.*
-import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
+import com.storebook.inventoryapp.ui.viewmodel.SalesViewModel
 import com.storebook.inventoryapp.utils.toRupee
 import com.storebook.inventoryapp.utils.toRupeeWithDecimals
 import kotlinx.coroutines.Dispatchers
@@ -106,14 +105,14 @@ data class LineItem(
 @Composable
 fun SalesAnalyticsScreen(
     navController: NavController,
-    viewModel: StoreBookViewModel,
+    viewModel: SalesViewModel,
 ) {
     var rawSales by remember { mutableStateOf<List<Sale>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
     val context = LocalContext.current
     val defaultCustName = stringResource(id = R.string.customer_walk_in)
-    val repository = remember(viewModel.activeStoreId) { StoreBookRepository(context, viewModel.activeStoreId) }
+    val storeId = remember { com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(context).getString("active_store_id", "default_store") ?: "default_store" }
 
     // Filters
     var groupBy by remember { mutableStateOf(GroupBy.PRODUCT) }
@@ -132,7 +131,7 @@ fun SalesAnalyticsScreen(
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            rawSales = repository.getSalesPage(limit = 5000, offset = 0)
+            rawSales = viewModel.getSalesWithItems(limit = 5000, offset = 0)
         }
         isLoading = false
     }

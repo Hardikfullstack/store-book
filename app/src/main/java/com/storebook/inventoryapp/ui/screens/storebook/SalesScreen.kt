@@ -105,7 +105,7 @@ import com.storebook.inventoryapp.shared.domain.models.CartItem
 import com.storebook.inventoryapp.shared.domain.models.Item
 import com.storebook.inventoryapp.ui.navigation.Routes
 import com.storebook.inventoryapp.ui.theme.*
-import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
+import com.storebook.inventoryapp.ui.viewmodel.SalesViewModel
 import com.storebook.inventoryapp.utils.toRupee
 import java.net.URLEncoder
 import com.storebook.inventoryapp.ui.theme.primaryGradient
@@ -117,7 +117,7 @@ import com.storebook.inventoryapp.ui.theme.PrimaryButton
 @Composable
 fun SalesScreen(
     navController: NavController,
-    viewModel: StoreBookViewModel,
+    viewModel: SalesViewModel,
 ) {
     val allItems by viewModel.allItems.collectAsStateWithLifecycle()
     val udhaarBalances by viewModel.udhaarBalances.collectAsStateWithLifecycle()
@@ -919,7 +919,7 @@ fun SalesScreen(
                         fontWeight = FontWeight.Medium,
                     )
                 }
-                
+
                 if (viewModel.cartItems.isNotEmpty()) {
                     androidx.compose.material3.TextButton(
                         onClick = {

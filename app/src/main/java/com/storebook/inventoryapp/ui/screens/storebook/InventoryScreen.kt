@@ -109,7 +109,7 @@ import androidx.compose.material3.SelectableDates
 import androidx.compose.ui.window.PopupProperties
 import com.storebook.inventoryapp.ui.components.DynamicFastScroller
 import com.storebook.inventoryapp.ui.theme.*
-import com.storebook.inventoryapp.ui.viewmodels.StoreBookViewModel
+import com.storebook.inventoryapp.ui.viewmodel.InventoryViewModel
 import com.storebook.inventoryapp.utils.toRupee
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
@@ -143,7 +143,7 @@ object FutureSelectableDates : SelectableDates {
 
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
-fun InventoryScreen(viewModel: StoreBookViewModel) {
+fun InventoryScreen(viewModel: InventoryViewModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -666,7 +666,7 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 color = MaterialTheme.colorScheme.primary,
                             )
                         }
-                        
+
                         Box(
                             modifier = Modifier
                                 .clickable(onClickLabel = "Action") { sortDescending = !sortDescending }
@@ -1154,9 +1154,9 @@ fun InventoryScreen(viewModel: StoreBookViewModel) {
                                 isSelected = sortBy == "Price",
                                 onClick = { sortBy = "Price" }
                             )
-                            
+
                             Spacer(modifier = Modifier.weight(1f))
-                            
+
                             // Asc/Desc toggle
                             IconButton(
                                 onClick = { sortDescending = !sortDescending },
