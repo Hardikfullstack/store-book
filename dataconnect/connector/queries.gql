@@ -62,12 +62,29 @@ query SyncSaleItems($storeId: String!, $lastSync: Float!) @auth(level: USER) {
 
 
 # Paginated active items with total count
-query GetActiveItems($storeId: String!, $limit: Int, $offset: Int, $orderBy: ItemOrderBy) @auth(level: USER) {
+query GetActiveItems(
+  $storeId: String!
+  $limit: Int
+  $offset: Int
+  $orderByName: OrderDirection
+  $orderByQuantity: OrderDirection
+  $orderByBuyPrice: OrderDirection
+  $orderBySellPrice: OrderDirection
+  $orderByCategory: OrderDirection
+  $orderByUpdatedAt: OrderDirection
+) @auth(level: USER) {
   items(
     where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }
     limit: $limit
     offset: $offset
-    orderBy: $orderBy
+    orderBy: [
+      { name: $orderByName }
+      { quantity: $orderByQuantity }
+      { buyPrice: $orderByBuyPrice }
+      { sellPrice: $orderBySellPrice }
+      { category: $orderByCategory }
+      { updatedAt: $orderByUpdatedAt }
+    ]
   ) {
     id
     name
@@ -115,8 +132,25 @@ query SyncExpenses($storeId: String!, $lastSync: Float!) @auth(level: USER) {
   }
 }
 
-query GetActiveSales($storeId: String!, $type: String, $limit: Int, $offset: Int, $orderBy: SaleOrderBy) @auth(level: USER) {
-  sales(where: { storeId: { eq: $storeId }, type: { eq: $type }, isDeleted: { eq: false } }, limit: $limit, offset: $offset, orderBy: $orderBy) {
+query GetActiveSales(
+  $storeId: String!
+  $type: String
+  $limit: Int
+  $offset: Int
+  $orderByTimestamp: OrderDirection
+  $orderByCustomerName: OrderDirection
+  $orderByTotalAmount: OrderDirection
+) @auth(level: USER) {
+  sales(
+    where: { storeId: { eq: $storeId }, type: { eq: $type }, isDeleted: { eq: false } }
+    limit: $limit
+    offset: $offset
+    orderBy: [
+      { timestamp: $orderByTimestamp }
+      { customerName: $orderByCustomerName }
+      { totalAmount: $orderByTotalAmount }
+    ]
+  ) {
     id
     timestamp
     totalAmount
@@ -140,12 +174,25 @@ query GetActiveSaleItems($storeId: String!) @auth(level: USER) {
   }
 }
 
-query GetActiveUdhaars($storeId: String!, $limit: Int, $offset: Int, $orderBy: UdhaarEntryOrderBy) @auth(level: USER) {
+query GetActiveUdhaars(
+  $storeId: String!
+  $limit: Int
+  $offset: Int
+  $orderByTimestamp: OrderDirection
+  $orderByCustomerName: OrderDirection
+  $orderByType: OrderDirection
+  $orderByAmount: OrderDirection
+) @auth(level: USER) {
   udhaarEntries(
     where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }
-    limit: $limit,
-    offset: $offset,
-    orderBy: $orderBy
+    limit: $limit
+    offset: $offset
+    orderBy: [
+      { timestamp: $orderByTimestamp }
+      { customerName: $orderByCustomerName }
+      { type: $orderByType }
+      { amount: $orderByAmount }
+    ]
   ) {
     id
     customerName
@@ -157,12 +204,25 @@ query GetActiveUdhaars($storeId: String!, $limit: Int, $offset: Int, $orderBy: U
   }
 }
 
-query GetActiveExpenses($storeId: String!, $limit: Int, $offset: Int, $orderBy: ExpenseEntryOrderBy) @auth(level: USER) {
+query GetActiveExpenses(
+  $storeId: String!
+  $limit: Int
+  $offset: Int
+  $orderByTimestamp: OrderDirection
+  $orderByType: OrderDirection
+  $orderBySupplierName: OrderDirection
+  $orderByAmount: OrderDirection
+) @auth(level: USER) {
   expenseEntries(
     where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }
-    limit: $limit,
-    offset: $offset,
-    orderBy: $orderBy
+    limit: $limit
+    offset: $offset
+    orderBy: [
+      { timestamp: $orderByTimestamp }
+      { type: $orderByType }
+      { supplierName: $orderBySupplierName }
+      { amount: $orderByAmount }
+    ]
   ) {
     id
     type

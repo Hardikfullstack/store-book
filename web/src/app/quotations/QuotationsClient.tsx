@@ -7,7 +7,7 @@ import autoTable from 'jspdf-autotable';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveSalesRef, softDeleteSale, getSalesCountRef } from '@/dataconnect';
+import { getActiveSalesRef, syncSale, softDeleteSale, getSalesCountRef, OrderDirection } from '@/dataconnect';
 import Pagination from '@/app/components/Pagination';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import SalesPOS from '@/app/sales/SalesPOS';
@@ -34,15 +34,14 @@ export default function QuotationsClient({
   const [dataVersion, setDataVersion] = useState(0);
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
 
-  const sortFieldMap: Record<string, string> = {
-    total_amount: 'totalAmount',
-    customer_name: 'customerName'
-  };
-
-  const buildOrderBy = () => {
-    const field = sortField ? sortFieldMap[sortField] || sortField : '';
-    if (!field) return undefined;
-    return { [field]: sortDirection === 'asc' ? 'ASC' : 'DESC' };
+  const buildSortVars = (sortField: string | null, direction: 'asc' | 'desc') => {
+    if (!sortField) return {};
+    const dir = direction === 'asc' ? OrderDirection.ASC : OrderDirection.DESC;
+    return {
+      orderByTimestamp: sortField === 'timestamp' ? dir : undefined,
+      orderByCustomerName: sortField === 'customer_name' ? dir : undefined,
+      orderByTotalAmount: sortField === 'total_amount' ? dir : undefined,
+    };
   };
 
   const invalidateAllPages = () => {
@@ -87,7 +86,7 @@ export default function QuotationsClient({
         const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
         const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
-        const response = await executeQuery(getActiveSalesRef(dataConnect, { storeId, limit: pageSize, offset, type: 'ESTIMATE', orderBy: buildOrderBy() }), options);
+        const response = await executeQuery(getActiveSalesRef(dataConnect, { storeId, limit: pageSize, offset, type: 'ESTIMATE', ...buildSortVars(sortField, sortDirection) }), options);
 
         if (!isMounted) return;
 
@@ -244,14 +243,7 @@ export default function QuotationsClient({
 
         <div className="overflow-x-auto">
           {(() => {
-            const filtered = quotations.filter((q: any) => {
-              return (
-                (q.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (q.id || '').toLowerCase().includes(searchQuery.toLowerCase())
-              );
-            });
-
-            const columns: TableColumn[] = [
+              const columns: TableColumn[] = [
               {
                 key: 'id',
                 label: 'Estimate ID',
@@ -301,9 +293,9 @@ export default function QuotationsClient({
             ];
 
             return (
-              <DynamicTable
-                columns={columns}
-                rows={filtered}
+                <DynamicTable
+                  columns={columns}
+                  rows={quotations.filter((q: any) => (q.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (q.id || '').toLowerCase().includes(searchQuery.toLowerCase()))}
                 isLoading={isLoading}
                 emptyMessage="No estimates found."
                 rowKey="id"

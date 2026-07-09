@@ -7,7 +7,13 @@ export type UUIDString = string;
 export type Int64String = string;
 export type DateString = string;
 
+export enum OrderDirection {
 
+  ASC = "ASC",
+
+  DESC = "DESC",
+
+}
 export interface AdminAuditLog_Key {
   id: string;
   __typename?: 'AdminAuditLog_Key';
@@ -81,7 +87,10 @@ export interface GetActiveExpensesVariables {
   storeId: string;
   limit?: number | null;
   offset?: number | null;
-  orderBy?: any | null;
+  orderByTimestamp?: OrderDirection | null;
+  orderByType?: OrderDirection | null;
+  orderBySupplierName?: OrderDirection | null;
+  orderByAmount?: OrderDirection | null;
 }
 
 export interface GetActiveItemsData {
@@ -105,7 +114,12 @@ export interface GetActiveItemsVariables {
   storeId: string;
   limit?: number | null;
   offset?: number | null;
-  orderBy?: any | null;
+  orderByName?: OrderDirection | null;
+  orderByQuantity?: OrderDirection | null;
+  orderByBuyPrice?: OrderDirection | null;
+  orderBySellPrice?: OrderDirection | null;
+  orderByCategory?: OrderDirection | null;
+  orderByUpdatedAt?: OrderDirection | null;
 }
 
 export interface GetActiveSaleItemsData {
@@ -142,7 +156,9 @@ export interface GetActiveSalesVariables {
   type?: string | null;
   limit?: number | null;
   offset?: number | null;
-  orderBy?: any | null;
+  orderByTimestamp?: OrderDirection | null;
+  orderByCustomerName?: OrderDirection | null;
+  orderByTotalAmount?: OrderDirection | null;
 }
 
 export interface GetActiveSuppliersData {
@@ -176,7 +192,10 @@ export interface GetActiveUdhaarsVariables {
   storeId: string;
   limit?: number | null;
   offset?: number | null;
-  orderBy?: any | null;
+  orderByTimestamp?: OrderDirection | null;
+  orderByCustomerName?: OrderDirection | null;
+  orderByType?: OrderDirection | null;
+  orderByAmount?: OrderDirection | null;
 }
 
 export interface GetAdminAuditLogsData {

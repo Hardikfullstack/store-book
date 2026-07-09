@@ -6,7 +6,7 @@ import { fetchMoreData } from '@/app/actions';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveExpensesRef, syncExpense, softDeleteExpense, getExpenseEntriesCountRef } from '@/dataconnect';
+import { getActiveExpensesRef, syncExpense, softDeleteExpense, getExpenseEntriesCountRef, OrderDirection } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import Pagination from '@/app/components/Pagination';
 import DynamicTable, { TableColumn, TableRowAction } from '@/components/DynamicTable';
@@ -31,14 +31,15 @@ export default function ExpensesClient({
   const [dataVersion, setDataVersion] = useState(0);
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
 
-  const sortFieldMap: Record<string, string> = {
-    supplier_name: 'supplierName'
-  };
-
-  const buildOrderBy = () => {
-    const field = sortField ? sortFieldMap[sortField] || sortField : '';
-    if (!field) return undefined;
-    return { [field]: sortDirection === 'asc' ? 'ASC' : 'DESC' };
+  const buildSortVars = (sortField: string | null, direction: 'asc' | 'desc') => {
+    if (!sortField) return {};
+    const dir = direction === 'asc' ? OrderDirection.ASC : OrderDirection.DESC;
+    return {
+      orderByTimestamp: sortField === 'timestamp' ? dir : undefined,
+      orderByType: sortField === 'type' ? dir : undefined,
+      orderBySupplierName: sortField === 'supplier_name' ? dir : undefined,
+      orderByAmount: sortField === 'amount' ? dir : undefined,
+    };
   };
 
   const invalidateAllPages = () => {
@@ -93,7 +94,7 @@ export default function ExpensesClient({
           storeId,
           limit: pageSize,
           offset,
-          orderBy: buildOrderBy()
+          ...buildSortVars(sortField, sortDirection)
         }), options);
 
         if (!isMounted) return;

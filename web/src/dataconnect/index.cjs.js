@@ -1,5 +1,13 @@
 const { queryRef, executeQuery, mutationRef, executeMutation, validateArgs } = require('firebase/data-connect');
 
+const OrderDirection = {
+
+  ASC: "ASC",
+
+  DESC: "DESC",
+}
+exports.OrderDirection = OrderDirection;
+
 const connectorConfig = {
   connector: 'storebook-connector',
   service: 'store-book',

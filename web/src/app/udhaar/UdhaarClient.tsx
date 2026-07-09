@@ -7,7 +7,7 @@ import Pagination from '@/app/components/Pagination';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveUdhaarsRef, syncUdhaar, softDeleteUdhaar, getUdhaarEntriesCountRef } from '@/dataconnect';
+import { getActiveUdhaarsRef, syncUdhaar, softDeleteUdhaar, getUdhaarEntriesCountRef, OrderDirection } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
@@ -36,14 +36,15 @@ export default function UdhaarClient({
   const [dataVersion, setDataVersion] = useState(0);
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
 
-  const sortFieldMap: Record<string, string> = {
-    customer_name: 'customerName'
-  };
-
-  const buildOrderBy = () => {
-    const field = sortField ? sortFieldMap[sortField] || sortField : '';
-    if (!field) return undefined;
-    return { [field]: sortDirection === 'asc' ? 'ASC' : 'DESC' };
+  const buildSortVars = (sortField: string | null, direction: 'asc' | 'desc') => {
+    if (!sortField) return {};
+    const dir = direction === 'asc' ? OrderDirection.ASC : OrderDirection.DESC;
+    return {
+      orderByTimestamp: sortField === 'timestamp' ? dir : undefined,
+      orderByCustomerName: sortField === 'customer_name' ? dir : undefined,
+      orderByType: sortField === 'type' ? dir : undefined,
+      orderByAmount: sortField === 'amount' ? dir : undefined,
+    };
   };
 
   const invalidateAllPages = () => {
@@ -98,7 +99,7 @@ export default function UdhaarClient({
         const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
         const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
-        const response = await executeQuery(getActiveUdhaarsRef(dataConnect, { storeId, limit: pageSize, offset, orderBy: buildOrderBy() }), options);
+        const response = await executeQuery(getActiveUdhaarsRef(dataConnect, { storeId, limit: pageSize, offset, ...buildSortVars(sortField, sortDirection) }), options);
 
         if (!isMounted) return;
 

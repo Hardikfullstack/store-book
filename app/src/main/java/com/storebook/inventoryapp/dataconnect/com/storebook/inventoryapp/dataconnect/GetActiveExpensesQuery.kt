@@ -35,7 +35,15 @@ public interface GetActiveExpensesQuery :
     val limit:
     com.google.firebase.dataconnect.OptionalVariable<Int?>,
     val offset:
-    com.google.firebase.dataconnect.OptionalVariable<Int?>
+    com.google.firebase.dataconnect.OptionalVariable<Int?>,
+    val orderByTimestamp:
+    com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>,
+    val orderByType:
+    com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>,
+    val orderBySupplierName:
+    com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>,
+    val orderByAmount:
+    com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>
   ) {
     
     
@@ -47,6 +55,10 @@ public interface GetActiveExpensesQuery :
         public var storeId: String
         public var limit: Int?
         public var offset: Int?
+        public var orderByTimestamp: OrderDirection?
+        public var orderByType: OrderDirection?
+        public var orderBySupplierName: OrderDirection?
+        public var orderByAmount: OrderDirection?
         
       }
 
@@ -60,6 +72,14 @@ public interface GetActiveExpensesQuery :
             var limit: com.google.firebase.dataconnect.OptionalVariable<Int?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
             var offset: com.google.firebase.dataconnect.OptionalVariable<Int?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var orderByTimestamp: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var orderByType: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var orderBySupplierName: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var orderByAmount: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
             
 
@@ -76,11 +96,27 @@ public interface GetActiveExpensesQuery :
               get() = throw UnsupportedOperationException("getting builder values is not supported")
               set(value_) { offset = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
               
+            override var orderByTimestamp: OrderDirection?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { orderByTimestamp = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
+            override var orderByType: OrderDirection?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { orderByType = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
+            override var orderBySupplierName: OrderDirection?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { orderBySupplierName = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
+            override var orderByAmount: OrderDirection?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { orderByAmount = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
             
           }.apply(block_)
           .let {
             Variables(
-              storeId=storeId,limit=limit,offset=offset,
+              storeId=storeId,limit=limit,offset=offset,orderByTimestamp=orderByTimestamp,orderByType=orderByType,orderBySupplierName=orderBySupplierName,orderByAmount=orderByAmount,
             )
           }
         }

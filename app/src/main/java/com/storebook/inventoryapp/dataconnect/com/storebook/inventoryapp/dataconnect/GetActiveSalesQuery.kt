@@ -37,7 +37,13 @@ public interface GetActiveSalesQuery :
     val limit:
     com.google.firebase.dataconnect.OptionalVariable<Int?>,
     val offset:
-    com.google.firebase.dataconnect.OptionalVariable<Int?>
+    com.google.firebase.dataconnect.OptionalVariable<Int?>,
+    val orderByTimestamp:
+    com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>,
+    val orderByCustomerName:
+    com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>,
+    val orderByTotalAmount:
+    com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>
   ) {
     
     
@@ -50,6 +56,9 @@ public interface GetActiveSalesQuery :
         public var type: String?
         public var limit: Int?
         public var offset: Int?
+        public var orderByTimestamp: OrderDirection?
+        public var orderByCustomerName: OrderDirection?
+        public var orderByTotalAmount: OrderDirection?
         
       }
 
@@ -65,6 +74,12 @@ public interface GetActiveSalesQuery :
             var limit: com.google.firebase.dataconnect.OptionalVariable<Int?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
             var offset: com.google.firebase.dataconnect.OptionalVariable<Int?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var orderByTimestamp: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var orderByCustomerName: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
+                com.google.firebase.dataconnect.OptionalVariable.Undefined
+            var orderByTotalAmount: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
                 com.google.firebase.dataconnect.OptionalVariable.Undefined
             
 
@@ -85,11 +100,23 @@ public interface GetActiveSalesQuery :
               get() = throw UnsupportedOperationException("getting builder values is not supported")
               set(value_) { offset = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
               
+            override var orderByTimestamp: OrderDirection?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { orderByTimestamp = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
+            override var orderByCustomerName: OrderDirection?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { orderByCustomerName = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
+            override var orderByTotalAmount: OrderDirection?
+              get() = throw UnsupportedOperationException("getting builder values is not supported")
+              set(value_) { orderByTotalAmount = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
+              
             
           }.apply(block_)
           .let {
             Variables(
-              storeId=storeId,type=type,limit=limit,offset=offset,
+              storeId=storeId,type=type,limit=limit,offset=offset,orderByTimestamp=orderByTimestamp,orderByCustomerName=orderByCustomerName,orderByTotalAmount=orderByTotalAmount,
             )
           }
         }

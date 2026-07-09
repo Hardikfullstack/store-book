@@ -7,7 +7,7 @@ import ExportButtons from '@/app/ExportButtons';
 import { sanitizeInput } from '@/lib/sanitize';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
-import { getActiveItemsRef, syncItem, softDeleteItem, getItemsCountRef } from '@/dataconnect';
+import { getActiveItemsRef, syncItem, softDeleteItem, getItemsCountRef, OrderDirection } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import RestockQuantity from '@/components/models/RestockQuantity';
 import { useDispatch, useSelector } from 'react-redux';
@@ -78,15 +78,17 @@ export default function ItemsClient({
   const [dataVersion, setDataVersion] = useState(0);
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
 
-  const sortFieldMap: Record<string, string> = {
-    buy_price: 'buyPrice',
-    sell_price: 'sellPrice'
-  };
-
-  const buildOrderBy = () => {
-    const field = sortField ? sortFieldMap[sortField] || sortField : '';
-    if (!field) return undefined;
-    return { [field]: sortDirection === 'asc' ? 'ASC' : 'DESC' };
+  const buildSortVars = (sortField: string | null, direction: 'asc' | 'desc') => {
+    if (!sortField) return {};
+    const dir = direction === 'asc' ? OrderDirection.ASC : OrderDirection.DESC;
+    return {
+      orderByName: sortField === 'name' ? dir : undefined,
+      orderByQuantity: sortField === 'quantity' ? dir : undefined,
+      orderByBuyPrice: sortField === 'buy_price' ? dir : undefined,
+      orderBySellPrice: sortField === 'sell_price' ? dir : undefined,
+      orderByCategory: sortField === 'category' ? dir : undefined,
+      orderByUpdatedAt: sortField === 'updatedAt' ? dir : undefined,
+    };
   };
 
   const invalidateAllPages = () => {
@@ -135,7 +137,7 @@ export default function ItemsClient({
           storeId,
           limit: pageSize,
           offset,
-          orderBy: buildOrderBy()
+          ...buildSortVars(sortField, sortDirection)
         }), options);
 
         if (!isMounted) return;

@@ -1,4 +1,10 @@
 import { queryRef, executeQuery, mutationRef, executeMutation, validateArgs } from 'firebase/data-connect';
+export const OrderDirection = {
+
+  ASC: "ASC",
+
+  DESC: "DESC",
+}
 
 export const connectorConfig = {
   connector: 'storebook-connector',
