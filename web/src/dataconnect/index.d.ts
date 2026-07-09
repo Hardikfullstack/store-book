@@ -91,6 +91,7 @@ export interface GetActiveExpensesVariables {
   orderByType?: OrderDirection | null;
   orderBySupplierName?: OrderDirection | null;
   orderByAmount?: OrderDirection | null;
+  searchTerm?: string;
 }
 
 export interface GetActiveItemsData {
@@ -120,6 +121,7 @@ export interface GetActiveItemsVariables {
   orderBySellPrice?: OrderDirection | null;
   orderByCategory?: OrderDirection | null;
   orderByUpdatedAt?: OrderDirection | null;
+  searchTerm?: string;
 }
 
 export interface GetActiveSaleItemsData {
@@ -159,6 +161,7 @@ export interface GetActiveSalesVariables {
   orderByTimestamp?: OrderDirection | null;
   orderByCustomerName?: OrderDirection | null;
   orderByTotalAmount?: OrderDirection | null;
+  searchTerm?: string;
 }
 
 export interface GetActiveSuppliersData {
@@ -196,6 +199,7 @@ export interface GetActiveUdhaarsVariables {
   orderByCustomerName?: OrderDirection | null;
   orderByType?: OrderDirection | null;
   orderByAmount?: OrderDirection | null;
+  searchTerm?: string;
 }
 
 export interface GetAdminAuditLogsData {

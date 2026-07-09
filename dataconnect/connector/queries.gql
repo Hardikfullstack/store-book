@@ -66,6 +66,7 @@ query GetActiveItems(
   $storeId: String!
   $limit: Int
   $offset: Int
+  $searchTerm: String
   $orderByName: OrderDirection
   $orderByQuantity: OrderDirection
   $orderByBuyPrice: OrderDirection
@@ -74,7 +75,14 @@ query GetActiveItems(
   $orderByUpdatedAt: OrderDirection
 ) @auth(level: USER) {
   items(
-    where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }
+    where: {
+      storeId: { eq: $storeId },
+      isDeleted: { eq: false },
+      _or: [
+        { name: { contains: $searchTerm } },
+        { category: { contains: $searchTerm } }
+      ]
+    }
     limit: $limit
     offset: $offset
     orderBy: [
@@ -137,12 +145,20 @@ query GetActiveSales(
   $type: String
   $limit: Int
   $offset: Int
+  $searchTerm: String
   $orderByTimestamp: OrderDirection
   $orderByCustomerName: OrderDirection
   $orderByTotalAmount: OrderDirection
 ) @auth(level: USER) {
   sales(
-    where: { storeId: { eq: $storeId }, type: { eq: $type }, isDeleted: { eq: false } }
+    where: {
+      storeId: { eq: $storeId },
+      type: { eq: $type },
+      isDeleted: { eq: false },
+      _or: [
+        { customerName: { contains: $searchTerm } }
+      ]
+    }
     limit: $limit
     offset: $offset
     orderBy: [
@@ -178,13 +194,21 @@ query GetActiveUdhaars(
   $storeId: String!
   $limit: Int
   $offset: Int
+  $searchTerm: String
   $orderByTimestamp: OrderDirection
   $orderByCustomerName: OrderDirection
   $orderByType: OrderDirection
   $orderByAmount: OrderDirection
 ) @auth(level: USER) {
   udhaarEntries(
-    where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }
+    where: {
+      storeId: { eq: $storeId },
+      isDeleted: { eq: false },
+      _or: [
+        { customerName: { contains: $searchTerm } },
+        { type: { contains: $searchTerm } }
+      ]
+    }
     limit: $limit
     offset: $offset
     orderBy: [
@@ -208,13 +232,21 @@ query GetActiveExpenses(
   $storeId: String!
   $limit: Int
   $offset: Int
+  $searchTerm: String
   $orderByTimestamp: OrderDirection
   $orderByType: OrderDirection
   $orderBySupplierName: OrderDirection
   $orderByAmount: OrderDirection
 ) @auth(level: USER) {
   expenseEntries(
-    where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }
+    where: {
+      storeId: { eq: $storeId },
+      isDeleted: { eq: false },
+      _or: [
+        { supplierName: { contains: $searchTerm } },
+        { type: { contains: $searchTerm } }
+      ]
+    }
     limit: $limit
     offset: $offset
     orderBy: [
