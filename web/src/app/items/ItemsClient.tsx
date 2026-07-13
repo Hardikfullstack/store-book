@@ -77,6 +77,10 @@ export default function ItemsClient({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [dataVersion, setDataVersion] = useState(0);
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const searchResultsKeyRef = useRef('');
 
   const buildSortVars = (sortField: string | null, direction: 'asc' | 'desc') => {
     if (!sortField) return {};
@@ -94,6 +98,7 @@ export default function ItemsClient({
   const invalidateAllPages = () => {
     setDataVersion(v => v + 1);
     fetchedPagesAtVersionRef.current = new Map();
+    searchResultsKeyRef.current = '';
   };
 
   const handleSort = (field: string) => {
@@ -107,9 +112,9 @@ export default function ItemsClient({
     }
   };
 
-  // Fetch total count once on mount and whenever data is updated
+  // Fetch total count — skip when searching (search result sets its own total)
   useEffect(() => {
-    if (!isPremium || !storeId) return;
+    if (!isPremium || !storeId || debouncedSearch) return;
     const countKey = `count`;
     const needsServerFetch = (fetchedPagesAtVersionRef.current.get(countKey) ?? -1) < dataVersion;
     const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
@@ -119,7 +124,7 @@ export default function ItemsClient({
         fetchedPagesAtVersionRef.current.set(countKey, dataVersion);
       })
       .catch(err => console.error('Count fetch error:', err));
-  }, [isPremium, storeId, refreshTrigger]);
+  }, [isPremium, storeId, refreshTrigger, debouncedSearch]);
 
   // Fetch paginated items whenever page changes and poll regularly
   useEffect(() => {
@@ -128,21 +133,26 @@ export default function ItemsClient({
     const fetchItems = async () => {
       setIsLoading(true);
       try {
+        const isSearching = debouncedSearch.length >= 3;
+        const currentSearchKey = `${debouncedSearch}-${sortField}-${sortDirection}`;
+        if (isSearching && searchResults.length > 0 && searchResultsKeyRef.current === currentSearchKey) { setIsLoading(false); return; }
         const offset = (currentPage - 1) * pageSize;
-        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}`;
+        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}-${debouncedSearch}`;
         const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
         const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
-        const response = await executeQuery(getActiveItemsRef(dataConnect, {
-          storeId,
-          limit: pageSize,
-          offset,
-          ...buildSortVars(sortField, sortDirection)
-        }), options);
+        const vars: any = { storeId, ...buildSortVars(sortField, sortDirection) };
+        if (isSearching) {
+          vars.searchTerm = debouncedSearch;
+        } else {
+          vars.limit = pageSize;
+          vars.offset = offset;
+        }
+
+        const response = await executeQuery(getActiveItemsRef(dataConnect, vars), options);
 
         if (!isMounted) return;
 
-        // Mark this page as fetched at current version
         fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
 
         const updated = response.data.items.map((item: any) => ({
@@ -160,7 +170,16 @@ export default function ItemsClient({
           });
         }
 
-        setItems(updated);
+        if (isSearching) {
+          searchResultsKeyRef.current = currentSearchKey;
+          setSearchResults(updated);
+          setTotalItems(updated.length);
+          setItems(updated.slice(0, pageSize));
+        } else {
+          searchResultsKeyRef.current = '';
+          setSearchResults([]);
+          setItems(updated);
+        }
         dispatch(setInventory(updated));
       } catch (error) {
         console.error('Data Connect items fetch error:', error);
@@ -176,15 +195,37 @@ export default function ItemsClient({
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId, userRole, currentPage, pageSize, refreshTrigger, dataVersion]);
+  }, [isPremium, storeId, userRole, currentPage, refreshTrigger, dataVersion, debouncedSearch]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      setDebouncedSearch('');
+      setCurrentPage(1);
+      return;
+    }
+    if (trimmed.length < 3) return;
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(trimmed);
+      setCurrentPage(1);
+    }, 400);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    if (debouncedSearch && searchResults.length > 0) {
+      const start = (page - 1) * pageSize;
+      setItems(searchResults.slice(start, start + pageSize));
+    }
+  };
   const [formData, setFormData] = useState<ItemFormData>(() => emptyFormData());
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [reStockQuantity, setReStockQuantity] = useState<any | null>(null);
-
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,7 +253,7 @@ export default function ItemsClient({
         lowStockThreshold: formData.low_stock_threshold,
         category: formData.category,
         isDeleted: false,
-        updatedAt: Date.now(),
+        updatedAt: Math.floor(Date.now() / 1000),
         ...payload,
       });
       setShowModal(false);
@@ -326,7 +367,7 @@ export default function ItemsClient({
             <input aria-label="text"
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
+              onChange={(e) => handleSearchChange(sanitizeInput(e.target.value))}
               className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all dark:text-gray-100"
               placeholder="Search items by name or category..."
             />
@@ -336,11 +377,6 @@ export default function ItemsClient({
         <div className="overflow-x-auto">
           {
             (() => {
-              const filteredItems = items.filter((item: any) =>
-                (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (item.category || '').toLowerCase().includes(searchQuery.toLowerCase())
-              );
-
               const columns: TableColumn[] = [
                 {
                   key: 'name',
@@ -430,9 +466,9 @@ export default function ItemsClient({
               return (
                 <DynamicTable
                   columns={columns}
-                  rows={filteredItems}
+                  rows={items}
                   isLoading={isLoading}
-                  emptyMessage="No udhaar records found matching your search."
+                  emptyMessage="No items records found"
                   rowKey="id"
                   rowActions={rowActions}
                   sortField={sortField || ""}
@@ -447,7 +483,7 @@ export default function ItemsClient({
           pageSize={pageSize}
           totalItems={totalItems}
           isLoading={isLoading}
-          onPageChange={(page) => setCurrentPage(page)}
+          onPageChange={handlePageChange}
         />
       </div>
 

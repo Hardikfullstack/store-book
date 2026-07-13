@@ -28,11 +28,32 @@ export default function QuotationsClient({
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const trimmed = value.trim();
+    if (trimmed.length === 0) { setDebouncedSearch(''); setCurrentPage(1); return; }
+    if (trimmed.length < 3) return;
+    debounceRef.current = setTimeout(() => { setDebouncedSearch(trimmed); setCurrentPage(1); }, 400);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    if (debouncedSearch && searchResults.length > 0) {
+      const start = (page - 1) * pageSize;
+      setQuotations(searchResults.slice(start, start + pageSize));
+    }
+  };
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [dataVersion, setDataVersion] = useState(0);
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const searchResultsKeyRef = useRef('');
 
   const buildSortVars = (sortField: string | null, direction: 'asc' | 'desc') => {
     if (!sortField) return {};
@@ -61,18 +82,17 @@ export default function QuotationsClient({
   };
 
   useEffect(() => {
-    if (!isPremium || !storeId) return;
+    if (!isPremium || !storeId || debouncedSearch) return;
     const countKey = `count`;
     const needsServerFetch = (fetchedPagesAtVersionRef.current.get(countKey) ?? -1) < dataVersion;
     const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
-    // Fetch total count
     executeQuery(getSalesCountRef(dataConnect, { storeId, type: 'ESTIMATE' }), options)
       .then(res => {
         setTotalItems(res.data.sales.length);
         fetchedPagesAtVersionRef.current.set(countKey, dataVersion);
       })
       .catch(err => console.error('Count fetch error:', err));
-  }, [isPremium, storeId, refreshTrigger]);
+  }, [isPremium, storeId, refreshTrigger, debouncedSearch]);
 
   // Fetch paginated quotations
   useEffect(() => {
@@ -81,16 +101,26 @@ export default function QuotationsClient({
     const fetchQuotations = async () => {
       setIsLoading(true);
       try {
+        const isSearching = debouncedSearch.length >= 3;
+        const currentSearchKey = `${debouncedSearch}-${sortField}-${sortDirection}`;
+        if (isSearching && searchResults.length > 0 && searchResultsKeyRef.current === currentSearchKey) { setIsLoading(false); return; }
         const offset = (currentPage - 1) * pageSize;
-        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}`;
+        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}-${debouncedSearch}`;
         const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
         const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
-        const response = await executeQuery(getActiveSalesRef(dataConnect, { storeId, limit: pageSize, offset, type: 'ESTIMATE', ...buildSortVars(sortField, sortDirection) }), options);
+        const vars: any = { storeId, type: 'ESTIMATE', ...buildSortVars(sortField, sortDirection) };
+        if (isSearching) {
+          vars.searchTerm = debouncedSearch;
+        } else {
+          vars.limit = pageSize;
+          vars.offset = offset;
+        }
+
+        const response = await executeQuery(getActiveSalesRef(dataConnect, vars), options);
 
         if (!isMounted) return;
 
-        // Mark this page as fetched at current version
         fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
 
         const updated = response.data.sales.map((q: any) => ({
@@ -100,7 +130,17 @@ export default function QuotationsClient({
           customer_name: q.customerName,
           total_amount: q.totalAmount
         }));
-        setQuotations(updated);
+
+        if (isSearching) {
+          searchResultsKeyRef.current = currentSearchKey;
+          setSearchResults(updated);
+          setTotalItems(updated.length);
+          setQuotations(updated.slice(0, pageSize));
+        } else {
+          searchResultsKeyRef.current = '';
+          setSearchResults([]);
+          setQuotations(updated);
+        }
       } catch (error) {
         console.error("Data Connect quotations sync error:", error);
       } finally {
@@ -108,7 +148,7 @@ export default function QuotationsClient({
       }
     };
     fetchQuotations();
-  }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion]);
+  }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion, debouncedSearch]);
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this quotation?')) {
@@ -234,7 +274,7 @@ export default function QuotationsClient({
             <input aria-label="text"
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
+              onChange={(e) => handleSearchChange(sanitizeInput(e.target.value))}
               className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all dark:text-gray-100"
               placeholder="Search estimate or customer..."
             />
@@ -243,7 +283,7 @@ export default function QuotationsClient({
 
         <div className="overflow-x-auto">
           {(() => {
-              const columns: TableColumn[] = [
+            const columns: TableColumn[] = [
               {
                 key: 'id',
                 label: 'Estimate ID',
@@ -293,9 +333,9 @@ export default function QuotationsClient({
             ];
 
             return (
-                <DynamicTable
-                  columns={columns}
-                  rows={quotations.filter((q: any) => (q.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (q.id || '').toLowerCase().includes(searchQuery.toLowerCase()))}
+              <DynamicTable
+                columns={columns}
+                rows={quotations}
                 isLoading={isLoading}
                 emptyMessage="No estimates found."
                 rowKey="id"
@@ -312,7 +352,7 @@ export default function QuotationsClient({
           pageSize={pageSize}
           totalItems={totalItems}
           isLoading={isLoading}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
         />
       </div>
 

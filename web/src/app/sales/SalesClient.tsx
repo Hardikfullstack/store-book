@@ -32,6 +32,10 @@ export default function SalesClient({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [dataVersion, setDataVersion] = useState(0);
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const searchResultsKeyRef = useRef('');
 
   const buildSortVars = (sortField: string | null, direction: 'asc' | 'desc') => {
     if (!sortField) return {};
@@ -60,11 +64,10 @@ export default function SalesClient({
   };
 
   useEffect(() => {
-    if (!isPremium || !storeId) return;
+    if (!isPremium || !storeId || debouncedSearch) return;
     const countKey = `count`;
     const needsServerFetch = (fetchedPagesAtVersionRef.current.get(countKey) ?? -1) < dataVersion;
     const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
-    // Fetch total count once
     const fetchTotal = async () => {
       try {
         const resp = await executeQuery(getSalesCountRef(dataConnect, { storeId, type: 'SALE' }), options);
@@ -75,7 +78,7 @@ export default function SalesClient({
       }
     };
     fetchTotal();
-  }, [isPremium, storeId, refreshTrigger]);
+  }, [isPremium, storeId, refreshTrigger, debouncedSearch]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -89,16 +92,26 @@ export default function SalesClient({
     const fetchPaginated = async () => {
       setIsLoading(true);
       try {
+        const isSearching = debouncedSearch.length >= 3;
+        const currentSearchKey = `${debouncedSearch}-${sortField}-${sortDirection}`;
+        if (isSearching && searchResults.length > 0 && searchResultsKeyRef.current === currentSearchKey) { setIsLoading(false); return; }
         const offset = (currentPage - 1) * pageSize;
-        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}`;
+        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}-${debouncedSearch}`;
         const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
         const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
-        const response = await executeQuery(getActiveSalesRef(dataConnect, { storeId, limit: pageSize, offset, type: 'SALE', ...buildSortVars(sortField, sortDirection) }), options);
+        const vars: any = { storeId, type: 'SALE', ...buildSortVars(sortField, sortDirection) };
+        if (isSearching) {
+          vars.searchTerm = debouncedSearch;
+        } else {
+          vars.limit = pageSize;
+          vars.offset = offset;
+        }
+
+        const response = await executeQuery(getActiveSalesRef(dataConnect, vars), options);
 
         if (!isMounted) return;
 
-        // Mark this page as fetched at current version
         fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
 
         const updated = response.data.sales
@@ -109,7 +122,17 @@ export default function SalesClient({
             customer_name: sale.customerName,
             total_amount: sale.totalAmount
           }));
-        setSales(updated);
+
+        if (isSearching) {
+          searchResultsKeyRef.current = currentSearchKey;
+          setSearchResults(updated);
+          setTotalItems(updated.length);
+          setSales(updated.slice(0, pageSize));
+        } else {
+          searchResultsKeyRef.current = '';
+          setSearchResults([]);
+          setSales(updated);
+        }
       } catch (error) {
         console.error('Data Connect sales sync error:', error);
       } finally {
@@ -122,12 +145,27 @@ export default function SalesClient({
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion]);
+  }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion, debouncedSearch]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  // Loading state handled by isLoading from pagination
 
-  // Pagination UI replaces Load More functionality; removed loadMore handler.
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const trimmed = value.trim();
+    if (trimmed.length === 0) { setDebouncedSearch(''); setCurrentPage(1); return; }
+    if (trimmed.length < 3) return;
+    debounceRef.current = setTimeout(() => { setDebouncedSearch(trimmed); setCurrentPage(1); }, 400);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    if (debouncedSearch && searchResults.length > 0) {
+      const start = (page - 1) * pageSize;
+      setSales(searchResults.slice(start, start + pageSize));
+    }
+  };
+  // Loading state handled by isLoading from pagination
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this sale?')) {
@@ -219,7 +257,7 @@ export default function SalesClient({
             <input aria-label="text"
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
+              onChange={(e) => handleSearchChange(sanitizeInput(e.target.value))}
               className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all dark:text-gray-100"
               placeholder="Search invoice or customer..."
             />
@@ -228,14 +266,6 @@ export default function SalesClient({
 
         <div className="overflow-x-auto">
           {(() => {
-            const filteredSales = sales.filter((sale: any) => {
-              const searchId = sale.cloud_id || sale.id;
-              return (
-                (sale.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (searchId || '').toLowerCase().includes(searchQuery.toLowerCase())
-              );
-            });
-
             const columns: TableColumn[] = [
               {
                 key: 'id',
@@ -289,7 +319,7 @@ export default function SalesClient({
             return (
               <DynamicTable
                 columns={columns}
-                rows={filteredSales}
+                rows={sales}
                 isLoading={isLoading}
                 emptyMessage="No sales found matching your search."
                 rowKey="id"
@@ -306,7 +336,7 @@ export default function SalesClient({
           pageSize={pageSize}
           totalItems={totalItems}
           isLoading={isLoading}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
         />
       </div>
 

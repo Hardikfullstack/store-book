@@ -35,6 +35,10 @@ export default function UdhaarClient({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [dataVersion, setDataVersion] = useState(0);
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const searchResultsKeyRef = useRef('');
 
   const buildSortVars = (sortField: string | null, direction: 'asc' | 'desc') => {
     if (!sortField) return {};
@@ -64,23 +68,21 @@ export default function UdhaarClient({
   };
 
   useEffect(() => {
-    if (!isPremium || !storeId) return;
+    if (!isPremium || !storeId || debouncedSearch) return;
     const countKey = `count`;
     const needsServerFetch = (fetchedPagesAtVersionRef.current.get(countKey) ?? -1) < dataVersion;
     const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
-    // Fetch total count once
     const fetchTotal = async () => {
       try {
         const resp = await executeQuery(getUdhaarEntriesCountRef(dataConnect, { storeId }), options);
-        const filtered = resp.data.udhaarEntries;
-        setTotalItems(filtered.length);
+        setTotalItems(resp.data.udhaarEntries.length);
         fetchedPagesAtVersionRef.current.set(countKey, dataVersion);
       } catch (e) {
         console.error('Count fetch error:', e);
       }
     };
     fetchTotal();
-  }, [isPremium, storeId, refreshTrigger]);
+  }, [isPremium, storeId, refreshTrigger, debouncedSearch]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
@@ -94,16 +96,26 @@ export default function UdhaarClient({
     const fetchUdhaars = async () => {
       setIsLoading(true);
       try {
+        const isSearching = debouncedSearch.length >= 3;
+        const currentSearchKey = `${debouncedSearch}-${sortField}-${sortDirection}`;
+        if (isSearching && searchResults.length > 0 && searchResultsKeyRef.current === currentSearchKey) { setIsLoading(false); return; }
         const offset = (currentPage - 1) * pageSize;
-        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}`;
+        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}-${debouncedSearch}`;
         const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
         const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
-        const response = await executeQuery(getActiveUdhaarsRef(dataConnect, { storeId, limit: pageSize, offset, ...buildSortVars(sortField, sortDirection) }), options);
+        const vars: any = { storeId, ...buildSortVars(sortField, sortDirection) };
+        if (isSearching) {
+          vars.searchTerm = debouncedSearch;
+        } else {
+          vars.limit = pageSize;
+          vars.offset = offset;
+        }
+
+        const response = await executeQuery(getActiveUdhaarsRef(dataConnect, vars), options);
 
         if (!isMounted) return;
 
-        // Mark this page as fetched at current version
         fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
 
         const updated = response.data.udhaarEntries.map((record: any) => ({
@@ -112,7 +124,17 @@ export default function UdhaarClient({
           updated_at: record.updatedAt || Date.now(),
           customer_name: record.customerName
         }));
-        setUdhaar(updated);
+
+        if (isSearching) {
+          searchResultsKeyRef.current = currentSearchKey;
+          setSearchResults(updated);
+          setTotalItems(updated.length);
+          setUdhaar(updated.slice(0, pageSize));
+        } else {
+          searchResultsKeyRef.current = '';
+          setSearchResults([]);
+          setUdhaar(updated);
+        }
         dispatch(setUdhaars(updated));
       } catch (error) {
         console.error('Data Connect udhaar sync error:', error);
@@ -126,9 +148,26 @@ export default function UdhaarClient({
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion]);
+  }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion, debouncedSearch]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const trimmed = value.trim();
+    if (trimmed.length === 0) { setDebouncedSearch(''); setCurrentPage(1); return; }
+    if (trimmed.length < 3) return;
+    debounceRef.current = setTimeout(() => { setDebouncedSearch(trimmed); setCurrentPage(1); }, 400);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    if (debouncedSearch && searchResults.length > 0) {
+      const start = (page - 1) * pageSize;
+      setUdhaar(searchResults.slice(start, start + pageSize));
+    }
+  };
 
   const [formData, setFormData] = useState({
     customer_name: '',
@@ -200,7 +239,7 @@ export default function UdhaarClient({
             <input aria-label="text"
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
+              onChange={(e) => handleSearchChange(sanitizeInput(e.target.value))}
               className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:text-gray-100"
               placeholder="Search customer or notes..."
             />
@@ -209,13 +248,6 @@ export default function UdhaarClient({
 
         <div className="overflow-x-auto">
           {(() => {
-            const filteredUdhaar = udhaar.filter((record: any) => {
-              return (
-                (record.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (record.notes || '').toLowerCase().includes(searchQuery.toLowerCase())
-              );
-            });
-
             const columns: TableColumn[] = [
               {
                 key: 'timestamp',
@@ -289,7 +321,7 @@ export default function UdhaarClient({
             return (
               <DynamicTable
                 columns={columns}
-                rows={filteredUdhaar}
+                rows={udhaar}
                 isLoading={isLoading}
                 emptyMessage="No udhaar records found matching your search."
                 rowKey="id"
@@ -307,7 +339,7 @@ export default function UdhaarClient({
           pageSize={pageSize}
           totalItems={totalItems}
           isLoading={isLoading}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
         />
       </div>
 
