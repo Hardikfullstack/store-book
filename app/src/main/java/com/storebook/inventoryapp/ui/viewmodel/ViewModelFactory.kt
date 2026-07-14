@@ -12,6 +12,7 @@ import com.storebook.inventoryapp.shared.domain.repository.PurchaseRepository
 import com.storebook.inventoryapp.shared.domain.repository.SupplierRepository
 import com.storebook.inventoryapp.shared.domain.repository.BatchRepository
 import com.storebook.inventoryapp.shared.domain.repository.ExpenseRepository
+import com.storebook.inventoryapp.shared.domain.repository.SyncRepository
 import com.storebook.inventoryapp.shared.domain.repository.SystemRepository
 import com.storebook.inventoryapp.utils.SecurityUtils
 
@@ -39,6 +40,7 @@ class AppViewModelFactory(private val context: Context) : ViewModelProvider.Fact
     private val batchRepository by lazy { BatchRepository(database) }
     private val expenseRepository by lazy { ExpenseRepository(database) }
     private val systemRepository by lazy { SystemRepository(database) }
+    private val syncRepository by lazy { SyncRepository(database) }
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when {
@@ -52,7 +54,7 @@ class AppViewModelFactory(private val context: Context) : ViewModelProvider.Fact
                 SalesViewModel(salesRepository, inventoryRepository, udhaarRepository, context) as T
             }
             modelClass.isAssignableFrom(DashboardViewModel::class.java) -> {
-                DashboardViewModel(inventoryRepository, salesRepository, purchaseRepository, supplierRepository, expenseRepository, context) as T
+                DashboardViewModel(inventoryRepository, salesRepository, purchaseRepository, supplierRepository, expenseRepository, syncRepository, context) as T
             }
             modelClass.isAssignableFrom(PurchaseViewModel::class.java) -> {
                 PurchaseViewModel(purchaseRepository, supplierRepository, inventoryRepository) as T

@@ -1,0 +1,51 @@
+# Epic e18 — Web Dashboard Server Actions & API Endpoint Verification
+
+id: e18
+title: "Verify All Next.js API Routes Enforce Auth, Validate Signatures & Return Correct Data"
+scope_feature: ["Web Dashboard (P1)", "Razorpay Integration (P2)", "Staff Management (P2)"]
+depends_on_epics: [e03, e04]
+target_version: v1.5.0
+priority: P1
+status: defined
+
+rationale: >
+  All web API endpoints serve as the bridge between the frontend and Firebase Data Connect / Firebase Auth.
+  Critical issues found during audit: staff/delete lacks session authentication (accepts uid+ownerId in body),
+  verify-payment trusts client-provided Razorpay IDs without server-side receipt confirmation from Razorpay API,
+  webhook endpoint doesn't rate-limit duplicate events. Financial and identity mutations happen through these endpoints so they must be verified exhaustively.
+
+success_criteria:
+  - "Every mutation API route checks session authentication before processing body data"
+  - "Razorpay webhook signature validated with HMAC-SHA256 — invalid signatures return 400 without DB writes"
+  - "Staff CRUD enforced by role-based ownership — non-owners cannot invite or delete staff for any store"
+  - "No financial aggregate endpoint returns data belonging to another user's store (IDOR protection)"
+
+stories:
+  - id: e18-s1
+    title: "Verify Razorpay webhook signature validation and event handling correctness"
+    acceptance:
+      - "`/api/webhooks/razorpay` rejects requests missing `x-razorpay-signature` header with 400 status"
+      - "Valid signature → subscription.charged sets store isPremium=true + extends expiry by 31 days"
+      - "subscription.halted or cancelled event sets subscriptionStatus to 'cancelled' for the associated store"
+      - "Malformed JSON body caught gracefully — returns 500, does not crash node process"
+
+  - id: e18-s2
+    title: "Verify verify-payment endpoint signature validation and safe DB mutation"
+    acceptance:
+      - "Valid Razorpay HMAC signature → updates store isPremium=true + subscriptionExpiresAt on both user AND store records"
+      - "Invalid signature returns 400 — NO database writes performed"
+      - "Missing session returns 401 — no body processing occurs before auth check"
+
+  - id: e18-s3
+    title: "Verify create-subscription endpoint requires authentication and valid environment config"
+    acceptance:
+      - "Returns 401 when caller has no valid session cookie"
+      - "Razorpay SDK properly instantiated with configured keys — subscription created returns plan ID reference to client"
+      - "Missing RAZORPAY_PRO_PLAN_ID env var returns 500 (not 200 with null data)"
+
+  - id: e18-s4
+    title: "Verify staff/invite and staff/delete enforce owner-only access control"
+    acceptance:
+      - "`/api/staff/invite` creates Firebase Auth user + Data Connect record only when ownerId in body matches authenticated session owner"
+      - "`/api/staff/delete` validates that the requesting principal actually owns the staff member being deleted via DB lookup of staff.ownerId — returns 403 on mismatch"
+      - "Staff password must meet minimum complexity (>6 chars) before Firebase createUser is called"

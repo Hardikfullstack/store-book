@@ -182,7 +182,20 @@ class SalesViewModel(
             val items = salesRepository.getSaleItems(s.id).map { saleItem ->
                 com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(itemId = saleItem.item_id, itemName = saleItem.item_name, quantity = saleItem.quantity, unit = saleItem.unit, buyPrice = saleItem.buy_price, sellPrice = saleItem.sell_price)
             }
-            Sale(id = s.id, timestamp = s.timestamp, totalAmount = s.total_amount, discountAmount = s.discount_amount, customerName = s.customer_name, customerGstin = s.customer_gstin, businessGstin = s.business_gstin, customerAddress = s.customer_address, businessAddress = s.business_address, type = s.type, notes = s.notes, items = items)
+            Sale(id = s.id, timestamp = s.timestamp, totalAmount = s.total_amount, discountAmount = s.discount_amount, customerName = s.customer_name, customerGstin = s.customer_gstin, businessGstin = s.business_gstin, customerAddress = s.customer_address, businessAddress = s.business_address, type = s.type, notes = s.notes, isConverted = (s.is_converted == 1L), items = items)
+        }
+    }
+
+    // E03-S4: Atomically convert quotation to sale — preserves all line items + prices exactly
+    fun convertQuotation(saleId: Long, onComplete: (Long) -> Unit) {
+        viewModelScope.launch {
+            val newSaleId = salesRepository.convertQuotationToSale(saleId)
+            if (newSaleId > 0) {
+                triggerSync()
+                // Reload data to reflect the new sale + converted status
+                _salesHistoryList.value = getSalesWithItems(100, 0)
+            }
+            onComplete(newSaleId)
         }
     }
     fun shareInvoice(context: android.content.Context, saleId: Long) {
@@ -195,7 +208,7 @@ class SalesViewModel(
                 val items = salesRepository.getSaleItems(saleId).map { saleItem ->
                     com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(itemId = saleItem.item_id, itemName = saleItem.item_name, quantity = saleItem.quantity, unit = saleItem.unit, buyPrice = saleItem.buy_price, sellPrice = saleItem.sell_price)
                 }
-                val sale = Sale(id = saleObj.id, timestamp = saleObj.timestamp, totalAmount = saleObj.total_amount, discountAmount = saleObj.discount_amount, customerName = saleObj.customer_name, customerGstin = saleObj.customer_gstin, businessGstin = saleObj.business_gstin, customerAddress = saleObj.customer_address, businessAddress = saleObj.business_address, type = saleObj.type, notes = saleObj.notes, items = items)
+                val sale = Sale(id = saleObj.id, timestamp = saleObj.timestamp, totalAmount = saleObj.total_amount, discountAmount = saleObj.discount_amount, customerName = saleObj.customer_name, customerGstin = saleObj.customer_gstin, businessGstin = saleObj.business_gstin, customerAddress = saleObj.customer_address, businessAddress = saleObj.business_address, type = saleObj.type, notes = saleObj.notes, isConverted = (saleObj.is_converted == 1L), items = items)
                 
                 val mappedCartItems = sale.items.map { saleItem ->
                     val actualItemObj = inventoryRepository.getItemById(saleItem.itemId)

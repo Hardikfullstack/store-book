@@ -66,7 +66,7 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.material)
 
-    // SQLDelight
+    // SQLDelight — schema + generated types come from :shared KMP module
     implementation(libs.sqldelight.android.driver)
     // 2. Compose UI (Material 3)
     implementation(libs.androidx.compose.ui)
@@ -146,3 +146,5 @@ ktlint {
         include("**/kotlin/**")
     }
 }
+
+

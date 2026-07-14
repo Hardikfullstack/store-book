@@ -1,0 +1,50 @@
+# Epic e03 — Billing Accuracy & Financial Audit
+
+id: e03
+title: "Sale Transactions, Udhaar Ledger & Expense Tracking Correctness"
+scope_feature: ["Sales & Billing (P0)", "Udhaar Credit Ledger (P1)", "Expense Tracking (P1)", "Purchases (P1)"]
+depends_on_epics: [e02]
+target_version: v1.4.0
+priority: P1
+status: defined
+
+rationale: >
+  Financial transactions must be accurate and auditable. Currently, sale totals are computed client-side,
+  udhaar balances rely on summing all records (no incremental balance column), and expense tracking
+  lacks monthly aggregation. Profit calculations depend on accurate buyPrice vs sellPrice which can
+  drift over time if prices change but old sale items aren't snapshot correctly.
+
+success_criteria:
+  - "SaleItem snapshots the sellPrice at time of billing — unaffected by later price changes"
+  - "Udhaar balance = SUM(outstanding) - SUM(paymentsReceived) recalculated on query (denormalized balance column optional)"
+  - "Total daily profit calculated from completed Sales only (not Quotations)"
+
+stories:
+  - id: e03-s1
+    title: "Verify SaleItem price snapshot correctness"
+    acceptance:
+      - "When billing, each SaleItem records the item's current sellPrice at time of sale"
+      - "Later changing an Item's sellPrice does NOT alter historical SaleItem records"
+      - "Audit: add query that checks for any SaleItems where sellPrice diverges from current Item price (informational only)"
+
+  - id: e03-s2
+    title: "Udhaar balance recalculation with running total display"
+    acceptance:
+      - "Each Udhaar card shows: Total Outstanding, Total Paid, Current Balance (outstanding minus paid)"
+      - "Adding a payment reduces current balance in real-time on screen"
+      - "Udhaar summary screen lists customers sorted by highest current balance descending"
+
+  - id: e03-s3
+    title: "Daily/Monthly aggregate views for Expenses and Sales"
+    acceptance:
+      - "Dashboard shows today's total expenses, today's total sales value"
+      - "Profit calculation: SUM(SaleItem.sellPrice) - SUM(SaleItem.buyPrice) for filtered date range"
+      - "Monthly bar chart (web dashboard) showing revenue vs expenses trend"
+
+  - id: e03-s4
+    status: complete
+    title: "Quotation → Sale conversion preserves line items"
+    acceptance:
+      - "When converting Quotation to Sale, all line items (items, qty, prices) transferred atomically"
+      - "Original Quotation marked as 'converted' — cannot be converted again"
+      - "Converted sale gets same billing summary view as manually created sale"

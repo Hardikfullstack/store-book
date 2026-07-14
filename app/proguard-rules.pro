@@ -52,3 +52,8 @@
 # Firebase & Play Services
 -keep class com.google.firebase.** { *; }
 -keep class com.google.android.gms.** { *; }
+
+# --- SQLDelight (Auto-generated types) ---
+-keep class com.storebook.inventoryapp.db.** { *; }
+-dontwarn com.squareup.sqldelight.db.**
+-dontwarn com.squareup.sqldelight.android.*

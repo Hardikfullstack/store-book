@@ -300,7 +300,7 @@ fun AuthScreen(
                             )
 
                             Text(
-                                text = "We will send you a verification code",
+                                text = stringResource(R.string.auth_verify_desc),
                                 fontFamily = Poppins,
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -687,7 +687,7 @@ fun AuthScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "100% Secure & Encrypted Backup",
+                        text = stringResource(R.string.auth_secure_backup),
                         fontFamily = Poppins,
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
@@ -720,7 +720,7 @@ fun AuthScreen(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(start = 16.dp, top = 16.dp)
-                .size(34.dp),
+                .size(48.dp),
             colors = IconButtonDefaults.filledTonalIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
                 contentColor = MaterialTheme.colorScheme.onSurface

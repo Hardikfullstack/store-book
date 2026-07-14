@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.storebook.inventoryapp.shared.domain.repository.UdhaarRepository
 import com.storebook.inventoryapp.shared.domain.models.UdhaarEntry
 import com.storebook.inventoryapp.shared.domain.models.CustomerBalance
+import com.storebook.inventoryapp.shared.domain.models.CustomerDetailedBalance
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -19,6 +20,10 @@ class UdhaarViewModel(
     private val _udhaarBalances = MutableStateFlow<List<CustomerBalance>>(emptyList())
     val udhaarBalances: StateFlow<List<CustomerBalance>> = _udhaarBalances
 
+    // E03-S2: Detailed breakdown with separate outstanding + paid totals per customer
+    private val _detailedBalances = MutableStateFlow<List<CustomerDetailedBalance>>(emptyList())
+    val detailedBalances: StateFlow<List<CustomerDetailedBalance>> = _detailedBalances
+
     // Dummy business name for the UI fallback
     val businessName = "StoreBook Kirana"
 
@@ -30,6 +35,7 @@ class UdhaarViewModel(
         viewModelScope.launch {
             _udhaarEntries.value = repository.getAllUdhaar()
             _udhaarBalances.value = repository.getUdhaarBalances()
+            _detailedBalances.value = repository.getUdhaarBalancesWithBreakdown()
         }
     }
 

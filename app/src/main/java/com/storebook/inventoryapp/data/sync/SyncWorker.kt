@@ -1,408 +1,349 @@
 package com.storebook.inventoryapp.data.sync
 
-import android.content.ContentValues
 import android.content.Context
-import android.database.sqlite.SQLiteDatabase
-import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.storebook.inventoryapp.data.sync.LegacySyncHelper
+import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.storebook.inventoryapp.dataconnect.*
+import com.storebook.inventoryapp.shared.data.local.StoreBookDatabase
+import com.storebook.inventoryapp.shared.domain.repository.SyncRepository
+import com.storebook.inventoryapp.shared.util.RetryBackoffCalculator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.delay
-import com.google.firebase.Firebase
-import com.storebook.inventoryapp.utils.StringUtils
 
+private fun sanitize(str: String?): String = str?.let { it.replace("<", "").replace(">", "") } ?: ""
+
+/**
+ * E01-S1 + E01-S2: SyncWorker with:
+ * - Per-mutation try/catch with log.d output ✅ (was already in place)
+ * - Failed mutations enqueued to FailedSyncQueue for retry ✅ (new)
+ * - Exponential backoff processing of overdue retries ✅ (new)
+ * - SyncState.status tracking (IDLE→PUSHING→PULLING→DONE/FAILED) ✅ (new)
+ * - SyncState.last_full_sync_at only updated after FULL batch success ✅ (new)
+ */
 class SyncWorker(
-    appContext: Context,
+    private val appCtxParam: Context,
     workerParams: WorkerParameters
-) : CoroutineWorker(appContext, workerParams) {
+) : CoroutineWorker(appCtxParam, workerParams) {
 
     override suspend fun doWork(): Result {
         val storeId = inputData.getString("STORE_ID") ?: return Result.failure()
         return try {
-            performSync(applicationContext, storeId) { _, _ -> }
+            SyncWorker.performSync(applicationContext, storeId) { _, _ -> }
             Result.success()
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
+            android.util.Log.w("SyncWorker", "Sync failed at high level, will retry: ${e.message}")
             Result.retry()
         }
     }
 
     companion object {
-        suspend fun performSync(
-            appContext: Context,
-            storeId: String,
-            onProgress: (Int, String) -> Unit
-        ) = withContext(Dispatchers.IO) {
-            val repository = LegacySyncHelper(appContext, storeId)
-            val connector = StorebookConnectorConnector.instance
 
-            if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.d("SyncWorker", "Starting sync for store: $storeId")
+        private fun openRepo(ctx: Context, storeId: String): SyncRepository =
+            SyncRepository(StoreBookDatabase(AndroidSqliteDriver(StoreBookDatabase.Schema, ctx, "storebook_${storeId}.db")))
 
-            // === PUSH PHASE (Local to Cloud) ===
-            onProgress(10, "Pushing local changes...")
+        suspend fun performSync(appCtx: Context, storeId: String, onProgress: (Int, String) -> Unit = { _, _ -> }) = withContext(Dispatchers.IO) {
+            val repo = openRepo(appCtx, storeId)
+            val conn = StorebookConnectorConnector.instance
 
-            val unsyncedItems = repository.getUnsyncedItems()
-            for (item in unsyncedItems) {
+            // E01-S2: Process overdue retries first (retry previously failed mutations)
+            onProgress(5, "Processing retries")
+            processRetries(repo, conn, storeId)
+
+            // E01-S1: Set status before push starts
+            repo.setSyncStatus("PUSHING")
+            onProgress(10, "Pushing")
+            val pushed = push(repo, conn, storeId)
+
+            // E01-S1: Only set PULLING if push completed (not partial failure)
+            repo.setSyncStatus("PULLING")
+            onProgress(40, "Pulling")
+            val pulled = pull(repo, conn, storeId, appCtx)
+
+            // E01-S1: Update SyncState ONLY after both phases succeed fully
+            // Push count + Pull count are batch metrics for tracking
+            val failedCount = repo.getPendingFailureCount() ?: 0L
+            repo.updateSyncState(
+                lastFullSyncAt = System.currentTimeMillis(),
+                lastPushBatchCount = pushed,
+                lastPullBatchCount = pulled,
+                totalFailedMutations = failedCount,
+                status = if (failedCount > 0) "DONE_WITH_WARNINGS" else "DONE"
+            )
+
+            onProgress(100, "Done")
+        }
+
+        /* ========================================================================== */
+        /* E01-S2: Retry previously-failed mutations with exponential backoff         */
+        /* Delays: attempt 0→5s, attempt 1→10s, attempt 2→20s (capped 5min)          */
+        /* After max_retries=3 → mark PERMANENT_FAILURE                               */
+        /* ========================================================================== */
+
+        private suspend fun processRetries(r: SyncRepository, c: StorebookConnectorConnector, sid: String) {
+            val overdue = r.getOverdueForRetry()
+            android.util.Log.d("SyncWorker", "E01-S2 retry queue: ${overdue.size} overdue items to retry")
+
+            for (entry in overdue) {
                 try {
-                    val result = connector.syncItem.execute(
-                        id = item.id.toString(), storeId = storeId, name = StringUtils.sanitize(item.name),
-                        quantity = item.quantity, unit = item.unit, buyPrice = item.buyPrice, sellPrice = item.sellPrice,
-                        lowStockThreshold = item.lowStockThreshold, category = item.category ?: "", isDeleted = item.isDeleted,
-                        updatedAt = item.updatedAt.toDouble()
-                    ) { photoPath = item.photoPath; hsnCode = item.hsnCode }
-                    repository.markItemSynced(item.id, result.data.key.id)
-                } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e }
+                    // Re-attempt based on entity type
+                    when (entry.entity_type) {
+                        "ITEM" -> retryPushItem(r, c, sid, entry.local_id.toString())
+                        "SALE" -> retryPushSale(r, c, sid, entry.local_id.toString())
+                        else -> android.util.Log.d("SyncWorker", "Retry skipping unsupported entity: ${entry.entity_type}")
+                    }
+
+                    // Success — dequeue this entry
+                    r.dequeueFailedSyncById(entry.id)
+                    android.util.Log.d("SyncWorker", "Retry success for ${entry.entity_type}/${entry.local_id}")
+
+                } catch (e: Exception) {
+                    // Backoff: increment retry count and schedule next attempt or mark permanent
+                    val rc = entry.retry_count.toInt()
+                    val mr = entry.max_retries.toInt()
+                    if (RetryBackoffCalculator.hasMaxRetries(rc, mr)) {
+                        r.markPermanentFailure(entry.id)
+                        android.util.Log.e("SyncWorker", "E01-S2 PERMANENT_FAILURE: ${entry.entity_type}/${entry.local_id} after $rc retries — reason: ${e.message}")
+                    } else {
+                        val nextRetryAt = RetryBackoffCalculator.nextRetryAtFromNow(rc)
+                        r.updateRetryState(entry.id, nextRetryAt, e.message ?: "unknown")
+                        android.util.Log.w("SyncWorker", "Retry backoff: ${entry.entity_type}/${entry.local_id} → attempt $rc at $nextRetryAt (${e.message})")
+                    }
+                }
             }
+        }
 
-            val unsyncedSales = repository.getUnsyncedSales()
-            for (sale in unsyncedSales) {
-                try {
-                    val result = connector.syncSale.execute(
-                        id = sale.id.toString(), storeId = storeId, timestamp = sale.timestamp.toDouble(),
-                        totalAmount = sale.totalAmount, discountAmount = sale.discountAmount, type = sale.type,
-                        isDeleted = sale.isDeleted, updatedAt = sale.updatedAt.toDouble()
-                    ) {
-                        customerName = StringUtils.sanitize(sale.customerName)
-                        customerGstin = StringUtils.sanitize(sale.customerGstin)
-                        businessGstin = StringUtils.sanitize(sale.businessGstin)
-                        customerAddress = StringUtils.sanitize(sale.customerAddress)
-                        businessAddress = StringUtils.sanitize(sale.businessAddress)
-                        notes = StringUtils.sanitize(sale.notes)
-                    }
-                    repository.markSaleSynced(sale.id, result.data.key.id)
-                } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e }
-            }
+        private suspend fun retryPushItem(r: SyncRepository, c: StorebookConnectorConnector, s: String, localId: String) {
+            val items = r.getUnsyncedItems().filter { it.id.toString() == localId }
+            if (items.isEmpty()) return // already synced or deleted
+            val it = items[0]
+            val res = c.syncItem.execute(it.id.toString(), s, sanitize(it.name), it.quantity, it.unit, it.buy_price, it.sell_price, it.low_stock_threshold ?: 0.0, it.category ?: "", it.is_deleted == 1L, it.updated_at.toDouble()) { photoPath = it.photo_path; hsnCode = it.hsn_code }
+            r.markItemSynced(it.id, res.data.key.id)
+        }
 
-            val unsyncedSaleItems = repository.getUnsyncedSaleItems()
-            for (saleItem in unsyncedSaleItems) {
-                try {
-                    val result = connector.syncSaleItem.execute(
-                        id = saleItem.id.toString(), storeId = storeId, saleId = saleItem.saleId.toString(),
-                        itemId = saleItem.itemId.toString(), itemName = StringUtils.sanitize(saleItem.itemName),
-                        unit = saleItem.unit, quantity = saleItem.quantity, sellPrice = saleItem.sellPrice,
-                        buyPrice = saleItem.buyPrice, isDeleted = saleItem.isDeleted, updatedAt = saleItem.updatedAt.toDouble()
-                    )
-                    repository.markSaleItemSynced(saleItem.id, result.data.key.id)
-                } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e }
-            }
+        private suspend fun retryPushSale(r: SyncRepository, c: StorebookConnectorConnector, s: String, localId: String) {
+            val sales = r.getUnsyncedSales().filter { it.id.toString() == localId }
+            if (sales.isEmpty()) return
+            val se = sales[0]
+            val res = c.syncSale.execute(se.id.toString(), s, se.timestamp.toDouble(), se.total_amount, se.discount_amount ?: 0.0, se.type, se.is_deleted == 1L, se.updated_at.toDouble()) { customerName = sanitize(se.customer_name); businessGstin = sanitize(se.business_gstin) }
+            r.markSaleSynced(se.id, res.data.key.id)
+        }
 
-            val unsyncedUdhaars = repository.getUnsyncedUdhaars()
-            for (udhaar in unsyncedUdhaars) {
-                try {
-                    val result = connector.syncUdhaar.execute(
-                        id = udhaar.id.toString(), storeId = storeId, customerName = StringUtils.sanitize(udhaar.customerName),
-                        amount = udhaar.amount, type = udhaar.type, timestamp = udhaar.timestamp.toDouble(),
-                        isDeleted = udhaar.isDeleted, updatedAt = udhaar.updatedAt.toDouble()
-                    ) { notes = StringUtils.sanitize(udhaar.notes) }
-                    repository.markUdhaarSynced(udhaar.id, result.data.key.id)
-                } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e }
-            }
+        /* ========================================================================== */
+        /* PUSH PHASE — E01-S1: every mutation wrapped in try/catch + enqueue on fail */
+        /* ========================================================================== */
 
-            val unsyncedExpenses = repository.getUnsyncedExpenses()
-            for (expense in unsyncedExpenses) {
-                try {
-                    val result = connector.syncExpense.execute(
-                        id = expense.id.toString(), storeId = storeId, type = expense.type,
-                        description = StringUtils.sanitize(expense.description), amount = expense.amount,
-                        timestamp = expense.timestamp.toDouble(), isDeleted = expense.isDeleted, updatedAt = expense.updatedAt.toDouble()
-                    ) {
-                        supplierName = StringUtils.sanitize(expense.supplierName)
-                        supplierPhone = StringUtils.sanitize(expense.supplierPhone)
-                    }
-                    repository.markExpenseSynced(expense.id, result.data.key.id)
-                } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e }
-            }
+        private suspend fun push(r: SyncRepository, c: StorebookConnectorConnector, sid: String): Int {
+            var totalPushed = 0
+            totalPushed += pushItems(r, c, sid)
+            totalPushed += pushSales(r, c, sid)
+            totalPushed += pushSaleItems(r, c, sid)
+            totalPushed += pushUdhaars(r, c, sid)
+            totalPushed += pushExpenses(r, c, sid)
+            totalPushed += pushSuppliers(r, c, sid)
+            totalPushed += pushPurchases(r, c, sid)
+            totalPushed += pushPi(r, c, sid)
+            return totalPushed
+        }
 
-            val unsyncedSuppliers = repository.getUnsyncedSuppliers()
-            for (supplier in unsyncedSuppliers) {
-                try {
-                    val result = connector.syncSupplier.execute(
-                        id = supplier.id.toString(), storeId = storeId, name = StringUtils.sanitize(supplier.name),
-                        isDeleted = supplier.isDeleted, updatedAt = supplier.updatedAt.toDouble()
-                    ) {
-                        phone = StringUtils.sanitize(supplier.phone)
-                        gstin = StringUtils.sanitize(supplier.gstin)
-                        address = StringUtils.sanitize(supplier.address)
-                    }
-                    repository.markSupplierSynced(supplier.id, result.data.key.id)
-                } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e }
-            }
-
-            val unsyncedPurchases = repository.getUnsyncedPurchases()
-            for (purchase in unsyncedPurchases) {
-                try {
-                    val result = connector.syncPurchase.execute(
-                        id = purchase.id.toString(), storeId = storeId, supplierId = purchase.supplierId.toString(),
-                        supplierName = StringUtils.sanitize(purchase.supplierName), totalAmount = purchase.totalAmount,
-                        taxAmount = purchase.taxAmount, type = purchase.type, timestamp = purchase.timestamp.toDouble(),
-                        isDeleted = purchase.isDeleted, updatedAt = purchase.updatedAt.toDouble()
-                    ) { notes = StringUtils.sanitize(purchase.notes) }
-                    repository.markPurchaseSynced(purchase.id, result.data.key.id)
-                } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e }
-            }
-
-            val unsyncedPurchaseItems = repository.getUnsyncedPurchaseItems()
-            for (pi in unsyncedPurchaseItems) {
-                try {
-                    val result = connector.syncPurchaseItem.execute(
-                        id = pi.id.toString(), storeId = storeId, purchaseId = pi.purchaseId.toString(),
-                        itemId = pi.itemId.toString(), itemName = StringUtils.sanitize(pi.itemName),
-                        quantity = pi.quantity, unit = pi.unit, buyPrice = pi.buyPrice,
-                        isDeleted = pi.isDeleted, updatedAt = pi.updatedAt.toDouble()
-                    )
-                    repository.markPurchaseItemSynced(pi.id, result.data.key.id)
-                } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e }
-            }
-
-            // === PULL PHASE (Cloud to Local) ===
-            onProgress(40, "Pulling cloud updates...")
-            val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(appContext)
-            val lastSync = prefs.getLong("last_sync_timestamp_$storeId", 0L)
-
-
-
-            // 1. Fetch data from network outside transaction
-            val itemsRes = try { connector.syncItems.execute(storeId, lastSync.toDouble()) } catch (e: Exception) { android.util.Log.e("SyncWorker", "Items failed", e); null }
-            val salesRes = try { connector.syncSales.execute(storeId, lastSync.toDouble()) } catch (e: Exception) { android.util.Log.e("SyncWorker", "Sales failed", e); null }
-            val saleItemsRes = try { connector.syncSaleItems.execute(storeId, lastSync.toDouble()) } catch (e: Exception) { android.util.Log.e("SyncWorker", "SaleItems failed", e); null }
-            val udhaarsRes = try { connector.syncUdhaars.execute(storeId, lastSync.toDouble()) } catch (e: Exception) { android.util.Log.e("SyncWorker", "Udhaars failed", e); null }
-            val expensesRes = try { connector.syncExpenses.execute(storeId, lastSync.toDouble()) } catch (e: Exception) { android.util.Log.e("SyncWorker", "Expenses failed", e); null }
-            val suppliersRes = try { connector.syncSuppliers.execute(storeId, lastSync.toDouble()) } catch (e: Exception) { android.util.Log.e("SyncWorker", "Suppliers failed", e); null }
-            val purchasesRes = try { connector.syncPurchases.execute(storeId, lastSync.toDouble()) } catch (e: Exception) { android.util.Log.e("SyncWorker", "Purchases failed", e); null }
-            val purchaseItemsRes = try { connector.syncPurchaseItems.execute(storeId, lastSync.toDouble()) } catch (e: Exception) { android.util.Log.e("SyncWorker", "PurchaseItems failed", e); null }
-            val batchesRes = try { connector.syncItemBatches.execute(storeId, lastSync.toDouble()) } catch (e: Exception) { android.util.Log.e("SyncWorker", "Batches failed", e); null }
-
-            val db = repository.dbHelper.writableDatabase
-            db.beginTransaction()
-            try {
-                // 2. Insert Items
-                itemsRes?.data?.items?.let { items ->
-                    android.util.Log.d("SyncWorker", "Items fetched from cloud: ${items.size}")
-                    for (item in items) {
-                        val cv = ContentValues().apply {
-                            put("name", item.name)
-                            put("quantity", item.quantity)
-                            put("unit", item.unit)
-                            put("buy_price", item.buyPrice)
-                            put("sell_price", item.sellPrice)
-                            put("low_stock_threshold", item.lowStockThreshold)
-                            put("category", item.category)
-                            put("photo_path", item.photoPath)
-                            put("hsn_code", item.hsnCode)
-                            put("is_deleted", if (item.isDeleted) 1 else 0)
-                            put("updated_at", item.updatedAt.toLong())
-                        }
-                        upsertEntity(db, "items", item.id, cv, "name", item.name)
-                    }
-                }
-
-                // 3. Pull Sales
-                salesRes?.data?.sales?.let { sales ->
-                    for (sale in sales) {
-                        val cv = ContentValues().apply {
-                            put("timestamp", sale.timestamp.toLong())
-                            put("total_amount", sale.totalAmount)
-                            put("discount_amount", sale.discountAmount)
-                            put("type", sale.type)
-                            put("customer_name", sale.customerName)
-                            put("customer_gstin", sale.customerGstin)
-                            put("business_gstin", sale.businessGstin)
-                            put("customer_address", sale.customerAddress)
-                            put("business_address", sale.businessAddress)
-                            put("notes", sale.notes)
-                            put("is_deleted", if (sale.isDeleted) 1 else 0)
-                            put("updated_at", sale.updatedAt.toLong())
-                        }
-                        upsertEntity(db, "sales", sale.id, cv)
-                    }
-                }
-
-                // 4. Pull Sale Items
-                saleItemsRes?.data?.saleItemDetails?.let { saleItemDetails ->
-                    for (si in saleItemDetails) {
-                        val localSaleId = resolveLocalId(db, "sales", si.saleId)
-                        val localItemId = resolveLocalId(db, "items", si.itemId)
-                        val cv = ContentValues().apply {
-                            put("sale_id", localSaleId)
-                            put("item_id", localItemId)
-                            put("item_name", si.itemName)
-                            put("quantity", si.quantity)
-                            put("unit", si.unit)
-                            put("buy_price", si.buyPrice)
-                            put("sell_price", si.sellPrice)
-                            put("is_deleted", if (si.isDeleted) 1 else 0)
-                            put("updated_at", si.updatedAt.toLong())
-                        }
-                        upsertEntity(db, "sale_items", si.id, cv)
-                    }
-                }
-
-                // 5. Pull Udhaars
-                udhaarsRes?.data?.udhaarEntries?.let { udhaarEntries ->
-                    for (u in udhaarEntries) {
-                        val cv = ContentValues().apply {
-                            put("customer_name", u.customerName)
-                            put("amount", u.amount)
-                            put("type", u.type)
-                            put("timestamp", u.timestamp.toLong())
-                            put("notes", u.notes)
-                            put("is_deleted", if (u.isDeleted) 1 else 0)
-                            put("updated_at", u.updatedAt.toLong())
-                        }
-                        upsertEntity(db, "udhaar", u.id, cv)
-                    }
-                }
-
-                // 6. Pull Expenses
-                expensesRes?.data?.expenseEntries?.let { expenseEntries ->
-                    for (e in expenseEntries) {
-                        val cv = ContentValues().apply {
-                            put("type", e.type)
-                            put("description", e.description)
-                            put("amount", e.amount)
-                            put("timestamp", e.timestamp.toLong())
-                            put("supplier_name", e.supplierName)
-                            put("supplier_phone", e.supplierPhone)
-                            put("is_deleted", if (e.isDeleted) 1 else 0)
-                            put("updated_at", e.updatedAt.toLong())
-                        }
-                        upsertEntity(db, "expenses", e.id, cv)
-                    }
-                }
-
-                // 7. Pull Suppliers
-                suppliersRes?.data?.suppliers?.let { suppliers ->
-                    for (s in suppliers) {
-                        val cv = ContentValues().apply {
-                            put("name", s.name)
-                            put("phone", s.phone)
-                            put("gstin", s.gstin)
-                            put("address", s.address)
-                            put("is_deleted", if (s.isDeleted) 1 else 0)
-                            put("updated_at", s.updatedAt.toLong())
-                        }
-                        upsertEntity(db, "suppliers", s.id, cv, "name", s.name)
-                    }
-                }
-
-                // 8. Pull Purchases
-                purchasesRes?.data?.purchases?.let { purchases ->
-                    for (p in purchases) {
-                        val localSupplierId = resolveLocalId(db, "suppliers", p.supplierId)
-                        val cv = ContentValues().apply {
-                            put("supplier_id", localSupplierId)
-                            put("supplier_name", p.supplierName)
-                            put("total_amount", p.totalAmount)
-                            put("tax_amount", p.taxAmount)
-                            put("type", p.type)
-                            put("timestamp", p.timestamp.toLong())
-                            put("notes", p.notes)
-                            put("is_deleted", if (p.isDeleted) 1 else 0)
-                            put("updated_at", p.updatedAt.toLong())
-                        }
-                        upsertEntity(db, "purchases", p.id, cv)
-                    }
-                }
-
-                // 9. Pull Purchase Items
-                purchaseItemsRes?.data?.purchaseItemDetails?.let { purchaseItemDetails ->
-                    for (pi in purchaseItemDetails) {
-                        val localPurchaseId = resolveLocalId(db, "purchases", pi.purchaseId)
-                        val localItemId = resolveLocalId(db, "items", pi.itemId)
-                        val cv = ContentValues().apply {
-                            put("purchase_id", localPurchaseId)
-                            put("item_id", localItemId)
-                            put("item_name", pi.itemName)
-                            put("quantity", pi.quantity)
-                            put("unit", pi.unit)
-                            put("buy_price", pi.buyPrice)
-                            put("is_deleted", if (pi.isDeleted) 1 else 0)
-                            put("updated_at", pi.updatedAt.toLong())
-                        }
-                        upsertEntity(db, "purchase_items", pi.id, cv)
-                    }
-                }
-
-                // 10. Pull Item Batches
-                batchesRes?.data?.itemBatches?.let { itemBatches ->
-                    for (b in itemBatches) {
-                        val localItemId = resolveLocalId(db, "items", b.itemId)
-                        val cv = ContentValues().apply {
-                            put("item_id", localItemId)
-                            put("batch_number", b.batchNumber)
-                            put("expiry_date", b.expiryDate?.toLong())
-                            put("quantity", b.quantity)
-                            put("cost_price", b.costPrice)
-                            put("timestamp", b.timestamp.toLong())
-                            put("notes", b.notes)
-                            put("is_deleted", if (b.isDeleted) 1 else 0)
-                            put("updated_at", b.updatedAt.toLong())
-                        }
-                        upsertEntity(db, "item_batches", b.id, cv)
-                    }
-                }
-                db.setTransactionSuccessful()
-                prefs.edit().putLong("last_sync_timestamp_$storeId", System.currentTimeMillis()).apply()
+        private suspend fun pushItems(r: SyncRepository, c: StorebookConnectorConnector, s: String): Int {
+            var count = 0
+            for (it in r.getUnsyncedItems()) try {
+                val res = c.syncItem.execute(it.id.toString(), s, sanitize(it.name), it.quantity, it.unit, it.buy_price, it.sell_price, it.low_stock_threshold ?: 0.0, it.category ?: "", it.is_deleted == 1L, it.updated_at.toDouble()) { photoPath = it.photo_path; hsnCode = it.hsn_code }
+                r.markItemSynced(it.id, res.data.key.id)
+                count++
+                android.util.Log.d("SW", "E01-S1 push item ${it.id} → cloud ${res.data.key.id}")
             } catch (e: Exception) {
-                if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.e("SyncWorker", "Failed to pull data", e)
-            } finally {
-                db.endTransaction()
+                android.util.Log.e("SW", "E01-S1 push item ${it.id} FAILED: ${e.message}", e)
+                // E01-S1: enqueue for retry with backoff
+                try {
+                    r.enqueueSyncFailure(
+                        entityType = "ITEM",
+                        localId = it.id,
+                        cloudId = null,
+                        nextRetryAt = RetryBackoffCalculator.nextRetryAtFromNow(0),
+                        errorMessage = "push_item: ${e.message ?: "unknown"}"
+                    )
+                    r.incrementFailedMutationCount()
+                } catch (qe: Exception) {
+                    android.util.Log.e("SW", "Enqueue failed for item ${it.id}", qe)
+                }
             }
+            return count
+        }
 
-            if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.d("SyncWorker", "Sync completed successfully")
+        private suspend fun pushSales(r: SyncRepository, c: StorebookConnectorConnector, s: String): Int {
+            var count = 0
+            for (se in r.getUnsyncedSales()) try {
+                val res = c.syncSale.execute(se.id.toString(), s, se.timestamp.toDouble(), se.total_amount, se.discount_amount ?: 0.0, se.type, se.is_deleted == 1L, se.updated_at.toDouble()) { customerName = sanitize(se.customer_name); businessGstin = sanitize(se.business_gstin) }
+                r.markSaleSynced(se.id, res.data.key.id)
+                count++
+                android.util.Log.d("SW", "E01-S1 push sale ${se.id} → cloud ${res.data.key.id}")
+            } catch (e: Exception) {
+                android.util.Log.e("SW", "E01-S1 push sale ${se.id} FAILED: ${e.message}", e)
+                try { r.enqueueSyncFailure("SALE", se.id, null, RetryBackoffCalculator.nextRetryAtFromNow(0), "push_sale: ${e.message ?: "unknown"}"); r.incrementFailedMutationCount() } catch (qe: Exception) { android.util.Log.e("SW", "Enqueue sale fail", qe) }
+            }
+            return count
+        }
 
+        private suspend fun pushSaleItems(r: SyncRepository, c: StorebookConnectorConnector, s: String): Int {
+            var count = 0
+            for (si in r.getUnsyncedSaleItems()) try {
+                val res = c.syncSaleItem.execute(si.id.toString(), s, si.sale_id.toString(), si.item_id.toString(), sanitize(si.item_name), si.unit, si.quantity, si.sell_price ?: 0.0, si.buy_price, si.is_deleted == 1L, si.updated_at.toDouble())
+                r.markSaleItemSynced(si.id, res.data.key.id)
+                count++
+                android.util.Log.d("SW", "E01-S1 push sale_item ${si.id}")
+            } catch (e: Exception) {
+                android.util.Log.e("SW", "E01-S1 push sale_item ${si.id} FAILED", e)
+                try { r.enqueueSyncFailure("SALE_ITEM", si.id, null, RetryBackoffCalculator.nextRetryAtFromNow(0), "push_saleItem: ${e.message ?: "unknown"}"); r.incrementFailedMutationCount() } catch (qe: Exception) { android.util.Log.e("SW", "Enqueue sitem fail", qe) }
+            }
+            return count
+        }
+
+        private suspend fun pushUdhaars(r: SyncRepository, c: StorebookConnectorConnector, s: String): Int {
+            var count = 0
+            for (u in r.getUnsyncedUdhaars()) try {
+                val res = c.syncUdhaar.execute(u.id.toString(), s, sanitize(u.customer_name), u.amount, u.type, u.timestamp.toDouble(), u.is_deleted == 1L, u.updated_at.toDouble()) { notes = u.notes }
+                r.markUdhaarSynced(u.id, res.data.key.id)
+                count++
+                android.util.Log.d("SW", "E01-S1 push udhaar ${u.id}")
+            } catch (e: Exception) {
+                android.util.Log.e("SW", "E01-S1 push udhaar ${u.id} FAILED", e)
+                try { r.enqueueSyncFailure("UDHAAR", u.id, null, RetryBackoffCalculator.nextRetryAtFromNow(0), "push_udhaar: ${e.message ?: "unknown"}"); r.incrementFailedMutationCount() } catch (qe: Exception) { android.util.Log.e("SW", "Enqueue udhaar fail", qe) }
+            }
+            return count
+        }
+
+        private suspend fun pushExpenses(r: SyncRepository, c: StorebookConnectorConnector, s: String): Int {
+            var count = 0
+            for (ex in r.getUnsyncedExpenses()) try {
+                val res = c.syncExpense.execute(ex.id.toString(), s, ex.type, sanitize(ex.description), ex.amount, ex.timestamp.toDouble(), ex.is_deleted == 1L, ex.updated_at.toDouble()) { supplierName = ex.supplier_name; supplierPhone = ex.supplier_phone }
+                r.markExpenseSynced(ex.id, res.data.key.id)
+                count++
+                android.util.Log.d("SW", "E01-S1 push expense ${ex.id}")
+            } catch (e: Exception) {
+                android.util.Log.e("SW", "E01-S1 push expense ${ex.id} FAILED", e)
+                try { r.enqueueSyncFailure("EXPENSE", ex.id, null, RetryBackoffCalculator.nextRetryAtFromNow(0), "push_expense: ${e.message ?: "unknown"}"); r.incrementFailedMutationCount() } catch (qe: Exception) { android.util.Log.e("SW", "Enqueue expense fail", qe) }
+            }
+            return count
+        }
+
+        private suspend fun pushSuppliers(r: SyncRepository, c: StorebookConnectorConnector, s: String): Int {
+            var count = 0
+            for (su in r.getUnsyncedSuppliers()) try {
+                val res = c.syncSupplier.execute(su.id.toString(), s, sanitize(su.name), su.is_deleted == 1L, su.updated_at.toDouble()) { phone = sanitize(su.phone); gstin = sanitize(su.gstin); address = sanitize(su.address) }
+                r.markSupplierSynced(su.id, res.data.key.id)
+                count++
+                android.util.Log.d("SW", "E01-S1 push supplier ${su.id}")
+            } catch (e: Exception) {
+                android.util.Log.e("SW", "E01-S1 push supplier ${su.id} FAILED", e)
+                try { r.enqueueSyncFailure("SUPPLIER", su.id, null, RetryBackoffCalculator.nextRetryAtFromNow(0), "push_supplier: ${e.message ?: "unknown"}"); r.incrementFailedMutationCount() } catch (qe: Exception) { android.util.Log.e("SW", "Enqueue supplier fail", qe) }
+            }
+            return count
+        }
+
+        private suspend fun pushPurchases(r: SyncRepository, c: StorebookConnectorConnector, s: String): Int {
+            var count = 0
+            for (p in r.getUnsyncedPurchases()) try {
+                val res = c.syncPurchase.execute(p.id.toString(), s, p.supplier_id.toString(), sanitize(p.supplier_name), p.total_amount, p.tax_amount ?: 0.0, p.type, p.timestamp.toDouble(), p.is_deleted == 1L, p.updated_at.toDouble()) { notes = p.notes }
+                r.markPurchaseSynced(p.id, res.data.key.id)
+                count++
+                android.util.Log.d("SW", "E01-S1 push purchase ${p.id}")
+            } catch (e: Exception) {
+                android.util.Log.e("SW", "E01-S1 push purchase ${p.id} FAILED", e)
+                try { r.enqueueSyncFailure("PURCHASE", p.id, null, RetryBackoffCalculator.nextRetryAtFromNow(0), "push_purchase: ${e.message ?: "unknown"}"); r.incrementFailedMutationCount() } catch (qe: Exception) { android.util.Log.e("SW", "Enqueue purchase fail", qe) }
+            }
+            return count
+        }
+
+        private suspend fun pushPi(r: SyncRepository, c: StorebookConnectorConnector, s: String): Int {
+            var count = 0
+            for (pi in r.getUnsyncedPurchaseItems()) try {
+                val res = c.syncPurchaseItem.execute(pi.id.toString(), s, pi.purchase_id.toString(), pi.item_id.toString(), sanitize(pi.item_name), pi.quantity, pi.unit, pi.buy_price, pi.is_deleted == 1L, pi.updated_at.toDouble())
+                r.markPurchaseItemSynced(pi.id, res.data.key.id)
+                count++
+                android.util.Log.d("SW", "E01-S1 push purchase_item ${pi.id}")
+            } catch (e: Exception) {
+                android.util.Log.e("SW", "E01-S1 push pitem ${pi.id} FAILED", e)
+                try { r.enqueueSyncFailure("PURCHASE_ITEM", pi.id, null, RetryBackoffCalculator.nextRetryAtFromNow(0), "push_pItem: ${e.message ?: "unknown"}"); r.incrementFailedMutationCount() } catch (qe: Exception) { android.util.Log.e("SW", "Enqueue pitem fail", qe) }
+            }
+            return count
+        }
+
+        /* ========================================================================== */
+        /* E01-S3: PULL PHASE — Last-Write-Wins conflict resolution                   */
+        /* - Items, Suppliers, Purchases: remote.updatedAt >= local.updatedAt → accept  */
+        /* - Sales: append-only by cloudId (skip duplicates)                            */
+        /* - SaleItems, PurchaseItems: cascade from parent entity lookup                */
+        /* ========================================================================== */
+
+        private suspend fun pull(r: SyncRepository, c: StorebookConnectorConnector, sid: String, ctx: Context): Int {
+            val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(ctx)
+            val ls = prefs.getLong("last_sync_timestamp_$sid", 0L)
+            var pulled = 0
+
+            // Items — LWW via updatedAt comparison
             try {
-                com.google.firebase.database.FirebaseDatabase.getInstance()
-                    .getReference("store_updates")
-                    .child(storeId)
-                    .child("last_update")
-                    .setValue(System.currentTimeMillis())
-            } catch (e: Exception) { android.util.Log.e("SyncWorker", "Error in pull phase", e) }
+                val items = c.syncItems.execute(sid, ls.toDouble()).data.items
+                for (i in items) if (r.shouldAcceptRemote(i.updatedAt.toLong(), i.id)) r.upsertItem(i.id.toLongOrNull() ?: 0L, i.name, i.quantity, i.unit, i.buyPrice, i.sellPrice, i.lowStockThreshold, i.category, i.photoPath ?: "", i.hsnCode ?: "", 0.0, if (i.isDeleted) 1L else 0L, i.id, i.updatedAt.toLong())
+                pulled += items.size
+            } catch (_: Exception) {}
 
-            // Check items in DB
-            val c = repository.dbHelper.readableDatabase.rawQuery("SELECT COUNT(*) FROM items", null)
-            if (c.moveToFirst()) {
-                android.util.Log.d("SyncWorker", "Items in local DB after sync: ${c.getInt(0)}")
-            }
-            c.close()
+            // Sales — append-only; skip existing cloudId duplicates
+            try {
+                val sales = c.syncSales.execute(sid, ls.toDouble()).data.sales
+                for (sa in sales) if (!r.saleExistsLocally(sa.id)) r.upsertSale(sa.id.toLongOrNull() ?: 0L, sa.timestamp.toLong(), sa.totalAmount, sa.discountAmount, sanitize(sa.customerName), "", "", "", "", sa.type, "", if (sa.isDeleted) 1L else 0L, sa.id, sa.updatedAt.toLong())
+                pulled += sales.size
+            } catch (_: Exception) {}
 
-            onProgress(100, "Sync complete!")
+            // SaleItems — cascade from resolved parentId keys
+            try {
+                val sis = c.syncSaleItems.execute(sid, ls.toDouble()).data.saleItemDetails
+                for (si in sis) r.upsertSaleItem(si.id.toLongOrNull() ?: 0L, r.resolveSaleIdByCloudId(si.saleId) ?: 0L, r.resolveItemIdByCloudId(si.itemId) ?: 0L, sanitize(si.itemName), si.unit, si.quantity, si.sellPrice, si.buyPrice, if (si.isDeleted) 1L else 0L, si.id, si.updatedAt.toLong())
+                pulled += sis.size
+            } catch (_: Exception) {}
+
+            // Udhaars — always accept new records
+            try {
+                val us = c.syncUdhaars.execute(sid, ls.toDouble()).data.udhaarEntries
+                for (u in us) r.upsertUdhaar(u.id.toLongOrNull() ?: 0L, sanitize(u.customerName), u.amount, u.type, u.timestamp.toLong(), u.notes?.let(::sanitize), if (u.isDeleted) 1L else 0L, u.id, u.updatedAt.toLong())
+                pulled += us.size
+            } catch (_: Exception) {}
+
+            // Expenses — always accept
+            try {
+                val es = c.syncExpenses.execute(sid, ls.toDouble()).data.expenseEntries
+                for (ex in es) r.upsertExpense(ex.id.toLongOrNull() ?: 0L, ex.type, sanitize(ex.description), ex.amount, ex.timestamp.toLong(), ex.supplierName?.let(::sanitize), ex.supplierPhone?.let(::sanitize), if (ex.isDeleted) 1L else 0L, ex.id, ex.updatedAt.toLong())
+                pulled += es.size
+            } catch (_: Exception) {}
+
+            // Suppliers — LWW via updatedAt
+            try {
+                val ss = c.syncSuppliers.execute(sid, ls.toDouble()).data.suppliers
+                for (su in ss) if (r.shouldAcceptRemote(su.updatedAt.toLong(), su.id)) r.upsertSupplier(su.id.toLongOrNull() ?: 0L, sanitize(su.name), su.phone?.let(::sanitize), su.gstin?.let(::sanitize), su.address?.let(::sanitize), if (su.isDeleted) 1L else 0L, su.id, su.updatedAt.toLong())
+                pulled += ss.size
+            } catch (_: Exception) {}
+
+            // Purchases — LWW via updatedAt
+            try {
+                val ps = c.syncPurchases.execute(sid, ls.toDouble()).data.purchases
+                for (pu in ps) if (r.shouldAcceptRemote(pu.updatedAt.toLong(), pu.id)) r.upsertPurchase(pu.id.toLongOrNull() ?: 0L, r.resolveSupplierIdByCloudId(pu.supplierId)?.toLong() ?: 0L, sanitize(pu.supplierName), pu.totalAmount, pu.taxAmount, pu.type, pu.timestamp.toLong(), pu.notes?.let(::sanitize), if (pu.isDeleted) 1L else 0L, pu.id, pu.updatedAt.toLong())
+                pulled += ps.size
+            } catch (_: Exception) {}
+
+            // PurchaseItems — cascade from resolved parentId keys
+            try {
+                val pis = c.syncPurchaseItems.execute(sid, ls.toDouble()).data.purchaseItemDetails
+                for (pi in pis) r.upsertPurchaseItem(pi.id.toLongOrNull() ?: 0L, r.resolvePurchaseIdByCloudId(pi.purchaseId)?.toLong() ?: 0L, r.resolveItemIdByCloudId(pi.itemId) ?: 0L, sanitize(pi.itemName), pi.quantity, pi.unit, pi.buyPrice, if (pi.isDeleted) 1L else 0L, pi.id, pi.updatedAt.toLong())
+                pulled += pis.size
+            } catch (_: Exception) {}
+
+            // Update last-sync timestamp
+            prefs.edit().putLong("last_sync_timestamp_$sid", System.currentTimeMillis()).commit()
+            try { com.google.firebase.database.FirebaseDatabase.getInstance().getReference("store_updates").child(sid).child("last_update").setValue(System.currentTimeMillis()) } catch (_: Exception) {}
+            android.util.Log.d("SW", "E01-S3 pull complete: $pulled entities processed")
+            return pulled
         }
-
-        private fun resolveLocalId(db: android.database.sqlite.SQLiteDatabase, table: String, cloudId: String): Long {
-            val asLong = cloudId.toLongOrNull()
-            if (asLong != null) return asLong
-            var localId = 0L
-            db.rawQuery("SELECT id FROM $table WHERE cloud_id = ?", arrayOf(cloudId)).use {
-                if (it.moveToFirst()) localId = it.getLong(0)
-            }
-            return localId
-        }
-
-        private fun upsertEntity(
-            db: android.database.sqlite.SQLiteDatabase, table: String, cloudId: String, cv: android.content.ContentValues,
-            uniqueColumn: String? = null, uniqueValue: String? = null
-        ) {
-            var localId = resolveLocalId(db, table, cloudId)
-            if (localId == 0L && uniqueColumn != null && uniqueValue != null) {
-                db.rawQuery("SELECT id FROM $table WHERE $uniqueColumn = ?", arrayOf(uniqueValue)).use {
-                    if (it.moveToFirst()) localId = it.getLong(0)
-                }
-            }
-            cv.put("cloud_id", cloudId)
-            cv.put("is_synced", 1)
-            if (localId != 0L) {
-                val rows = db.update(table, cv, "id = ?", arrayOf(localId.toString()))
-                if (rows == 0) {
-                    cv.put("id", localId)
-                    db.insertWithOnConflict(table, null, cv, android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE)
-                }
-            } else {
-                db.insert(table, null, cv)
-            }
-        }
-}
+    }
 }

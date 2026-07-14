@@ -1,0 +1,70 @@
+# Execution Status — StoreBook
+last_updated: "2025-07-13"
+
+active_flow: build
+phase: "Phase 4 - Build (implementation)"
+
+current_epic: null
+current_story: null
+current_task: "Epic story implementation"
+
+completion:
+  discover_phase: "complete"
+  vision_scope_glossary: "complete"
+  epics_scoped: "complete"
+  release_plan: "complete"
+  design_docs: "complete"
+    design_plan: "specs/tech-architecture/DESIGN_PLAN_LATEST.md"
+    test_plan: "specs/tech-architecture/TEST_PLAN_LATEST.md"
+    security_plan: "specs/tech-architecture/SECURITY_PLAN_LATEST.md"
+    impact_analysis: "specs/tech-architecture/IMPACT_LATEST.md"
+    refactor_plan: "specs/tech-architecture/REFACTOR_LATEST.md"
+  sqldelight_hard_req_marked: "complete"
+  code_changes: rp_a0_complete_e01_all_complete_e02_s2_complete
+
+hard_requirements:
+  - name: SQLDelight for all local DB access
+    status: complete
+    spec_ref: specs/tech-architecture/REFACTOR_LATEST.md §A
+    blocks_all_epic_stories: false
+    notes: |
+      RP-A0 migration finished. All 10 entity tables + FailedSyncQueue defined in .sq files under shared/.
+      SyncRepository provides type-safe getUnsynced/markSynced/resolve/upsert methods for all entities.
+      LegacySyncHelper.kt deleted (~290 lines raw SQLite removed).
+      SyncWorker.kt rewritten with typed SQLDelight push/pull loops, try/catch per mutation, backoff retry.
+      DashboardScreen sync badge (E01-S4) live in header: PUSHING/PULLING → green SYNCED / red FAILED · tap-to-retry.
+      E02-S1 wrapped all 8 repos in database.transaction{} for auto-rollback on partial writes.
+      E02-S2 added is_low_stock_alert_sent column to items + low-stock alert loop to ExpiryCheckWorker.
+      compileDebugKotlin + assembleDebug: BUILD SUCCESSFUL, 0 errors.
+
+rp_a0_summary:
+  schema_file: "shared/src/commonMain/sqldelight/.../StoreBook.sq"
+  entities_covered: [items, sales, sale_items, udhaar, expenses, suppliers, purchases, purchase_items, item_batches, sync_state, failed_sync_queue]
+  sync_queries_total: 32
+  upsert_methods_total: 10
+  resolve_cloud_id_methods: 4
+  repositories_added:
+    [SyncRepository, InventoryRepository(extended), ExpenseRepository(extended),
+     UdhaarRepository(extended), SupplierRepository(extended), PurchaseRepository(extended)]
+
+blockers: []
+
+next_steps:
+  - complete: "RP-A0 — SQLDelight Migration (schema + repositories + SyncWorker)"
+  - complete: "E01-S1 — SyncWorker push phase error handling + retry queue enrollment + SyncState tracking"
+  - complete: "E01-S2 — Exponential backoff retry (FailedSyncQueue table + RetryBackoffCalculator + retry processing loop)"
+  - complete: "E01-S3 — Pull phase conflict resolution (last-write-wins strategy via shouldAcceptRemote/saleExistsLocally)"
+  - complete: "E01-S4 — Sync progress indicator in Android UI (colored badge, tap-to-retry, StateFlow polling refresh)"
+  - complete: "E02-S1 — Wrap ALL repository CRUD mutations in database.transaction{} (8 repos updated, auto-rollback, soft-delete only)"
+  - complete: "E02-S2 — Low-stock threshold check in ExpiryCheckWorker (is_low_stock_alert_sent column + notification + alert flag toggle)"
+  - complete: "E03-S4 — Atomic Quotation→Sale conversion (transaction wrapper, is_converted flag + double-convert protection, SalesViewModel relay)"
+  - complete: "E03-S3 — Daily/Monthly aggregate views (4 new SQLDelight queries using sale_items price snapshots for accurate profit)",
+    notes: |
+      StoreBook.sq: getDailyRevenueByDateRange, getDailyExpensesByDateRange, getTodaySnapshot(todayKey), getMonthlySummaryByDateRange
+      SalesRepository: 3 new methods wrapping aggregate queries (revenue w/ COGS, today snapshot, monthly summary)
+      ExpenseRepository: getDailyExpensesByDateRange for day-level expense totals
+      DashboardViewModel TodaySnapshot StateFlow — revenue, COGS, expenses loaded from SQL on init + refreshSyncStatus triggers load
+      DashboardScreen: Added 3 AnimatedMetricCard views (Today Revenue, Expenses, Profit) powered by snapshot data
+      Profit = today_revenue - today_cog - today_expenses (from sale_items sell_price/buy_price AT TIME OF SALE — not current prices)
+  - next: E04 stories or additional E03/E02 stories
+  - pending: "Eps E03 & E04 epic story implementation"

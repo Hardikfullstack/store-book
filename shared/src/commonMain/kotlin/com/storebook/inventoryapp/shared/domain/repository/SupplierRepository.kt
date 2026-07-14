@@ -15,17 +15,22 @@ class SupplierRepository(
         queries.getAllSuppliers().executeAsList()
     }
 
+    // E02-S1: Transaction-wrapped mutations
     suspend fun insertSupplier(
         name: String, phone: String?, gstin: String?, address: String?
     ): Long = withContext(Dispatchers.IO) {
-        val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-        queries.insertSupplier(name, phone, gstin, address, timestamp)
+        database.transaction {
+            val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+            queries.insertSupplier(name, phone, gstin, address, timestamp)
+        }
         queries.getLastInsertRowId().executeAsOne()
     }
 
     suspend fun deleteSupplier(id: Long) = withContext(Dispatchers.IO) {
-        val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-        queries.softDeleteSupplier(timestamp, id)
+        database.transaction {
+            val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+            queries.softDeleteSupplier(timestamp, id)
+        }
     }
 
     suspend fun getSupplierBalances(purchaseRepository: PurchaseRepository): List<SupplierBalance> = withContext(Dispatchers.IO) {
@@ -41,5 +46,14 @@ class SupplierRepository(
                 SupplierBalance(id, supplier.name, supplier.phone, balance, 0L)
             }
         }
+    }
+
+    // RP-A0: Push-sync methods
+    suspend fun getUnsyncedSuppliers(): List<Suppliers> = withContext(Dispatchers.IO) {
+        queries.getUnsyncedSuppliers().executeAsList()
+    }
+
+    suspend fun markSupplierSynced(id: Long, cloudId: String) = withContext(Dispatchers.IO) {
+        queries.markSupplierSynced(cloudId, id)
     }
 }

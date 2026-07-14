@@ -1,0 +1,43 @@
+# Epic e04 — Web Dashboard UX & Realtime Analytics
+
+id: e04
+title: "Dashboard Charts, Admin Panel Polish & Permission Enforcement"
+scope_feature: ["Web Dashboard (P1)", "Admin Panel (P2)", "Quotations (P2)"]
+depends_on_epics: [e03]
+target_version: v1.5.0
+priority: P2
+status: defined
+
+rationale: >
+  The web dashboard is the shop owner's primary view of business health. Currently analytics pages exist
+  but lack real-time charts, admin can see all stores without proper permission checks, and staff
+  management needs role-based feature toggles. Quotation conversion from web is also needed for
+  wholesale workflow when Android POS isn't available.
+
+success_criteria:
+  - "Dashboard loads within 2s on average connection with Redux-persist cache"
+  - "All data queries enforce storeId scope — admin can only view own stores + those assigned as multi-store manager"
+  - "Charts render correct data for last 7 days, 30 days, custom range filters"
+
+stories:
+  - id: e04-s1
+    title: "Add Recharts-based sales trend chart to dashboard"
+    acceptance:
+      - "Line chart showing daily total sale value for selected date range (default: last 30 days)"
+      - "Tooltip on hover shows exact amount + number of transactions that day"
+      - "Data sourced from Server Action with Redis cache (5min TTL), fallback to Redux-persist stale data"
+
+  - id: e04-s2
+    title: "Enforce staff role-based permissions across web routes"
+    acceptance:
+      - "Cashier role: can view only Sales and Items — Analytics, Settings, Admin hidden or disabled"
+      - "Manager role: all views except User management (add/delete users)"
+      - "Owner role: full access"
+      - "Permission check middleware on protected API routes returns 403 for unauthorized roles"
+
+  - id: e04-s3
+    title: "Quotation creation and conversion from web dashboard"
+    acceptance:
+      - "Web interface to create new Quotations with item selection (same as sale flow)"
+      - "'Convert to Sale' button on quotation detail page"
+      - "Quotation list sorted by 'created at' descending, filterable by status (draft, converted, expired)"

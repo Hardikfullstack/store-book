@@ -38,6 +38,7 @@ data class Sale(
         val businessAddress: String? = null,
         val type: String = "SALE", // 'SALE' or 'ESTIMATE'
         val notes: String? = null,
+        val isConverted: Boolean = false,
         val items: List<SaleItemDetail> = emptyList(),
 )
 
@@ -66,6 +67,16 @@ data class UdhaarEntry(
 data class CustomerBalance(
         val customerName: String,
         val netBalance: Double, // positive = customer owes shop, negative = shop owes customer
+        val lastTransactionTime: Long,
+)
+
+/** E03-S2: Detailed breakdown of outstanding vs paid amounts per customer */
+@Serializable
+data class CustomerDetailedBalance(
+        val customerName: String,
+        val totalOutstanding: Double, // SUM of all CREDIT entries
+        val totalPaid: Double,       // SUM of all PAYMENT entries
+        val currentBalance: Double,  // outstanding minus paid (positive = owes money)
         val lastTransactionTime: Long,
 )
 

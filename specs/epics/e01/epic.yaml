@@ -1,0 +1,57 @@
+# Epic e01 — Sync Reliability
+
+id: e01
+title: "Sync Worker: Robust Push/Pull with Retry & Conflict Resolution"
+scope_feature: ["Sync Engine (P0)"]
+depends_on_epics: []
+target_version: v1.3.0
+priority: P0
+status: defined
+
+rationale: >
+  SyncWorker is the critical path from Android offline data → cloud PostgreSQL. Currently it runs
+  as a PeriodicWorkRequest with basic push pull logic but lacks conflict resolution for concurrent
+  edits, proper retry backoff on transient failures, and circuit-breaking when Firebase auth tokens
+  expire mid-sync. Fixing this prevents data divergence between device and dashboard.
+
+success_criteria:
+  - "95%+ of local DB changes synced to cloud within one scheduled run"
+  - "No crashes during sync when offline (graceful retry on next run)"
+  - "Conflicting item updates resolved via last-write-wins with updatedAt timestamp"
+  - "Sync completion visible in Android UI status indicator"
+
+stories:
+  - id: e01-s1
+    status: complete
+    title: "Audit SyncWorker push phase — detect missing error handling"
+    acceptance:
+      - "Every mutation call (syncItem, syncSale) wrapped in try/catch with Log.d output"
+      - "Network timeouts caught and marked as retry-eligible"
+      - "SyncState.lastSync only updated after successful batch push, not on partial failure"
+
+  - id: e01-s2
+    status: complete
+    title: "Add exponential backoff retry for failed mutations"
+    acceptance:
+      - "Implement retry queue: failed mutations re-enqueued with delay 5s → 30s → 5min up to 3 retries"
+      - "After max retries, mutation marked as 'permanent_failure' with reason code stored locally"
+      - "User can view permanent failure list in Settings > Sync Issues screen"
+
+  - id: e01-s3
+    status: complete
+    title: "Pull phase conflict resolution — last-write-wins strategy"
+
+  - id: e01-s3
+    title: "Pull phase conflict resolution — last-write-wins strategy"
+    acceptance:
+      - "When local item updatedAt < remote updatedAt, accept remote version"
+      - "When local item updatedAt >= remote updatedAt, keep local version and re-push"
+      - "Sale transactions are append-only (never overwritten) — conflicts resolved by ID uniqueness check"
+
+  - id: e01-s4
+    status: complete
+    title: "Sync progress indicator in Android UI"
+    acceptance:
+      - "Dashboard screen shows sync status badge: 'Synced', 'Syncing...', 'Failed — tap to retry'"
+      - "Badge taps into manual sync trigger (not just periodic)"
+      - "Last successful sync timestamp displayed under Settings > About"

@@ -248,6 +248,7 @@ fun AppNavigation() {
     if (showQuickExpense) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showQuickExpense = false },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Log Expense", style = MaterialTheme.typography.titleMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -297,6 +298,7 @@ fun AppNavigation() {
     if (showQuickSale) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showQuickSale = false },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Quick Cash Sale", style = MaterialTheme.typography.titleMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -370,6 +372,7 @@ fun AppNavigation() {
     if (showQuickRestock) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showQuickRestock = false },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Quick Add Item", style = MaterialTheme.typography.titleMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -468,6 +471,7 @@ fun AppNavigation() {
     if (showQuickParty) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showQuickParty = false },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Log Party Balance", style = MaterialTheme.typography.titleMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

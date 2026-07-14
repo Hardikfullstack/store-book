@@ -1,0 +1,41 @@
+# Epic e09 — PDF Invoice Generation & Excel Export Verification
+
+id: e09
+title: "Verify InvoicePdfGenerator, UdhaarPdfGenerator & ExcelExporter Output Correctness"
+scope_feature: ["Sales & Billing (P0)", "Udhaar Credit Ledger (P1)"]
+depends_on_epics: [e03]
+target_version: v1.4.0
+priority: P1
+status: defined
+
+rationale: >
+  PDFs and exports are user-facing documents that represent business transactions legally.
+  Incorrect totals, missing line items, or corrupted files damage trust. PDFBox Android can fail
+  on edge cases (empty data, very large datasets) causing crashes.
+
+success_criteria:
+  - "Invoice PDF shows correct amounts matching the sale record exactly"
+  - "Excel export of sales/inventory produces parseable .xlsx with all columns present"
+  - "No file-write permission or disk-full crashes on PDF/Excel generation"
+
+stories:
+  - id: e09-s1
+    title: "Verify InvoicePdfGenerator renders accurate sale invoices"
+    acceptance:
+      - "PDF contains: business name, GSTIN if set, customer info, item list with qty+price, grand total, date"
+      - "Split payment (cash + UPI) shows breakdown correctly on invoice"
+      - "Discount applied → shows subtotal, discount amount, final total"
+
+  - id: e09-s2
+    title: "Verify UdhaarPdfGenerator produces correct credit ledger statement"
+    acceptance:
+      - "Shows customer name with list of all outstanding entries and payments received"
+      - "Running balance after each transaction is accurate"
+      - "Final outstanding amount matches current udhaar balance for that customer"
+
+  - id: e09-s3
+    title: "Verify ExcelExporter produces valid spreadsheets"
+    acceptance:
+      - "Inventory export includes all non-deleted items with name, qty, buyPrice, sellPrice columns"
+      - "Sales export includes date, total, customer info per transaction row"
+      - "File saved to Downloads folder without crash or permission error"

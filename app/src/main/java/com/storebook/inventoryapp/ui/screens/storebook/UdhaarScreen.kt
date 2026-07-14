@@ -91,6 +91,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.shared.domain.models.CustomerBalance
+import com.storebook.inventoryapp.shared.domain.models.CustomerDetailedBalance
 import com.storebook.inventoryapp.shared.domain.models.UdhaarEntry
 import com.storebook.inventoryapp.ui.components.AlphabetScrubber
 import com.storebook.inventoryapp.ui.theme.*
@@ -108,6 +109,12 @@ import com.storebook.inventoryapp.ui.viewmodel.UdhaarViewModel
 @Composable
 fun UdhaarScreen(viewModel: UdhaarViewModel) {
     val balances by viewModel.udhaarBalances.collectAsStateWithLifecycle()
+
+    // E03-S2: Detailed breakdown with outstanding + paid separation
+    val detailedBals by viewModel.detailedBalances.collectAsStateWithLifecycle()
+    val detailLookup = remember(detailedBals) {
+        detailedBals.associateBy { it.customerName }
+    }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -124,7 +131,8 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
 
     val filteredBalances by remember {
         derivedStateOf {
-            val sorted = balances.sortedBy { it.customerName.uppercase() }
+            // E03-S2: Sort by highest current balance descending
+            val sorted = balances.sortedByDescending { it.netBalance }
             if (searchQ.isBlank()) {
                 sorted
             } else {
@@ -252,7 +260,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = "${totalOutstanding.toRupee()}",
-                                    fontSize = 26.sp,
+                                    fontSize = 20.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     fontFamily = Poppins,
@@ -267,7 +275,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                     .padding(horizontal = 10.dp, vertical = 6.dp),
                         ) {
                             Text(
-                                text = "${balances.size} Customers",
+                                text = "${balances.size} ${if (balances.size == 1) "Customer" else "Customers"}",
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -666,17 +674,55 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                         fontSize = 17.sp,
                                         fontWeight = FontWeight.Bold,
                                     )
-                                    val isZero = kotlin.math.abs(customer.netBalance) < 0.01
-                                    Text(
-                                        text = if (isZero) "₹0 Settled" else "${customer.netBalance.toRupee()} outstanding",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = when {
-                                            isZero -> MaterialTheme.colorScheme.onSurfaceVariant
-                                            customer.netBalance > 0 -> MaterialTheme.colorScheme.error
-                                            else -> MaterialTheme.colorScheme.secondary
-                                        },
-                                    )
+
+                                    // E03-S2: Show Total Outstanding + Total Paid + Current Balance breakdown
+                                    val detail = detailLookup[customer.customerName]
+                                    if (detail != null) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        ) {
+                                            // Total Outstanding
+                                            Column {
+                                                Text("Outstanding", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                Text(detail.totalOutstanding.toRupee(), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                            // Total Paid
+                                            Column {
+                                                Text("Paid", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                Text(detail.totalPaid.toRupee(), fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.secondary)
+                                            }
+                                            // Current Balance
+                                            Column {
+                                                Text("Balance", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                val isZero = kotlin.math.abs(detail.currentBalance) < 0.01
+                                                Text(
+                                                    text = if (isZero) "₹0 Settled" else detail.currentBalance.toRupee(),
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = when {
+                                                        isZero -> MaterialTheme.colorScheme.onSurfaceVariant
+                                                        detail.currentBalance > 0 -> MaterialTheme.colorScheme.error
+                                                        else -> MaterialTheme.colorScheme.secondary
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        val isZero = kotlin.math.abs(customer.netBalance) < 0.01
+                                        Text(
+                                            text = if (isZero) "₹0 Settled" else "${customer.netBalance.toRupee()} outstanding",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = when {
+                                                isZero -> MaterialTheme.colorScheme.onSurfaceVariant
+                                                customer.netBalance > 0 -> MaterialTheme.colorScheme.error
+                                                else -> MaterialTheme.colorScheme.secondary
+                                            },
+                                        )
+                                    }
                                 }
                             }
 
@@ -921,7 +967,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Text(
-                                        if (dialogType == "CREDIT") "+" else "−",
+                                        if (dialogType == "CREDIT") "−" else "+",
                                         fontWeight = FontWeight.Black,
                                         fontSize = 20.sp,
                                         color = if (dialogType == "CREDIT") Coral500 else Emerald500,
@@ -933,9 +979,9 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                         if (dialogType ==
                                             "CREDIT"
                                         ) {
-                                            "Give Credit (उधार दें)"
+                                            "Give Credit"
                                         } else {
-                                            "Receive Payment (जमा करें)"
+                                            "Receive Payment"
                                         },
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,

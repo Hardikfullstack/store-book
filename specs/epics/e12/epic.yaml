@@ -1,0 +1,49 @@
+# Epic e12 — Subscription Gating, Ads & Play Billing Verification
+
+id: e12
+title: "Verify Feature Access Control Based on Subscription Status and Ad Display Logic"
+scope_feature: ["Subscriptions (P2)", "Ad Management (P1)"]
+depends_on_epics: [e05]
+target_version: v1.6.0
+priority: P1
+status: defined
+
+rationale: >
+  Monetization correctness is critical for revenue and user satisfaction. Free-tier users should see ads
+  and have restricted features; paid subscribers must have full access with no ads. Any gating failure means
+  either lost revenue (premium features accessible to free users) or unhappy paying customers who see ads.
+
+success_criteria:
+  - "Feature-gated screens (profit view, deep analytics) inaccessible to non-subscribers with clear prompt"
+  - "AppOpenAds only shown to free-tier users, never to subscribed ones"
+  - "Interstitial ads respect frequency capping — not shown too often, not during critical billing flow"
+
+stories:
+  - id: e12-s1
+    title: "Verify feature gating blocks/freezes premium features for non-subscribers"
+    acceptance:
+      - "Dashboard profit view → non-subscriber sees 'Upgrade to Pro' overlay instead of data"
+      - "Non-subscriber taps upgrade CTA → navigates to subscription purchase screen (Razorpay or Play IAP)"
+      - "After successful subscription → premium features immediately accessible (no app restart needed)"
+
+  - id: e12-s2
+    title: "Verify AppOpenAdManager shows ads only for free-tier users"
+    acceptance:
+      - "Free user opens app after config change → App Open ad loads and displays next time screen appears"
+      - "Subscribed user opens app → no ad loading request initiated (confirmed by log or mock test)"
+      - "Ad load failure → gracefully skipped (no crash), retry on next lifecycle event"
+
+  - id: e12-s3
+    title: "Verify InterstitialAdManager frequency capping and safe zones"
+    acceptance:
+      - "Interstitial shown only after N screen transitions or M time interval (not spam)"
+      - "NOT shown during active billing flow (while user is creating a sale)"
+      - "NOT shown during login/registration flow"
+
+  - id: e12-s4
+    title: "Verify PlayBillingManager subscription purchase lifecycle"
+    acceptance:
+      - "Launch purchase flow for 'monthly' or 'yearly' SKU → billing sheet appears"
+      - "Successful payment → subscription status updates on device, feature gates removed"
+      - "Payment failure/cancelled → user stays in free tier, no partial state"
+      - "Pending purchases enabled → auto-renewal handled by Google Play correctly"

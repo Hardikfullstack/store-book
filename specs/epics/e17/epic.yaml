@@ -1,0 +1,40 @@
+# Epic e17 — App Launch Sequence, Nav Graph & Offline Mode Verification
+
+id: e17
+title: "Verify Splash → Auth/Deep Nav Routing, Config Change Survivability & Graceful Offline Fallback"
+scope_feature: ["Android POS (P0)", "App Architecture (P0)"]
+depends_on_epics: []
+target_version: v1.3.1
+priority: P0
+status: defined
+
+rationale: >
+  The first app launch defines user impression. Nav graph routing must correctly send unauthenticated users
+  to AuthScreen and authenticated users to Dashboard. Config changes (rotation, system theme) must not
+  lose in-flight transactions. Offline mode should allow working locally without crashing when server is
+  unreachable.
+
+success_criteria:
+  - "Fresh install → launches to AuthScreen; logged-in user → navigates straight to Dashboard"
+  - "Screen rotation preserves current screen and state (no data loss during billing)"
+  - "App functions fully offline — sales, inventory edits work locally until connectivity returns"
+
+stories:
+  - id: e17-s1
+    title: "Verify splash-to-auth/deep-nav routing logic correctness"
+    acceptance:
+      - "First launch (no session) → lands on AuthScreen not Dashboard"
+      - "Relaunch with valid session → skips auth, goes to StoreBook dashboard directly"
+
+  - id: e17-s2
+    title: "Verify config change survival during active sale transaction"
+    acceptance:
+      - "Adding items to cart → rotate screen → cart state preserved exactly"
+      - "Mid-discount-entry → keyboard appears/orientation changes → ViewModel restores discount field value"
+      - "No 'computationally expensive' recomputation on rotation — StateFlow/LiveData survives"
+
+  - id: e17-s3
+    title: "Verify offline-first behavior when network unavailable"
+    acceptance:
+      - "Create sale with WiFi disabled → saved locally to SQLDelight DB, shows as 'pending sync'"
+      - "Go online → SyncWorker picks up pending mutations automatically"

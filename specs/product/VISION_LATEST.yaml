@@ -1,0 +1,56 @@
+# VISION — StoreBook Inventory Management Platform
+
+product: StoreBook
+vision_doc: V1.0
+last_updated: "2025-07-13"
+author: bigpowers (from existing codebase analysis)
+
+mission: >
+  Empower Indian small and medium businesses with an offline-first inventory
+  management system that works on Android POS and syncs to a cloud web dashboard.
+  Reduce stock leakage, simplify billing, and give shop owners real-time
+  visibility into their inventory, sales, credit (udhaar), and expenses — no
+  internet required at the point of sale.
+
+target_users:
+  - role: Shop Owner
+    description: >
+      Single-store owner running an offline retail/wholesale operation. Needs
+      billing, stock tracking, profit margins, and employee oversight.
+    platform_preference: [Android POS, Web Dashboard]
+
+  - role: Store Employee / Cashier
+    description: >
+      Day-to-day billing operator with limited permissions. Can scan items,
+      create sale, but cannot delete transactions or view profit reports.
+    platform_preference: ["Android POS"]
+
+  - role: Admin (Platform)
+    description: >
+      SaaS admin managing multi-tenant stores, users, subscriptions, and analytics.
+    platform_preference: [Web Dashboard Admin Panel]
+
+primary_use_cases:
+  - name: Offline Billing
+    description: Create sale transactions on Android without internet connectivity
+  - name: Inventory Tracking
+    description: Real-time stock levels with low-stock alerts and expiry tracking
+  - name: Multi-store Dashboard
+    description: Cloud web dashboard showing analytics across all stores/branches
+  - name: Udhaar (Credit) Management
+    description: Track customer credit, payments received, and outstanding balances
+  - name: Expense Tracking
+    description: Record daily shop expenses separate from inventory items
+
+value_propositions:
+  - offline_first: Works without internet at the POS — sync when available
+  - multi_tenant: Each store is isolated with tenant-scoped data (storeId guard)
+  - affordable: Freemium model with Razorpay subscriptions for premium features
+  - familiar: Built as Android app (common in Indian retail) + Web dashboard
+  - comprehensive: Inventory, billing, credit, expenses, and analytics in one place
+
+success_metrics:
+  - dau_mau_ratio: "0.7+"
+  - sync_success_rate: "95%+ of offline transactions synced within 24h"
+  - low_stock_alert_adoption: "60% of active stores enable alerts"
+  - subscription_conversion: "15% free-to-paid monthly"

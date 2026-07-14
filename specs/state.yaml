@@ -1,0 +1,26 @@
+workflow_mode: solo-git
+
+session:
+  active_flow: build               # Phase: Build (implementation)
+  active_epic_id: e01
+  active_story_id: e03-s4          # Next: E04 stories or additional E03 work
+  handoff:
+    next_skill: implement          # Execute RP-A0 ✅ DONE → now E01/E02 epic stories
+  rp_a0:
+    status: complete
+    completed_at: "2025-07-13"
+    summary: "SQLDelight migration done. All entities + FailedSyncQueue in .sq, SyncRepository typed DAOs, LegacySyncHelper deleted, SyncWorker rewritten."
+
+git:
+  branch: master
+  last_hash: ""                    # populated by guard-git on first commit
+  uncommitted_changes: true
+
+defensive_categories:
+  - retry                         # SyncWorker network calls
+  - circuit_breaker               # Firebase auth failures
+  - timeout                       # Data Connect queries
+
+timestamps:
+  seeded: "2025-07-13T10:39:00Z"
+  story_start: null

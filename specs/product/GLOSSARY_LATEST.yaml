@@ -1,0 +1,107 @@
+# GLOSSARY — StoreBook Inventory Management Platform
+
+glossary_doc: G1.0
+last_updated: "2025-07-13"
+
+terms:
+
+  Item:
+    definition: >
+      A stock-keeping unit (SKU) in the store. Has name, category, buyPrice, sellPrice,
+      quantity, unit of measure, lowStockThreshold, HSN code, and optional photo.
+    related_tables: ["Item"]
+    example: "250g Basmati Rice @ ₹120/kg"
+
+  Sale:
+    definition: >
+      A completed billing transaction. Contains one or more SaleItems (line items),
+      discount info, promo code, and timestamp. Generated from Android POS or Web dashboard.
+    related_tables: ["Sale", "SaleItem"]
+
+  SaleItem:
+    definition: >
+      A single line item within a Sale. Links itemId to quantity sold at that point-in-time price.
+    related_tables: ["SaleItem"]
+
+  Udhaar:
+    definition: >
+      Hindi/Urdu word for "credit" or "IOU". In StoreBook, a Udhaar record tracks the amount
+      a customer owes the store (outstanding) and payments received toward that balance.
+    related_tables: ["Udhaar"]
+    cultural_note: Commonly used in Indian small retail — informal credit extended to regular customers
+
+  Store:
+    definition: >
+      A tenant-scoped business location. All data (items, sales, udhaar, expenses) is partitioned
+      by storeId for multi-tenancy isolation.
+    related_tables: ["Store"]
+
+  SyncWorker:
+    definition: >
+      Android WorkManager PeriodicWorkRequest that pushes unsynced local DB changes to Firebase
+      Data Connect and pulls remote updates. Runs on a schedule (e.g., hourly) or when triggered manually.
+    status: implemented_in_android
+    retry_policy: exponential_backoff_on_network_failure
+
+  SyncState:
+    definition: >
+      Per-module sync tracking metadata (lastSync timestamp per data type: items, sales, udhaar).
+      Used to compute incremental pull queries.
+    related_tables: ["SyncState"]
+
+  HSN Code:
+    definition: >
+      Harmonized System of Nomenclature code used for GST classification in India.
+      Optional field on Items for future tax compliance.
+    standard: ISO/UN classification
+
+  Quotation:
+    definition: >
+      A draft bill for wholesale customers that can be converted to a Sale later. Not yet finalized.
+    related_tables: ["Quotation"]
+
+  Purchase:
+    definition: >
+      Record of stock restocking from supplier. Increases item quantity in inventory.
+    related_tables: ["Purchase"]
+
+  Expense:
+    definition: >
+      A non-inventory cost incurred by the business (electricity, rent, staff salary).
+      Separate from item buy/sell tracking.
+    related_tables: ["Expense"]
+
+  PromoCode:
+    definition: >
+      A store-specific discount voucher with percent or fixed amount discount, max uses limit,
+      and expiry date. Applied at billing time on Android web dashboard.
+    related_tables: ["PromoCode"]
+
+  Staff:
+    definition: >
+      An employee of a Store with role-based permissions (owner, manager, cashier).
+      Can view sales, manage items, or be restricted to billing only.
+    related_tables: ["Employee", "User"]
+
+  SubscriptionStatus:
+    definition: >
+      Current monetization level for a user/store. Values: free, subscribed, cancelled.
+      Controls feature access (profit reporting, advanced analytics, ad-free experience).
+    platform: [Razorpay (web), In-App Billing (Android)]
+
+  Data Connect:
+    definition: >
+      Firebase's managed GraphQL layer that sits between client apps and PostgreSQL database.
+      Handles query/mutation generation, auth checks via @auth directives, and codegen for SDKs.
+    service: Firebase Data Connect → Cloud SQL PostgreSQL
+
+  KMP (Kotlin Multiplatform):
+    definition: >
+      Shared code module (shared/) containing domain models, repository interfaces, and loader UI components.
+      Provides consistent data shapes to both Android app and server-side Kotlin code.
+    scope: shared/src/commonMain/kotlin/com/storebook/inventoryapp/shared/
+
+  Offline-First:
+    definition: >
+      Architecture pattern where the primary data store is local (SQLite), and cloud sync is
+      deferred/background. App must be fully functional without network connectivity.

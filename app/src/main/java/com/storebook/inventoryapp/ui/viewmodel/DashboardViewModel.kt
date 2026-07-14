@@ -11,6 +11,7 @@ import com.storebook.inventoryapp.shared.domain.repository.SalesRepository
 import com.storebook.inventoryapp.shared.domain.repository.PurchaseRepository
 import com.storebook.inventoryapp.shared.domain.repository.SupplierRepository
 import com.storebook.inventoryapp.shared.domain.repository.ExpenseRepository
+import com.storebook.inventoryapp.shared.domain.repository.SyncRepository
 import com.storebook.inventoryapp.shared.domain.models.Item
 import com.storebook.inventoryapp.shared.domain.models.Purchase
 import com.storebook.inventoryapp.shared.domain.models.ExpenseEntry
@@ -18,8 +19,13 @@ import com.storebook.inventoryapp.shared.domain.models.Sale
 import com.storebook.inventoryapp.ui.viewmodels.UserRole
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import com.storebook.inventoryapp.utils.SecurityUtils
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 
 class DashboardViewModel(
     private val inventoryRepository: InventoryRepository,
@@ -27,7 +33,8 @@ class DashboardViewModel(
     private val purchaseRepository: PurchaseRepository,
     private val supplierRepository: SupplierRepository,
     private val expenseRepository: ExpenseRepository,
-    context: Context
+    private val syncRepository: SyncRepository,
+    private val context: Context
 ) : ViewModel() {
     private val prefs = SecurityUtils.getEncryptedPrefs(context)
 
@@ -50,8 +57,63 @@ class DashboardViewModel(
     private val _purchases = MutableStateFlow<List<Purchase>>(emptyList())
     val purchases: StateFlow<List<Purchase>> = _purchases
 
+    // ==========================================================================
+    // E01-S4: Sync Status — observable sync state for UI badge + retry trigger
+    // ==========================================================================
+    data class UiSyncStatus(
+        val status: String,              // IDLE, PUSHING, PULLING, DONE, FAILED, DONE_WITH_WARNINGS
+        val lastSyncAt: Long,            // timestamp of last full sync
+        val failedCount: Int,           // count of permanently failed mutations
+        val isSyncing: Boolean          // true when status == PUSHING or PULLING
+    ) { companion object { val initial = UiSyncStatus("IDLE", 0L, 0, false) } }
+
+    private val _uiSyncStatus = MutableStateFlow(UiSyncStatus.initial)
+    val uiSyncStatus: StateFlow<UiSyncStatus> = _uiSyncStatus
+
+    // ==========================================================================
+    // E03-S3: Today's Snapshot — aggregate from sale_items price snapshots (accurate profit)
+    // Uses sell_price/buy_price captured AT TIME OF SALE, not current item prices
+    // ==========================================================================
+    data class TodaySnapshot(
+        val todayRevenue: Double = 0.0,
+        val todayCOG: Double = 0.0,
+        val todayExpenses: Double = 0.0,
+        val todayProfit: Double = 0.0
+    ) { companion object { val initial = TodaySnapshot() } }
+
+    private val _todaySnapshot = MutableStateFlow(TodaySnapshot.initial)
+    val todaySnapshot: StateFlow<TodaySnapshot> = _todaySnapshot
+
+    val last7DaysData: StateFlow<Triple<List<Double>, List<Double>, List<Double>>> = 
+        combine(salesList, purchases, expensesList) { sales, purcs, expenses ->
+            val format = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault())
+            val days = (0..6).map { offset ->
+                val cal = java.util.Calendar.getInstance()
+                cal.add(java.util.Calendar.DAY_OF_YEAR, -offset)
+                format.format(cal.time)
+            }.reversed()
+
+            val salesPerDay = days.associateWith { dayStr ->
+                sales.filter { format.format(java.util.Date(it.timestamp)) == dayStr }.sumOf { it.totalAmount }
+            }
+            val purchasesPerDay = days.associateWith { dayStr ->
+                purcs.filter { format.format(java.util.Date(it.timestamp)) == dayStr }.sumOf { it.totalAmount }
+            }
+            val expensesPerDay = days.associateWith { dayStr ->
+                expenses.filter { format.format(java.util.Date(it.timestamp)) == dayStr }.sumOf { it.amount }
+            }
+            Triple(
+                days.map { salesPerDay[it] ?: 0.0 },
+                days.map { purchasesPerDay[it] ?: 0.0 },
+                days.map { expensesPerDay[it] ?: 0.0 }
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Triple<List<Double>, List<Double>, List<Double>>(emptyList(), emptyList(), emptyList()))
+
     init {
         loadAllData()
+        refreshSyncStatus()
+        loadTodaySnapshot()
+
     }
 
     fun loadAllData() {
@@ -67,6 +129,25 @@ class DashboardViewModel(
             _expensesList.value = expenseRepository.getAllExpenses()
             _purchases.value = purchaseRepository.getAllPurchases().map { p ->
                 Purchase(id = p.id, supplierId = p.supplier_id, supplierName = p.supplier_name, totalAmount = p.total_amount, taxAmount = p.tax_amount, type = p.type, timestamp = p.timestamp, notes = p.notes, items = emptyList())
+            }
+        }
+    }
+
+    // ==========================================================================
+    // E03-S3: Load Today's financial snapshot from SQL aggregates
+    // ==========================================================================
+    private fun loadTodaySnapshot() {
+        viewModelScope.launch {
+            val todayKey = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault())
+                .format(java.util.Date())
+            val snap = salesRepository.getTodaySnapshot(todayKey)
+            if (snap != null) {
+                _todaySnapshot.value = TodaySnapshot(
+                    todayRevenue = snap.today_revenue,
+                    todayCOG = snap.today_cog,
+                    todayExpenses = snap.today_expenses,
+                    todayProfit = (snap.today_revenue - snap.today_cog - snap.today_expenses)
+                )
             }
         }
     }
@@ -189,5 +270,42 @@ class DashboardViewModel(
 
     suspend fun getAllItemsMap(): Map<Long, Item> {
         return inventoryRepository.getActiveItems().associate { it.id to Item(id = it.id, name = it.name, quantity = it.quantity, unit = it.unit, buyPrice = it.buy_price, sellPrice = it.sell_price, lowStockThreshold = it.low_stock_threshold, category = it.category) }
+    }
+
+    // ==========================================================================
+    // E01-S4: Sync Status UI — load + expose + retry
+    // ==========================================================================
+
+    /** Reload sync state from DB into UiSyncStatus StateFlow */
+    private fun refreshSyncStatus() {
+        viewModelScope.launch {
+            val st = syncRepository.getSyncState()
+            _uiSyncStatus.value = UiSyncStatus(
+                status = st?.status ?: "IDLE",
+                lastSyncAt = st?.last_full_sync_at ?: 0L,
+                failedCount = (st?.total_failed_mutations ?: 0L).toInt(),
+                isSyncing = st?.status in listOf("PUSHING", "PULLING")
+            )
+        }
+    }
+
+    /** Trigger a one-time sync job (on user tap of retry button) */
+    fun retrySync() {
+        val storeId = prefs.getString("active_store_id", "default_store") ?: "default_store"
+        val workReq = OneTimeWorkRequestBuilder<com.storebook.inventoryapp.data.sync.SyncWorker>()
+            .addTag("sync_manual_retry")
+            .setInputData(
+                androidx.work.Data.Builder()
+                    .putString("STORE_ID", storeId)
+                    .build()
+            )
+            .build()
+        WorkManager.getInstance(context).enqueue(workReq)
+
+        // Start listening for sync completion by polling refresh
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(5000)
+            refreshSyncStatus() 
+        }
     }
 }

@@ -57,7 +57,8 @@ fun QuotationScreen(
     viewModel: SalesViewModel,
 ) {
     val salesHistoryList by viewModel.salesHistoryList.collectAsStateWithLifecycle()
-    val quotations = salesHistoryList.filter { it.type == "QUOTATION" }
+    // E03-S4: Filter to show unconverted ESTIMATE-type quotations, also track converted ones
+    val quotations = salesHistoryList.filter { it.type == "ESTIMATE" }
     val allItems by viewModel.allItems.collectAsStateWithLifecycle()
 
     val displayFmt = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
@@ -128,21 +129,15 @@ fun QuotationScreen(
                             customerName = quote.customerName ?: "Walk-in Customer",
                             saleTime = quoteTime,
                             onConvert = {
-                                viewModel.cartItems = quote.items.map { saleItem ->
-                                    val actualItem = allItems.find { it.id == saleItem.itemId } ?: Item(
-                                        id = saleItem.itemId,
-                                        name = saleItem.itemName,
-                                        quantity = 0.0,
-                                        unit = saleItem.unit,
-                                        buyPrice = saleItem.buyPrice,
-                                        sellPrice = saleItem.sellPrice,
-                                        lowStockThreshold = 0.0,
-                                        category = "Imported"
-                                    )
-                                    CartItem(item = actualItem, quantity = saleItem.quantity)
-                                }
-                                navController.navigate(Routes.Sales) {
-                                    popUpTo<Routes.Dashboard> { saveState = true }
+                                // E03-S4: Atomic conversion - preserves all line items + prices exactly
+                                viewModel.convertQuotation(quote.id) { newSaleId ->
+                                    if (newSaleId > 0) {
+                                        // Reload to show updated state
+                                        viewModel.loadSalesHistory(
+                                            (System.currentTimeMillis() / 1000).toLong()*1000 - 365L*24*3600*1000,
+                                            System.currentTimeMillis()
+                                        )
+                                    }
                                 }
                             },
                             onShare = {
@@ -189,7 +184,7 @@ fun QuotationCard(
     onConvert: () -> Unit,
     onShare: () -> Unit,
 ) {
-    val isConverted = sale.type == "CONVERTED"
+    val isConverted = sale.isConverted
 
     Card(
         modifier = Modifier.fillMaxWidth(),

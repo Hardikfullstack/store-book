@@ -1,0 +1,149 @@
+# SCOPE — StoreBook Inventory Management Platform
+
+scope_doc: S1.0
+last_updated: "2025-07-13"
+derived_from: VISION_LATEST.yaml, tech-stack.md (existing codebase)
+
+---
+
+## IN SCOPE — Core Features (MVP + current implementation)
+
+features_in_scope:
+
+  - module: Authentication
+    description: Phone OTP + Email/Password via Firebase Auth with session cookies for web
+    status: implemented
+    priority: P0
+
+  - module: Android POS
+    description: >
+      Jetpack Compose screens for billing flow — select items, scan barcode, set qty,
+      apply discount/promo code, create sale. Offline-first with SQLite local storage.
+    status: implemented
+    priority: P0
+
+  - module: Inventory Management
+    description: >
+      CRUD operations for items (name, category, buy/sell price, quantity, unit,
+      low-stock threshold, HSN code, optional photo). Expiry tracking via ExpiryCheckWorker.
+    status: implemented
+    priority: P0
+
+  - module: Sales & Billing
+    description: >
+      Create sale transactions with line items. Generate bill/summary view.
+      PDF receipt generation (PDFBox Android). Reorderable sale history list.
+    status: implemented
+    priority: P0
+
+  - module: Udhaar (Credit Ledger)
+    description: Per-customer credit tracking — add outstanding amount, record payment received.
+    status: implemented
+    priority: P1
+
+  - module: Expense Tracking
+    description: Record daily shop expenses with category and amount.
+    status: implemented
+    priority: P1
+
+  - module: Quotations
+    description: Generate quotes for wholesale customers, convert to sale later.
+    status: implemented
+    priority: P2
+
+  - module: Purchases
+    description: Record stock purchases (supplier + items added to inventory).
+    status: implemented
+    priority: P1
+
+  - module: Sync Engine
+    description: >
+      SyncWorker pushes unsynced local changes to Firebase Data Connect and pulls
+      remote updates. Parameterized queries filtered by storeId for multi-tenancy.
+      Retry logic with exponential backoff for network calls.
+    status: implemented
+    priority: P0
+
+  - module: Web Dashboard
+    description: >
+      Next.js 14 app with Server Actions + Firebase Data Connect SDK for real-time
+      analytics, inventory management from web, and admin panel (staff, users, stores).
+      Redux Toolkit for client-side state caching.
+    status: implemented
+    priority: P1
+
+  - module: Subscriptions (Monetization)
+    description: >
+      Freemium model with Razorpay integration on web. In-app billing on Android.
+      Subscription tiers control feature access (profit view, deletion rights).
+    status: implemented
+    priority: P2
+
+  - module: Admin Panel (Platform)
+    description: >
+      Platform admin views — manage users, stores, subscription statuses.
+      Staff management with role-based permissions (owner, manager, cashier).
+    status: implemented
+    priority: P2
+
+---
+
+## OUT OF SCOPE — Deferred / Not planned
+
+features_out_of_scope:
+
+  - feature: Multi-location warehouses
+    reason: >
+      Current implementation assumes single store/branch per tenant. Not architected
+      for distributed warehouse management.
+    defer_reason: Add only after core multi-tenant model is stable
+
+  - feature: GST/e-Invoicing integration
+    reason: HSN code field exists but no full GST filing or e-invoice generation
+    defer_reason: Requires government API integration, legal compliance
+
+  - feature: Multi-currency support
+    reason: Built for INR (Indian Rupee) only, Razorpay is primary payment processor
+    defer_reason: No international user segment identified yet
+
+  - feature: Real-time collaboration on bills
+    reason: >
+      Offline-first design means eventual consistency via sync. Not a real-time
+      collaborative document editor.
+    defer_reason: Adds complexity without clear user need in offline context
+
+  - feature: Voice-assisted billing
+    reason: No speech-to-text integration planned
+    defer_reason: Low priority for current target users
+
+  - feature: iOS native app
+    reason: Android-first strategy per AGENTS.md; no iOS module exists
+    defer_reason: Validate Android adoption before cross-platform expansion
+
+---
+
+## BOUNDARIES & CONVENTIONS (enforced by codebase)
+
+boundaries:
+
+  multi_tenancy:
+    rule: "Every DB query/mutation MUST filter or scope by storeId"
+    enforcement: "@auth(level: USER)" in Data Connect queries, StoreBookDbHelper stores on Android
+
+  offline_tolerance:
+    rule: ">
+      Android app MUST function fully without network. SyncWorker is periodic, not
+      synchronous-per-action."
+    enforcement: All CRUD goes to local SQLite first; sync is deferred
+
+  id_generation:
+    rule: "UUIDs generated client-side (uuidV4 in Data Connect default)"
+    reason: Allows offline item creation without cloud call
+
+  data_retention:
+    rule: "isDeleted soft-delete on Items, SaleItems, Udhaar — never hard delete"
+    reasoning: Audit trail for financial transactions; can be reviewed later
+
+  ad_monetization:
+    rule: "AppOpenAds shown on Android free tier (MobileAds init in StoreBookApplication)"
+    note: Ads disabled for subscribed users per subscriptionStatus check

@@ -1,0 +1,50 @@
+# Epic e08 — Authentication & Session Security Verification
+
+id: e08
+title: "Verify Firebase Auth Flows, Session Persistence & Logout Correctness"
+scope_feature: ["Authentication (P0)", "Security (P1)"]
+depends_on_epics: []
+target_version: v1.3.1
+priority: P0
+status: defined
+
+rationale: >
+  Users must be authenticated via Firebase (Phone OTP or Email/Password) before app grants access.
+  Session persistence means re-launching the app doesn't require re-authentication if session is valid.
+  Logout must clear all local auth state and sensitive data.
+
+success_criteria:
+  - "Auth screen appears only when user is NOT logged in; main screen appears when authenticated"
+  - "Session persists across app kills and device reboots for up to 2 weeks (Firebase refresh token lifetime)"
+  - "Logout clears Firebase session, local Room data reset to initial state, navigation returns to Auth"
+
+stories:
+  - id: e08-s1
+    title: "Verify Phone OTP authentication flow end-to-end"
+    acceptance:
+      - "Enter phone number → OTP sent via Firebase → verify code → navigate to main screen"
+      - "Invalid OTP → error message displayed, retry available without resend until timer expires"
+      - "OTP timer counts down correctly (60s default)"
+      - "Resend OTP after timer expires → new SMS with new code"
+
+  - id: e08-s2
+    title: "Verify Email/Password authentication correctness"
+    acceptance:
+      - "Valid credentials → authenticated, navigate to MainScreen"
+      - "Invalid password → error toast 'Incorrect password'"
+      - "Email not registered → error message or option to register"
+      - "Registration flow: create password meets minimum 6-character requirement"
+
+  - id: e08-s3
+    title: "Verify session persistence across app lifecycle"
+    acceptance:
+      - "Authed user opens app after cold start → goes straight to MainScreen (no re-auth)"
+      - "Session valid for multiple days → no forced logout unless Firebase token revoked"
+      - "Expired session or revoked token on server → graceful redirect to Auth screen with clear error"
+
+  - id: e08-s4
+    title: "Verify Logout clears all user data and security state"
+    acceptance:
+      - "Tap Settings > Sign Out → confirm dialog appears"
+      - "After confirmation: Firebase signed out, app navigates back to Auth screen"
+      - "No sensitive local data remains (verify SecurityUtils encryption key cleared)"

@@ -198,10 +198,10 @@ private val ForestGreenLightColorScheme = lightColorScheme(
     onPrimary = Color.White,
     primaryContainer = ForestGreen50,
     onPrimaryContainer = ForestGreen900,
-    secondary = Saffron500,
+    secondary = Emerald500,
     onSecondary = Color.White,
-    secondaryContainer = Saffron300,
-    onSecondaryContainer = Color(0xFF78350F),
+    secondaryContainer = Emerald100,
+    onSecondaryContainer = Color(0xFF064E3B),
     tertiary = ForestGreen300,
     onTertiary = Color.White,
     background = SlateWhite,
@@ -423,7 +423,7 @@ fun StoreBookTheme(
 
 val MaterialTheme.primaryGradient: Brush
     @Composable
-    get() = if (isSystemInDarkTheme()) {
+    get() = if (isAppDarkMode) {
         SolidColor(colorScheme.primary)
     } else {
         Brush.linearGradient(listOf(colorScheme.primary, colorScheme.tertiary))

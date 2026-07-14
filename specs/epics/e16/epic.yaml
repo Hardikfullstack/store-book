@@ -1,0 +1,42 @@
+# Epic e16 — Purchase Records & Supplier Inventory Updates Verification
+
+id: e16
+title: "Verify Purchase Workflow Adds Stock Correctly to Inventory with Supplier Attribution"
+scope_feature: ["Purchases (P1)", "Inventory Management (P0)"]
+depends_on_epics: [e02]
+target_version: v1.3.1
+priority: P0
+status: defined
+
+rationale: >
+  When purchases are recorded, inventory quantities must increase atomically alongside purchase records.
+  If a purchase doesn't add stock, shop owners think items exist when they don't. Supplier attribution
+  links purchases to sources — needed for tracking which suppliers provide competitive pricing. Both
+  PurchaseRepository and InventoryRepository involved in this flow after SQLDelight migration.
+
+success_criteria:
+  - "Recording a purchase of item X adds quantity from supplier → inventory qty increases immediately"
+  - "PurchaseItem records linked to parent Purchase via batchId — no orphaned line items"
+  - "Delete Purchase record does NOT reverse the stock increase (intentional audit trail)"
+
+stories:
+  - id: e16-s1
+    title: "Verify purchase saves correctly and updates inventory item quantity"
+    acceptance:
+      - "Add new purchase with 50 units of existing item → item.quantity increases by exactly 50"
+      - "PurchaseItem created for each line with correct qty, priceperUnit, totalAmount"
+      - "Supplier selected from drop-down — linked to SupplierId in transaction record"
+
+  - id: e16-s2
+    title: "Verify purchase history list sorted correctly and totals match detail view"
+    acceptance:
+      - "Purchases displayed newest-first (desc by timestamp)"
+      - "Total paid on list matches sum of individual item line amounts in expanded view"
+      - "Filtering by supplier shows only that supplier's transactions"
+
+  - id: e16-s3
+    title: "Verify Supplier CRUD operations linked correctly to purchases"
+    acceptance:
+      - "Supplier name change — existing purchases still reference correct supplier via foreign key"
+      - "Multiple suppliers active → purchases attributed by correct contact phone/name"
+      - "Empty supplier (none selected) allowed but flagged visually in purchase detail screen"

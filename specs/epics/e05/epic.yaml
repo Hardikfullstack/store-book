@@ -1,0 +1,41 @@
+# Epic e05 — Subscription Monetization & Feature Gating
+
+id: e05
+title: "Razorpay/Web IAP Billing Lifecycle & Tier-Based Feature Control"
+scope_feature: ["Subscriptions/P2"]
+depends_on_epics: [e04]
+target_version: v1.6.0
+priority: P2
+status: defined
+
+rationale: >
+  Monetization controls which users get advanced features (profit view, analytics depth, ad-free).
+  Currently subscription status is tracked but lacks proper payment webhook handling, retry for
+  failed payments on Razorpay side, and platform-aware plan parity checks between Android IAP
+  and web Razorpay subscriptions. Free tier users see AppOpenAds — need to ensure subscribed users never see ads.
+
+success_criteria:
+  - "Subscription status synced within 5 minutes of successful payment on either platform"
+  - "Free tier users see ads + restricted features; subscribed users get full access + no ads"
+  - "Webhook failures retry with exponential backoff up to 24h before manual review queue"
+
+stories:
+  - id: e05-s1
+    title: "Audit ad-display logic — ensure subscribed users never see AppOpenAds"
+    acceptance:
+      - "AppOpenAdManager checks subscriptionStatus before initiating ad load"
+      - "If status = 'subscribed', skip ad init entirely (save battery, no impressions)"
+      - "A/B test disabled during audit — consistent behavior for all subscribed users"
+
+  - id: e05-s2
+    title: "Razorpay webhook reliability with retry queue"
+    acceptance:
+      - "/api/razorpay/webhook validates signature on every call"
+      - "On successful payment, update user subscriptionStatus + subscriptionExpiresAt in Data Connect"
+      - "Failed webhook processing queued for retry (5min → 30min → 2h → 24h) with attempt counter"
+
+  - id: e05-s3
+    title: "Plan parity check between Android IAP and Web Razorpay"
+    acceptance:
+      - "User who subscribes via web can use subscribed features on Android after sync (not wait for billing cycle)"
+      - "SubscriptionPlatform field indicates which platform handles billing — cross-platform feature enabled based on any active subscription regardless of platform"

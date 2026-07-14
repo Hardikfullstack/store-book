@@ -14,6 +14,7 @@
     <string name="dash_low_stock">Low Stock</string>
     <string name="dash_today_revenue">Today\'s Revenue</string>
     <string name="dash_today_profit">Today\'s Profit</string>
+    <string name="dash_today_expenses">Today\'s Expenses</string>
     <string name="dash_alert_banner">Alert: %1$d items are running low on stock! Tap to view.</string>
     <string name="dash_recent_sales">Recent Sales Today</string>
     <string name="dash_no_sales_today">No sales recorded today yet.</string>
@@ -262,4 +263,10 @@
     <string name="ana_date_custom">Custom Date</string>
     <string name="ana_date_all_time">All Time</string>
     <string name="ui_element_desc" translatable="false">UI Element</string>
+    <string name="auth_verify_desc">We will send you a verification code</string>
+    <string name="auth_secure_backup">100% Secure &amp; Encrypted Backup</string>
+    <string name="toast_local_data_cleared">Local data cleared successfully</string>
+    <string name="toast_invalid_gstin">Invalid GSTIN format (e.g. 22AAAAA0000A1Z5)</string>
+    <string name="toast_switched_store">Switched to %1$s</string>
+    <string name="toast_pro_only">Only available for Pro users</string>
 </resources>

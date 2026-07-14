@@ -1,0 +1,54 @@
+# Epic e06 — Sales Billing Engine Logic Verification
+
+id: e06
+title: "Verify Sale Total Calculations, PDF Generation & Quotation Flow Correctness"
+scope_feature: ["Sales & Billing (P0)", "Quotations (P2)"]
+depends_on_epics: [e01]
+target_version: v1.3.1
+priority: P0
+status: defined
+
+rationale: >
+  Financial correctness is the highest risk area. Sale totals, discounts applied, tax calculations,
+  PDF invoice generation, and quotation-to-sale conversion must produce consistent results. Any drift
+  between what's computed in UI vs what gets persisted to database = data integrity failure.
+
+success_criteria:
+  - "Sale total = SUM(itemQty * itemSellPrice) - discount + applicableTax, matches within ₹0.01"
+  - "PDF invoices render correctly for all screen types (small bill, split bill, quotation)"
+  - "Quotation converts to sale atomically — no line items lost or duplicated"
+
+stories:
+  - id: e06-s1
+    title: "Verify Sale total calculation formula correctness across all edge cases"
+    acceptance:
+      - "Basic sale with single item, qty=1 → total = sellPrice exactly"
+      - "Multi-item sale → total = SUM(item.sellPrice * qty) for all items"
+      - "Percentage discount (e.g., 10%) applied before tax → subtotal correct each time"
+      - "Fixed amount discount (e.g., ₹50 off) reduces total without going negative"
+      - "Zero-quantity item in cart → excluded from calculation"
+      - "Delete mid-transction: remove an item → recalculates immediately"
+
+  - id: e06-s2
+    title: "Verify PDF invoice generation renders correctly for all receipt types"
+    acceptance:
+      - "InvoicePdfGenerator produces readable PDF with correct amounts, customer info, and item list"
+      - "Udhaar bill generates separate credit ledger PDF via UdhaarPdfGenerator"
+      - "Split bill (partial payment) shows remaining balance on invoice"
+      - "Large receipts (30+ items) paginate correctly without content truncation"
+      - "File saved to Downloads — no FileNotFoundException crashes"
+
+  - id: e06-s3
+    title: "Verify Quotation → Sale conversion atomicity and state transitions"
+    acceptance:
+      - "Quotation in 'DRAFT' or 'SENT' status → Convert button visible, marks as converted"
+      - "After conversion: all line items transferred to new sale, quantities deducted from inventory"
+      - "Already converted quotation → conversion disabled or greyed out"
+      - "Converting empty quotation (no items) → rejected with user-visible error"
+
+  - id: e06-s4
+    title: "Verify Sale deletion propagates correctly across related records"
+    acceptance:
+      - "Deleting a sale also marks all associated SaleItems as deleted (cascading soft delete)"
+      - "Deleted sale does NOT appear in dashboard profit/totals calculations"
+      - "Udhaar entry created from sale → payment records persist even after sale deleted"

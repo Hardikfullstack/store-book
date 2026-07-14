@@ -14,7 +14,8 @@ CREATE TABLE items (
   deleted_timestamp INTEGER DEFAULT 0,
   cloud_id TEXT,
   is_synced INTEGER NOT NULL DEFAULT 0,
-  updated_at INTEGER NOT NULL DEFAULT 0
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  is_low_stock_alert_sent INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX idx_items_deleted ON items(is_deleted);
@@ -68,6 +69,19 @@ UPDATE items SET is_deleted = 1, deleted_timestamp = ?, is_synced = 0, updated_a
 restoreItem:
 UPDATE items SET is_deleted = 0, deleted_timestamp = 0, is_synced = 0, updated_at = ? WHERE id = ?;
 
+-- E02-S2: Get items currently below their low-stock threshold that haven't been alerted yet
+getLowStockAlertPending:
+SELECT * FROM items WHERE is_deleted = 0 AND quantity < low_stock_threshold AND low_stock_threshold > 0 AND is_low_stock_alert_sent = 0;
+
+-- E02-S2: Mark alerted status so this item won't fire another notification until restocked above threshold
+markItemLowStockAlertSent:
+UPDATE items SET is_low_stock_alert_sent = 1 WHERE id = ?;
+
+-- E02-S2: Reset alert flag when quantity crosses back above threshold (called periodically)
+resetLowStockAlertFlagAboveThreshold:
+UPDATE items SET is_low_stock_alert_sent = 0 WHERE is_deleted = 0 AND quantity >= low_stock_threshold AND low_stock_threshold > 0;
+
+
 CREATE TABLE sales (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   timestamp INTEGER NOT NULL,
@@ -79,6 +93,7 @@ CREATE TABLE sales (
   customer_address TEXT,
   business_address TEXT,
   type TEXT NOT NULL DEFAULT 'SALE',
+  is_converted INTEGER NOT NULL DEFAULT 0,
   notes TEXT,
   is_deleted INTEGER NOT NULL DEFAULT 0,
   cloud_id TEXT,
@@ -115,6 +130,10 @@ UPDATE sales SET type = ?, is_synced = 0, updated_at = ? WHERE id = ?;
 
 softDeleteSale:
 UPDATE sales SET is_deleted = 1, is_synced = 0, updated_at = ? WHERE id = ?;
+
+-- E03-S4: Mark quotation as converted (prevents double-conversion)
+setQuotationConverted:
+UPDATE sales SET is_converted = 1, is_synced = 0, updated_at = ? WHERE id = ? AND type = 'ESTIMATE';
 
 CREATE TABLE sale_items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -287,8 +306,107 @@ SELECT * FROM item_batches WHERE item_id = ? AND is_deleted = 0 ORDER BY timesta
 getNearExpiryBatches:
 SELECT * FROM item_batches WHERE is_deleted = 0 AND expiry_date IS NOT NULL AND expiry_date <= ? ORDER BY expiry_date ASC;
 
+-- Item Batches Sync Queries
+getUnsyncedItemBatches:
+SELECT * FROM item_batches WHERE is_synced = 0;
+
+markItemBatchSynced:
+UPDATE item_batches SET is_synced = 1, cloud_id = :cloudId WHERE id = :id;
+
 softDeleteItemBatch:
 UPDATE item_batches SET is_deleted = 1, is_synced = 0, updated_at = ? WHERE id = ?;
+
+-- ============================================================================
+-- CLOUD ID RESOLVERS — Pull phase maps cloud entity IDs to local auto-inc IDs
+-- Used during pull when cloud references need local FK resolution
+-- ============================================================================
+resolveItemIdByCloudId:
+SELECT id FROM items WHERE cloud_id = :cloudId AND is_deleted = 0 LIMIT 1;
+
+resolveSaleIdByCloudId:
+SELECT id FROM sales WHERE cloud_id = :cloudId AND is_deleted = 0 LIMIT 1;
+
+resolveSupplierIdByCloudId:
+SELECT id FROM suppliers WHERE cloud_id = :cloudId AND is_deleted = 0 LIMIT 1;
+
+resolvePurchaseIdByCloudId:
+SELECT id FROM purchases WHERE cloud_id = :cloudId AND is_deleted = 0 LIMIT 1;
+
+-- ============================================================================
+-- E01-S3: CONFLICT RESOLUTION — get local entity + updatedAt for LWW comparison
+-- Returns (local_id, updated_at). Caller compares remote.updateAt vs localUpdatedAt.
+-- If remote >= local → accept remote. Else keep local and re-push.
+-- ============================================================================
+getLocalItemByCloudId:
+SELECT id, updated_at FROM items WHERE cloud_id = :cloudId LIMIT 1;
+
+getLocalSaleByCloudId:
+SELECT id, updated_at FROM sales WHERE cloud_id = :cloudId LIMIT 1;
+
+getLocalSupplierByCloudId:
+SELECT id, updated_at FROM suppliers WHERE cloud_id = :cloudId LIMIT 1;
+
+-- ============================================================================
+-- UPSERT QUERIES — Pull phase (cloud → local) replacements for raw ContentValues
+-- Uses INSERT OR REPLACE for atomic upsert semantics in SQLite
+-- ============================================================================
+insertOrUpdateItem:
+INSERT OR REPLACE INTO items(id, name, quantity, unit, buy_price, sell_price,
+    low_stock_threshold, category, photo_path, hsn_code, tax_rate,
+    is_deleted, cloud_id, is_synced, updated_at)
+VALUES(:id, :name, :quantity, :unit, :buyPrice, :sellPrice,
+    :lowStockThreshold, :category, :photoPath, :hsnCode, :taxRate,
+    :isDeleted, :cloudId, 1, :updatedAt);
+
+insertOrUpdateSale:
+INSERT OR REPLACE INTO sales(id, timestamp, total_amount, discount_amount,
+    customer_name, customer_gstin, business_gstin, customer_address,
+    business_address, type, notes, is_deleted, cloud_id, is_synced, updated_at)
+VALUES(:id, :timestamp, :totalAmount, :discountAmount,
+    :customerName, :customerGstin, :businessGstin, :customerAddress,
+    :businessAddress, :type, :notes, :isDeleted, :cloudId, 1, :updatedAt);
+
+insertOrUpdateSaleItem:
+INSERT OR REPLACE INTO sale_items(id, sale_id, item_id, item_name, unit,
+    quantity, sell_price, buy_price, is_deleted, cloud_id, is_synced, updated_at)
+VALUES(:id, :saleId, :itemId, :itemName, :unit, :quantity, :sellPrice, :buyPrice,
+    :isDeleted, :cloudId, 1, :updatedAt);
+
+insertOrUpdateUdhaar:
+INSERT OR REPLACE INTO udhaar(id, customer_name, amount, type, timestamp, notes,
+    is_deleted, cloud_id, is_synced, updated_at)
+VALUES(:id, :customerName, :amount, :type, :timestamp, :notes,
+    :isDeleted, :cloudId, 1, :updatedAt);
+
+insertOrUpdateExpense:
+INSERT OR REPLACE INTO expenses(id, type, description, amount, timestamp,
+    supplier_name, supplier_phone, is_deleted, cloud_id, is_synced, updated_at)
+VALUES(:id, :type, :description, :amount, :timestamp,
+    :supplierName, :supplierPhone, :isDeleted, :cloudId, 1, :updatedAt);
+
+insertOrUpdateSupplier:
+INSERT OR REPLACE INTO suppliers(id, name, phone, gstin, address,
+    is_deleted, cloud_id, is_synced, updated_at)
+VALUES(:id, :name, :phone, :gstin, :address,
+    :isDeleted, :cloudId, 1, :updatedAt);
+
+insertOrUpdatePurchase:
+INSERT OR REPLACE INTO purchases(id, supplier_id, supplier_name, total_amount,
+    tax_amount, type, timestamp, notes, is_deleted, cloud_id, is_synced, updated_at)
+VALUES(:id, :supplierId, :supplierName, :totalAmount, :taxAmount,
+    :type, :timestamp, :notes, :isDeleted, :cloudId, 1, :updatedAt);
+
+insertOrUpdatePurchaseItem:
+INSERT OR REPLACE INTO purchase_items(id, purchase_id, item_id, item_name,
+    quantity, unit, buy_price, is_deleted, cloud_id, is_synced, updated_at)
+VALUES(:id, :purchaseId, :itemId, :itemName, :quantity, :unit, :buyPrice,
+    :isDeleted, :cloudId, 1, :updatedAt);
+
+insertOrUpdateItemBatch:
+INSERT OR REPLACE INTO item_batches(id, item_id, batch_number, expiry_date,
+    quantity, cost_price, timestamp, notes, is_deleted, cloud_id, is_synced, updated_at)
+VALUES(:id, :itemId, :batchNumber, :expiryDate, :quantity, :costPrice,
+    :timestamp, :notes, :isDeleted, :cloudId, 1, :updatedAt);
 
 -- Maintenance Queries
 clearItems:
@@ -338,6 +456,20 @@ SELECT * FROM sale_items WHERE is_synced = 0;
 markSaleItemSynced:
 UPDATE sale_items SET is_synced = 1, cloud_id = :cloudId WHERE id = :id;
 
+-- E03-S1: Audit query — find all sale_items where the snapshot sell_price differs from current item price
+-- This is informational only — diverged prices are EXPECTED when items were re-priced after a sale was made
+-- Returns rows with: sale_item_id, item_name, sold_at_price, current_price, drift_amount
+generatePriceDriftReport:
+SELECT si.id AS sale_item_id, si.item_name,
+       ROUND(si.sell_price, 2) AS sold_at_price,
+       ROUND(cur_sell.sell_price, 2) AS current_price,
+       ROUND(ABS(si.sell_price - cur_sell.sell_price), 2) AS drift_amount
+FROM sale_items si
+JOIN items cur_sell ON si.item_id = cur_sell.id
+WHERE si.is_deleted = 0
+  AND cur_sell.is_deleted = 0
+  AND ABS(si.sell_price - cur_sell.sell_price) > 0.01;
+
 getLastInsertRowId:
 SELECT last_insert_rowid();
 
@@ -367,3 +499,289 @@ DELETE FROM purchase_items;
 
 deleteAllItemBatches:
 DELETE FROM item_batches;
+
+-- ============================================================================
+-- MISSING SYNC QUERIES (udhaar, expenses, suppliers, purchases, purchase_items)
+-- Added for RP-A0 migration — SyncWorker push phase completeness
+-- ============================================================================
+
+getUnsyncedUdhaars:
+SELECT * FROM udhaar WHERE is_synced = 0;
+
+markUdhaarSynced:
+UPDATE udhaar SET is_synced = 1, cloud_id = :cloudId WHERE id = :id;
+
+getUnsyncedExpenses:
+SELECT * FROM expenses WHERE is_synced = 0;
+
+markExpenseSynced:
+UPDATE expenses SET is_synced = 1, cloud_id = :cloudId WHERE id = :id;
+
+getUnsyncedSuppliers:
+SELECT * FROM suppliers WHERE is_synced = 0;
+
+markSupplierSynced:
+UPDATE suppliers SET is_synced = 1, cloud_id = :cloudId WHERE id = :id;
+
+getUnsyncedPurchases:
+SELECT * FROM purchases WHERE is_synced = 0;
+
+markPurchaseSynced:
+UPDATE purchases SET is_synced = 1, cloud_id = :cloudId WHERE id = :id;
+
+getUnsyncedPurchaseItems:
+SELECT * FROM purchase_items WHERE is_synced = 0;
+
+markPurchaseItemSynced:
+UPDATE purchase_items SET is_synced = 1, cloud_id = :cloudId WHERE id = :id;
+
+-- ============================================================================
+-- FAILED SYNC QUEUE — Retry persistence for push phase failures
+-- From DESIGN_PLAN §A.1: exponential backoff with 3-attempt cap
+-- Survives app kills / reboots (SQLite-backed)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS failed_sync_queue (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL,
+    local_id INTEGER NOT NULL,
+    cloud_id TEXT,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    max_retries INTEGER NOT NULL DEFAULT 3,
+    next_retry_at INTEGER NOT NULL DEFAULT 0,
+    error_message TEXT,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000),
+    status TEXT NOT NULL DEFAULT 'PENDING_RETRY'
+);
+
+CREATE INDEX IF NOT EXISTS idx_failed_queue_next_retry ON failed_sync_queue(next_retry_at);
+CREATE INDEX IF NOT EXISTS idx_failed_queue_status ON failed_sync_queue(status);
+
+enqueueSyncFailure:
+INSERT INTO failed_sync_queue(entity_type, local_id, cloud_id, retry_count, next_retry_at, error_message)
+VALUES (:entityType, :localId, :cloudId, 0, :nextRetryAt, :errorMessage);
+
+getOverdueForRetry:
+SELECT * FROM failed_sync_queue
+WHERE status = 'PENDING_RETRY' AND next_retry_at <= :nowMillis
+ORDER BY created_at ASC;
+
+dequeueFailedSyncById:
+DELETE FROM failed_sync_queue WHERE id = :id;
+
+updateRetryState:
+UPDATE failed_sync_queue SET retry_count = retry_count + 1,
+    next_retry_at = :nextRetryAt, error_message = :errorMessage
+WHERE id = :id AND status = 'PENDING_RETRY';
+
+markPermanentFailure:
+UPDATE failed_sync_queue SET status = 'PERMANENT_FAILURE'
+WHERE id = :id;
+
+getPermanentFailures:
+SELECT * FROM failed_sync_queue
+WHERE status = 'PERMANENT_FAILURE' ORDER BY created_at DESC;
+
+getPendingFailureCount:
+SELECT COUNT(*) FROM failed_sync_queue WHERE status = 'PENDING_RETRY';
+
+deleteAllFailedSyncQueue:
+DELETE FROM failed_sync_queue;
+
+-- ============================================================================
+-- sync_state: Per-store sync tracking (updated ONLY after full batch success)
+-- E01-S1: SyncState.lastSync only updated after successful batch push, not on partial failure
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS sync_state (
+    id INTEGER PRIMARY KEY DEFAULT 1,
+    last_full_sync_at INTEGER NOT NULL DEFAULT 0,
+    last_push_batch_count INTEGER NOT NULL DEFAULT 0,
+    last_pull_batch_count INTEGER NOT NULL DEFAULT 0,
+    total_failed_mutations INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'IDLE' -- IDLE, PUSHING, PULLING, DONE, FAILED
+);
+
+upsertSyncState:
+    UPDATE sync_state
+    SET last_full_sync_at = :lastFullSyncAt,
+        last_push_batch_count = :pushCount,
+        last_pull_batch_count = :pullCount,
+        total_failed_mutations = :failedMutations,
+        status = :status
+    WHERE id = 1;
+
+getSyncState:
+SELECT * FROM sync_state WHERE id = 1;
+
+setSyncStatus:
+UPDATE sync_state SET status = :status WHERE id = 1;
+
+incrementFailedMutationCount:
+UPDATE sync_state SET total_failed_mutations = total_failed_mutations + 1 WHERE id = 1;
+
+-- ============================================================================
+-- E03-S3: Daily/Monthly aggregate queries for dashboard financial views
+-- These use sale_items price snapshots (sell_price, buy_price at time of sale)
+-- NOT current item prices — ensures accurate historical profit calculation
+-- ============================================================================
+-- Revenue & cost-of-goods by day from sale_items snapshots (accurate even if item prices changed later)
+getDailyRevenueByDateRange:
+SELECT strftime('%Y%m%d', datetime(s.timestamp/1000, 'unixepoch')) AS date_key,
+       COALESCE(SUM(si.sell_price * si.quantity), 0.0) AS revenue,
+       COALESCE(SUM(si.buy_price * si.quantity), 0.0) AS cost_of_goods,
+       COALESCE(SUM(s.discount_amount), 0.0) AS total_discount
+FROM sale_items si
+JOIN sales s ON s.id = si.sale_id
+WHERE s.is_deleted = 0 AND s.type = 'SALE'
+  AND s.timestamp >= :startDate AND s.timestamp <= :endDate
+GROUP BY date_key ORDER BY date_key;
+-- Expenses by day for a date range
+getDailyExpensesByDateRange:
+SELECT strftime('%Y%m%d', datetime(timestamp/1000, 'unixepoch')) AS date_key,
+       COALESCE(SUM(amount), 0.0) AS expense_total
+FROM expenses
+WHERE is_deleted = 0 AND timestamp >= :startDate AND timestamp <= :endDate
+GROUP BY date_key ORDER BY date_key;
+-- Today's totals as a simple summary (quick dashboard card data)
+-- Uses strftime equality to match "today" without CTE (SQLDelight compat)
+getTodaySnapshot:
+SELECT
+    COALESCE((
+        SELECT SUM(si.sell_price * si.quantity) - COALESCE(SUM(s.discount_amount), 0.0)
+        FROM sale_items si
+        JOIN sales s ON s.id = si.sale_id
+        WHERE s.is_deleted = 0 AND s.type = 'SALE'
+          AND strftime('%Y%m%d', datetime(s.timestamp/1000, 'unixepoch')) = :todayKey
+    ), 0.0) AS today_revenue,
+    COALESCE((
+        SELECT SUM(si.buy_price * si.quantity)
+        FROM sale_items si
+        JOIN sales s ON s.id = si.sale_id
+        WHERE s.is_deleted = 0 AND s.type = 'SALE'
+          AND strftime('%Y%m%d', datetime(s.timestamp/1000, 'unixepoch')) = :todayKey
+    ), 0.0) AS today_cog,
+    COALESCE((
+        SELECT SUM(amount)
+        FROM expenses WHERE is_deleted = 0
+          AND strftime('%Y%m%d', datetime(timestamp/1000, 'unixepoch')) = :todayKey
+    ), 0.0) AS today_expenses;
+-- Monthly summary (revenue vs expenses by day for a month)
+getMonthlySummaryByDateRange:
+SELECT
+    d.date_key,
+    COALESCE(r.revenue, 0.0) AS revenue,
+    COALESCE(r.cost_of_goods, 0.0) AS cost_of_goods,
+    COALESCE(r.revenue, 0.0) - COALESCE(r.cost_of_goods, 0.0) - COALESCE(r.total_discount, 0.0) AS gross_profit,
+    COALESCE(e.expense_total, 0.0) AS expense_total
+FROM (
+    SELECT DISTINCT strftime('%Y%m%d', datetime(s.timestamp/1000, 'unixepoch')) AS date_key
+    FROM sales s WHERE s.is_deleted = 0 AND s.type = 'SALE'
+        AND s.timestamp >= :startDate AND s.timestamp <= :endDate
+    UNION
+    SELECT DISTINCT strftime('%Y%m%d', datetime(timestamp/1000, 'unixepoch')) AS date_key
+    FROM expenses WHERE is_deleted = 0
+        AND timestamp >= :startDate AND timestamp <= :endDate
+) d
+LEFT JOIN (
+    SELECT strftime('%Y%m%d', datetime(s.timestamp/1000, 'unixepoch')) AS date_key,
+           SUM(si.sell_price * si.quantity) AS revenue,
+           SUM(si.buy_price * si.quantity) AS cost_of_goods,
+           SUM(s.discount_amount) AS total_discount
+    FROM sale_items si
+    JOIN sales s ON s.id = si.sale_id
+    WHERE s.is_deleted = 0 AND s.type = 'SALE'
+      AND s.timestamp >= :startDate AND s.timestamp <= :endDate
+    GROUP BY date_key
+) r ON d.date_key = r.date_key
+LEFT JOIN (
+    SELECT strftime('%Y%m%d', datetime(timestamp/1000, 'unixepoch')) AS date_key,
+           SUM(amount) AS expense_total
+    FROM expenses WHERE is_deleted = 0
+        AND timestamp >= :startDate AND timestamp <= :endDate
+    GROUP BY date_key
+) e ON d.date_key = e.date_key
+ORDER BY d.date_key;
+
+-- ============================================================================
+-- HELPER FUNCTIONS: Generate next local ID for each table
+-- Used by upsertRemote to assign guaranteed-unique numeric IDs
+-- (Firestore cloud IDs are non-numeric strings, not usable as SQLite INTEGER keys)
+-- ============================================================================
+getNextItemId:
+SELECT COALESCE((SELECT MAX(id) + 1 FROM items), 1);
+
+getNextSaleId:
+SELECT COALESCE((SELECT MAX(id) + 1 FROM sales), 1);
+
+getNextSaleItemId:
+SELECT COALESCE((SELECT MAX(id) + 1 FROM sale_items), 1);
+
+getNextUdhaarId:
+SELECT COALESCE((SELECT MAX(id) + 1 FROM udhaar), 1);
+
+getNextExpenseId:
+SELECT COALESCE((SELECT MAX(id) + 1 FROM expenses), 1);
+
+getNextSupplierId:
+SELECT COALESCE((SELECT MAX(id) + 1 FROM suppliers), 1);
+
+getNextPurchaseId:
+SELECT COALESCE((SELECT MAX(id) + 1 FROM purchases), 1);
+
+getNextPurchaseItemId:
+SELECT COALESCE((SELECT MAX(id) + 1 FROM purchase_items), 1);
+
+-- ============================================================================
+-- UPSERT REMOTE: Insert/update remote-pulled entities by cloud_id
+-- Generates a unique local id, then INSERT OR REPLACE using cloud_id as conflict key
+-- Returns the assigned local id via last_insert_rowid() after execution
+-- ============================================================================
+upsertItemRemote:
+INSERT OR REPLACE INTO items(id, name, quantity, unit, buy_price, sell_price,
+    low_stock_threshold, category, photo_path, hsn_code, tax_rate,
+    is_deleted, cloud_id, is_synced, updated_at)
+VALUES(COALESCE((SELECT MAX(id) + 1 FROM items), 1), :name, :quantity, :unit, :buyPrice, :sellPrice,
+    :lowStockThreshold, :category, :photoPath, :hsnCode, :taxRate,
+    :isDeleted, :cloudId, 1, :updatedAt);
+
+upsertSaleRemote:
+INSERT OR REPLACE INTO sales(id, timestamp, total_amount, discount_amount,
+    customer_name, customer_gstin, business_gstin, customer_address,
+    business_address, type, notes, is_deleted, cloud_id, is_synced, updated_at)
+VALUES(COALESCE((SELECT MAX(id) + 1 FROM sales), 1), :timestamp, :totalAmount, :discountAmount,
+    :customerName, :customerGstin, :businessGstin, :customerAddress,
+    :businessAddress, :type, :notes, :isDeleted, :cloudId, 1, :updatedAt);
+
+upsertSaleItemRemote:
+INSERT OR REPLACE INTO sale_items(id, sale_id, item_id, item_name, unit,
+    quantity, sell_price, buy_price, is_deleted, cloud_id, is_synced, updated_at)
+VALUES(COALESCE((SELECT MAX(id) + 1 FROM sale_items), 1), :saleId, :itemId, :itemName, :unit, :quantity, :sellPrice, :buyPrice,
+    :isDeleted, :cloudId, 1, :updatedAt);
+
+upsertUdhaarRemote:
+INSERT OR REPLACE INTO udhaar(id, customer_name, amount, type, timestamp, notes,
+    is_deleted, cloud_id, is_synced, updated_at)
+VALUES(COALESCE((SELECT MAX(id) + 1 FROM udhaar), 1), :customerName, :amount, :type, :timestamp, :notes,
+    :isDeleted, :cloudId, 1, :updatedAt);
+
+upsertExpenseRemote:
+INSERT OR REPLACE INTO expenses(id, type, description, amount, timestamp, supplier_name, supplier_phone,
+    is_deleted, cloud_id, is_synced, updated_at)
+VALUES(COALESCE((SELECT MAX(id) + 1 FROM expenses), 1), :type, :description, :amount, :timestamp, :supplierName, :supplierPhone,
+    :isDeleted, :cloudId, 1, :updatedAt);
+
+upsertSupplierRemote:
+INSERT OR REPLACE INTO suppliers(id, name, phone, gstin, address, is_deleted, cloud_id, is_synced, updated_at)
+VALUES(COALESCE((SELECT MAX(id) + 1 FROM suppliers), 1), :name, :phone, :gstin, :address, :isDeleted, :cloudId, 1, :updatedAt);
+
+upsertPurchaseRemote:
+INSERT OR REPLACE INTO purchases(id, supplier_id, supplier_name, total_amount, tax_amount,
+    type, timestamp, notes, is_deleted, cloud_id, is_synced, updated_at)
+VALUES(COALESCE((SELECT MAX(id) + 1 FROM purchases), 1), :supplierId, :supplierName, :totalAmount, :taxAmount,
+    :type, :timestamp, :notes, :isDeleted, :cloudId, 1, :updatedAt);
+
+upsertPurchaseItemRemote:
+INSERT OR REPLACE INTO purchase_items(id, purchase_id, item_id, item_name, quantity, unit, buy_price,
+    is_deleted, cloud_id, is_synced, updated_at)
+VALUES(COALESCE((SELECT MAX(id) + 1 FROM purchase_items), 1), :purchaseId, :itemId, :itemName, :quantity, :unit, :buyPrice,
+    :isDeleted, :cloudId, 1, :updatedAt);
+

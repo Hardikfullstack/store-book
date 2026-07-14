@@ -16,11 +16,13 @@ class ExpenseRepository(
     }
 
     suspend fun insertExpense(
-        type: String, description: String, amount: Double, 
+        type: String, description: String, amount: Double,
         supplierName: String?, supplierPhone: String?
     ): Long = withContext(Dispatchers.IO) {
-        val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-        queries.insertExpense(type, description, amount, timestamp, supplierName, supplierPhone, timestamp)
+        database.transaction {
+            val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+            queries.insertExpense(type, description, amount, timestamp, supplierName, supplierPhone, timestamp)
+        }
         -1L
     }
 
@@ -33,4 +35,19 @@ class ExpenseRepository(
         supplierName = supplier_name,
         supplierPhone = supplier_phone
     )
+
+    // RP-A0: Push-sync methods
+    suspend fun getUnsyncedExpenses(): List<Expenses> = withContext(Dispatchers.IO) {
+        queries.getUnsyncedExpenses().executeAsList()
+    }
+
+    suspend fun markExpenseSynced(id: Long, cloudId: String) = withContext(Dispatchers.IO) {
+        queries.markExpenseSynced(cloudId, id)
+    }
+
+    // E03-S3: Daily expense aggregates by date range
+    suspend fun getDailyExpensesByDateRange(startTs: Long, endTs: Long): List<com.storebook.inventoryapp.shared.data.local.GetDailyExpensesByDateRange> =
+        withContext(Dispatchers.IO) {
+            queries.getDailyExpensesByDateRange(startTs, endTs).executeAsList()
+        }
 }

@@ -865,7 +865,7 @@ fun MoreScreen(
                                 onClick = {
                                     showClearDataDialog = false
                                     viewModel.clearAllLocalData {}
-                                    android.widget.Toast.makeText(context, "Local data cleared successfully", android.widget.Toast.LENGTH_SHORT).show()
+                                    android.widget.Toast.makeText(context, context.getString(R.string.toast_local_data_cleared), android.widget.Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
@@ -1217,7 +1217,7 @@ fun MoreScreen(
                                                                 onClick = {
                                                                         val trimmedGstin = gstinInput.trim().uppercase()
                                                                         if (trimmedGstin.isNotEmpty() && !trimmedGstin.matches(Regex("\\d{2}[A-Z]{5}\\d{4}[A-Z]{1}[A-Z\\d]{1}[Z]{1}[A-Z\\d]{1}"))) {
-                                                                                android.widget.Toast.makeText(context, "Invalid GSTIN format (e.g. 22AAAAA0000A1Z5)", android.widget.Toast.LENGTH_SHORT).show()
+                                                                                android.widget.Toast.makeText(context, context.getString(R.string.toast_invalid_gstin), android.widget.Toast.LENGTH_SHORT).show()
                                                                                 return@PrimaryButton
                                                                         }
                                                                         com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(context)
@@ -1299,7 +1299,7 @@ fun MoreScreen(
                                                             modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Action") {
                                                                 viewModel.switchStore(sId)
                                                                 showSheet = false
-                                                                android.widget.Toast.makeText(context, "Switched to $storeName", android.widget.Toast.LENGTH_SHORT).show()
+                                                                android.widget.Toast.makeText(context, context.getString(R.string.toast_switched_store, storeName), android.widget.Toast.LENGTH_SHORT).show()
                                                             },
                                                             colors = CardDefaults.cardColors(containerColor = if (sId == viewModel.activeStoreId) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant),
                                                             shape = RoundedCornerShape(12.dp)
@@ -1660,7 +1660,7 @@ fun InlineThemeCard(
                                     interactionSource = interactionSource,
                                     indication = null
                                 ) {
-                                    android.widget.Toast.makeText(context, "Only available for Pro users", android.widget.Toast.LENGTH_SHORT).show()
+                                    android.widget.Toast.makeText(context, context.getString(R.string.toast_pro_only), android.widget.Toast.LENGTH_SHORT).show()
                                 }
                             } else {
                                 Modifier.clickable(onClickLabel = "Action") { onThemeModeSelected(mode) }

@@ -1,0 +1,50 @@
+# Epic e10 — Utility Functions & Helpers Logic Verification
+
+id: e10
+title: "Verify CurrencyUtils, InvoicePdfGenerator, ExcelExporter, NetworkMonitor & Locale Helpers"
+scope_feature: ["Core Utilities (P0)"]
+depends_on_epics: [e02]
+target_version: v1.3.1
+priority: P0
+status: defined
+
+rationale: >
+  Utility classes are used throughout the app but rarely tested individually. Currency formatting errors
+  affect every financial display. NetworkMonitor drives offline-online sync decisions. ExcelExporter and
+  LocaleHelper handle i8n and data export — failure modes include locale-dependent number parsing bugs,
+  incorrect currency symbols for selected locale, or silent file-write failures.
+
+success_criteria:
+  - "CurrencyUtils formats amounts in ₹ symbol with correct thousands separators per user's locale"
+  - "LocaleHelper correctly switches between Hindi and English throughout the app"
+  - "NetworkMonitor detects connectivity changes within 500ms of transition"
+
+stories:
+  - id: e10-s1
+    title: "Verify CurrencyUtils number formatting correctness across locales"
+    acceptance:
+      - "₹1,234.56 → formats as '₹1,234.56' in English locale"
+      - "₹1,23,456 (Indian grouping) → correct for Hindi locale setting"
+      - "Zero amounts display as '₹0.00' not empty or NaN"
+      - "Negative values (credit balance) show '-' prefix or parentheses"
+
+  - id: e10-s2
+    title: "Verify LanguageManager and LocaleHelper app-wide language switching"
+    acceptance:
+      - "Switch language from English to Hindi → all strings update immediately on current screen"
+      - "Date/time displays use selected locale's format (DD/MM/YYYY for Hindi, MM/DD/YYYY for US)"
+      - "Persist language preference across app restarts"
+
+  - id: e10-s3
+    title: "Verify NetworkMonitor detects connectivity state transitions correctly"
+    acceptance:
+      - "WiFi → airplane mode → disconnected state broadcast within <2 seconds"
+      - "Airplane off → connected state triggers immediately"
+      - "No duplicate events fired on same transition (prevents redundant sync attempts)"
+
+  - id: e10-s4
+    title: "Verify ShareUtils, ReviewUtils & AppUpdateHelper edge cases"
+    acceptance:
+      - "ShareUtils generates valid share intent with app info text"
+      - "ReviewUtils only suggests Play Store review after N days of use or M transactions (not on every launch)"
+      - "AppUpdateHelper graceful handling when update not available → no crash, user gets informative feedback"

@@ -1,0 +1,44 @@
+# Epic e02 — Inventory Core Stability
+
+id: e02
+title: "Inventory CRUD Transaction Safety & Low-Stock Alert Reliability"
+scope_feature: ["Inventory Management (P0)", "Android POS (P0)"]
+depends_on_epics: []
+target_version: v1.3.0
+priority: P0
+status: defined
+
+rationale: >
+  Inventory is the foundational data model. Items must be created/updated/deleted atomically with
+  SyncState tracking. Low-stock alerts fire via ExpiryCheckWorker but currently only handle expiry,
+  not low-stock threshold checks. Additionally, photo upload paths for items need validation to
+  prevent crashes on invalid file references.
+
+success_criteria:
+  - "All item CRUD operations wrapped in SQLite transactions — partial writes rolled back"
+  - "Low-stock threshold alert fires within 24h when quantity crosses threshold"
+  - "Item photo save/load handles corrupt or missing files gracefully (placeholder shown)"
+
+stories:
+  - id: e02-s1
+    status: complete
+    title: "Wrap Item CRUD in SQLite transactions with rollback"
+    acceptance:
+      - "addItem(), updateItem(), deleteItem() all use db.beginTransaction() + setTransactionSuccessful()"
+      - "If any column write fails within transaction, entire change is rolled back"
+      - "isDeleted = true on deletion (soft-delete), never hard DELETE FROM"
+
+  - id: e02-s2
+    status: complete
+    title: "Add low-stock threshold check to ExpiryCheckWorker"
+    acceptance:
+      - "Worker queries all items WHERE quantity < lowStockThreshold AND isLowStockAlertSent = false"
+      - "For each such item, send notification + set alert flag in local DB"
+      - "Dashboard screen highlights low-stock items with red badge on name"
+
+  - id: e02-s3
+    title: "Validate item photo paths before saving/displaying"
+    acceptance:
+      - "When saving item photo, validate file exists and is < 5MB"
+      - "On load, catch FileNotFoundException → show default placeholder icon instead of crash"
+      - "Unit test: create Item with null/empty photoPath renders without error"

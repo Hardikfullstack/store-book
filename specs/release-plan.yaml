@@ -1,0 +1,109 @@
+# Release Plan — StoreBook Inventory Management Platform
+
+release_plan_doc: RP1.0
+last_updated: "2025-07-13"
+
+---
+
+## Version Roadmap
+
+### v1.3.0 — Foundation Hardening (Target: next release)
+
+epics: [e01, e02]
+focus: >
+  Make the critical path (sync + inventory CRUD) reliable and crash-resistant.
+  This is the highest value because data divergence between devices and dashboard
+  directly causes customer trust erosion.
+
+stories_included:
+  - "e01-s1: Audit SyncWorker push phase error handling"
+  - "e01-s2: Exponential backoff retry for failed mutations"
+  - "e01-s3: Pull phase conflict resolution (last-write-wins)"
+  - "e01-s4: Sync progress indicator in Android UI"
+  - "e02-s1: Wrap Item CRUD in SQLite transactions"
+  - "e02-s2: Low-stock threshold alert in ExpiryCheckWorker"
+  - "e02-s3: Validate item photo paths"
+
+gate_criteria:
+  - "Pre-flight: web lint + build passes (npm run lint && npm run build)"
+  - "Android assembleDebug builds with zero compile errors"
+  - "No new crashes in existing screens during QA walkthrough"
+  - "SyncWorker tested offline → online transition scenario manually"
+
+estimated_effort_m: ~8-10
+
+---
+
+### v1.4.0 — Financial Accuracy (Target: after v1.3.0)
+
+epics: [e03]
+focus: >
+  Ensure all money-related data is correct and auditable. Profit calcs, udhaar
+  balances, quotation conversion — shop owners rely on these for business decisions.
+
+stories_included:
+  - "e03-s1: SaleItem price snapshot correctness verification"
+  - "e03-s2: Udhaar balance recalculation with running total display"
+  - "e03-s3: Daily/Monthly aggregate views for Expenses and Sales"
+  - "e03-s4: Quotation → Sale conversion preserves line items"
+
+gate_criteria:
+  - "All sale amounts sum correctly for sample test dataset (100+ transactions)"
+  - "Udhaar balance matches manual calculation within ₹0.01 tolerance"
+  - "Quotation-to-sale tested with 5+ edge cases (empty quote, all items deleted item, etc.)"
+
+estimated_effort_m: ~6-8
+
+---
+
+### v1.5.0 — Dashboard Polish (Target: after v1.4.0)
+
+epics: [e04]
+focus: >
+  Improve web dashboard for owner decision-making. Real-time charts and role-based access.
+
+stories_included:
+  - "e04-s1: Recharts sales trend chart"
+  - "e04-s2: Staff role-based permissions across web routes"
+  - "e04-s3: Quotation creation and conversion from web"
+
+gate_criteria:
+  - "Dashboard loads <2s with fresh data on average connection (tested via Lighthouse)"
+  - "Permission matrix tested for all 3 roles (owner/manager/cashier) across all routes"
+
+estimated_effort_m: ~6-8
+
+---
+
+### v1.6.0 — Monetization Reliability (Target: after v1.5.0)
+
+epics: [e05]
+focus: >
+  Make subscription billing reliable and feature gating airtight. Revenue protection.
+
+stories_included:
+  - "e05-s1: Audit ad-display logic for subscribed users"
+  - "e05-s2: Razorpay webhook reliability with retry queue"
+  - "e05-s3: Plan parity between Android IAP and web Rustpay"
+
+gate_criteria:
+  - "Webhook tested with sandbox payments — status updated within 5 minutes"
+  - "Ad-free verified for subscribed users across 3 consecutive app launches"
+
+estimated_effort_m: ~4-6
+
+---
+
+## Cadence & Process
+
+release_cadence: every_2_weeks (target, blocked by quality gates)
+branch_strategy: direct_to_master_with_tag (solo dev workflow per state.yaml workflow_mode: solo-git)
+pre_release_checklist:
+  - "specs/planning-status.yaml updated"
+  - "Pre-flight green (lint + build)"
+  - "All stories in release epic marked done"
+  - "Git tag vN.M.0 created with changelog"
+
+rollback_strategy: >
+  For each major version, keep one rollback branch (release/vN.N.0). If critical bug found within 48h of release,
+  revert to prior branch + cherry-pick fix if simple, else patch on new minor (vN.M+1.0).

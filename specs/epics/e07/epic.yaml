@@ -1,0 +1,52 @@
+# Epic e07 — Udhaar Credit Ledger & Expense/Purchase Tracking Verification
+
+id: e07
+title: "Verify Udhaar Ledger Balance Calculations & Purchase/Expense Records"
+scope_feature: ["Udhaar Credit Ledger (P1)", "Expense Tracking (P1)", "Purchases (P1)"]
+depends_on_epics: [e03]
+target_version: v1.4.0
+priority: P1
+status: defined
+
+rationale: >
+  Udhaar is the shop owner's livelihood tracking mechanism — every rupee lent and collected must balance.
+  Expenses need correct category grouping for cost analysis. Purchases replenish inventory so any miscount
+  leads to phantom stock or double-counted items. All three involve financial transactions.
+
+success_criteria:
+  - "Udhaar balance = SUM(outstandingAmounts) - SUM(paymentsReceived), always non-negative for valid data"
+  - "Each purchase increases item quantity by purchased amount — verified within ₹0.01 tolerance"
+  - "Expenses grouped correctly by category with daily/monthly totals matching manual count"
+
+stories:
+  - id: e07-s1
+    title: "Verify Udhaar customer balance calculation end-to-end"
+    acceptance:
+      - "Add outstanding amount → balance increases exactly by that amount"
+      - "Add multiple payments → balance decreases, never goes below zero for underpayment"
+      - "Partial payment (₹300 on ₹500 bill) → remaining = ₹200 visible immediately"
+      - "Full payment clears entry → marked as 'settled' in UI list"
+      - "Udhaar PDF export shows correct running balance per customer"
+
+  - id: e07-s2
+    title: "Verify Expense recording with category and date grouping"
+    acceptance:
+      - "Add expense with category (e.g., 'Transport') → appears in daily expense list"
+      - "Monthly total = SUM(amounts) for all expenses within that calendar month"
+      - "Delete expense → recalculates totals immediately"
+      - "Dashboard shows current month's expense breakdown"
+
+  - id: e07-s3
+    title: "Verify Purchase records update inventory quantities correctly"
+    acceptance:
+      - "Purchase of 50 units of 'Item A' at ₹10/unit → inventory quantity increases by 50, buyPrice updated to weighted average"
+      - "Same item purchased again with different price → avgPrice recalculated correctly (weighted)"
+      - "Purchase entry deleted → corresponding qty not rolled back for audit trail (intentional)"
+      - "Supplier association saved correctly — query purchases by supplier works"
+
+  - id: e07-s4
+    title: "Verify Supplier CRUD operations and data integrity"
+    acceptance:
+      - "Add supplier with name + contact → searchable in purchase creation screen"
+      - "Update supplier phone number persists to DB"
+      - "Delete supplier does NOT delete historical purchase records (foreign key protection)"

@@ -43,6 +43,10 @@ import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.outlined.CheckCircleOutline
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -75,9 +79,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -112,6 +118,8 @@ fun DashboardScreen(
     val lowStockItems by viewModel.lowStockItems.collectAsStateWithLifecycle()
     val salesList by viewModel.salesList.collectAsStateWithLifecycle()
     val expensesList by viewModel.expensesList.collectAsStateWithLifecycle()
+    // E01-S4: Observable sync status for badge + retry trigger
+    val uiSyncStatus by viewModel.uiSyncStatus.collectAsStateWithLifecycle()
     val purchasesList by viewModel.purchases.collectAsStateWithLifecycle()
     val currentLastSaleId = salesViewModel.lastSaleId
     val currentLastSaleTime = salesViewModel.lastSaleTime
@@ -131,57 +139,20 @@ fun DashboardScreen(
     val saleDateFmt = remember { SimpleDateFormat("yyyyMMdd", Locale.getDefault()) }
     val timeFmt = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
 
+    // E03-S3: Today's profit is computed from SQL aggregate of sale_items (sell_price - buy_price at time of sale)
+    // NOT from current item prices — accurate even if you changed prices after the sale was recorded
+    val snapshot by viewModel.todaySnapshot.collectAsStateWithLifecycle()
+    val todayRevenue = snapshot.todayRevenue
+    val todayExpenses = snapshot.todayExpenses
+    val todayProfit = snapshot.todayProfit
+
     val todaySales =
         remember(salesList) {
             salesList.filter { saleDateFmt.format(Date(it.timestamp)) == todayDateStr }
         }
-    val todayRevenue =
-        remember(todaySales) {
-            todaySales.sumOf { it.totalAmount }
-        }
-    val todayExpenses =
-        remember(expensesList) {
-            expensesList.filter { saleDateFmt.format(Date(it.timestamp)) == todayDateStr }
-                .sumOf { it.amount }
-        }
-    val todayProfit =
-        remember(todaySales, todayExpenses) {
-            val grossProfit = todaySales.sumOf { sale ->
-                sale.items.sumOf { (it.sellPrice - it.buyPrice) * it.quantity } - sale.discountAmount
-            }
-            grossProfit - todayExpenses
-        }
 
-    // 7-day trend calculations for Net Sales, Purchases, and Expenses
-    val last7DaysData = remember(salesList, purchasesList, expensesList) {
-        val format = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
-        val days = (0..6).map { offset ->
-            val cal = Calendar.getInstance()
-            cal.add(Calendar.DAY_OF_YEAR, -offset)
-            format.format(cal.time)
-        }.reversed() // [day-6, day-5, ..., today]
-
-        // Sales per day
-        val salesPerDay = days.associateWith { dayStr ->
-            salesList.filter { saleDateFmt.format(Date(it.timestamp)) == dayStr }.sumOf { it.totalAmount }
-        }
-
-        // Purchases per day
-        val purchasesPerDay = days.associateWith { dayStr ->
-            purchasesList.filter { saleDateFmt.format(Date(it.timestamp)) == dayStr }.sumOf { it.totalAmount }
-        }
-
-        // Expenses per day
-        val expensesPerDay = days.associateWith { dayStr ->
-            expensesList.filter { saleDateFmt.format(Date(it.timestamp)) == dayStr }.sumOf { it.amount }
-        }
-
-        Triple(
-            days.map { salesPerDay[it] ?: 0.0 },
-            days.map { purchasesPerDay[it] ?: 0.0 },
-            days.map { expensesPerDay[it] ?: 0.0 }
-        )
-    }
+    // 7-day trend calculations are now collected from ViewModel
+    val last7DaysData by viewModel.last7DaysData.collectAsStateWithLifecycle()
 
     val salesTrend = last7DaysData.first
     val salesSumFirstHalf = salesTrend.take(3).sum()
@@ -270,6 +241,12 @@ fun DashboardScreen(
                         label = { Text("Add Quantity") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary
+                        )
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
@@ -396,6 +373,48 @@ fun DashboardScreen(
                                 fontWeight = FontWeight.Black,
                                 color = if (viewModel.isPremiumUser) Color(0xFF452E00) else MaterialTheme.colorScheme.onPrimary,
                             )
+                        }
+
+                                    // ==========================================================================
+            // E01-S4 Sync Status Badge — shows syncing/synced/failed + tap-to-retry
+            // ==========================================================================
+                        val isSyncing = uiSyncStatus.isSyncing
+                        val syncBadgeColor = when {
+                            isSyncing -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                            uiSyncStatus.status in listOf("DONE") -> androidx.compose.ui.graphics.Color(0xFF4CAF50).copy(alpha = 0.18f)
+                            else -> MaterialTheme.colorScheme.error.copy(alpha = 0.18f)
+                        }
+                        val syncLabelText = when (uiSyncStatus.status) {
+                            "PUSHING" -> "Pushing…"
+                            "PULLING" -> "Pulling…"
+                            "DONE", "IDLE" -> "✓ Synced"
+                            "FAILED" -> if (uiSyncStatus.failedCount > 0) "⚠ Failed · ${uiSyncStatus.failedCount}" else "Failed"
+                            else -> "⏸ Idle"
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(syncBadgeColor)
+                                .clickable(onClickLabel = "Retry sync") { viewModel.retrySync() }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Icon(
+                                    if (isSyncing) Icons.Default.Notifications
+                                    else if (uiSyncStatus.status == "FAILED") Icons.Default.Warning
+                                    else Icons.Outlined.CheckCircleOutline,
+                                    contentDescription = "Sync status",
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                )
+                                Text(
+                                    text = syncLabelText,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
+                                )
+                            }
                         }
 
                         // Profile Avatar
@@ -658,7 +677,7 @@ fun DashboardScreen(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "बिक्री रद्द करें? (${undoSecondsLeft}s)",
+                                        text = stringResource(id = R.string.btn_undo) + "? (${undoSecondsLeft}s)",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium,
                                     )
@@ -732,6 +751,60 @@ fun DashboardScreen(
                                     indicatorLabel = expensesIndicatorLabel,
                                     modifier = Modifier.fillMaxWidth(),
                                 )
+                                // E03-S3: Today's financial snapshot (from sale_items price snapshots, accurate profit)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    AnimatedMetricCard(
+                                        title = stringResource(id = R.string.dash_today_revenue),
+                                        value = todayRevenue.toRupee(),
+                                        gradient = Brush.linearGradient(listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8))),
+                                        iconContent = {
+                                            Icon(
+                                                Icons.Filled.Payments,
+                                                contentDescription = stringResource(R.string.ui_element_desc),
+                                                tint = Color.White,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    AnimatedMetricCard(
+                                        title = stringResource(id = R.string.dash_today_expenses),
+                                        value = todayExpenses.toRupee(),
+                                        gradient = Brush.linearGradient(listOf(Color(0xFFF97316), Color(0xFFC2410C))),
+                                        iconContent = {
+                                            Icon(
+                                                Icons.Filled.ReceiptLong,
+                                                contentDescription = stringResource(R.string.ui_element_desc),
+                                                tint = Color.White,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                                // Profit card on its own row (full width)
+                                AnimatedMetricCard(
+                                    title = stringResource(id = R.string.dash_today_profit),
+                                    value = todayProfit.toRupee(),
+                                    gradient = if (todayProfit >= 0) {
+                                        Brush.linearGradient(listOf(Color(0xFF10B981), Color(0xFF047857)))
+                                    } else {
+                                        Brush.linearGradient(listOf(Color(0xFFEF4444), Color(0xFFB91C1C)))
+                                    },
+                                    iconContent = {
+                                        Icon(
+                                            imageVector = if (todayProfit >= 0) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown,
+                                            contentDescription = stringResource(R.string.ui_element_desc),
+                                            tint = Color.White,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1184,7 +1257,7 @@ fun SaleTimelineCard(
                 val isLoss = profit < 0
                 val absProfit = abs(profit)
                 Text(
-                    text = if (isLoss) "-${absProfit.toRupee()} नुकसान" else "+${profit.toRupee()} लाभ",
+                    text = if (isLoss) "-${absProfit.toRupee()} Loss" else "+${profit.toRupee()} Profit",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isLoss) Coral500 else Emerald500,

@@ -157,12 +157,11 @@ class InventoryViewModel(
                 taxRate = taxRate
             )
             val id = inventoryRepository.insertItem(
-                name = item.name, quantity = item.quantity, unit = item.unit, 
-                buyPrice = item.buyPrice, sellPrice = item.sellPrice, 
-                threshold = item.lowStockThreshold, category = item.category, 
+                name = item.name, quantity = item.quantity, unit = item.unit,
+                buyPrice = item.buyPrice, sellPrice = item.sellPrice,
+                threshold = item.lowStockThreshold, category = item.category,
                 photoPath = item.photoPath, hsnCode = item.hsnCode, taxRate = item.taxRate
-            )
-            loadFilteredItems()
+            ) ?: return@launch
             triggerSync()
             onResult(id)
         }

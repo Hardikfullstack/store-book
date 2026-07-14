@@ -419,7 +419,13 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                             if (viewModel.userRole != "staff") focusRequesterBuyPrice.requestFocus() else focusRequesterSupplier.requestFocus()
                         }),
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary
+                        )
                     )
 
                     // Presets
@@ -459,7 +465,13 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                             ),
                             keyboardActions = KeyboardActions(onNext = { focusRequesterSupplier.requestFocus() }),
                             modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterBuyPrice),
-                            singleLine = true
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary
+                            )
                         )
                     }
 
@@ -488,7 +500,13 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                     TextButton(onClick = { showSupplierDropdown = !showSupplierDropdown }) {
                                         Text("Select")
                                     }
-                                }
+                                },
+                                shape = RoundedCornerShape(16.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary
+                                )
                             )
 
                             DropdownMenu(
@@ -545,7 +563,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                     val addedQty = addQtyInput.toDoubleOrNull()
                     val finalBuyPrice = if (viewModel.userRole == "staff") refillItem.buyPrice else buyPriceInput.toDoubleOrNull()
 
-                    if (addedQty == null || addedQty <= 0.0) {
+                    if (addedQty == null || addedQty.isNaN() || addedQty <= 0.0) {
                         android.widget.Toast.makeText(context, "Please enter a valid positive quantity", android.widget.Toast.LENGTH_SHORT).show()
                         return@PrimaryButton
                     }

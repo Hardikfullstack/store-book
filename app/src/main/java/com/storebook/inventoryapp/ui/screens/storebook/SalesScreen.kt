@@ -304,7 +304,7 @@ fun SalesScreen(
                                     .background(MaterialTheme.primaryGradient)
                                     .clickable(onClickLabel = "Action") {
                                         val cur = editingQtyText.text.toDoubleOrNull() ?: step
-                                        val next = (cur - step).coerceAtLeast(step)
+                                        val next = (cur - step).coerceAtLeast(0.0)
                                         val s = formatQty(next)
                                         editingQtyText = TextFieldValue(s, TextRange(s.length))
                                     },
@@ -323,7 +323,7 @@ fun SalesScreen(
                             onValueChange = { editingQtyText = it },
                             modifier =
                                 Modifier
-                                    .width(110.dp)
+                                    .width(130.dp)
                                     .padding(horizontal = 12.dp)
                                     .focusRequester(editingQtyFocus),
                             textStyle =
@@ -1307,11 +1307,10 @@ fun SalesScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 ) {
                     Column(
                         modifier = Modifier
-                            .verticalScroll(rememberScrollState())
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
@@ -1551,11 +1550,7 @@ fun SalesSuccessScreen(
 ) {
     val context = LocalContext.current
 
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(2000)
-        onBack()
-    }
-
+    // Removed auto-dismiss so the user can read the invoice
     val invoiceText =
         remember(saleId, totalAmount, cartItems, discount) {
             val itemsStr = StringBuilder()

@@ -1,34 +1,78 @@
-# AGENTS.md for Android Kotlin Automation: Expert Specification
+<!-- BEGIN bigpowers:project -->
+# StoreBook — AI Agents
 
-## Role
-You are an **Autonomous Android Systems Engineer**. Your expertise lies in Kotlin, Gradle, and the Android SDK. Your primary directive is to maintain a "Green Build" state at all times, ensuring the application is functional on a live emulator after every modification.
+Read **CONVENTIONS.md** before any GitHub or git operation.
 
-## 1. The Immutable Workflow Cycle (The "Continuous Integration" Loop)
-For **every** modification made to the codebase, you are strictly required to execute the following sequence. You must verify the success of each step before proceeding to the next.
+## Project
+Multi-tenant retail inventory management platform for Indian small businesses. Offline-first Android POS with cloud sync to a Next.js web dashboard.
+Stack: Kotlin + Jetpack Compose + SQLite (Android) / TypeScript + Next.js 14 + Redux Toolkit (Web) / Firebase Data Connect → Cloud SQL PostgreSQL / KMP shared module / Firebase Auth (Phone OTP + Email/Password)
 
-1.  **Sync & Clean**: Execute `./gradlew clean` if structure changes, then `./gradlew assembleDebug` to compile.
-2.  **Environment Check**: Run `adb devices`. If no emulator is detected, identify the available AVDs using `emulator -list-avds` and launch the appropriate one. Wait for `adb shell getprop sys.boot_completed` to return `1` before continuing.
-3.  **Deployment**: Execute `adb install -r app/build/outputs/apk/debug/app-debug.apk`.
-4.  **Execution**: Invoke `adb shell am start -n com.example.myapp/.MainActivity`.
-5.  **Log Analysis**: Run `adb logcat -d` immediately after launch to check for fatal exceptions (`FATAL EXCEPTION`, `Process crashed`, `NullPointerException`).
+## Commands
+| Action       | Command                                      |
+|--------------|----------------------------------------------|
+| Android Run  | `./gradlew :app:installDebug`                 |
+| Android Build| `./gradlew :app:assembleDebug`                |
+| Android Test | *(none yet)*                                 |
+| Android Lint | *(none yet — no ktlint configured)*           |
+| Web Run      | `cd web && npm run dev`                       |
+| Web Build    | `cd web && npm run build`                     |
+| Web Test     | *(none yet)*                                 |
+| Web Lint     | `cd web && npm run lint`                      |
+| Preflight    | `echo "no tests yet" && cd web && npm run lint && cd web && npm run build` |
+| CI           | `gh pr checks` (when a PR is open)            |
 
-## 2. Advanced Error Resolution Protocol
-If any step fails, do not ask for clarification. Follow this logic:
-* **Deep Analysis**: If build fails, perform `./gradlew clean` and check `build/reports/` for detailed diagnostics. If runtime fails, parse the `logcat` stack trace for the exact class and line number.
-* **Self-Correction**: Propose the fix, apply it, and **auto-restart** the loop from step 1.
-* **Documentation**: Only after the fix is verified, provide a concise summary of:
-    * The error encountered.
-    * The specific technical reason for the fix.
-    * The confirmation of a successful build/run.
+## Architecture
+Android app handles local CRUD on SQLite; `SyncWorker` pushes/pulls via Firebase Data Connect → Cloud SQL PostgreSQL. Web dashboard uses Next.js Server Actions + Data Connect SDK with Redux-persist caching. KMP shared module (`shared/`) provides domain models to both platforms. Multi-tenancy enforced via `storeId` on every table.
 
-## 3. Proactive Quality Assurance
-Beyond basic functionality, you are responsible for:
-* **Dependency Management**: Before adding any new library, ensure it is compatible with the current `compileSdk` and `minSdk`. Check `build.gradle` for version conflicts.
-* **Resource Integrity**: Ensure every string, color, or layout change is properly mapped in `res/` and that no memory leaks are introduced by improper `Context` usage or lifecycle mismanagement.
-* **Manifest Validation**: Ensure all new `Activities`, `Services`, or `Permissions` are correctly declared in `AndroidManifest.xml`.
+## Conventions
+- Kotlin packages: `com.storebook.inventoryapp.{data,ui,services,workers}` — follow existing structure
+- Web app: Next.js App Router colocation under `web/src/app/{route}/`
+- All planning and specifications MUST be written to `specs/` before code is generated
+- SQL queries use parameterized strings; no raw interpolation
+- Defensive categories in scope: **Retry** (SyncWorker network calls), **Circuit breaker** (Firebase auth failures), **Timeout** (Data Connect queries)
 
-## 4. Operational Constraints
-* **State Awareness**: You must re-evaluate the project state on every turn. Do not assume the emulator is running or that the previous build artifacts are valid.
-* **Non-Interruption**: Do not ask "should I do this?" regarding the workflow. If I provide a file change, the workflow is implicit. 
-* **Output Formatting**: When reporting, use a clear table or bulleted list to display the status of the Compile, Install, and Launch phases.
-* **Technical Precision**: Use precise terminology. Refer to `Logcat`, `Gradle Daemons`, `R8/Proguard`, and `Manifest Merger` errors by their specific technical identifiers.
+## Never
+- Never dismiss reproducible gate failures as pre-existing or out of scope
+- Never proceed on red Preflight or red CI — invoke quick-fix or fix-bug first
+- Never commit Firebase credentials, service-account.json, or local.properties to git
+- Never directly modify SQLite schema tables without updating `StoreBookDbHelper.onUpgrade()` migration
+- Never bypass `storeId` multi-tenancy guards in any query or mutation
+- Never write code that hard-codes absolute paths outside the app/web modules
+
+## Agent Rules
+- **Workflow Mandate:** You MUST use the bigpowers skills (e.g. `plan-work`, `develop-tdd`, `orchestrate-project`) to perform tasks. DO NOT write code directly in response to a user prompt like "build this feature".
+- **Always Green:** Preflight and CI must be green before forward work. Reproducible gate failures require **fix-or-log** (quick-fix → fix-bug) per CONVENTIONS § Discovered Defects.
+- Read `specs/` before writing code.
+- Write the minimum code that solves the stated problem. Nothing extra.
+- Run tests after every change (when available). Show evidence before declaring done.
+- One clarifying question beats a wrong assumption baked into 200 lines.
+
+<!-- END bigpowers:project -->
+
+<!-- BEGIN bigpowers:context-routing -->
+## Context Routing
+
+| Glob Pattern | Sub-doc |
+|---|---|
+| `app/**` | Android Kotlin source — Jetpack Compose screens, ViewModels, Repository |
+| `web/src/app/**` | Next.js App Router pages + Server Actions |
+| `web/src/components/**` | Shared React components |
+| `web/src/lib/**` | Firebase init, session, billing engine |
+| `web/src/store/**` | Redux Toolkit slices (cart, inventory, udhaar) |
+| `dataconnect/**` | Firebase Data Connect schema + queries + mutations (GQL) |
+| `shared/**` | KMP shared module — domain models |
+| `backend/**` | Legacy Express.js (dev remnant — do not modify unless refactoring) |
+| `docs/**` | Project specification documents (read-only reference) |
+
+<!-- END bigpowers:context-routing -->
+
+<!-- BEGIN bigpowers:learned-preferences -->
+## Learned User Preferences
+
+*(To be populated by session-state skill as patterns emerge.)*
+
+## Workspace Facts
+
+*(To be populated by session-state skill.)*
+
+<!-- END bigpowers:learned-preferences -->
