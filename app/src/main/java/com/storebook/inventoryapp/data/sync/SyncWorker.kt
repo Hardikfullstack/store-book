@@ -282,67 +282,98 @@ class SyncWorker(
             val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(ctx)
             val ls = prefs.getLong("last_sync_timestamp_$sid", 0L)
             var pulled = 0
+            val entityFailures = mutableMapOf<String, String>()
 
             // Items — LWW via updatedAt comparison
             try {
                 val items = c.syncItems.execute(sid, ls.toDouble()).data.items
                 for (i in items) if (r.shouldAcceptRemote(i.updatedAt.toLong(), i.id)) r.upsertItem(i.id.toLongOrNull() ?: 0L, i.name, i.quantity, i.unit, i.buyPrice, i.sellPrice, i.lowStockThreshold, i.category, i.photoPath ?: "", i.hsnCode ?: "", 0.0, if (i.isDeleted) 1L else 0L, i.id, i.updatedAt.toLong())
                 pulled += items.size
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("SW-Pull", "Items pull failed: ${e.message}", e)
+                entityFailures["items_pull"] = e.message ?: "unknown"
+            }
 
             // Sales — append-only; skip existing cloudId duplicates
             try {
                 val sales = c.syncSales.execute(sid, ls.toDouble()).data.sales
                 for (sa in sales) if (!r.saleExistsLocally(sa.id)) r.upsertSale(sa.id.toLongOrNull() ?: 0L, sa.timestamp.toLong(), sa.totalAmount, sa.discountAmount, sanitize(sa.customerName), "", "", "", "", sa.type, "", if (sa.isDeleted) 1L else 0L, sa.id, sa.updatedAt.toLong())
                 pulled += sales.size
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("SW-Pull", "Sales pull failed: ${e.message}", e)
+                entityFailures["sales_pull"] = e.message ?: "unknown"
+            }
 
             // SaleItems — cascade from resolved parentId keys
             try {
                 val sis = c.syncSaleItems.execute(sid, ls.toDouble()).data.saleItemDetails
                 for (si in sis) r.upsertSaleItem(si.id.toLongOrNull() ?: 0L, r.resolveSaleIdByCloudId(si.saleId) ?: 0L, r.resolveItemIdByCloudId(si.itemId) ?: 0L, sanitize(si.itemName), si.unit, si.quantity, si.sellPrice, si.buyPrice, if (si.isDeleted) 1L else 0L, si.id, si.updatedAt.toLong())
                 pulled += sis.size
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("SW-Pull", "SaleItems pull failed: ${e.message}", e)
+                entityFailures["sale_items_pull"] = e.message ?: "unknown"
+            }
 
             // Udhaars — always accept new records
             try {
                 val us = c.syncUdhaars.execute(sid, ls.toDouble()).data.udhaarEntries
                 for (u in us) r.upsertUdhaar(u.id.toLongOrNull() ?: 0L, sanitize(u.customerName), u.amount, u.type, u.timestamp.toLong(), u.notes?.let(::sanitize), if (u.isDeleted) 1L else 0L, u.id, u.updatedAt.toLong())
                 pulled += us.size
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("SW-Pull", "Udhaars pull failed: ${e.message}", e)
+                entityFailures["udhaars_pull"] = e.message ?: "unknown"
+            }
 
             // Expenses — always accept
             try {
                 val es = c.syncExpenses.execute(sid, ls.toDouble()).data.expenseEntries
                 for (ex in es) r.upsertExpense(ex.id.toLongOrNull() ?: 0L, ex.type, sanitize(ex.description), ex.amount, ex.timestamp.toLong(), ex.supplierName?.let(::sanitize), ex.supplierPhone?.let(::sanitize), if (ex.isDeleted) 1L else 0L, ex.id, ex.updatedAt.toLong())
                 pulled += es.size
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("SW-Pull", "Expenses pull failed: ${e.message}", e)
+                entityFailures["expenses_pull"] = e.message ?: "unknown"
+            }
 
             // Suppliers — LWW via updatedAt
             try {
                 val ss = c.syncSuppliers.execute(sid, ls.toDouble()).data.suppliers
                 for (su in ss) if (r.shouldAcceptRemote(su.updatedAt.toLong(), su.id)) r.upsertSupplier(su.id.toLongOrNull() ?: 0L, sanitize(su.name), su.phone?.let(::sanitize), su.gstin?.let(::sanitize), su.address?.let(::sanitize), if (su.isDeleted) 1L else 0L, su.id, su.updatedAt.toLong())
                 pulled += ss.size
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("SW-Pull", "Suppliers pull failed: ${e.message}", e)
+                entityFailures["suppliers_pull"] = e.message ?: "unknown"
+            }
 
             // Purchases — LWW via updatedAt
             try {
                 val ps = c.syncPurchases.execute(sid, ls.toDouble()).data.purchases
                 for (pu in ps) if (r.shouldAcceptRemote(pu.updatedAt.toLong(), pu.id)) r.upsertPurchase(pu.id.toLongOrNull() ?: 0L, r.resolveSupplierIdByCloudId(pu.supplierId)?.toLong() ?: 0L, sanitize(pu.supplierName), pu.totalAmount, pu.taxAmount, pu.type, pu.timestamp.toLong(), pu.notes?.let(::sanitize), if (pu.isDeleted) 1L else 0L, pu.id, pu.updatedAt.toLong())
                 pulled += ps.size
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("SW-Pull", "Purchases pull failed: ${e.message}", e)
+                entityFailures["purchases_pull"] = e.message ?: "unknown"
+            }
 
             // PurchaseItems — cascade from resolved parentId keys
             try {
                 val pis = c.syncPurchaseItems.execute(sid, ls.toDouble()).data.purchaseItemDetails
                 for (pi in pis) r.upsertPurchaseItem(pi.id.toLongOrNull() ?: 0L, r.resolvePurchaseIdByCloudId(pi.purchaseId)?.toLong() ?: 0L, r.resolveItemIdByCloudId(pi.itemId) ?: 0L, sanitize(pi.itemName), pi.quantity, pi.unit, pi.buyPrice, if (pi.isDeleted) 1L else 0L, pi.id, pi.updatedAt.toLong())
                 pulled += pis.size
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("SW-Pull", "PurchaseItems pull failed: ${e.message}", e)
+                entityFailures["purchase_items_pull"] = e.message ?: "unknown"
+            }
 
             // Update last-sync timestamp
             prefs.edit().putLong("last_sync_timestamp_$sid", System.currentTimeMillis()).commit()
-            try { com.google.firebase.database.FirebaseDatabase.getInstance().getReference("store_updates").child(sid).child("last_update").setValue(System.currentTimeMillis()) } catch (_: Exception) {}
-            android.util.Log.d("SW", "E01-S3 pull complete: $pulled entities processed")
+            try { com.google.firebase.database.FirebaseDatabase.getInstance().getReference("store_updates").child(sid).child("last_update").setValue(System.currentTimeMillis()) } catch (e: Exception) { android.util.Log.e("SW-Pull", "Remote timestamp update failed", e) }
+            // BUG-02 FIX: Report overall pull status with per-entity failure info
+            if (entityFailures.isNotEmpty()) {
+                val failedLabels = entityFailures.keys.joinToString(", ")
+                android.util.Log.w("SW", "E01-S3 partial: $pulled entities OK, failed[$failedLabels]")
+            } else {
+                android.util.Log.d("SW", "E01-S3 pull complete: $pulled entities processed")
+            }
             return pulled
         }
     }

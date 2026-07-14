@@ -1,0 +1,78 @@
+# Bugs Registry — StoreBook
+# Maintained list of identified bugs with IDs matching filename stem.
+
+bugs:
+  - id: BUG-01
+    file: bug-01.yaml
+    severity: P0
+    status: open
+    summary: "Non-atomic sale save — partial stock deduction on crash or exception"
+
+  - id: BUG-02
+    file: bug-sync-worker-silent-catch-all.yaml
+    severity: P0
+    status: open
+    summary: "Every pull entity catches _:Exception silently — data lost, no retry"
+
+  - id: BUG-03
+    file: bug-sale-item-orphan-during-pull.yaml
+    severity: P0
+    status: open
+    summary: "SaleItems inserted with parent_id=0 when cloud-ID resolution fails"
+
+  - id: BUG-04
+    file: bug-npe-hazards-double-bang-assertions.yaml
+    severity: P0
+    status: open
+    summary: "26 !! non-null assertions on nullable state — NPE crashes"
+
+  - id: BUG-05
+    file: web-session-backdoor-note.yaml
+    severity: P0
+    status: open
+    summary: "Backdoor comment in actions.ts + no CSRF protection on mutations"
+
+  - id: BUG-06
+    file: bug-negative-stock-race-quotation.yaml
+    severity: P0
+    status: open
+    summary: "convertQuotationToSale read-then-write — stock can go negative"
+
+  - id: BUG-07
+    file: bug-inventory-negative-quantity.yaml
+    severity: P1
+    status: open
+    summary: "updateItemStock does not guard against newQty < 0"
+
+  - id: BUG-08
+    file: bug-udhaar-decimal-locale-crash.yaml
+    severity: P1
+    status: open
+    summary: "Udhaar amount TextField !! NPE crash on Indian locale format"
+
+  - id: BUG-09
+    file: bug-web-stale-dashboard.yaml
+    severity: P1
+    status: open
+    summary: "Dashboard not invalidated after mutations — stale revenue shown"
+
+  - id: BUG-10
+    file: bug-udhaar-balance-client-only.yaml
+    severity: P1
+    status: open
+    summary: "Udhaar balance computed locally — two devices disagree on amount"
+
+  - id: bug-post-sync-stale-ui
+    file: bug-post-sync-stale-ui.yaml
+    severity: P0
+    status: resolved
+    summary: "Data synced after fresh login not visible until app reopened (resolved)"
+
+total: 11
+open: 10
+resolved: 1
+by_severity:
+  P0: 6 open + 3 resolved
+  P1: 4 open
+  P2: 7 identified in audit (deferred)
+  P3: 4 identified in audit (deferred)

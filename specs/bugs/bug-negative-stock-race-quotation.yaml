@@ -1,0 +1,27 @@
+# Bug — convertQuotationToSale has read-then-write gap — stock can go negative under concurrent sales
+
+id: bug-negative-stock-race-quotation-conversion
+title: "convertQuotationToSale read-then-write race — stock can go negative"
+severity: P0
+status: open
+reported: "2025-07-14"
+component: [actions.ts]
+
+root_cause: |
+  When converting ESTIMATE to SALE, the server action (convertQuotationToSale, ~line 398):
+    1. Fetches all sale_items for the estimate
+    2. Loops through each item and deducts stock from Firebase
+    3. Updates the sale type to 'SALE'
+
+  Between steps 1 and 2, another sale could have already deducted enough stock on
+  another tab/device that step 2 drives quantity negative. No atomic check-and-deduct — it reads current quantity in one operation then updates in another. No WHERE quantity >= :deduct guard on the UPDATE statement.
+
+fix_approach: |
+  Use a SQL constraint or application-level minimum check: add WHERE quantity >= ?
+  to the stock deduction query. If 0 rows affected, reject that item and return
+  'insufficient_stock' error with item name so user can adjust. Optionally allow
+  owner-only 'force deduct' override for edge cases.
+
+affected_screens:
+  - Quotations page (/quotations — Convert button)
+  - Inventory screen (shows negative qty)

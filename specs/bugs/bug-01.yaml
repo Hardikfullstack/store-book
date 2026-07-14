@@ -1,0 +1,30 @@
+# Bug — Non-Atomic Sale Save Causes Partial Stock Deduction
+
+id: bug-non-atomic-sale-save
+title: "saveSale() not in a database transaction — partial stock deduction on crash or exception"
+severity: P0
+status: open
+reported: "2025-07-14"
+component: [SalesViewModel, SalesRepository, InventoryRepository]
+
+root_cause: >
+  SalesViewModel.saveSale() (line ~119) calls three separate database writes in
+  sequence without wrapping them in database.transaction{...}:
+
+    1. salesRepository.insertSale(...)          — creates sale header
+    2. cartItems.forEach { insertSaleItem(...) } — creates line items
+    3. cartItems.forEach { updateItemStock(..., -qty) } — deducts inventory
+
+  If step 3 fails partway through (disk full, OOM, DB constraint violation on item
+  #3 of 7), the sale and all sale_items are permanently saved but only some items'
+  stock was deducted. There is no rollback — the inventory is now irreconcilable.
+
+fix_approach: >
+  Wrap the entire save-sale sequence inside a single database.transaction{...}.
+  If any step throws, ALL operations roll back atomically. The `onResult` callback
+  fires only on success; on exception, re-throw to surface error to UI with a
+  toast + keep cart intact so user can retry without data loss.
+
+affected_screens:
+  - PaymentBottomSheet (sale confirmation flow)
+  - SalesScreen (history shows sale with wrong inventory state)

@@ -149,6 +149,7 @@ fun MoreScreen(
         val salesList by viewModel.salesList.collectAsStateWithLifecycle()
         val expensesList by viewModel.expensesList.collectAsStateWithLifecycle()
         val allItems by viewModel.allItems.collectAsStateWithLifecycle()
+        val storeNames by viewModel.storeNames.collectAsStateWithLifecycle()
 
         val auth = remember { com.google.firebase.auth.FirebaseAuth.getInstance() }
         var currentUser by remember { mutableStateOf(auth.currentUser) }
@@ -621,6 +622,108 @@ fun MoreScreen(
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                                         modifier = Modifier.padding(start = 54.dp, bottom = 8.dp, end = 16.dp)
                                                 )
+                                                HorizontalDivider(
+                                                        modifier =
+                                                                Modifier.padding(horizontal = 16.dp)
+                                                )
+
+                                                // ── E20-S1: Cloud Backup (visible to all roles) ─────────────
+                                                IconOptionRow(
+                                                        icon = Icons.Outlined.CloudSync,
+                                                        iconBg =
+                                                                MaterialTheme.colorScheme.primary
+                                                                        .copy(alpha = 0.12f),
+                                                        iconTint = MaterialTheme.colorScheme.primary,
+                                                        title = "Cloud Backup",
+                                                        trailing = formatLastBackup(viewModel.lastBackupMillis),
+                                                        onClick = {
+                                                                if (viewModel.backupProgress !in 0..99) {
+                                                                        viewModel.triggerBackup()
+                                                                }
+                                                        },
+                                                )
+
+                                                // Backup progress indicator (inline, shown when uploading)
+                                                if (viewModel.backupProgress in 0..100 && viewModel.backupProgress != -1) {
+                                                        val isDone = viewModel.backupProgress == 100
+                                                        Column(
+                                                                modifier = Modifier.padding(
+                                                                        start = 54.dp,
+                                                                        bottom = 8.dp,
+                                                                        end = 16.dp,
+                                                                        top = 4.dp,
+                                                                ),
+                                                        ) {
+                                                                androidx.compose.material3.LinearProgressIndicator(
+                                                                        progress = { viewModel.backupProgress / 100f },
+                                                                        modifier = Modifier.fillMaxWidth().height(6.dp),
+                                                                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                                        color = MaterialTheme.colorScheme.primary,
+                                                                )
+                                                                Spacer(modifier = Modifier.height(4.dp))
+                                                                Text(
+                                                                        text = when {
+                                                                                isDone -> "\u2714 Backup complete"
+                                                                                viewModel.backupError != null -> viewModel.backupError ?: ""
+                                                                                else -> "Uploading ... ${viewModel.backupProgress}%"
+                                                                        },
+                                                                        style = MaterialTheme.typography.bodySmall,
+                                                                        color = if (isDone) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                        modifier = Modifier.padding(start = 8.dp),
+                                                                )
+                                                        }
+                                                }
+                                                HorizontalDivider(
+                                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                                )
+
+                                                // ── E20-S2: Restore from Cloud (visible when backup exists) ───
+                                                if (viewModel.restoreAvailable && viewModel.restoreProgress < 0) {
+                                                        IconOptionRow(
+                                                                icon = Icons.Outlined.Restore,
+                                                                iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                                                                iconTint = MaterialTheme.colorScheme.secondary,
+                                                                title = "Restore from Cloud",
+                                                                trailing = formatLastBackup(viewModel.restoreTimestampMs),
+                                                                onClick = {
+                                                                        // Prompt via activeModal dialog
+                                                                        activeModal = "RESTORE"
+                                                                        showSheet = true
+                                                                },
+                                                        )
+                                                }
+
+                                                // Restore progress indicator (inline)
+                                                if (viewModel.restoreProgress in 0..100) {
+                                                        val isDone = viewModel.restoreProgress == 100
+                                                        Column(
+                                                                modifier = Modifier.padding(
+                                                                        start = 54.dp,
+                                                                        bottom = 8.dp,
+                                                                        end = 16.dp,
+                                                                        top = 4.dp,
+                                                                ),
+                                                        ) {
+                                                                androidx.compose.material3.LinearProgressIndicator(
+                                                                        progress = { viewModel.restoreProgress / 100f },
+                                                                        modifier = Modifier.fillMaxWidth().height(6.dp),
+                                                                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                                        color = MaterialTheme.colorScheme.secondary,
+                                                                )
+                                                                Spacer(modifier = Modifier.height(4.dp))
+                                                                Text(
+                                                                        text = if (isDone && viewModel.restoreError == null) "\u2714 ${viewModel.restoreStageMsg}" else (viewModel.restoreError ?: viewModel.restoreStageMsg),
+                                                                        style = MaterialTheme.typography.bodySmall,
+                                                                        color = when {
+                                                                                viewModel.restoreError != null -> MaterialTheme.colorScheme.error
+                                                                                isDone -> MaterialTheme.colorScheme.secondary
+                                                                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                                                        },
+                                                                        modifier = Modifier.padding(start = 8.dp),
+                                                                )
+                                                        }
+                                                }
+
                                                 HorizontalDivider(
                                                         modifier =
                                                                 Modifier.padding(horizontal = 16.dp)
@@ -1286,7 +1389,7 @@ fun MoreScreen(
                                                 }
                                         }
                                         "SWITCH_STORE" -> {
-                                            var newStoreIdInput by remember { mutableStateOf("") }
+                                            var newStoreNameInput by remember { mutableStateOf("") }
                                             Column(
                                                     modifier =
                                                             Modifier.fillMaxWidth()
@@ -1298,12 +1401,12 @@ fun MoreScreen(
                                                     verticalArrangement = Arrangement.spacedBy(16.dp),
                                             ) {
                                                 Text(
-                                                        "Switch Active Store",
+                                                        "Switch or Create Store",
                                                         fontSize = 18.sp,
                                                         fontWeight = FontWeight.Bold
                                                 )
                                                 Text(
-                                                    text = "Current Store: ${viewModel.getStoreName(viewModel.activeStoreId)}",
+                                                    text = "Current Store: ${storeNames[viewModel.activeStoreId] ?: viewModel.getStoreName(viewModel.activeStoreId)}",
                                                     fontSize = 14.sp,
                                                     color = MaterialTheme.colorScheme.primary
                                                 )
@@ -1311,12 +1414,17 @@ fun MoreScreen(
                                                 if (viewModel.userStores.isNotEmpty()) {
                                                     Text("Your Associated Stores:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                                                     viewModel.userStores.forEach { sId ->
-                                                        val storeName = viewModel.getStoreName(sId)
+                                                        val storeName = storeNames[sId] ?: viewModel.getStoreName(sId)
                                                         Card(
                                                             modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Action") {
                                                                 viewModel.switchStore(sId)
                                                                 showSheet = false
                                                                 android.widget.Toast.makeText(context, context.getString(R.string.toast_switched_store, storeName), android.widget.Toast.LENGTH_SHORT).show()
+                                                                (context as? androidx.activity.ComponentActivity)?.viewModelStore?.clear()
+                                                                val intent = android.content.Intent(context, com.storebook.inventoryapp.MainActivity::class.java)
+                                                                intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                                                context.startActivity(intent)
+                                                                (context as? android.app.Activity)?.finish()
                                                             },
                                                             colors = CardDefaults.cardColors(containerColor = if (sId == viewModel.activeStoreId) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant),
                                                             shape = RoundedCornerShape(12.dp)
@@ -1327,36 +1435,109 @@ fun MoreScreen(
                                                 }
 
                                                 OutlinedTextField(
-                                                        value = newStoreIdInput,
-                                                        onValueChange = { newStoreIdInput = it },
-                                                        label = { Text("Or enter Store ID manually") },
+                                                        value = newStoreNameInput,
+                                                        onValueChange = { newStoreNameInput = it },
+                                                        label = { Text("Or enter Store Name to create") },
                                                         modifier = Modifier.fillMaxWidth(),
                                                         singleLine = true,
                                                         shape = RoundedCornerShape(12.dp),
                                                 )
                                                 PrimaryButton(
                                                         onClick = {
-                                                            if (newStoreIdInput.isNotBlank()) {
-                                                                if (!viewModel.userStores.contains(newStoreIdInput) && !viewModel.isPremiumUser && viewModel.userStores.size >= 2) {
+                                                            if (newStoreNameInput.isNotBlank()) {
+                                                                if (!viewModel.isPremiumUser && viewModel.userStores.size >= 2) {
                                                                     showUpgradeDialog = true
                                                                 } else {
-                                                                    viewModel.switchStore(newStoreIdInput)
+                                                                    val newStoreId = viewModel.createLocalStore(newStoreNameInput.trim())
                                                                     showSheet = false
-                                                                    val switchedName = viewModel.getStoreName(newStoreIdInput)
                                                                     android.widget.Toast.makeText(
                                                                             context,
-                                                                            context.getString(R.string.toast_switched_store, switchedName),
+                                                                            context.getString(R.string.toast_switched_store, newStoreNameInput.trim()),
                                                                             android.widget.Toast.LENGTH_SHORT,
                                                                     ).show()
+                                                                    (context as? androidx.activity.ComponentActivity)?.viewModelStore?.clear()
+                                                                    val intent = android.content.Intent(context, com.storebook.inventoryapp.MainActivity::class.java)
+                                                                    intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                                                    context.startActivity(intent)
+                                                                    (context as? android.app.Activity)?.finish()
                                                                 }
                                                             }
                                                         },
                                                         modifier = Modifier.fillMaxWidth().height(52.dp),
                                                         shape = RoundedCornerShape(14.dp),
                                                 ) {
-                                                    Text("Switch / Create Local Store", fontWeight = FontWeight.Bold)
+                                                    Text("Create Local Store", fontWeight = FontWeight.Bold)
                                                 }
                                             }
+                                        }
+
+                                        // ── E20-S2: Restore from cloud confirmation ───
+                                        "RESTORE" -> {
+                                                Column(
+                                                        modifier = Modifier.fillMaxWidth()
+                                                                .padding(horizontal = 24.dp, vertical = 16.dp)
+                                                                .padding(bottom = 32.dp),
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                ) {
+                                                        Text(
+                                                                "Restore from Cloud Backup",
+                                                                fontSize = 18.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = MaterialTheme.colorScheme.secondary,
+                                                        )
+                                                        Spacer(modifier = Modifier.height(8.dp))
+                                                        Card(
+                                                                colors = CardDefaults.cardColors(
+                                                                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                                                                ),
+                                                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                                                shape = RoundedCornerShape(12.dp),
+                                                        ) {
+                                                                Text(
+                                                                        "\u26A0\uFE0F This will REPLACE all local data with the cloud backup. Any unsynced changes on this device will be lost.",
+                                                                        style = MaterialTheme.typography.bodySmall,
+                                                                        color = MaterialTheme.colorScheme.error,
+                                                                        modifier = Modifier.padding(12.dp),
+                                                                )
+                                                        }
+                                                        Spacer(modifier = Modifier.height(8.dp))
+                                                        if (viewModel.restoreTimestampMs > 0) {
+                                                                Text(
+                                                                        "Backup: ${formatLastBackup(viewModel.restoreTimestampMs)}",
+                                                                        fontSize = 13.sp,
+                                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                )
+                                                        }
+                                                        Spacer(modifier = Modifier.height(24.dp))
+                                                        Row(
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                        ) {
+                                                                Button(
+                                                                        onClick = { showSheet = false },
+                                                                        modifier = Modifier.weight(1f).height(50.dp),
+                                                                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                                        ),
+                                                                        shape = RoundedCornerShape(14.dp),
+                                                                ) {
+                                                                        Text("Cancel", fontWeight = FontWeight.SemiBold)
+                                                                }
+                                                                Button(
+                                                                        onClick = {
+                                                                                showSheet = false
+                                                                                viewModel.triggerRestore()
+                                                                        },
+                                                                        modifier = Modifier.weight(1f).height(50.dp),
+                                                                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                                                                containerColor = MaterialTheme.colorScheme.secondary,
+                                                                        ),
+                                                                        shape = RoundedCornerShape(14.dp),
+                                                                ) {
+                                                                        Text("\uD83D\uDD01 Restore", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondary)
+                                                                }
+                                                        }
+                                                }
                                         }
                                 }
                         }
@@ -1549,6 +1730,11 @@ fun LanguageOptionCard(
         }
 }
 
+
+/** Format last backup timestamp into a human-readable string. "Never" if no backup exists. */
+fun formatLastBackup(timestampMs: Long): String {
+    return if (timestampMs == 0L) "Never" else SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()).format(Date(timestampMs))
+}
 
 @Composable
 fun InlineThemeCard(

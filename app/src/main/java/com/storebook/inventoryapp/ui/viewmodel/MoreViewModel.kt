@@ -22,6 +22,10 @@ import kotlinx.coroutines.withContext
 import android.net.Uri
 import com.storebook.inventoryapp.utils.SecurityUtils
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import com.storebook.inventoryapp.data.backup.BackupManager
+import com.storebook.inventoryapp.data.backup.RestoreState
+import com.storebook.inventoryapp.data.backup.RestoreStage
+import com.storebook.inventoryapp.dataconnect.*
 
 class MoreViewModel(
     private val salesRepository: SalesRepository,
@@ -35,15 +39,15 @@ class MoreViewModel(
     var userRole: String by mutableStateOf(prefs.getString("user_role", "owner") ?: "owner")
     var userRoleType: UserRole by mutableStateOf(UserRole.fromString(userRole))
     var isPremiumUser by mutableStateOf(false)
-    private var _businessName by mutableStateOf(prefs.getString("business_name", "") ?: "")
+    var activeStoreId: String by mutableStateOf(prefs.getString("active_store_id", "default") ?: "default")
+    private var _businessName by mutableStateOf(prefs.getString("business_name_$activeStoreId", prefs.getString("business_name", "")) ?: "")
     var businessName: String
         get() = _businessName
         set(value) {
             _businessName = value
-            prefs.edit().putString("business_name", value).apply()
+            prefs.edit().putString("business_name_$activeStoreId", value).putString("business_name", value).apply()
         }
-    var activeStoreId: String by mutableStateOf(prefs.getString("active_store_id", "default") ?: "default")
-    var userStores: List<String> by mutableStateOf(prefs.getStringSet("user_stores", setOf("default"))?.toList() ?: listOf("default"))
+    var userStores: List<String> by mutableStateOf(prefs.getString("user_stores", "default")?.split(",")?.filter { it.isNotBlank() } ?: listOf("default"))
     
     var businessGstin by mutableStateOf(prefs.getString("business_gstin_${activeStoreId}", prefs.getString("business_gstin", "")) ?: "")
     var businessAddress by mutableStateOf(prefs.getString("business_address_${activeStoreId}", prefs.getString("business_address", "")) ?: "")
@@ -53,10 +57,99 @@ class MoreViewModel(
     var isHapticFeedbackEnabled by mutableStateOf(prefs.getBoolean("haptic_feedback", true))
     var lowStockThreshold by mutableStateOf(prefs.getString("default_low_stock_threshold", "5") ?: "5")
 
+    // E20-S1: Cloud Backup state
+    var backupProgress by mutableStateOf(-1) // -1 = idle, 0-99 = uploading, 100 = done
+    var backupError by mutableStateOf<String?>(null)
+    val lastBackupMillis: Long
+        get() = prefs.getLong("last_backup_timestamp", 0)
+
+    /** Trigger a full DB upload to Firebase Storage. */
+    fun triggerBackup() {
+        viewModelScope.launch {
+            backupProgress = 0
+            backupError = null
+            val manager = BackupManager(context, activeStoreId)
+            try {
+                manager.uploadToCloud().collect { progress ->
+                    backupProgress = progress
+                    if (progress == 100) {
+                        prefs.edit().putLong("last_backup_timestamp", System.currentTimeMillis()).apply()
+                        // After successful backup, re-check cloud availability for restore info
+                        checkForCloudBackup()
+                    }
+                }
+            } catch (e: Exception) {
+                backupError = "Backup failed: ${e.localizedMessage}"
+                backupProgress = -1
+            }
+        }
+    }
+
+    // E20-S2: Cloud Restore state
+    var restoreAvailable by mutableStateOf(false)
+    var restoreTimestampMs by mutableStateOf(0L)
+    var restoreSizeBytes by mutableStateOf(0L)
+    var restoreProgress by mutableStateOf(-1) // -1 = idle, 0-99 = restoring, 100 = done
+    var restoreError by mutableStateOf<String?>(null)
+    var restoreStageMsg by mutableStateOf("")
+
+    /** Check if a cloud backup exists for this storeId. */
+    fun checkForCloudBackup() {
+        viewModelScope.launch {
+            val manager = BackupManager(context, activeStoreId)
+            try {
+                manager.fetchLatestBackupInfo().collect { info ->
+                    if (info != null) {
+                        restoreAvailable = true
+                        restoreTimestampMs = info.timestampMs
+                        restoreSizeBytes = info.sizeBytes
+                    } else {
+                        restoreAvailable = false
+                    }
+                }
+            } catch (_: Exception) {
+                restoreAvailable = false
+            }
+        }
+    }
+
+    /** Trigger download + apply of latest cloud backup. */
+    fun triggerRestore() {
+        viewModelScope.launch {
+            restoreProgress = 0
+            restoreError = null
+            val manager = BackupManager(context, activeStoreId)
+            try {
+                manager.restoreFromCloud().collect { state ->
+                    restoreProgress = when (state.stage) {
+                        RestoreStage.DOWNLOADING -> state.progressPercent
+                        RestoreStage.VERIFYING, RestoreStage.APPLYING -> 99
+                        RestoreStage.DONE -> 100
+                        else -> 0
+                    }
+                    restoreStageMsg = state.message
+                    if (state.stage == RestoreStage.FAILED) {
+                        restoreError = state.message
+                        restoreProgress = -1
+                    } else if (state.stage == RestoreStage.DONE) {
+                        // After restore: re-check backup info (timestamp updated)
+                        checkForCloudBackup()
+                        // Reload local data from restored DB
+                        loadData()
+                    }
+                }
+            } catch (_: Exception) {
+                restoreError = "Restore encountered an error"
+                restoreProgress = -1
+            }
+        }
+    }
+
+    private val _storeNames = MutableStateFlow<Map<String, String>>(emptyMap())
+    val storeNames: StateFlow<Map<String, String>> = _storeNames
+
     fun getStoreName(id: String): String {
-        val name = prefs.getString("business_name_$id", null)
-            ?: prefs.getString("business_name", null)
-        return if (name.isNullOrBlank()) "My Store" else name
+        return _storeNames.value[id] ?: prefs.getString("business_name_$id", null) ?: prefs.getString("business_name", null) ?: "My Store"
     }
 
     fun switchStore(newStoreId: String) {
@@ -66,13 +159,20 @@ class MoreViewModel(
         businessGstin = prefs.getString("business_gstin_$newStoreId", prefs.getString("business_gstin", "")) ?: ""
         businessAddress = prefs.getString("business_address_$newStoreId", prefs.getString("business_address", "")) ?: ""
         businessCurrency = prefs.getString("business_currency_$newStoreId", prefs.getString("business_currency", "INR")) ?: "INR"
-        val stores = prefs.getStringSet("user_stores", setOf("default"))?.toMutableSet() ?: mutableSetOf("default")
+        val stores = prefs.getString("user_stores", "default")?.split(",")?.filter { it.isNotBlank() }?.toMutableList() ?: mutableListOf("default")
         if (!stores.contains(newStoreId)) {
             stores.add(newStoreId)
-            prefs.edit().putStringSet("user_stores", stores).apply()
+            prefs.edit().putString("user_stores", stores.joinToString(",")).apply()
         }
-        userStores = prefs.getStringSet("user_stores", setOf("default"))?.toList() ?: listOf("default")
+        userStores = prefs.getString("user_stores", "default")?.split(",")?.filter { it.isNotBlank() } ?: listOf("default")
         loadData()
+    }
+
+    fun createLocalStore(name: String): String {
+        val newStoreId = java.util.UUID.randomUUID().toString()
+        prefs.edit().putString("business_name_$newStoreId", name).apply()
+        switchStore(newStoreId)
+        return newStoreId
     }
 
     fun refreshUserState() {
@@ -131,6 +231,39 @@ class MoreViewModel(
 
     init {
         loadData()
+        // E20-S2: on startup, check if cloud backup is available for restore
+        checkForCloudBackup()
+        fetchStoreNames()
+    }
+    
+    private fun fetchStoreNames() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val connector = com.storebook.inventoryapp.dataconnect.StorebookConnectorConnector.instance
+                val newNames = mutableMapOf<String, String>()
+                userStores.forEach { sId ->
+                    try {
+                        val storeRes = connector.getStore.execute(sId)
+                        val sName = storeRes.data.store?.name
+                        if (!sName.isNullOrBlank()) {
+                            prefs.edit().putString("business_name_$sId", sName).apply()
+                            newNames[sId] = sName
+                            if (sId == activeStoreId) {
+                                businessName = sName
+                            }
+                        } else {
+                            newNames[sId] = prefs.getString("business_name_$sId", "Store (${sId.take(8)})") ?: "Store (${sId.take(8)})"
+                        }
+                    } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
+                        newNames[sId] = prefs.getString("business_name_$sId", "Store (${sId.take(8)})") ?: "Store (${sId.take(8)})"
+                    }
+                }
+                _storeNames.value = newNames
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+            }
+        }
     }
 
     private fun loadData() {

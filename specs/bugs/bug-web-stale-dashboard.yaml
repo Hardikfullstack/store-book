@@ -1,0 +1,22 @@
+# Bug — Mutation server actions miss revalidatePath — dashboard shows stale revenue after new sales
+
+id: bug-web-stale-dashboard-stats
+title: "Dashboard stats not invalidated after mutations — stale revenue numbers shown"
+severity: P1
+status: open
+reported: "2025-07-14"
+component: [actions.ts, DashboardClient.tsx]
+
+root_cause: |
+  Dashboard fetches stats via server action getDashboardStats() which queries Firebase
+  Data Connect for daily/monthly totals. After performing mutations (creating a sale,
+  deleting an item, converting quotation), most server actions do NOT call
+  revalidatePath('/') or revalidateTag('dashboard'). This means the dashboard ISR cache
+  still holds yesterday's numbers. User creates 5 sales → dashboard unchanged until full page reload or cache TTL expires (often hours).
+
+fix_approach: |
+  Add revalidatePath('/') to ALL mutation server actions that change financials: createSale, convertQuotationToSale, deleteSale, createExpense, recordUdhaar. Or better yet migrate to revalidateTag('dashboard') and attach the tag in data-fetching functions for targeted ISR cache invalidation without evicting unrelated pages.
+
+affected_screens:
+  - Dashboard home page (stale revenue/reports)
+  - DashboardCharts.tsx (line chart doesn't reflect new sales)

@@ -1,0 +1,27 @@
+# Bug — Backdoor comment in actions.ts + no CSRF protection on mutation server actions
+
+id: web-session-backdoor-comment
+title: "Backdoor comment left in production code + no CSRF protection on write actions"
+severity: P0
+status: open
+reported: "2025-07-14"
+component: [actions.ts, session.ts]
+
+root_cause: |
+  actions.ts contains the comment:
+
+      // Instead of doing this here, I should modify getSession in @/lib/session.ts
+      // to allow a backdoor cookie.
+      return { success: false, error: "Backdoor must be implemented in getSession" };
+
+  This dead code path + suggestive comment is a liability in production branch. No server action calls (deleteStore, createStaff, deleteStaff, updateUserRole) validate CSRF tokens — any XSS vector could replay the victim's session cookie to perform admin operations. session.ts uses verifySessionCookie(sessionCookie, true) but cookies are not SameSite=Strict and no rotation on sensitive ops.
+
+fix_approach: |
+  1. Remove backdoor comment and dead code path immediately.
+  2. Set SameSite=Strict (or Lax minimum) + Secure flags on session cookie.
+  3. Add CSRF token generation/validation on ALL write server actions.
+  4. Rotate session cookie after sensitive operations (role change, delete store).
+
+affected_screens:
+  - All admin routes (/admin/stores, /admin/users)
+  - API: /api/delete-staff, /api/update-password

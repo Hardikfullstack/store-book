@@ -1,0 +1,30 @@
+# Bug — updateItemStock does not guard against newQty < 0 — negative inventory allowed permanently
+
+id: bug-inventory-negative-quantity
+title: "updateItemStock allows negative quantity — no minimum-zero guard"
+severity: P1
+status: open
+reported: "2025-07-14"
+component: [InventoryRepository]
+
+root_cause: |
+  InventoryRepository.updateItemStock(id, addedQuantity) computes:
+
+      val newQty = currentItem.quantity + addedQuantity   // No !< 0 check!
+      queries.updateItemStock(newQty, currentTime, id)
+
+  When used for sale deduction (addedQuantity is negative), and |deduct| > current,
+  stock goes below zero permanently. The SQLite schema has no CHECK(quantity >= 0) constraint either. Items can show "-5 in stock" permanently if a bug fires — completely breaking inventory counting.
+
+fix_approach: |
+  Add guard before update:
+
+      if (newQty < 0) throw InsufficientStockException(currentItem.id, currentItem.quantity)
+
+  Surface to UI with toast + keep sale items in cart for user to adjust quantity.
+  Optionally add CHECK(quantity >= 0) at DB schema level as safety net.
+
+affected_screens:
+  - InventoryScreen (shows negative stock numbers)
+  - PaymentBottomSheet (sale completes despite insufficient stock)
+  - Dashboard metrics (total inventory value calculation wrong)

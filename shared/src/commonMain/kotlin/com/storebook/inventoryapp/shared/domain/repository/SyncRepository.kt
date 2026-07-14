@@ -427,5 +427,13 @@ class SyncRepository(
         return queries.resolveSaleIdByCloudId(cloudId).executeAsOneOrNull() != null
     }
 
+    suspend fun saleItemExistsLocally(cloudId: String): Boolean {
+        return queries.resolveSaleItemIdByCloudId(cloudId).executeAsOneOrNull() != null
+    }
+
+    suspend fun purchaseItemExistsLocally(cloudId: String): Boolean {
+        return queries.resolvePurchaseItemIdByCloudId(cloudId).executeAsOneOrNull() != null
+    }
+
     fun getQueries() = queries
 }

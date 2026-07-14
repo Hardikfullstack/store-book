@@ -1,0 +1,33 @@
+# Bug — 26 !! non-null assertions on nullable state across UI — unpredictable NPE crashes
+
+id: bug-npe-hazards-double-bang-assertions
+title: "26 !! non-null assertions on nullable state — unpredictable NPE on rotation / slow network"
+severity: P0
+status: open
+reported: "2025-07-14"
+component: [UdhaarScreen, InventoryScreen, SalesAnalyticsScreen, AuthScreen]
+
+root_cause: |
+  Throughout the Android codebase, nullable state variables are forced-to-non-null
+  with !! (scan found 26 instances). Key hotspots:
+
+    UdhaarScreen.kt     — selectedCustomer!! at line ~632
+    InventoryScreen.kt  — qty!!, buy!!, sell!! during form submit (~1571-1602)
+    SalesAnalytics      — chart data !! assertions (~201, ~417)
+    AuthScreen          — fetchedStores.add(storeRes.data.store!!) at ~970
+
+  If the screen rotates or user navigates before async data arrives, these variables
+  remain null → ForceCrash. Each !! is a potential ANR/crash in Play Store reports.
+
+fix_approach: |
+  Replace all !! with safe handling:
+    - Use .let { ... } for non-null scoping on UI composition
+    - Disable / hide submit buttons until state is fully populated (loading=true)
+    - Use ?: return or default values where semantically sensible (e.g. qty ?: 1.0)
+    - For AuthScreen: add guard storeRes.data?.store ?: return@addOnSuccessListener
+
+affected_screens:
+  - UdhaarScreen (crash on customer selection)
+  - InventoryScreen (crash on item form submission)
+  - SalesAnalyticsScreen (crash during chart render)
+  - AuthScreen (crash on store fetch failure)

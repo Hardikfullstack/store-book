@@ -1,0 +1,31 @@
+# Bug — SyncWorker pull uses catch(_:Exception) on every entity — errors silently discarded, no retry
+
+id: bug-sync-worker-silent-catch-all
+title: "SyncWorker pull uses catch(_:Exception) on every entity — silent discard"
+severity: P0
+status: open
+reported: "2025-07-14"
+component: [SyncWorker]
+
+root_cause: |
+  SyncWorker.pull() (lines ~287–340) wraps each entity pull (Items, Sales,
+  SaleItems, Udhaars, Expenses, Suppliers, Purchases, PurchaseItems) in a bare
+  try/catch with an empty handler:
+
+      } catch (_: Exception) {}
+
+  If the Firebase Data Connect call throws for ANY entity type — network error,
+  auth expiry, bad response shape — the entire pull silently fails. The exception
+  is logged nowhere, pulled_count never decrements, and SyncState still transitions
+  to DONE because there is no per-entity failure tracking. A once-failed entity
+  type is forever skipped on every subsequent sync until reinstall or manual prefs clear.
+
+fix_approach: |
+  Replace empty catch with: (1) Log.e('SyncWorker', entity, e.message).
+  (2) track per-entity success/failure in a small map passed through pull().
+  (3) if any entity failed, set SyncState to FAILED instead of DONE so the UI shows an error and the PeriodicWorkRequest retry backoff is triggered.
+
+affected_screens:
+  - All screens — stale data after every sync cycle
+  - DashboardScreen (revenue counts wrong)
+  - InventoryScreen (items not refreshed)

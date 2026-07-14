@@ -1,0 +1,35 @@
+# Bug — SaleItems inserted with parent_id=0 when cloud-id resolution returns null
+
+id: bug-sale-item-orphan-during-pull
+title: "SaleItems inserted with parent_id=0 when cloud-ID resolution fails — orphan records"
+severity: P0
+status: open
+reported: "2025-07-14"
+component: [SyncRepository, SyncWorker]
+
+root_cause: |
+  During pull, SaleItems are cascaded after their parent Sales. The code resolves
+  parent IDs:
+
+      r.resolveSaleIdByCloudId(si.saleId) ?: 0L
+      r.resolveItemIdByCloudId(si.itemId)   ?: 0L
+
+  If the sale was not yet pulled (failed silently per BUG-02, or arrived in a later batch),
+  resolveSaleIdByCloudId returns null and the Elvis fallback inserts with parent_id=0.
+  SQLite has no FK enforcement by default so these orphan records persist.
+  They show up in reports with phantom line items referencing nothing.
+
+fix_approach: |
+  When parent resolution returns null, skip the child record entirely and log a warning:
+
+      val resolvedSaleId = r.resolveSaleIdByCloudId(si.saleId) ?: run {
+          Log.w("SW", "Skipping orphan saleItem ${si.id}: sale not found");
+          return@for
+      }
+
+  The record will be picked up on the next sync cycle when its parent has arrived.
+  Never insert with FK=0.
+
+affected_screens:
+  - SalesScreen (phantom line items)
+  - Reports > SalesAnalyticsScreen (wrong totals from orphans)

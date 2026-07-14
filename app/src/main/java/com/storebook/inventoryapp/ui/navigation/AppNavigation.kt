@@ -702,15 +702,15 @@ fun AppNavigation() {
                 AuthScreen(
                     onAuthSuccess = {
                         moreViewModel.refreshUserState()
-                        // Bug fix: Force all ViewModels to reload from DB after sync
-                        // SyncWorker writes via its own DB connection, so ViewModels
-                        // that loaded during init have stale (empty) caches.
-                        dashboardViewModel.loadAllData()
-                        inventoryViewModel.loadFilteredItems()
-                        salesViewModel.loadAllData(true)
-                        udhaarViewModel.loadUdhaar()
-                        navController.navigate(Routes.Dashboard) {
-                            popUpTo(Routes.Auth) { inclusive = true }
+                        // Bug fix: Force a complete app restart to ensure all ViewModels
+                        // and AppViewModelFactory reconnect to the correct, freshly-synced 
+                        // storeId database. This prevents the stale UI bug.
+                        activity?.let { act ->
+                            act.viewModelStore.clear()
+                            val intent = android.content.Intent(act, MainActivity::class.java)
+                            intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            act.startActivity(intent)
+                            act.finish()
                         }
                     },
                     onNavigateBack = {

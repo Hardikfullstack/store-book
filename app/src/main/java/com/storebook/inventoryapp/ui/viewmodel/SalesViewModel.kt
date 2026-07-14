@@ -113,7 +113,11 @@ class SalesViewModel(
         cartCustomerName = name
     }
 
+    private var isCheckoutProcessing = false
+
     fun checkout(paymentMode: String, type: String, onResult: (Long, Double) -> Unit) {
+        if (isCheckoutProcessing || cartItems.isEmpty()) return
+        isCheckoutProcessing = true
         viewModelScope.launch {
             val total = cartItems.sumOf { it.item.sellPrice * it.quantity } - cartDiscount
             val saleId = salesRepository.insertSale(
@@ -147,6 +151,7 @@ class SalesViewModel(
             
             clearCart()
             triggerSync()
+            isCheckoutProcessing = false
             onResult(saleId, total)
         }
     }

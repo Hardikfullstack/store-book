@@ -66,3 +66,5 @@ backend/.npm
 backend/yarn.lock
 backend/.env.local
 backend/package-lock.json
+
+.pi-subagents

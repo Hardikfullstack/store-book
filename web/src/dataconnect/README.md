@@ -29,6 +29,7 @@
   - [*GetSalesCount*](#getsalescount)
   - [*GetUdhaarEntriesCount*](#getudhaarentriescount)
   - [*GetExpenseEntriesCount*](#getexpenseentriescount)
+  - [*GetStore*](#getstore)
 - [**Mutations**](#mutations)
   - [*SyncItem*](#syncitem)
   - [*SyncSale*](#syncsale)
@@ -2780,6 +2781,105 @@ console.log(data.expenseEntries);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.expenseEntries);
+});
+```
+
+## GetStore
+You can execute the `GetStore` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```javascript
+getStore(vars: GetStoreVariables): QueryPromise<GetStoreData, GetStoreVariables>;
+
+getStoreRef(vars: GetStoreVariables): QueryRef<GetStoreData, GetStoreVariables>;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```javascript
+getStore(dc: DataConnect, vars: GetStoreVariables): QueryPromise<GetStoreData, GetStoreVariables>;
+
+getStoreRef(dc: DataConnect, vars: GetStoreVariables): QueryRef<GetStoreData, GetStoreVariables>;
+```
+
+### Variables
+The `GetStore` query requires an argument of type `GetStoreVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```javascript
+export interface GetStoreVariables {
+  id: string;
+}
+```
+### Return Type
+Recall that executing the `GetStore` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetStoreData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```javascript
+export interface GetStoreData {
+  store?: {
+    id: string;
+    name?: string | null;
+    isActive?: boolean | null;
+    isPremium?: boolean | null;
+  } & Store_Key;
+}
+```
+### Using `GetStore`'s action shortcut function
+
+```javascript
+import { getDataConnect, DataConnect } from 'firebase/data-connect';
+import { connectorConfig, getStore, GetStoreVariables } from '@storebook/dataconnect';
+
+// The `GetStore` query requires an argument of type `GetStoreVariables`:
+const getStoreVars: GetStoreVariables = {
+  id: ..., 
+};
+
+// Call the `getStore()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getStore(getStoreVars);
+// Variables can be defined inline as well.
+const { data } = await getStore({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getStore(dataConnect, getStoreVars);
+
+console.log(data.store);
+
+// Or, you can use the `Promise` API.
+getStore(getStoreVars).then((response) => {
+  const data = response.data;
+  console.log(data.store);
+});
+```
+
+### Using `GetStore`'s `QueryRef` function
+
+```javascript
+import { getDataConnect, DataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getStoreRef, GetStoreVariables } from '@storebook/dataconnect';
+
+// The `GetStore` query requires an argument of type `GetStoreVariables`:
+const getStoreVars: GetStoreVariables = {
+  id: ..., 
+};
+
+// Call the `getStoreRef()` function to get a reference to the query.
+const ref = getStoreRef(getStoreVars);
+// Variables can be defined inline as well.
+const ref = getStoreRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getStoreRef(dataConnect, getStoreVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.store);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.store);
 });
 ```
 

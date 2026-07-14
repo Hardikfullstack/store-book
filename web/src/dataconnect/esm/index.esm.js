@@ -532,3 +532,13 @@ export function getExpenseEntriesCount(dcOrVars, vars) {
   return executeQuery(getExpenseEntriesCountRef(dcOrVars, vars));
 }
 
+export function getStoreRef(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetStore', inputVars);
+}
+
+export function getStore(dcOrVars, vars) {
+  return executeQuery(getStoreRef(dcOrVars, vars));
+}
+

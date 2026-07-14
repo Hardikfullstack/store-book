@@ -785,3 +785,9 @@ INSERT OR REPLACE INTO purchase_items(id, purchase_id, item_id, item_name, quant
 VALUES(COALESCE((SELECT MAX(id) + 1 FROM purchase_items), 1), :purchaseId, :itemId, :itemName, :quantity, :unit, :buyPrice,
     :isDeleted, :cloudId, 1, :updatedAt);
 
+
+resolveSaleItemIdByCloudId:
+SELECT id FROM sale_items WHERE cloud_id = :cloudId LIMIT 1;
+
+resolvePurchaseItemIdByCloudId:
+SELECT id FROM purchase_items WHERE cloud_id = :cloudId LIMIT 1;

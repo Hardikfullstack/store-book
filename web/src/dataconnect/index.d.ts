@@ -280,6 +280,19 @@ export interface GetSalesCountVariables {
   type?: string | null;
 }
 
+export interface GetStoreData {
+  store?: {
+    id: string;
+    name?: string | null;
+    isActive?: boolean | null;
+    isPremium?: boolean | null;
+  } & Store_Key;
+}
+
+export interface GetStoreVariables {
+  id: string;
+}
+
 export interface GetStoresPaginatedData {
   stores: ({
     id: string;
@@ -1305,4 +1318,12 @@ export function getExpenseEntriesCountRef(dc: DataConnect, vars: GetExpenseEntri
 
 export function getExpenseEntriesCount(vars: GetExpenseEntriesCountVariables): QueryPromise<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
 export function getExpenseEntriesCount(dc: DataConnect, vars: GetExpenseEntriesCountVariables): QueryPromise<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+
+/* Allow users to create refs without passing in DataConnect */
+export function getStoreRef(vars: GetStoreVariables): QueryRef<GetStoreData, GetStoreVariables>;
+/* Allow users to pass in custom DataConnect instances */
+export function getStoreRef(dc: DataConnect, vars: GetStoreVariables): QueryRef<GetStoreData, GetStoreVariables>;
+
+export function getStore(vars: GetStoreVariables): QueryPromise<GetStoreData, GetStoreVariables>;
+export function getStore(dc: DataConnect, vars: GetStoreVariables): QueryPromise<GetStoreData, GetStoreVariables>;
 

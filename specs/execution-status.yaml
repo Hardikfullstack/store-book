@@ -8,7 +8,7 @@ current_epic: e04
 current_story: null
 current_task: "Epic story implementation"
 
-epics_complete: [rp-a0, e01, e02, e03, e04]
+epics_complete: [rp-a0, e01, e02, e03, e04, e20]
 
 completion:
   discover_phase: "complete"
@@ -129,3 +129,39 @@ next_steps:
         - Stock deduction skipped when type === 'ESTIMATE'
         - PDF invoice generation unaffected by estimate flag
       Both web and app BUILD SUCCESSFUL. TypeScript type-check passes.
+  - complete: "E20-S1 — One-tap Cloud Backup of entire SQLDelight DB to Firebase Storage",
+    notes: |
+      Added com.google.firebase:firebase-storage dependency to app build.gradle.kts.
+      Created BackupManager in app/src/main/java/.../data/backup/BackupManager.kt:
+        - Copies the SQLDelight DB file (storebook_{storeId}.db) to temp staging area
+          so SQLite lock is NOT held during upload.
+        - Uploads to Firebase Storage path: backups/{storeId}/{timestamp}.sqlite
+        - Reports progress 0-100% via Kotlin Flow (callbackFlow).
+        - Flow collector cancellation cancels the upload task and cleans up temp file.
+        - computeChecksum() provides SHA-256 hash of DB for future S4 integrity verification.
+      Added backup state + triggerBackup() to MoreViewModel:
+        - backupProgress (-1 idle, 0-99 uploading, 100 done), backupError, lastBackupMillis
+        - Persists last backup timestamp in encrypted SharedPreferences.
+      MoreScreen UI: Cloud Backup row with trailing timestamp ("dd MMM yyyy HH:mm" or "Never").
+        Inline LinearProgressIndicator shown during upload. Completion message on success.
+      assembleDebug BUILD SUCCESSFUL — 0 errors, existing code unchanged.
+  - complete: "E20-S2 — Restore from Cloud Backup on New Device",
+    notes: |
+      Back up Manager extended with:
+        - fetchLatestBackupInfo() Flow<BackupInfo?>: lists Firebase Storage backups/{storeId} dir,
+          returns most recent file's name, timestamp, size, and MD5 checksum.
+        - restoreFromCloud() Flow<RestoreState>: downloads latest backup to temp file,
+          verifies non-zero size, atomically replaces local DB (renames current to .bak,
+          deletes WAL/SHM SQLite journal files so they regenerate cleanly).
+        - Post-restore: enqueues one-time SyncWorker tag="post_restore_sync" so newer
+          cloud changes are pulled down after the base restore.
+        - Download is cancellable via Flow collector unsubscribe → downloadTask.cancel(true).
+      MoreViewModel: checkForCloudBackup() on init + after successful upload. triggerRestore()
+        with restoreState tracking (downloading %, verifying, applying, done/failed).
+      MoreScreen UI:
+        - "Restore from Cloud" IconOptionRow visible only when backup is available in cloud.
+          Trailing text shows backup date.
+        - ModalBottomSheet confirmation dialog: ⚠️ warning about local data being overwritten,
+          backup timestamp display, Cancel + Restore buttons (Cancel = surfaceVariant color,
+          Restore = secondary color with 🔄 icon).
+        - Inline LinearProgressIndicator during restore showing stage progress.

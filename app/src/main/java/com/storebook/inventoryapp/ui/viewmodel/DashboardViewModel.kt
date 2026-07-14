@@ -123,8 +123,17 @@ class DashboardViewModel(
             }
             val items = _allItems.value
             _lowStockItems.value = items.filter { it.quantity <= it.lowStockThreshold }
+            val todayStr = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(java.util.Date())
             _salesList.value = salesRepository.getAllSales().map { s ->
-                Sale(id = s.id, timestamp = s.timestamp, totalAmount = s.total_amount, discountAmount = s.discount_amount, customerName = s.customer_name, customerGstin = s.customer_gstin, businessGstin = s.business_gstin, customerAddress = s.customer_address, businessAddress = s.business_address, type = s.type, notes = s.notes, items = emptyList())
+                val sDateStr = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(java.util.Date(s.timestamp))
+                val items = if (sDateStr == todayStr) {
+                    salesRepository.getSaleItems(s.id).map { saleItem ->
+                        com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
+                            itemId = saleItem.item_id, itemName = saleItem.item_name, quantity = saleItem.quantity, unit = saleItem.unit, buyPrice = saleItem.buy_price, sellPrice = saleItem.sell_price
+                        )
+                    }
+                } else emptyList()
+                Sale(id = s.id, timestamp = s.timestamp, totalAmount = s.total_amount, discountAmount = s.discount_amount, customerName = s.customer_name, customerGstin = s.customer_gstin, businessGstin = s.business_gstin, customerAddress = s.customer_address, businessAddress = s.business_address, type = s.type, notes = s.notes, items = items)
             }
             _expensesList.value = expenseRepository.getAllExpenses()
             _purchases.value = purchaseRepository.getAllPurchases().map { p ->

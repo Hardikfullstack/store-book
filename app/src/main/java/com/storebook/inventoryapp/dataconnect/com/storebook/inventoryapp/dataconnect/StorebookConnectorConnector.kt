@@ -52,6 +52,8 @@ public interface StorebookConnectorConnector : com.google.firebase.dataconnect.g
   
     public val getSalesCount: GetSalesCountQuery
   
+    public val getStore: GetStoreQuery
+  
     public val getStoresPaginated: GetStoresPaginatedQuery
   
     public val getUdhaarEntriesCount: GetUdhaarEntriesCountQuery
@@ -227,6 +229,10 @@ private class StorebookConnectorConnectorImpl(
   
     override val getSalesCount by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetSalesCountQueryImpl(this)
+    }
+  
+    override val getStore by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetStoreQueryImpl(this)
     }
   
     override val getStoresPaginated by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -422,6 +428,7 @@ private class StorebookConnectorConnectorImpl(
         getItemsCount,
         getPromoCodes,
         getSalesCount,
+        getStore,
         getStoresPaginated,
         getUdhaarEntriesCount,
         getUser,
@@ -822,6 +829,21 @@ private class GetSalesCountQueryImpl(
     GetSalesCountQuery.Companion.operationName,
     GetSalesCountQuery.Companion.dataDeserializer,
     GetSalesCountQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetStoreQueryImpl(
+  connector: StorebookConnectorConnector
+):
+  GetStoreQuery,
+  StorebookConnectorConnectorGeneratedQueryImpl<
+      GetStoreQuery.Data,
+      GetStoreQuery.Variables
+  >(
+    connector,
+    GetStoreQuery.Companion.operationName,
+    GetStoreQuery.Companion.dataDeserializer,
+    GetStoreQuery.Companion.variablesSerializer,
   )
 
 

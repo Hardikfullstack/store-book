@@ -75,7 +75,7 @@ class InventoryViewModel(
             _isLoadingItems.value = true
             try {
                 _filteredItems.value = inventoryRepository.getActiveItemsFiltered(search, category, sortBy.lowercase(), 50, 0).map { i ->
-                    Item(id = i.id, name = i.name, quantity = i.quantity, unit = i.unit, buyPrice = i.buy_price, sellPrice = i.sell_price, lowStockThreshold = i.low_stock_threshold, category = i.category)
+                    Item(id = i.id, name = i.name, quantity = i.quantity, unit = i.unit, buyPrice = i.buy_price, sellPrice = i.sell_price, lowStockThreshold = i.low_stock_threshold, category = i.category, hsnCode = i.hsn_code, taxRate = i.tax_rate, photoPath = i.photo_path)
                 }
                 _suppliers.value = supplierRepository.getAllSuppliers().map { s ->
                     Supplier(id = s.id, name = s.name, phone = s.phone, gstin = s.gstin, address = s.address)
@@ -89,7 +89,7 @@ class InventoryViewModel(
     fun loadMoreItems(search: String = "", category: String = "All", sortBy: String = "Name", currentSize: Int, pageSize: Int = 50, onResult: (List<Item>) -> Unit = {}) {
         viewModelScope.launch {
             val more = inventoryRepository.getActiveItemsFiltered(search, category, sortBy, pageSize.toLong(), currentSize.toLong()).map { i ->
-                Item(id = i.id, name = i.name, quantity = i.quantity, unit = i.unit, buyPrice = i.buy_price, sellPrice = i.sell_price, lowStockThreshold = i.low_stock_threshold, category = i.category)
+                Item(id = i.id, name = i.name, quantity = i.quantity, unit = i.unit, buyPrice = i.buy_price, sellPrice = i.sell_price, lowStockThreshold = i.low_stock_threshold, category = i.category, hsnCode = i.hsn_code, taxRate = i.tax_rate, photoPath = i.photo_path)
             }
             onResult(more)
         }
@@ -118,7 +118,10 @@ class InventoryViewModel(
             val id = purchaseRepository.insertPurchase(purchase.supplierId, purchase.supplierName, purchase.totalAmount, purchase.taxAmount, purchase.type, purchase.notes)
             purchase.items.forEach { item ->
                 purchaseRepository.insertPurchaseItem(id, item.itemId, item.itemName, item.quantity, item.unit, item.buyPrice)
+                inventoryRepository.updateItemStock(item.itemId, item.quantity)
             }
+            loadFilteredItems()
+            triggerSync()
             onResult(id)
         }
     }
