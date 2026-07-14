@@ -233,7 +233,31 @@ epics:
     depends_on: [e03, e04]
     type: verification
 
-execution_order: ["e08", "e01", "e02", "e17", "e06", "e10", "e11", "e13", "e14", "e15", "e16", "e03", "e07", "e09", "e04", "e18", "e05", "e12", "e20", "e19", "e22", "e21", "e23", "e25", "e24", "e26"]
+  - id: e27
+    title: Server-Side Search & Advanced Filtering
+    priority: P0
+    status: defined
+    story_count: 3
+    target_version: v1.6.0
+    type: development
+
+  - id: e28
+    title: Role-Based Access Control (RBAC) & Staff Management
+    priority: P1
+    status: defined
+    story_count: 3
+    target_version: v1.6.0
+    type: development
+
+  - id: e29
+    title: Inventory Auditing & Stock Adjustment Logs
+    priority: P1
+    status: defined
+    story_count: 3
+    target_version: v1.7.0
+    type: development
+
+execution_order: ["e08", "e01", "e02", "e17", "e06", "e10", "e11", "e13", "e14", "e15", "e16", "e03", "e07", "e09", "e04", "e18", "e05", "e12", "e20", "e19", "e22", "e21", "e23", "e25", "e24", "e26", "e27", "e28", "e29"]
 # Development epics (e01-e05) run in original order for fixes
 # New development epics (e19-e26) run after core stabilization
 # Verification epics (e06-e18) can run in parallel with development once base code is stable

@@ -30,8 +30,8 @@ type ItemFormData = {
   hsnCode: string;
   taxRate: number;
 
-  batch_lot_number: string;
-  expiry_date: string; // yyyy-mm-dd
+  batchLotNumber: string;
+  expiryDate: string; // yyyy-mm-dd
 };
 
 const UNIT_OPTIONS: UnitOption[] = ['pcs', 'kg', 'g', 'litre', 'ml', 'dozen', 'box', 'packet'];
@@ -47,8 +47,8 @@ function emptyFormData(): ItemFormData {
     low_stock_threshold: 0,
     hsnCode: '',
     taxRate: 0,
-    batch_lot_number: '',
-    expiry_date: ''
+    batchLotNumber: '',
+    expiryDate: ''
   };
 }
 
@@ -238,8 +238,8 @@ export default function ItemsClient({
       } : {
         hsnCode: formData.hsnCode,
         taxRate: formData.taxRate,
-        batchLotNumber: formData.batch_lot_number,
-        expiryDate: formData.expiry_date
+        batchLotNumber: formData.batchLotNumber,
+        expiryDate: formData.expiryDate
       };
       const id = editingId || crypto.randomUUID();
       await syncItem(dataConnect, {
@@ -302,8 +302,8 @@ export default function ItemsClient({
       hsnCode: item.hsnCode || '',
       taxRate: item.taxRate || 0,
 
-      batch_lot_number: item.batch_lot_number || '',
-      expiry_date: item.expiry_date || ''
+      batchLotNumber: item.batchLotNumber || '',
+      expiryDate: item.expiryDate || ''
     };
 
     setFormData(next);
@@ -312,8 +312,8 @@ export default function ItemsClient({
     const shouldShow =
       !!next.hsnCode ||
       !!next.taxRate ||
-      !!next.batch_lot_number ||
-      !!next.expiry_date;
+      !!next.batchLotNumber ||
+      !!next.expiryDate;
 
     setShowAdvanced(shouldShow);
     setShowModal(true);
@@ -385,8 +385,8 @@ export default function ItemsClient({
                   render: (value, row) => (
                     <div>
                       <div className="font-medium text-gray-900 dark:text-gray-100">{value}</div>
-                      {row.expiry_date && (
-                        <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Exp: {row.expiry_date}</div>
+                      {row.expiryDate && (
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Exp: {row.expiryDate}</div>
                       )}
                     </div>
                   )
@@ -599,9 +599,9 @@ export default function ItemsClient({
                       <label className="block text-sm font-medium dark:text-gray-300">Batch/Lot Number</label>
                       <input aria-label="text"
                         type="text"
-                        value={formData.batch_lot_number}
+                        value={formData.batchLotNumber}
                         onChange={(e) =>
-                          setFormData({ ...formData, batch_lot_number: sanitizeInput(e.target.value) })
+                          setFormData({ ...formData, batchLotNumber: sanitizeInput(e.target.value) })
                         }
                         className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
                       />
@@ -610,11 +610,11 @@ export default function ItemsClient({
                       <label className="block text-sm font-medium dark:text-gray-300">Expiry Date</label>
                       <input aria-label="date"
                         type="date"
-                        value={formData.expiry_date}
+                        value={formData.expiryDate}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            expiry_date: sanitizeInput(e.target.value)
+                            expiryDate: sanitizeInput(e.target.value)
                           })
                         }
                         className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"

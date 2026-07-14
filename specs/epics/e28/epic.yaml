@@ -1,0 +1,33 @@
+epic_id: e28
+title: "Role-Based Access Control (RBAC) & Staff Management"
+priority: P1
+status: defined
+target_version: v1.6.0
+description: |
+  Formalize granular permissions for different employee roles (Owner, Manager, Cashier, Auditor).
+  While basic checks exist (e.g., preventing staff from viewing Expenses), this epic builds a robust permissions matrix, UI for defining roles, and backend guards to prevent unauthorized mutations.
+
+success_criteria:
+  - "Staff/Users can be assigned specific, formalized roles via the Staff Management UI."
+  - "The UI dynamically hides/disables buttons (like 'Delete Item' or 'Edit Discount') based on the active role."
+  - "Backend Data Connect queries validate role privileges via session claims before allowing destructive actions."
+
+stories:
+  - id: e28-s1
+    title: "Define comprehensive Permission Matrix & API middleware"
+    acceptance:
+      - "Role matrix (Owner, Manager, Cashier, Admin) is defined and exported."
+      - "Server actions enforce `assertAccess(Permission)` before executing mutations."
+
+  - id: e28-s2
+    title: "Update Web Dashboard UI based on granular permissions"
+    acceptance:
+      - "Cashiers cannot apply discounts greater than X% on SalesPOS if restricted."
+      - "Managers can view all reports but cannot add/remove staff."
+      - "Buttons for restricted actions render as disabled or are hidden."
+
+  - id: e28-s3
+    title: "Staff Management UI expansion"
+    acceptance:
+      - "Owners can select distinct roles when inviting new staff."
+      - "Existing staff roles can be updated dynamically."

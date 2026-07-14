@@ -1,0 +1,33 @@
+epic_id: e29
+title: "Inventory Auditing & Stock Adjustment Logs"
+priority: P1
+status: defined
+target_version: v1.7.0
+description: |
+  Moving from direct, untracked stock overrides to a formal adjustment logging system.
+  When inventory numbers are changed manually, the system must capture the reason (Damage, Expiry, Manual Count, Loss) to prevent theft and maintain accurate accounting ledgers.
+
+success_criteria:
+  - "Every manual stock adjustment creates an `InventoryLog` or `StockAdjustment` record."
+  - "Adjustment records capture the timestamp, the user/staff who made the change, the reason code, and the quantity delta."
+  - "A new 'Stock Audit Report' is available in the Web Dashboard showing all manual discrepancies over time."
+  - "The main item stock value becomes a computed or strictly audited field rather than an arbitrary editable integer."
+
+stories:
+  - id: e29-s1
+    title: "Database schema updates for Inventory Logs"
+    acceptance:
+      - "Data Connect schema includes `StockAdjustment` table with `itemId`, `delta`, `reason`, `userId`, `timestamp`."
+      - "Mutations are added to insert logs alongside stock updates atomically."
+
+  - id: e29-s2
+    title: "Update Web & POS UI for manual stock adjustment"
+    acceptance:
+      - "Directly typing a new stock number prompts a 'Reason for Adjustment' modal (Damage, Count Correction, etc.)."
+      - "Quick add/subtract buttons require logging if the delta exceeds a configured threshold."
+
+  - id: e29-s3
+    title: "Stock Audit Report generation"
+    acceptance:
+      - "Managers/Owners can view a timeline of all manual stock adjustments."
+      - "Filter logs by item, staff member, or reason."
