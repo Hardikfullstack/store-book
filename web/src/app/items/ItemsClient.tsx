@@ -27,8 +27,8 @@ type ItemFormData = {
   sell_price: number;
   low_stock_threshold: number;
 
-  hsn_code: string;
-  tax_rate: number;
+  hsnCode: string;
+  taxRate: number;
 
   batch_lot_number: string;
   expiry_date: string; // yyyy-mm-dd
@@ -45,8 +45,8 @@ function emptyFormData(): ItemFormData {
     buy_price: 0,
     sell_price: 0,
     low_stock_threshold: 0,
-    hsn_code: '',
-    tax_rate: 0,
+    hsnCode: '',
+    taxRate: 0,
     batch_lot_number: '',
     expiry_date: ''
   };
@@ -236,8 +236,8 @@ export default function ItemsClient({
         batchLotNumber: '',
         expiryDate: ''
       } : {
-        hsnCode: formData.hsn_code,
-        taxRate: formData.tax_rate,
+        hsnCode: formData.hsnCode,
+        taxRate: formData.taxRate,
         batchLotNumber: formData.batch_lot_number,
         expiryDate: formData.expiry_date
       };
@@ -299,8 +299,8 @@ export default function ItemsClient({
       sell_price: item.sell_price || 0,
       low_stock_threshold: item.low_stock_threshold || 0,
 
-      hsn_code: item.hsn_code || '',
-      tax_rate: item.tax_rate || 0,
+      hsnCode: item.hsnCode || '',
+      taxRate: item.taxRate || 0,
 
       batch_lot_number: item.batch_lot_number || '',
       expiry_date: item.expiry_date || ''
@@ -310,8 +310,8 @@ export default function ItemsClient({
     setEditingId(item.id);
 
     const shouldShow =
-      !!next.hsn_code ||
-      !!next.tax_rate ||
+      !!next.hsnCode ||
+      !!next.taxRate ||
       !!next.batch_lot_number ||
       !!next.expiry_date;
 
@@ -573,8 +573,8 @@ export default function ItemsClient({
                       <label className="block text-sm font-medium dark:text-gray-300">HSN/SAC Code</label>
                       <input aria-label="text"
                         type="text"
-                        value={formData.hsn_code}
-                        onChange={(e) => setFormData({ ...formData, hsn_code: sanitizeInput(e.target.value) })}
+                        value={formData.hsnCode}
+                        onChange={(e) => setFormData({ ...formData, hsnCode: sanitizeInput(e.target.value) })}
                         className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
                       />
                     </div>
@@ -583,8 +583,8 @@ export default function ItemsClient({
                       <input aria-label="number"
                         type="number"
                         step="any"
-                        value={formData.tax_rate}
-                        onChange={(e) => setFormData({ ...formData, tax_rate: parseFloat(e.target.value) || 0 })}
+                        value={formData.taxRate}
+                        onChange={(e) => setFormData({ ...formData, taxRate: parseFloat(e.target.value) || 0 })}
                         className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
                       />
                     </div>
