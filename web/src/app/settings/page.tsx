@@ -8,6 +8,11 @@ import StaffManagement from './StaffManagement';
 export default async function SettingsPage() {
   const session = await getSession();
   if (!session) redirect('/login');
+  // E04-S2: Staff cannot view Settings — redirect to dashboard
+  if (session.role === 'staff' || session.role === 'cashier') {
+    redirect('/')
+  }
+
 
   let storeData = null;
   if (session.storeId) {

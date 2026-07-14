@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Package, TrendingUp, Users, Receipt, ArrowUpRight, ArrowDownRight, Store } from 'lucide-react';
 import DashboardCharts from './DashboardCharts';
+import SalesTrendChart from './SalesTrendChart';
 import { dataConnect, rtdb } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import { get, set } from 'idb-keyval';
@@ -349,6 +350,11 @@ export default function DashboardClient({
         <div className="glass-card p-6 h-80 flex items-center justify-center border-dashed dark:border-gray-800">
           <p className="text-gray-400 dark:text-gray-500 font-medium">Recent Activity Placeholder</p>
         </div>
+      </div>
+
+      {/* E04-S1: Sales Trend Line Chart */}
+      <div className="glass-card p-6 mt-8">
+        <SalesTrendChart storeId={storeId} />
       </div>
     </div>
   );

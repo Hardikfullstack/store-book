@@ -1,0 +1,53 @@
+# Epic e20 — Data Backup, Restore & Device Migration
+
+id: e20
+title: "Cloud Backup, Local Export & New-Device Restore for Offline-First Data Safety"
+scope_feature: ["Sync Engine (P0)", "Android POS (P0)"]
+depends_on_epics: [e01]
+target_version: v1.4.0
+priority: P0
+status: defined
+
+rationale: >
+  StoreBook is offline-first — data lives primarily on-device in SQLDelight. If the phone is lost,
+  damaged, or factory-reset before sync completes, all unsynced transactions are permanently lost.
+  Indian retail users commonly switch devices (budget phones with short lifespans). An explicit
+  backup mechanism beyond periodic sync is critical for data safety and user trust.
+
+success_criteria:
+  - "One-tap backup uploads entire local DB snapshot to cloud storage (Firebase/GCS)"
+  - "Restore on new device downloads latest backup and populates local SQLDelight DB"
+  - "Local encrypted export available as ZIP file to device Downloads folder"
+  - "Backup integrity verified via checksum + row count comparison"
+
+stories:
+  - id: e20-s1
+    title: "One-tap cloud backup of entire local SQLDelight database"
+    acceptance:
+      - "Settings > Backup > 'Backup Now' button triggers full DB snapshot upload"
+      - "Backup stored under user's storeId namespace in Firebase Storage / GCS"
+      - "Progress indicator shows upload percentage — cancellable without corruption"
+      - "Last backup timestamp displayed in Settings > Backup section"
+
+  - id: e20-s2
+    title: "Restore from cloud backup on new device after login"
+    acceptance:
+      - "After login on new device, app detects existing cloud backup for this storeId"
+      - "User prompted: 'Restore from backup (2026-07-14)?' with item/sale counts preview"
+      - "Restore downloads backup + populates all SQLDelight tables atomically (transaction)"
+      - "Post-restore, SyncWorker runs to pull any changes newer than backup timestamp"
+
+  - id: e20-s3
+    title: "Export full database as encrypted ZIP to local storage"
+    acceptance:
+      - "Settings > Backup > 'Export to Device' creates encrypted ZIP in Downloads folder"
+      - "ZIP protected with user-set password (minimum 6 characters)"
+      - "Export includes all tables: items, sales, sale_items, udhaar, expenses, purchases, suppliers"
+      - "File size displayed before export — warning if > 100MB"
+
+  - id: e20-s4
+    title: "Backup integrity verification (checksum + row count validation)"
+    acceptance:
+      - "Each backup includes SHA-256 checksum of DB file + per-table row counts in manifest.json"
+      - "Restore process verifies checksum before applying — mismatch aborts with error message"
+      - "Settings > Backup > 'Verify Last Backup' compares cloud manifest against current local DB counts"

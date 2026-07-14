@@ -1,0 +1,52 @@
+# Epic e19 — Barcode & Camera Integration Reliability
+
+id: e19
+title: "Barcode Scanner: Camera Lifecycle, ML Kit Detection & Fallback Manual Entry"
+scope_feature: ["Android POS (P0)", "Inventory Management (P0)"]
+depends_on_epics: [e02]
+target_version: v1.5.0
+priority: P1
+status: defined
+
+rationale: >
+  Barcode scanning is listed as a core POS billing feature but has zero epic coverage. Indian retail
+  products use EAN-13, Code 128, and UPC-A formats. Camera permission handling across Android 10-14
+  has different behaviors, ML Kit barcode detection can fail on low-light or damaged labels, and
+  devices without autofocus need graceful degradation. Manual barcode entry must exist as a fallback.
+
+success_criteria:
+  - "Camera opens within 1s of scan button tap — permission dialog shown only on first use"
+  - "EAN-13 and Code 128 barcodes detected within 3s under normal lighting conditions"
+  - "Manual barcode entry available as fallback — auto-searches inventory on submit"
+  - "Scanned/entered barcode auto-populates item in billing flow without extra taps"
+
+stories:
+  - id: e19-s1
+    title: "Validate camera permission lifecycle (grant/deny/revoke)"
+    acceptance:
+      - "First scan tap → system permission dialog appears; grant → camera opens immediately"
+      - "Deny → informative message shown with 'Open Settings' button (not a crash)"
+      - "Permission revoked externally (Settings) → re-prompts on next scan attempt"
+      - "No permission-related crashes on Android 10, 12, 13, 14"
+
+  - id: e19-s2
+    title: "Barcode scan accuracy for common Indian product formats"
+    acceptance:
+      - "EAN-13 (standard retail) detected within 3s under normal indoor lighting"
+      - "Code 128 (wholesale/shipping labels) detected correctly"
+      - "Low-light conditions → viewfinder shows flash toggle button"
+      - "Damaged/partial barcode → timeout after 10s with 'Try manual entry' suggestion"
+
+  - id: e19-s3
+    title: "Manual barcode entry fallback when scan fails"
+    acceptance:
+      - "'Enter barcode manually' option visible alongside scan button"
+      - "Numeric keyboard opens — barcode validated on input (length check for EAN-13 = 13 digits)"
+      - "Submitted barcode searches inventory — match found → item selected; no match → 'Add new item?' prompt"
+
+  - id: e19-s4
+    title: "Scanned barcode auto-populates item in billing flow"
+    acceptance:
+      - "Successful scan in billing screen → item added to cart with qty=1 automatically"
+      - "Scanning same barcode again increments quantity (not duplicate line item)"
+      - "Item not found in inventory → toast with 'Item not found — add to inventory first'"

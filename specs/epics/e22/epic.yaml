@@ -1,0 +1,56 @@
+# Epic e22 — Performance Monitoring & Crash Resilience
+
+id: e22
+title: "Crashlytics Integration, Startup Optimization & Large-Dataset Performance"
+scope_feature: ["Android POS (P0)", "Web Dashboard (P1)"]
+depends_on_epics: [e02]
+target_version: v1.5.0
+priority: P1
+status: defined
+
+rationale: >
+  Vision targets DAU/MAU ratio of 0.7+ but there is no observability infrastructure — no crash
+  reporting, no performance metrics, no startup time tracking. Indian retail stores can accumulate
+  1000+ items and 10000+ sale records over months. Without proactive performance work, the app
+  will degrade as data grows. Firebase Crashlytics may be partially configured but no epic
+  ensures comprehensive coverage.
+
+success_criteria:
+  - "All unhandled exceptions reported to Crashlytics with sync context (storeId, syncPhase)"
+  - "Cold launch time < 2s on mid-range Android device (Snapdragon 680 equivalent)"
+  - "Inventory list scrolls at 60fps with 1000+ items loaded"
+  - "Web dashboard scores 90+ on Lighthouse Performance audit"
+
+stories:
+  - id: e22-s1
+    title: "Firebase Crashlytics integration verification + custom keys"
+    acceptance:
+      - "Crashlytics initialized in StoreBookApplication — all crashes auto-reported"
+      - "Custom keys set: storeId, userId, currentScreen, syncPhase, dbVersion"
+      - "Non-fatal exceptions in SyncWorker logged via Crashlytics.recordException()"
+      - "Crash-free rate visible in Firebase Console for each release version"
+
+  - id: e22-s2
+    title: "App startup cold launch time optimization (target: <2s)"
+    acceptance:
+      - "Measure cold launch time using Android Vitals or manual Logcat timestamps"
+      - "Defer non-critical initialization (ads, analytics, review prompt) to after first frame"
+      - "Splash screen uses Android 12+ SplashScreen API — no blank white screen"
+      - "Target: Time from process start to Dashboard visible < 2000ms on mid-range device"
+
+  - id: e22-s3
+    title: "Inventory list scroll performance for stores with 1000+ items"
+    acceptance:
+      - "Load test with 1000 items — LazyColumn renders without dropped frames"
+      - "Search/filter responds within 200ms of keystroke (debounced)"
+      - "Pagination implemented for inventory queries — load 50 items at a time"
+      - "No OutOfMemoryError when loading item photos for large inventories"
+
+  - id: e22-s4
+    title: "Web dashboard Lighthouse audit and Core Web Vitals optimization"
+    acceptance:
+      - "Lighthouse Performance score ≥ 90 on desktop, ≥ 75 on mobile"
+      - "Largest Contentful Paint (LCP) < 2.5s"
+      - "Cumulative Layout Shift (CLS) < 0.1"
+      - "First Input Delay (FID) < 100ms"
+      - "Bundle size analyzed — unused dependencies removed"

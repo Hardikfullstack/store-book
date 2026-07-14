@@ -1,0 +1,55 @@
+# Epic e21 — First-Time User Onboarding & Store Setup
+
+id: e21
+title: "Guided Setup Wizard, Feature Tour & Sample Data for New Users"
+scope_feature: ["Android POS (P0)", "Web Dashboard (P1)"]
+depends_on_epics: []
+target_version: v1.5.0
+priority: P1
+status: defined
+
+rationale: >
+  After authentication, new users land on an empty dashboard with no guidance. Indian SMB owners
+  (target audience) may not be tech-savvy — a blank screen without context leads to immediate
+  churn. A guided store setup wizard, feature tour, and optional sample data would dramatically
+  improve first-session retention and reduce support burden.
+
+success_criteria:
+  - "New user completes store profile setup within 2 minutes via guided wizard"
+  - "Feature tour highlights 5 key screens with contextual tooltips"
+  - "Sample data option lets users explore the app before entering real inventory"
+  - "Setup completion rate tracked — target 80%+ of new users complete wizard"
+
+stories:
+  - id: e21-s1
+    title: "Store profile setup wizard (name, GSTIN, logo, address)"
+    acceptance:
+      - "After first login, wizard auto-launches with 3-step flow: Store Name → Business Details → Logo/Address"
+      - "Store name is required — GSTIN and logo are optional (skip button visible)"
+      - "Progress indicator shows step 1/3, 2/3, 3/3"
+      - "Completed profile saved to both local DB and synced to cloud"
+
+  - id: e21-s2
+    title: "'Add your first 5 items' guided flow with sample data option"
+    acceptance:
+      - "After wizard, prompt: 'Add your first items' with 'Add Item' button + 'Use Sample Data' option"
+      - "Sample data loads 10 realistic Indian retail items (dal, rice, soap, oil, etc.) with prices"
+      - "Sample items clearly marked with '(Sample)' suffix — deletable by user"
+      - "Manual 'Add Item' flow pre-opens with helpful placeholder text in fields"
+
+  - id: e21-s3
+    title: "Feature tour tooltips for key screens (Dashboard, Sales, Inventory)"
+    acceptance:
+      - "After setup, overlay tooltips appear on first visit to each major screen"
+      - "Dashboard: 'This shows today's sales and expenses at a glance'"
+      - "Sales: 'Tap + to create a new sale. Scan or search for items.'"
+      - "Inventory: 'All your items appear here. Tap to edit price or stock.'"
+      - "Each tooltip has 'Got it' dismiss button — tour not shown again after completion"
+
+  - id: e21-s4
+    title: "Demo mode / sample store data for exploration without commitment"
+    acceptance:
+      - "Login screen has 'Try Demo' button — creates temporary local-only store"
+      - "Demo store pre-loaded with items, sample sales, udhaar entries, expenses"
+      - "All features functional in demo — sync disabled (no cloud writes)"
+      - "Banner at top: 'Demo Mode — Sign up to save your data' with CTA button"

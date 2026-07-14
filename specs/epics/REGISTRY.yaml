@@ -1,13 +1,13 @@
 # Epic Registry — StoreBook
 
-last_generated: "2025-07-13"
+last_generated: "2026-07-14"
 
 epics:
   # --- Development Epics (fix/improve existing logic) ---
   - id: e01
     title: Sync Reliability
     priority: P0
-    status: defined
+    status: complete
     story_count: 4
     target_version: v1.3.0
     type: development
@@ -15,7 +15,7 @@ epics:
   - id: e02
     title: Inventory Core Stability
     priority: P0
-    status: defined
+    status: in_progress
     story_count: 3
     target_version: v1.3.0
     type: development
@@ -23,7 +23,7 @@ epics:
   - id: e03
     title: Billing Accuracy & Financial Audit
     priority: P1
-    status: defined
+    status: complete
     story_count: 4
     target_version: v1.4.0
     depends_on: [e02]
@@ -32,7 +32,7 @@ epics:
   - id: e04
     title: Web Dashboard UX & Realtime Analytics
     priority: P2
-    status: defined
+    status: in_progress
     story_count: 3
     target_version: v1.5.0
     depends_on: [e03]
@@ -45,6 +45,77 @@ epics:
     story_count: 3
     target_version: v1.6.0
     depends_on: [e04]
+    type: development
+
+  # --- New Development Epics (gap-fill from analysis) ---
+  - id: e19
+    title: Barcode & Camera Integration Reliability
+    priority: P1
+    status: defined
+    story_count: 4
+    target_version: v1.5.0
+    depends_on: [e02]
+    type: development
+
+  - id: e20
+    title: Data Backup, Restore & Device Migration
+    priority: P0
+    status: defined
+    story_count: 4
+    target_version: v1.4.0
+    depends_on: [e01]
+    type: development
+
+  - id: e21
+    title: First-Time User Onboarding & Store Setup
+    priority: P1
+    status: defined
+    story_count: 4
+    target_version: v1.5.0
+    type: development
+
+  - id: e22
+    title: Performance Monitoring & Crash Resilience
+    priority: P1
+    status: defined
+    story_count: 4
+    target_version: v1.5.0
+    depends_on: [e02]
+    type: development
+
+  - id: e23
+    title: GST Readiness & Tax Compliance Helpers
+    priority: P2
+    status: defined
+    story_count: 4
+    target_version: v1.7.0
+    depends_on: [e03]
+    type: development
+
+  - id: e24
+    title: Multi-Store Dashboard & Cross-Store Analytics
+    priority: P2
+    status: defined
+    story_count: 4
+    target_version: v1.7.0
+    depends_on: [e04]
+    type: development
+
+  - id: e25
+    title: Accessibility & Inclusive Design
+    priority: P2
+    status: defined
+    story_count: 4
+    target_version: v1.6.0
+    type: development
+
+  - id: e26
+    title: Notification System & Customer Communication
+    priority: P2
+    status: defined
+    story_count: 4
+    target_version: v1.7.0
+    depends_on: [e03]
     type: development
 
   # --- Verification Epics (test every logic area) ---
@@ -153,6 +224,16 @@ epics:
     target_version: v1.3.1
     type: verification
 
-execution_order: ["e08", "e01", "e02", "e17", "e06", "e10", "e11", "e13", "e14", "e15", "e16", "e03", "e07", "e09", "e04", "e05", "e12"]
+  - id: e18
+    title: Web Dashboard Server Actions & API Endpoint Verification
+    priority: P1
+    status: defined
+    story_count: 4
+    target_version: v1.5.0
+    depends_on: [e03, e04]
+    type: verification
+
+execution_order: ["e08", "e01", "e02", "e17", "e06", "e10", "e11", "e13", "e14", "e15", "e16", "e03", "e07", "e09", "e04", "e18", "e05", "e12", "e20", "e19", "e22", "e21", "e23", "e25", "e24", "e26"]
 # Development epics (e01-e05) run in original order for fixes
-# Verification epics (e06-e17) can run in parallel with development once base code is stable
+# New development epics (e19-e26) run after core stabilization
+# Verification epics (e06-e18) can run in parallel with development once base code is stable

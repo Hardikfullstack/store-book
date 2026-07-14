@@ -1,0 +1,35 @@
+# Bug — Post-Login Sync Data Not Visible Until App Restart
+
+id: bug-post-sync-stale-ui
+title: "Data synced after fresh login not visible until app reopened 3-4 times"
+severity: P0
+status: fixing
+reported: "2026-07-14"
+component: [SyncWorker, ViewModelFactory, AppNavigation]
+
+root_cause: >
+  SyncWorker.performSync() creates its OWN SQLiteDriver instance to write pulled data.
+  But all ViewModels are created at the top of AppNavigation() via AppViewModelFactory,
+  which lazily opens a SEPARATE database connection. After sync completes and navigation
+  to Dashboard happens, DashboardViewModel.loadAllData() queries its own DB connection
+  which doesn't see the WAL-journaled writes from SyncWorker's connection until the DB
+  file is fully closed and reopened (which happens on app restart).
+  
+  Additionally, the ViewModelFactory captures `storeId` at construction time via lazy —
+  if the factory is created before auth sets the correct `active_store_id`, it may open
+  the wrong database file entirely.
+
+fix_approach: >
+  After sync completes in AuthScreen and navigation to Dashboard occurs, we must trigger
+  an explicit data reload in all ViewModels. The onAuthSuccess callback should call
+  loadAllData() on DashboardViewModel (and other VMs) AFTER navigation completes.
+  
+  The simplest reliable fix: In DashboardScreen's LaunchedEffect, detect that we just
+  navigated from auth and force a reload. Alternatively, the onAuthSuccess callback
+  can directly invoke loadAllData() on the dashboard/inventory/sales ViewModels.
+
+affected_screens:
+  - DashboardScreen (shows stale empty data)
+  - InventoryScreen (shows empty list)
+  - SalesScreen (shows no sales history)
+  - UdhaarScreen (shows no entries)

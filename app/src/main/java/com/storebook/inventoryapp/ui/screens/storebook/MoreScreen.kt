@@ -495,6 +495,23 @@ fun MoreScreen(
                                                                 Modifier.padding(horizontal = 16.dp)
                                                 )
 
+                                                // E03-S1 — Price Snapshot Audit
+                                                IconOptionRow(
+                                                        icon = Icons.Outlined.PieChart,
+                                                        iconBg = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
+                                                        iconTint = MaterialTheme.colorScheme.error,
+                                                        title = "Price Drift Audit",
+                                                        onClick = {
+                                                                navController.navigate(
+                                                                        Routes.PriceDriftReport
+                                                                )
+                                                        },
+                                                )
+                                                HorizontalDivider(
+                                                        modifier =
+                                                                Modifier.padding(horizontal = 16.dp)
+                                                )
+
                                                 IconOptionRow(
                                                         icon = Icons.Outlined.RequestQuote,
                                                         iconBg = Emerald500.copy(alpha = 0.12f),
@@ -1325,9 +1342,10 @@ fun MoreScreen(
                                                                 } else {
                                                                     viewModel.switchStore(newStoreIdInput)
                                                                     showSheet = false
+                                                                    val switchedName = viewModel.getStoreName(newStoreIdInput)
                                                                     android.widget.Toast.makeText(
                                                                             context,
-                                                                            "Switched to $newStoreIdInput",
+                                                                            context.getString(R.string.toast_switched_store, switchedName),
                                                                             android.widget.Toast.LENGTH_SHORT,
                                                                     ).show()
                                                                 }

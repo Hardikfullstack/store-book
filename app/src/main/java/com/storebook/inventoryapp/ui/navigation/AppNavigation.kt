@@ -95,6 +95,7 @@ import com.storebook.inventoryapp.ui.screens.storebook.SplashScreen
 import com.storebook.inventoryapp.ui.screens.storebook.UdhaarScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SupplierLedgerScreen
 import com.storebook.inventoryapp.ui.screens.storebook.GSTReportScreen
+import com.storebook.inventoryapp.ui.screens.storebook.PriceDriftReportScreen
 import com.storebook.inventoryapp.ui.theme.Poppins
 import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
@@ -701,6 +702,13 @@ fun AppNavigation() {
                 AuthScreen(
                     onAuthSuccess = {
                         moreViewModel.refreshUserState()
+                        // Bug fix: Force all ViewModels to reload from DB after sync
+                        // SyncWorker writes via its own DB connection, so ViewModels
+                        // that loaded during init have stale (empty) caches.
+                        dashboardViewModel.loadAllData()
+                        inventoryViewModel.loadFilteredItems()
+                        salesViewModel.loadAllData(true)
+                        udhaarViewModel.loadUdhaar()
                         navController.navigate(Routes.Dashboard) {
                             popUpTo(Routes.Auth) { inclusive = true }
                         }
@@ -725,6 +733,14 @@ fun AppNavigation() {
                 GSTReportScreen(
                     navController = navController,
                     viewModel = dashboardViewModel
+                )
+            }
+
+            // E03-S1 — Price Snapshot Audit view
+            composable<Routes.PriceDriftReport> {
+                PriceDriftReportScreen(
+                    navController = navController,
+                    viewModel = salesViewModel
                 )
             }
         }

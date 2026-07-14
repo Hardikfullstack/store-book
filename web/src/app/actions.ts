@@ -316,3 +316,76 @@ export async function createStaffAccount(username: string, rawPin: string, permi
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * E04-S1 — Sales trend data for the Line chart.
+ * Returns daily aggregates: { date (YYYY-MM-DD), totalValue, transactionCount }
+ * Cached with Next.js revalidation (5 min TTL).
+ */
+export async function getSalesTrendData(
+  storeId: string,
+  daysAgo: number = 30,
+): Promise<{ success: boolean; data?: { date: string; totalValue: number; transactionCount: number }[]; error?: string }> {
+  const session = await getSession();
+  if (!session) return { success: false, error: 'Unauthorized' };
+
+  // Check store access (owner/admin of this store or super_admin)
+  const allowedStores: string[] = Array.isArray(session.stores) ? session.stores : [];
+  if (session.role !== 'super_admin' && !allowedStores.includes(storeId as string)) {
+    return { success: false, error: 'You do not have access to this store' };
+  }
+
+  try {
+    const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
+    const cutoffTimestamp = Math.floor((Date.now() - daysAgo * 24 * 60 * 60 * 1000) / 1000);
+
+    const response = await dc.executeGraphql(
+      `query GetSalesForTrend($storeId: String!, $cutoffTimestamp: Float!) {
+        sales(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+          edges {
+            node {
+              id
+              timestamp
+              totalAmount
+            }
+          }
+        }
+      }`,
+      { variables: { storeId, cutoffTimestamp } },
+    );
+
+    const salesList = ((response.data as any)?.sales?.edges || []).map(
+      (e: any) => e.node,
+    );
+
+    // Filter by date and aggregate by day
+    const dailyMap = new Map<string, { totalValue: number; count: number }>();
+
+    for (const sale of salesList) {
+      if (sale.timestamp >= cutoffTimestamp) {
+        const dateKey = new Date(sale.timestamp * 1000).toISOString().slice(0, 10);
+        const existing = dailyMap.get(dateKey);
+        if (existing) {
+          existing.totalValue += sale.totalAmount || 0;
+          existing.count += 1;
+        } else {
+          dailyMap.set(dateKey, { totalValue: sale.totalAmount || 0, count: 1 });
+        }
+      }
+    }
+
+    // Sort by date ascending and shape output
+    const data = Array.from(dailyMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, vals]) => ({
+        date,
+        totalValue: Math.round((vals.totalValue + Number.EPSILON) * 100) / 100,
+        transactionCount: vals.count,
+      }));
+
+    return { success: true, data };
+  } catch (err: any) {
+    console.error('getSalesTrendData failed:', err);
+    return { success: false, error: err.message };
+  }
+}

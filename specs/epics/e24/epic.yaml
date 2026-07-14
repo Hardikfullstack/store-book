@@ -1,0 +1,80 @@
+# Epic e24 — Multi-Store Dashboard & Cross-Store Analytics
+
+id: e24
+title: "Store Switcher, Cross-Store Comparison Charts & Consolidated P&L View"
+scope_feature: ["Web Dashboard (P1)", "Admin Panel (P2)", "Android POS (P0)"]
+depends_on_epics: [e04]
+target_version: v1.7.0
+priority: P2
+status: defined
+
+rationale: >
+  The vision mentions "Multi-store Dashboard" and the admin role manages multiple stores, but no
+  epic covers the UX of switching between stores, comparing metrics, or seeing a consolidated view.
+  Shop owners who expand to 2-3 branches need to compare performance without logging in/out.
+  The storeId multi-tenancy guard is already enforced — this epic adds the UI layer on top.
+
+hard_requirements:
+  - name: "Store name display — NEVER show raw storeId to users"
+    enforcement: >
+      Every screen, header, dropdown, and notification that references a store MUST display
+      the human-readable store name (e.g. 'Sharma General Store'). The storeId (UUID) is
+      strictly for background logic — DB queries, sync, API calls, and internal routing only.
+      If no store name is set, display a default fallback: 'My Store' (never blank, never UUID).
+    applies_to: [Android, Web]
+
+  - name: "Store name persistence and sync"
+    enforcement: >
+      Store name MUST be saved in EncryptedSharedPreferences (key: 'business_name') on Android
+      and in the Redux store + localStorage on web. On fresh login, if the cloud User/Store
+      record has a name, it MUST be pulled and persisted locally. If cloud name is null/empty,
+      default to 'My Store'.
+    applies_to: [Android, Web]
+
+success_criteria:
+  - "Store switcher displays store names — never raw UUIDs or blank entries"
+  - "Default store name 'My Store' shown if no custom name is configured"
+  - "Store switcher dropdown in web dashboard header — switches context without page reload"
+  - "Cross-store comparison chart shows revenue/expenses side-by-side for owned stores"
+  - "Consolidated P&L view sums all stores' financial data with per-store drill-down"
+  - "Android app supports store switching with separate local DB namespaces per store"
+
+stories:
+  - id: e24-s1
+    title: "Store switcher dropdown showing store names (never IDs)"
+    acceptance:
+      - "Header shows current store NAME — clicking reveals dropdown with all owned/assigned store NAMES"
+      - "Each dropdown entry shows store name + optional location/address subtitle"
+      - "storeId used only internally for API calls and DB switching — never rendered in UI"
+      - "If a store has no name set, display 'My Store' as fallback (never blank, never UUID)"
+      - "Switching store updates all dashboard data (sales, inventory, analytics) for selected storeId"
+      - "No page reload required — Redux state clears and refetches for new storeId"
+      - "Last selected store persisted in localStorage — default on next login"
+
+  - id: e24-s2
+    title: "Cross-store comparison chart (revenue by store name, inventory value)"
+    acceptance:
+      - "Analytics page adds 'Compare Stores' toggle — shows grouped bar chart"
+      - "Each bar group = one date, bars labeled by store NAME (color-coded)"
+      - "Inventory value comparison card: total stock value per store NAME in table format"
+      - "Date range filter applies to all stores simultaneously"
+      - "Legend uses store names, never storeId strings"
+
+  - id: e24-s3
+    title: "Consolidated P&L view across all owned stores"
+    acceptance:
+      - "New 'All Stores' option in store switcher — shows aggregate dashboard"
+      - "Total revenue = sum of all stores' sales for period"
+      - "Total expenses = sum of all stores' expenses for period"
+      - "Drill-down: click any metric → see per-store breakdown table using store NAMES"
+
+  - id: e24-s4
+    title: "Android app store switching with separate local DBs per store"
+    acceptance:
+      - "Settings > 'Switch Store' shows list of stores by NAME (not storeId)"
+      - "Current active store name displayed in Dashboard header and Settings screen"
+      - "Each store uses separate SQLDelight database file (storebook_<storeId>.db) — storeId internal only"
+      - "Switching store re-initializes repositories with new DB instance"
+      - "SyncWorker scoped to active storeId — does not sync inactive store data"
+      - "Store name pulled from cloud on login and cached in EncryptedSharedPreferences"
+

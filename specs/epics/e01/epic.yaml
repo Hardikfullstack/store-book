@@ -40,9 +40,6 @@ stories:
   - id: e01-s3
     status: complete
     title: "Pull phase conflict resolution — last-write-wins strategy"
-
-  - id: e01-s3
-    title: "Pull phase conflict resolution — last-write-wins strategy"
     acceptance:
       - "When local item updatedAt < remote updatedAt, accept remote version"
       - "When local item updatedAt >= remote updatedAt, keep local version and re-push"

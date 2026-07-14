@@ -1,0 +1,55 @@
+# Epic e23 — GST Readiness & Tax Compliance Helpers
+
+id: e23
+title: "GSTIN Validation, HSN Tax Lookup, GST Invoice PDF & GSTR-1 Export"
+scope_feature: ["Sales & Billing (P0)", "Inventory Management (P0)"]
+depends_on_epics: [e03]
+target_version: v1.7.0
+priority: P2
+status: defined
+
+rationale: >
+  The HSN code field exists in the item model but no GST calculation, GSTIN validation, or
+  tax-inclusive/exclusive pricing is implemented. India is progressively mandating e-invoicing
+  for more businesses (currently turnover > ₹5 Cr, expanding). Early GST readiness gives
+  StoreBook a competitive advantage over pen-and-paper and basic billing apps that lack
+  compliance features. Shop owners frequently ask "kitna GST lagega?" during billing.
+
+success_criteria:
+  - "GSTIN entered by shop owner validated against standard 15-char format with checksum"
+  - "HSN code → auto-suggests applicable GST slab (5%, 12%, 18%, 28%)"
+  - "Invoice PDF shows GST breakup (CGST + SGST for intra-state, IGST for inter-state)"
+  - "Monthly GSTR-1 summary exportable as CSV matching GST portal upload format"
+
+stories:
+  - id: e23-s1
+    title: "GSTIN format validation (15-character alphanumeric with checksum)"
+    acceptance:
+      - "Store profile GSTIN field validates: 2-digit state code + 10-char PAN + 1 entity + 1 Z + 1 checksum"
+      - "Invalid GSTIN shows inline error with specific reason ('Invalid state code', 'Checksum mismatch')"
+      - "GSTIN optional — stores without GST registration can skip"
+      - "Valid GSTIN auto-populates state name from state code lookup"
+
+  - id: e23-s2
+    title: "Tax slab auto-lookup by HSN code (5%, 12%, 18%, 28%)"
+    acceptance:
+      - "When adding/editing item, entering HSN code auto-suggests GST rate from bundled lookup table"
+      - "Lookup table covers top 500 common Indian retail HSN codes (editable by user)"
+      - "User can override auto-suggested rate — override saved per item"
+      - "Items without HSN default to 'Exempt / 0%' tax rate"
+
+  - id: e23-s3
+    title: "Invoice PDF with GST breakup (CGST + SGST / IGST split)"
+    acceptance:
+      - "If store has GSTIN, invoice PDF shows: Taxable Value, CGST @X%, SGST @X%, Total per line item"
+      - "Inter-state sales (buyer state ≠ seller state) show IGST instead of CGST+SGST split"
+      - "Grand total = Sum of taxable values + total tax collected"
+      - "If store has no GSTIN, invoice generated without tax breakup (current behavior preserved)"
+
+  - id: e23-s4
+    title: "GSTR-1 summary export (monthly sales CSV matching GST portal format)"
+    acceptance:
+      - "Settings > Reports > 'Export GSTR-1' generates CSV for selected month"
+      - "CSV columns match GST portal upload format: GSTIN of buyer, Invoice No, Date, Taxable Value, Tax Amount"
+      - "B2C (unregistered buyers) aggregated by tax rate as per GSTR-1 rules"
+      - "Export covers: B2B invoices, B2C invoices, Credit/Debit notes"

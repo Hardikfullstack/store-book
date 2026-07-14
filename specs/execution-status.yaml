@@ -4,7 +4,7 @@ last_updated: "2025-07-13"
 active_flow: build
 phase: "Phase 4 - Build (implementation)"
 
-current_epic: null
+current_epic: e04
 current_story: null
 current_task: "Epic story implementation"
 
@@ -20,7 +20,7 @@ completion:
     impact_analysis: "specs/tech-architecture/IMPACT_LATEST.md"
     refactor_plan: "specs/tech-architecture/REFACTOR_LATEST.md"
   sqldelight_hard_req_marked: "complete"
-  code_changes: rp_a0_complete_e01_all_complete_e02_s2_complete
+  code_changes: rp_a0_complete_e01_all_complete_e02_s2_complete_e03_all_complete_e04_s1_complete
 
 hard_requirements:
   - name: SQLDelight for all local DB access
@@ -66,5 +66,26 @@ next_steps:
       DashboardViewModel TodaySnapshot StateFlow — revenue, COGS, expenses loaded from SQL on init + refreshSyncStatus triggers load
       DashboardScreen: Added 3 AnimatedMetricCard views (Today Revenue, Expenses, Profit) powered by snapshot data
       Profit = today_revenue - today_cog - today_expenses (from sale_items sell_price/buy_price AT TIME OF SALE — not current prices)
-  - next: E04 stories or additional E03/E02 stories
-  - pending: "Eps E03 & E04 epic story implementation"
+  - complete: "E03-S1 — SaleItem price snapshot verification + Drift Audit screen",
+    notes: |
+      SQL query generatePriceDriftReport in StoreBook.sq compares sale_items.sell_price vs items.sell_price (joined on item_id).
+      SalesRepository.getPriceDriftReport() wraps the query and returns GeneratePriceDriftReport results.
+      New PriceDriftReportScreen.kt with: Status card showing % correct, Explanation card, detailed drift rows (Billed At vs Now vs Drift).
+      Accessed from MoreScreen via new Routes.PriceDriftReport navigation path.
+  - complete: "E03-S2 — Udhaar balance recalculation with running total display",
+    notes: |
+      CustomerDetailedBalance model has totalOutstanding, totalPaid, currentBalance fields.
+      UdhaarRepository.getUdhaarBalancesWithBreakdown() aggregates CREDIT/PAYMENT entries per customer, sorted by descending currentBalance.
+      UdhaarViewModel loads detailedBalances in init block + refreshes on recordUdhaarEntry().
+      UdhaarScreen displays 3-column breakdown (Outstanding / Paid / Balance) with color coding: red for owed, green for settled, neutral for zero.
+      Adding a payment triggers loadUdhaar() → real-time balance refresh on screen.
+  - complete: "E04-S1 — Recharts-based sales trend line chart on web dashboard",
+    notes: |
+      Server action getSalesTrendData(storeId, daysAgo) in actions.ts: admin DC GraphQL query for sales,
+      groups by day, returns {date, totalValue, transactionCount} array.
+      New SalesTrendChart.tsx component with Recharts Line chart (green line, smooth monotone).
+      Tooltip shows exact revenue amount + transaction count per day on hover.
+      Date range selector: 7d / 30d (default) / 90d.
+      Wired into DashboardClient.tsx as a card below the pie charts grid. Both web and app BUILD SUCCESSFUL.
+      Note: Redis caching from spec replaced by Next.js server action edge caching (no Redis installed).
+  - next: E04-S2 — Staff role-based permissions across web routes

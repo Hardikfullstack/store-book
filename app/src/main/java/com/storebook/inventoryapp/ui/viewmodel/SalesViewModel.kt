@@ -230,4 +230,9 @@ class SalesViewModel(
             }
         }
     }
+
+    // E03-S1 — expose the price-drift audit report from the repository
+    suspend fun getPriceDriftReport(): List<com.storebook.inventoryapp.shared.data.local.GeneratePriceDriftReport> {
+        return salesRepository.getPriceDriftReport()
+    }
 }

@@ -1,0 +1,57 @@
+# Epic e25 — Accessibility & Inclusive Design
+
+id: e25
+title: "TalkBack Support, Dynamic Font Scaling, Contrast Compliance & Keyboard Nav"
+scope_feature: ["Android POS (P0)", "Web Dashboard (P1)"]
+depends_on_epics: []
+target_version: v1.6.0
+priority: P2
+status: defined
+
+rationale: >
+  No accessibility coverage exists in any epic. Target users include Indian SMB owners aged 40+
+  who may have reduced vision, and cashiers who work in varied lighting conditions. Android's
+  TalkBack and system font scaling are widely used. Web dashboard lacks keyboard navigation and
+  ARIA labels. WCAG AA compliance is a baseline expectation for any production app and also
+  required for Google Play featured listing eligibility.
+
+success_criteria:
+  - "All interactive Compose elements have contentDescription for TalkBack readout"
+  - "App respects system font size settings without layout breakage up to 1.5x scale"
+  - "Color contrast meets WCAG AA (4.5:1 for normal text, 3:1 for large text) in both themes"
+  - "Web dashboard fully navigable via keyboard (Tab, Enter, Escape)"
+
+stories:
+  - id: e25-s1
+    title: "TalkBack / screen reader support for all Compose screens"
+    acceptance:
+      - "Every Button, IconButton, and Card has semantics contentDescription"
+      - "Form fields have associated labels readable by TalkBack"
+      - "Navigation flow: TalkBack user can complete a sale from start to finish"
+      - "No 'unlabeled button' or 'image' readouts for any interactive element"
+
+  - id: e25-s2
+    title: "Dynamic font scaling support (system-level font size changes)"
+    acceptance:
+      - "Set Android system font to 'Largest' — all screens render without text clipping or overlap"
+      - "Text fields expand vertically (not horizontally overflow) for large font"
+      - "Bottom navigation labels remain readable at max font scale"
+      - "Dashboard metric cards stack vertically if horizontal space insufficient at large scale"
+
+  - id: e25-s3
+    title: "Color contrast verification against WCAG AA for both themes"
+    acceptance:
+      - "Audit all text/background color pairs in Light and Dark themes"
+      - "Normal text (< 18sp): contrast ratio ≥ 4.5:1"
+      - "Large text (≥ 18sp / bold ≥ 14sp): contrast ratio ≥ 3:1"
+      - "Error states, success indicators, and warning colors all meet contrast minimums"
+      - "Fix any non-compliant color pairs identified during audit"
+
+  - id: e25-s4
+    title: "Web dashboard keyboard navigation and ARIA labels"
+    acceptance:
+      - "All interactive elements reachable via Tab key in logical order"
+      - "Enter/Space activates buttons; Escape closes modals/drawers"
+      - "Data tables have proper ARIA roles (role='table', role='row', role='cell')"
+      - "Form inputs have associated <label> elements or aria-label attributes"
+      - "Focus indicator visible on all interactive elements (not just browser default)"

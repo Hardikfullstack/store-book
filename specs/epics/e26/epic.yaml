@@ -1,0 +1,57 @@
+# Epic e26 — Notification System & Customer Communication
+
+id: e26
+title: "Udhaar Payment Reminders, Daily Business Summary & In-App Notification Center"
+scope_feature: ["Udhaar Credit Ledger (P1)", "Android POS (P0)", "Web Dashboard (P1)"]
+depends_on_epics: [e03]
+target_version: v1.7.0
+priority: P2
+status: defined
+
+rationale: >
+  Low-stock and expiry alerts exist locally but are one-directional (app to owner). No customer-facing
+  notifications exist — udhaar payment reminders are the #1 requested feature by Indian shop owners
+  ("paisa kab milega?"). Additionally, owners want a daily business summary push notification so they
+  can check performance without opening the app. The web dashboard also lacks an in-app notification
+  center for consolidating alerts across stock, expiry, udhaar, and sync events.
+
+success_criteria:
+  - "Udhaar payment reminder sent to customer via WhatsApp/SMS (template-based, owner-triggered)"
+  - "Owner receives daily business summary push notification at configurable time"
+  - "Web dashboard has notification bell with unread count for stock/expiry/udhaar alerts"
+  - "Notification preferences configurable per store (frequency, channels, quiet hours)"
+
+stories:
+  - id: e26-s1
+    title: "Udhaar payment reminder notification to customer (WhatsApp/SMS)"
+    acceptance:
+      - "Udhaar detail screen has 'Send Reminder' button next to each customer"
+      - "Reminder uses pre-formatted template: 'Dear {name}, ₹{amount} outstanding at {store}. Kindly pay at earliest.'"
+      - "WhatsApp share intent opened with pre-filled message (no API integration needed — uses share sheet)"
+      - "SMS fallback available if WhatsApp not installed"
+      - "Reminder sent timestamp recorded — prevents spam (max 1 per customer per 7 days)"
+
+  - id: e26-s2
+    title: "Configurable notification preferences (owner controls frequency/channel)"
+    acceptance:
+      - "Settings > Notifications: toggles for Low Stock, Expiry, Udhaar Reminders, Daily Summary"
+      - "Each toggle has frequency options: 'Immediate', 'Daily Digest', 'Weekly', 'Off'"
+      - "Quiet hours setting: no push notifications between configured times (default 10pm-7am)"
+      - "Preferences synced to cloud — apply across devices for same store"
+
+  - id: e26-s3
+    title: "Daily business summary push notification for shop owner"
+    acceptance:
+      - "FCM push notification sent at owner's configured time (default: 9pm)"
+      - "Summary includes: today's sales count + total, expenses total, new udhaar entries, items below stock"
+      - "Tapping notification opens Dashboard screen with today's data"
+      - "Notification only sent if store had activity today (no empty summaries)"
+
+  - id: e26-s4
+    title: "Web dashboard notification center (in-app alerts)"
+    acceptance:
+      - "Bell icon in web header with unread count badge"
+      - "Dropdown shows recent alerts: low stock items, expiry warnings, overdue udhaar, sync failures"
+      - "Each alert has timestamp, severity (info/warning/critical), and action link"
+      - "Mark as read / mark all read functionality"
+      - "Alerts persist for 30 days, then auto-archived"

@@ -50,5 +50,8 @@ sealed class Routes(
     object GSTReport : Routes("gst_report_screen")
 
     @Serializable
+    object PriceDriftReport : Routes("price_drift_report_screen")
+
+    @Serializable
     object Splash : Routes("splash_screen")
 }

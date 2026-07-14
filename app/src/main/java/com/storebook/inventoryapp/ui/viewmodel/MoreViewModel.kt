@@ -54,7 +54,9 @@ class MoreViewModel(
     var lowStockThreshold by mutableStateOf(prefs.getString("default_low_stock_threshold", "5") ?: "5")
 
     fun getStoreName(id: String): String {
-        return prefs.getString("business_name_$id", "Store $id") ?: "Store $id"
+        val name = prefs.getString("business_name_$id", null)
+            ?: prefs.getString("business_name", null)
+        return if (name.isNullOrBlank()) "My Store" else name
     }
 
     fun switchStore(newStoreId: String) {
