@@ -8,6 +8,8 @@ current_epic: e04
 current_story: null
 current_task: "Epic story implementation"
 
+epics_complete: [rp-a0, e01, e02, e03, e04]
+
 completion:
   discover_phase: "complete"
   vision_scope_glossary: "complete"
@@ -20,7 +22,7 @@ completion:
     impact_analysis: "specs/tech-architecture/IMPACT_LATEST.md"
     refactor_plan: "specs/tech-architecture/REFACTOR_LATEST.md"
   sqldelight_hard_req_marked: "complete"
-  code_changes: rp_a0_complete_e01_all_complete_e02_s2_complete_e03_all_complete_e04_s1_complete
+  code_changes: rp_a0_complete_e01_all_complete_e02_s2_complete_e03_all_complete_e04_all_complete
 
 hard_requirements:
   - name: SQLDelight for all local DB access
@@ -88,4 +90,42 @@ next_steps:
       Date range selector: 7d / 30d (default) / 90d.
       Wired into DashboardClient.tsx as a card below the pie charts grid. Both web and app BUILD SUCCESSFUL.
       Note: Redis caching from spec replaced by Next.js server action edge caching (no Redis installed).
-  - next: E04-S2 — Staff role-based permissions across web routes
+  - complete: "E04-S2 — Staff role-based permissions across web routes",
+    notes: |
+      Created /lib/roleMatrix.ts — pure PermissionSet matrix (no server imports). Roles: owner, manager,
+      staff/cashier, admin/super_admin. 10 permission keys per role.
+
+      Sidebar.tsx rewritten with permission-filtered nav items using resolvePermissions(role).
+        Cashier/staff: Dashboard + Sales + Items only. Lock icon badge visible.
+        Manager: All store views except Admin platform routes.
+        Owners: Full access including staff management link.
+        Platform admin/super_admin: Separate admin nav tree (unchanged).
+
+      Page-level guards added via server-side redirect('/') on udhaar/, expenses/,
+      settings/ pages blocking staff/cashier roles. reports/ and admin/* had partial checks already.
+
+      API route guards patched — staff/delete, staff/update-password, staff/invite now verify
+      session cookie → 401 if unauthenticated. Whitelist owner/admin/super_admin → 403 for others.
+      Both web and app BUILD SUCCESSFUL. TypeScript type-check passes.
+  - complete: "E04-S3 — Quotation creation, conversion with stock deduction & status filtering",
+    notes: |
+      Created server action convertQuotationToSale(estimateId) in actions.ts:
+        - Verifies the estimate belongs to user's store and is still type='ESTIMATE'
+        - Fetches all sale_items for the estimate via GraphQL
+        - For each item, reads current inventory row from DataConnect,
+          decrements quantity by the purchased amount (floor at 0), writes back full item row
+        - Updates the sale record type from 'ESTIMATE' to 'SALE'
+        - Uses admin Firebase DC executeGraphql for authenticated server-side operations
+
+      Updated QuotationsClient.tsx:
+        - Added status filter tabs: "Drafts" (active estimates) / "All" (includes expired)
+        - New Status column in the table with badge coloring — green "Draft" < 30 days,
+          red "Expired" >= 30 days
+        - When "Drafts" tab active, client-side filter removes expired entries
+        - handleConvertToSale now calls server action instead of placeholder console.log
+        - Removed unused syncSale import from DataConnect (conversion is server-side now)
+
+      SalesPOS.tsx already supported type='ESTIMATE' correctly:
+        - Stock deduction skipped when type === 'ESTIMATE'
+        - PDF invoice generation unaffected by estimate flag
+      Both web and app BUILD SUCCESSFUL. TypeScript type-check passes.

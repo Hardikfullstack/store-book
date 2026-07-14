@@ -2,8 +2,18 @@ import { NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebaseAdmin';
 import { getDataConnect } from 'firebase-admin/data-connect';
 
+import { getSession } from '@/lib/session';
+
 export async function POST(request: Request) {
   try {
+    // E04-S2: Only owner or admin can manage staff accounts
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+    }
+    if (session.role !== 'owner' && session.role !== 'admin' && session.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Forbidden — insufficient permissions' }, { status: 403 });
+    }
     const body = await request.json();
     const { uid, newPassword, ownerId } = body;
 
@@ -18,7 +28,7 @@ export async function POST(request: Request) {
       `query GetUser($id: String!) { user(id: $id) { ownerId } }`,
       { variables: { id: uid } }
     ) as any;
-    
+
     if (!staffRes.data.user || staffRes.data.user.ownerId !== ownerId) {
        return NextResponse.json({ error: 'Unauthorized to modify this staff account' }, { status: 403 });
     }

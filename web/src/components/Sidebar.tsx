@@ -5,16 +5,7 @@ import { LayoutDashboard, Package, ShoppingCart, Users, Receipt, LogOut, Databas
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useState } from 'react';
 import CreateStoreModal from '@/components/CreateStoreModal';
-import { resolvePermissions, AllowedRole, PermissionSet } from '@/lib/permissions';
-
-const ROLE_LABELS: Record<string, string> = {
-  owner: 'Owner',
-  manager: 'Manager',
-  staff: 'Cashier',
-  cashier: 'Cashier',
-  admin: 'Admin',
-  super_admin: 'Platform Admin',
-};
+import { resolvePermissions, PermissionSet, ROLE_LABELS } from '@/lib/roleMatrix';
 
 // Route → Permission mapping used to build nav items dynamically
 const ROUTE_PERMISSIONS = [
@@ -54,10 +45,6 @@ export default function Sidebar({ session }: { session?: any }) {
     ? ADMIN_ROUTE_PERMISSIONS.filter((r) => (perms as any)[r.permKey])
     : ROUTE_PERMISSIONS.filter((r) => (perms as any)[r.permKey]);
 
-  // Quotation route — included via the canManageStaff-like toggle on manager view
-  if (!isPlatformAdmin && role === 'manager') {
-    filteredNavItems.push({ name: 'Quotations', path: '/quotations', icon: Receipt });
-  }
 
   if (pathname === '/login' || pathname === '/signup') {
     return null;

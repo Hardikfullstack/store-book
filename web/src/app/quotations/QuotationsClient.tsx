@@ -7,11 +7,12 @@ import autoTable from 'jspdf-autotable';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveSalesRef, syncSale, softDeleteSale, getSalesCountRef, OrderDirection } from '@/dataconnect';
+import { getActiveSalesRef, softDeleteSale, getSalesCountRef, OrderDirection } from '@/dataconnect';
 import Pagination from '@/app/components/Pagination';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import SalesPOS from '@/app/sales/SalesPOS';
 import DynamicTable, { TableColumn, TableRowAction } from '@/components/DynamicTable';
+import { convertQuotationToSale } from '@/app/actions';
 
 export default function QuotationsClient({
   storeId,
@@ -28,6 +29,8 @@ export default function QuotationsClient({
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  // E04-S3: Status filter — 'draft' shows only ESTIMATEs, 'all' shows both
+  const [statusFilter, setStatusFilter] = useState<'draft' | 'all'>('draft');
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
@@ -92,7 +95,7 @@ export default function QuotationsClient({
         fetchedPagesAtVersionRef.current.set(countKey, dataVersion);
       })
       .catch(err => console.error('Count fetch error:', err));
-  }, [isPremium, storeId, refreshTrigger, debouncedSearch]);
+  }, [isPremium, storeId, refreshTrigger, debouncedSearch, statusFilter]);
 
   // Fetch paginated quotations
   useEffect(() => {
@@ -164,43 +167,21 @@ export default function QuotationsClient({
   };
 
   const handleConvertToSale = async (quote: any) => {
-    if (confirm('Convert this estimate to a finalized Sale? This will deduct stock from inventory.')) {
-      try {
-        // We need to fetch the items for this sale to deduct stock
-        const { getActiveSaleItems, syncItem, syncSale } = await import('@/dataconnect');
-        const itemsRes = await getActiveSaleItems(dataConnect, { storeId: storeId! });
-        const quoteItems = itemsRes.data.saleItemDetails.filter((i: any) => i.saleId === quote.id);
-
-        const now = Math.floor(Date.now() / 1000);
-
-        // Update the sale type
-        await syncSale(dataConnect, {
-          id: quote.id,
-          storeId: storeId!,
-          timestamp: quote.timestamp || (quote.updated_at * 1000),
-          totalAmount: quote.total_amount,
-          discountAmount: quote.discountAmount || 0,
-          customerName: quote.customer_name,
-          type: 'SALE',
-          notes: quote.notes,
-          isDeleted: false,
-          updatedAt: now
-        });
-
-        // Deduct inventory
-        for (const item of quoteItems) {
-          // We need to fetch current inventory for this item to deduct correctly,
-          // but for simplicity (as we don't have GetItemById), we'll do our best.
-          // In a real app we'd use a transaction or a specific decrement mutation.
-          console.log(`Converted to sale: deducting ${item.quantity} of ${item.itemId}`);
-        }
-
-        setQuotations(prev => prev.filter(q => q.id !== quote.id));
-        alert('Successfully converted to Sale!');
-      } catch (err) {
-        console.error("Failed to convert quotation:", err);
-        alert('Failed to convert quotation');
+    if (!confirm('Convert this estimate to a finalized Sale? This will deduct stock from inventory.')) return;
+    try {
+      // E04-S3: Call server action for proper stock deduction
+      const result = await convertQuotationToSale(quote.id);
+      if (result.success) {
+        alert('Successfully converted to Sale! Inventory has been updated.');
+        invalidateAllPages();
+        setCurrentPage(1);
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        alert(`Failed: ${result.error || 'Unknown error'}`);
       }
+    } catch (err) {
+      console.error("Failed to convert quotation:", err);
+      alert('Failed to convert quotation');
     }
   };
 
@@ -266,7 +247,23 @@ export default function QuotationsClient({
       </div>
 
       <div className="glass-card overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
+        {/* E04-S3: Status filter tabs */}
+        <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50 gap-4">
+          <div className="flex space-x-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            {(['draft', 'all'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => { setStatusFilter(tab); setCurrentPage(1); }}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                  statusFilter === tab
+                    ? 'bg-white dark:bg-gray-700 shadow-sm text-purple-600 dark:text-purple-400'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                }`}
+              >
+                {tab === 'draft' ? 'Drafts' : 'All'}
+              </button>
+            ))}
+          </div>
           <div className="relative w-64">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search size={16} className="text-gray-400" />
@@ -283,17 +280,41 @@ export default function QuotationsClient({
 
         <div className="overflow-x-auto">
           {(() => {
+            // E04-S3: Expired check (30+ days old)
+            const isExpired = (timestamp: number) => {
+              if (!timestamp) return false;
+              const ageDays = (Date.now() - timestamp) / (1000 * 60 * 60 * 24);
+              return ageDays > 30;
+            };
+
+            // E04-S3: Client-side filter for 'draft' tab (exclude expired when draft-only selected)
+            const filteredQuotations = statusFilter === 'draft' && !isExpired(quotations.length > 0 ? quotations[0]?.timestamp : 0)
+              ? quotations.filter(q => !isExpired(q.timestamp ?? q.updated_at))
+              : quotations;
+
             const columns: TableColumn[] = [
               {
                 key: 'id',
                 label: 'Estimate ID',
-                render: (value) => <span className="font-medium text-purple-600 dark:text-purple-400">#{`EST-${value.substring(0, 8)}`}</span>
+                render: (value, row) => <span className="font-medium text-purple-600 dark:text-purple-400">#{`EST-${value.substring(0, 8)}`}</span>
               },
               {
                 key: 'timestamp',
                 label: 'Date',
                 sortable: true,
                 render: (value, row) => formatDate(value || row.updated_at)
+              },
+              {
+                key: 'status',
+                label: 'Status',
+                render: (_v: any, row: any) => {
+                  const exp = isExpired(row.timestamp ?? row.updated_at);
+                  return exp ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Expired</span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Draft</span>
+                  );
+                }
               },
               {
                 key: 'customer_name',
@@ -335,7 +356,7 @@ export default function QuotationsClient({
             return (
               <DynamicTable
                 columns={columns}
-                rows={quotations}
+                rows={filteredQuotations}
                 isLoading={isLoading}
                 emptyMessage="No estimates found."
                 rowKey="id"

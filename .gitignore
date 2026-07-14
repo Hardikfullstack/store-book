@@ -47,6 +47,7 @@ web/.npm
 web/yarn.lock
 web/.env.local
 web/package-lock.json
+.next
 
 backend/node_modules
 backend/.npm

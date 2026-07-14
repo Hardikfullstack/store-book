@@ -389,3 +389,106 @@ export async function getSalesTrendData(
     return { success: false, error: err.message };
   }
 }
+
+/**
+ * E04-S3 — Convert an estimate/quotation to a finalized Sale with actual stock deduction.
+ * Queries DataConnect for the sale items, fetches current inventory levels,
+ * decrements each item's quantity, then updates the sale type from ESTIMATE → SALE.
+ */
+export async function convertQuotationToSale(estimateId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const session = await getSession();
+    if (!session || !session.uid) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
+    const nowMs = Date.now();
+    const nowSec = Math.floor(nowMs / 1000);
+
+    // 1. Verify this is an active ESTIMATE belonging to the user's store
+    let saleCheck = await dc.executeGraphql(
+      `query GetSaleById($id: String!) { sale(id: $id) { id, storeId, type, totalAmount, discountAmount, customerName, notes, timestamp } }`,
+      { variables: { id: estimateId } }
+    );
+    const est = (saleCheck.data as any)?.sale;
+    if (!est || est.storeId !== session.storeId) {
+      return { success: false, error: 'Estimate not found or access denied' };
+    }
+    if (est.type === 'SALE') {
+      return { success: false, error: 'Already a sale' };
+    }
+
+    // 2. Fetch all sale items for this estimate
+    let itemsRes = await dc.executeGraphql(
+      `query GetSaleItems($saleId: String!) { saleItemDetails(where: { saleId: { eq: $saleId }, isDeleted: { eq: false } }) { id, itemId, quantity, buyPrice } }`,
+      { variables: { saleId: estimateId } }
+    );
+    const items = (itemsRes.data as any)?.saleItemDetails || [];
+
+    // 3. Fetch live inventory, deduct stock, and write back using the full upsert pattern
+    for (const si of items) {
+      let itemRes = await dc.executeGraphql(
+        `query GetItemById($id: String!) { item(id: $id) { id, storeId, name, quantity, unit, buyPrice, sellPrice, lowStockThreshold, category, isDeleted, updatedAt } }`,
+        { variables: { id: si.itemId } }
+      );
+      const liveItem = (itemRes.data as any)?.item;
+      if (!liveItem || liveItem.storeId !== session.storeId) {
+        console.warn(`Skipping stock deduct for ${si.itemId}: not found`);
+        continue;
+      }
+
+      // Decrement quantity (floor at 0)
+      const newQty = Math.max(0, liveItem.quantity - si.quantity);
+
+      // Write back full item row with updated quantity using UPPERCASE column names as per DataConnect schema
+      await dc.executeGraphql(
+        `mutation UpsertItem($input: ItemInput!) { syncItem(input: $input) { id } }`,
+        {
+          variables: {
+            input: {
+              id: liveItem.id,
+              storeId: liveItem.storeId,
+              name: liveItem.name,
+              quantity: newQty,
+              unit: liveItem.unit,
+              buyPrice: si.buyPrice ?? liveItem.buyPrice,
+              sellPrice: liveItem.sellPrice,
+              lowStockThreshold: liveItem.lowStockThreshold ?? 0,
+              category: liveItem.category ?? '',
+              isDeleted: false,
+              updatedAt: nowSec
+            }
+          }
+        }
+      );
+    }
+
+    // 4. Flip type from ESTIMATE → SALE (use same full upsert pattern)
+    await dc.executeGraphql(
+      `mutation UpsertSale($input: SaleInput!) { syncSale(input: $input) { id } }`,
+      {
+        variables: {
+          input: {
+            id: estimateId,
+            storeId: est.storeId,
+            timestamp: est.timestamp ?? nowMs,
+            totalAmount: est.totalAmount ?? 0,
+            discountAmount: est.discountAmount ?? 0,
+            customerName: est.customerName ?? null,
+            type: 'SALE',
+            notes: est.notes ?? null,
+            isDeleted: false,
+            updatedAt: nowSec
+          }
+        }
+      }
+    );
+
+    revalidatePath('/quotations');
+    return { success: true };
+  } catch (err: any) {
+    console.error('convertQuotationToSale failed:', err);
+    return { success: false, error: err.message };
+  }
+}
