@@ -18,6 +18,8 @@ type RestockQuantityProps = {
     quantity: number;
     buyPrice: number;
     supplierName: string;
+    batchNumber: string;
+    expiryDate: string;
   }) => Promise<void> | void;
 };
 
@@ -28,6 +30,8 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
   const [buyPrice, setBuyPrice] = useState('');
   const [supplierSearch, setSupplierSearch] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState<SupplierOption | null>(null);
+  const [batchNumber, setBatchNumber] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [isCreatingSupplier, setIsCreatingSupplier] = useState(false);
@@ -75,6 +79,8 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
     setSupplierSearch('');
     setSelectedSupplier(null);
     setShowSupplierDropdown(false);
+    setBatchNumber('');
+    setExpiryDate('');
     setError('');
     setIsSubmitting(false);
   }, [open, item]);
@@ -151,6 +157,8 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
         quantity: parsedQuantity,
         buyPrice: userRole === 'staff' ? Number(item?.buy_price || 0) : Number(buyPrice || 0),
         supplierName: selectedSupplier?.name ?? '',
+        batchNumber: batchNumber.trim(),
+        expiryDate: expiryDate,
       });
       onClose();
     } catch (err) {
@@ -300,6 +308,33 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
                 )}
               </div>
             )}
+          </div>
+
+          <div>
+            <label htmlFor="restock-batch" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Batch/Lot Number (Optional)
+            </label>
+            <input
+              id="restock-batch"
+              type="text"
+              value={batchNumber}
+              onChange={(event) => setBatchNumber(sanitizeInput(event.target.value))}
+              placeholder="e.g. BATCH-001"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="restock-expiry" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Expiry Date (Optional)
+            </label>
+            <input
+              id="restock-expiry"
+              type="date"
+              value={expiryDate}
+              onChange={(event) => setExpiryDate(sanitizeInput(event.target.value))}
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-teal-500"
+            />
           </div>
 
           {error ? (
