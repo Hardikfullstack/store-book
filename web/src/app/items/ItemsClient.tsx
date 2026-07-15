@@ -645,6 +645,8 @@ export default function ItemsClient({
             ...reStockQuantity,
             quantity: nextQuantity,
             ...(userRole !== 'staff' && { buy_price: payload.buyPrice ?? reStockQuantity.buy_price ?? 0 }),
+            batchLotNumber: payload.batchNumber || reStockQuantity.batchLotNumber,
+            expiryDate: payload.expiryDate || reStockQuantity.expiryDate,
             updated_at: Date.now(),
           };
 
@@ -662,6 +664,8 @@ export default function ItemsClient({
             sellPrice: updatedItem.sell_price,
             lowStockThreshold: updatedItem.low_stock_threshold,
             category: updatedItem.category,
+            batchLotNumber: updatedItem.batchLotNumber,
+            expiryDate: updatedItem.expiryDate,
             isDeleted: false,
             updatedAt: updatedItem.updated_at
           });
