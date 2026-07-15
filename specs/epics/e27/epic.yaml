@@ -1,7 +1,7 @@
 epic_id: e27
 title: "Server-Side Search & Advanced Filtering"
 priority: P0
-status: defined
+status: in_progress
 target_version: v1.6.0
 description: |
   Moving search, filtering, and pagination logic from client-side arrays to server-side Data Connect queries.
@@ -12,6 +12,7 @@ success_criteria:
   - "Pagination uses `limit` and `offset` at the database level."
   - "Total count queries are optimized and skip search filtering if the search bar is empty."
   - "Redux caches still operate smoothly with server-driven data without duplicate keys."
+  - "Advanced filters (Date Ranges, Min/Max amounts) are implemented natively in the backend queries."
 
 stories:
   - id: e27-s1
@@ -20,12 +21,20 @@ stories:
       - "ItemsClient uses Data Connect `limit` and `offset` for pages."
       - "Search text is passed to the backend, bypassing `limit`/`offset` if a full search is required (or implementing backend search pagination)."
       - "Total item count is fetched via a separate lightweight query."
+      - "UI includes a Date Range inputs and Price Range inputs (Min/Max sellPrice) mapped to backend queries."
 
   - id: e27-s2
     title: "Migrate Sales & Quotations search to server-side"
     acceptance:
       - "Sales history can be searched by invoice number, customer name, or date range on the server."
       - "Client-side `sales.filter` is completely removed for large lists."
+      - "Sales and Quotations UI includes Min/Max Sale Amount filters and Date Range Picker."
+
+  - id: e27-s3
+    title: "Implement Date Range filters for Udhaar and Expenses"
+    acceptance:
+      - "Udhaar ledger includes Date Range picker mapped to backend queries."
+      - "Expenses view includes Date Range picker mapped to backend queries."
 
   - id: e27-s3
     title: "Migrate Udhaar & Expenses search to server-side"

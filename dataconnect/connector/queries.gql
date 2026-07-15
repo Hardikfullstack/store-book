@@ -67,6 +67,8 @@ query GetActiveItems(
   $limit: Int
   $offset: Int
   $searchTerm: String
+  $minPrice: Float
+  $maxPrice: Float
   $orderByName: OrderDirection
   $orderByQuantity: OrderDirection
   $orderByBuyPrice: OrderDirection
@@ -79,6 +81,7 @@ query GetActiveItems(
       _and: [
         { storeId: { eq: $storeId } },
         { isDeleted: { eq: false } },
+        { sellPrice: { ge: $minPrice, le: $maxPrice } },
         {
           _or: [
             { name: { contains: $searchTerm } },
@@ -150,6 +153,10 @@ query GetActiveSales(
   $limit: Int
   $offset: Int
   $searchTerm: String
+  $minAmount: Float
+  $maxAmount: Float
+  $startDate: Float
+  $endDate: Float
   $orderByTimestamp: OrderDirection
   $orderByCustomerName: OrderDirection
   $orderByTotalAmount: OrderDirection
@@ -160,6 +167,8 @@ query GetActiveSales(
         { storeId: { eq: $storeId } },
         { type: { eq: $type } },
         { isDeleted: { eq: false } },
+        { totalAmount: { ge: $minAmount, le: $maxAmount } },
+        { timestamp: { ge: $startDate, le: $endDate } },
         {
           _or: [
             { customerName: { contains: $searchTerm } }
@@ -203,6 +212,10 @@ query GetActiveUdhaars(
   $limit: Int
   $offset: Int
   $searchTerm: String
+  $minAmount: Float
+  $maxAmount: Float
+  $startDate: Float
+  $endDate: Float
   $orderByTimestamp: OrderDirection
   $orderByCustomerName: OrderDirection
   $orderByType: OrderDirection
@@ -213,6 +226,8 @@ query GetActiveUdhaars(
       _and: [
         { storeId: { eq: $storeId } },
         { isDeleted: { eq: false } },
+        { amount: { ge: $minAmount, le: $maxAmount } },
+        { timestamp: { ge: $startDate, le: $endDate } },
         {
           _or: [
             { customerName: { contains: $searchTerm } },
@@ -245,6 +260,10 @@ query GetActiveExpenses(
   $limit: Int
   $offset: Int
   $searchTerm: String
+  $minAmount: Float
+  $maxAmount: Float
+  $startDate: Float
+  $endDate: Float
   $orderByTimestamp: OrderDirection
   $orderByType: OrderDirection
   $orderBySupplierName: OrderDirection
@@ -255,6 +274,8 @@ query GetActiveExpenses(
       _and: [
         { storeId: { eq: $storeId } },
         { isDeleted: { eq: false } },
+        { amount: { ge: $minAmount, le: $maxAmount } },
+        { timestamp: { ge: $startDate, le: $endDate } },
         {
           _or: [
             { supplierName: { contains: $searchTerm } },
