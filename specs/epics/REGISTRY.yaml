@@ -140,7 +140,7 @@ epics:
   - id: e08
     title: Authentication & Session Security Verification
     priority: P0
-    status: defined
+    status: complete
     story_count: 4
     target_version: v1.3.1
     type: verification
@@ -157,7 +157,7 @@ epics:
   - id: e10
     title: Utility Functions & Helpers Logic Verification
     priority: P0
-    status: defined
+    status: complete
     story_count: 4
     target_version: v1.3.1
     depends_on: [e02]
@@ -166,7 +166,7 @@ epics:
   - id: e11
     title: ViewModel State Management & Reactive Flow Verification
     priority: P0
-    status: defined
+    status: verified
     story_count: 5
     target_version: v1.3.1
     depends_on: [e02, e07]
@@ -184,7 +184,7 @@ epics:
   - id: e13
     title: SQLDelight Data Layer Queries & Schema Verification
     priority: P0
-    status: defined
+    status: verified
     story_count: 4
     target_version: v1.3.1
     depends_on: [e02]
@@ -193,7 +193,7 @@ epics:
   - id: e14
     title: Auth Screen Flow & Notification Channel Verification
     priority: P0
-    status: defined
+    status: complete
     story_count: 3
     target_version: v1.3.1
     type: verification
@@ -201,7 +201,7 @@ epics:
   - id: e15
     title: ExpiryCheckWorker Background Task Logic Verification
     priority: P0
-    status: defined
+    status: verified
     story_count: 3
     target_version: v1.3.1
     depends_on: [e02]
@@ -210,7 +210,7 @@ epics:
   - id: e16
     title: Purchase Records & Supplier Inventory Updates Verification
     priority: P0
-    status: defined
+    status: verified
     story_count: 3
     target_version: v1.3.1
     depends_on: [e02]
@@ -219,7 +219,7 @@ epics:
   - id: e17
     title: App Launch Sequence, Nav Graph & Offline Mode Verification
     priority: P0
-    status: defined
+    status: complete
     story_count: 3
     target_version: v1.3.1
     type: verification
@@ -236,7 +236,7 @@ epics:
   - id: e27
     title: Server-Side Search & Advanced Filtering
     priority: P0
-    status: in_progress
+    status: partially_verified
     story_count: 3
     target_version: v1.6.0
     type: development

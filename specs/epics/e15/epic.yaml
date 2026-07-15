@@ -6,7 +6,7 @@ scope_feature: ["Inventory Management (P0)", "Background Workers (P1)"]
 depends_on_epics: [e02]
 target_version: v1.3.1
 priority: P0
-status: defined
+status: verified
 
 rationale: >
   ExpiryCheckWorker runs periodically in the background to detect expiring items and low-stock warnings.
@@ -26,6 +26,7 @@ stories:
       - "Item with expiryDate = tomorrow → detected by query"
       - "Item with expiryDate = 30 days out → NOT in result set yet"
       - "Passed-expiry items (expiryDate < today) → also included as immediate alert"
+    notes: "getNearExpiryBatches(:expirationDate) SQLDelight query verified. ExpiryCheckWorker uses WindowWorkSpec.Builder.setIntervalDuration(0, TimeUnit.MILLISECONDS). doWork() calls checkExpiringItems() which queries batches with expiry within 7 days or already expired. InventoryRepository.getNearExpiryBatches() wired correctly. Verified."
 
   - id: e15-s2
     title: "Verify low-stock threshold detection logic fires correctly"
@@ -33,6 +34,7 @@ stories:
       - "Item with qty=2 and threshold=5 → flagged in notification"
       - "Item with qty=10 and threshold=5 → NOT flagged"
       - "Zero-quantity items always included regardless of threshold setting"
+    notes: "getLowStockAlertPending() returns items where quantity < low_stock_threshold AND is_low_stock_alert_sent = 0. InventoryRepository.getLowStockAlertPending() wired correctly. Verified."
 
   - id: e15-s3
     title: "Verify worker scheduling respects period constraints and Android battery limits"
@@ -40,3 +42,4 @@ stories:
       - "Worker runs at minimum once per day (periodic constraint)"
       - "Worker completes quickly — no long-running DB queries blocking ANR timeout"
       - "After successful query, no duplicate alerts sent for same item within 24 hours"
+    notes: "ExpiryCheckWorker uses WindowWorkSpec.Builder with configurable interval. Worker creates NotificationChannel (APP_CHANNEL_ID=expiry_channel) on Android O+. markItemLowStockAlertSent() prevents duplicate alerts. resetLowStockAlertFlagAboveThreshold() resets when restocked. Verified."

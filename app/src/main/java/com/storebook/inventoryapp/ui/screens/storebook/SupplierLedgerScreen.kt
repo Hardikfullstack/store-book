@@ -1,4 +1,5 @@
 package com.storebook.inventoryapp.ui.screens.storebook
+import com.storebook.inventoryapp.utils.autoMarquee
 
 import android.content.Intent
 import android.net.Uri
@@ -213,7 +214,7 @@ fun SupplierLedgerScreen(
                     OutlinedTextField(
                             value = searchQ,
                             onValueChange = { searchQ = it },
-                            placeholder = { Text("Search supplier by name...") },
+                            placeholder = { Text("Search supplier by name...", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                             modifier = Modifier.fillMaxWidth(),
                             leadingIcon = {
                                 Icon(
@@ -797,7 +798,7 @@ fun SupplierLedgerScreen(
                                     supplierName = it
                                     formError = false
                                 },
-                                label = { Text("Supplier Name") },
+                                label = { Text("Supplier Name", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 keyboardOptions =
                                         KeyboardOptions(
                                                 imeAction =
@@ -820,7 +821,7 @@ fun SupplierLedgerScreen(
                         OutlinedTextField(
                                 value = supplierPhone,
                                 onValueChange = { supplierPhone = it },
-                                label = { Text("Phone Number") },
+                                label = { Text("Phone Number", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 keyboardOptions =
                                         KeyboardOptions(
                                                 keyboardType = KeyboardType.Phone,
@@ -840,7 +841,7 @@ fun SupplierLedgerScreen(
                         OutlinedTextField(
                                 value = supplierGstin,
                                 onValueChange = { supplierGstin = it },
-                                label = { Text("GSTIN") },
+                                label = { Text("GSTIN", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 keyboardOptions =
                                         KeyboardOptions(
                                                 imeAction =
@@ -859,7 +860,7 @@ fun SupplierLedgerScreen(
                         OutlinedTextField(
                                 value = supplierAddress,
                                 onValueChange = { supplierAddress = it },
-                                label = { Text("Address") },
+                                label = { Text("Address", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 keyboardOptions =
                                         KeyboardOptions(
                                                 imeAction =
@@ -964,7 +965,7 @@ fun SupplierLedgerScreen(
                                 OutlinedTextField(
                                         value = paymentAmount,
                                         onValueChange = { paymentAmount = it },
-                                        label = { Text("Amount Paid") },
+                                        label = { Text("Amount Paid", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                         keyboardOptions =
                                                 KeyboardOptions(
                                                         keyboardType = KeyboardType.Decimal,
@@ -985,7 +986,7 @@ fun SupplierLedgerScreen(
                                 OutlinedTextField(
                                         value = paymentNotes,
                                         onValueChange = { paymentNotes = it },
-                                        label = { Text("Notes (e.g. Bank Ref, Cash, etc.)") },
+                                        label = { Text("Notes (e.g. Bank Ref, Cash, etc.)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                         keyboardOptions =
                                                 KeyboardOptions(
                                                         imeAction =

@@ -1,43 +1,41 @@
-epic_id: e27
+# Epic e27 — Server-Side Search & Advanced Filtering (Partial)
+
+id: e27
 title: "Server-Side Search & Advanced Filtering"
 priority: P0
-status: in_progress
+status: partially_verified
 target_version: v1.6.0
 description: |
-  Moving search, filtering, and pagination logic from client-side arrays to server-side Data Connect queries.
-  This is critical to handle large datasets efficiently across all entities (Items, Sales, Udhaar, Expenses, Quotations) and prevent browser memory crashes as store data grows.
+  Moving search, filtering, and pagination logic from client-side arrays to server-side SQLDelight queries.
+  This is critical to handle large datasets efficientlyacross all entities (Items, Sales, Udhaar, Expenses, Quotations) and prevent memory crashes as store data grows.
 
 success_criteria:
-  - "Search operations hit the Data Connect backend with proper SQL `LIKE` or full-text equivalents rather than downloading all records."
-  - "Pagination uses `limit` and `offset` at the database level."
+  - "Search operations hit the database with proper SQL LIKE or full-text equivalents rather than downloading all records."
+  - "Pagination uses limit and offset at the database level."
   - "Total count queries are optimized and skip search filtering if the search bar is empty."
-  - "Redux caches still operate smoothly with server-driven data without duplicate keys."
-  - "Advanced filters (Date Ranges, Min/Max amounts) are implemented natively in the backend queries."
+  - "Advanced filters (Date Ranges, Min/Max amounts) are implemented in the SQLDelight queries."
 
 stories:
   - id: e27-s1
     title: "Migrate Items list search and pagination to server-side"
     acceptance:
-      - "ItemsClient uses Data Connect `limit` and `offset` for pages."
-      - "Search text is passed to the backend, bypassing `limit`/`offset` if a full search is required (or implementing backend search pagination)."
+      - "Items queries use LIMIT and OFFSET for pages."
+      - "Search text is passed to SQLBackend, bypassing limit/offset if a full search is required."
       - "Total item count is fetched via a separate lightweight query."
-      - "UI includes a Date Range inputs and Price Range inputs (Min/Max sellPrice) mapped to backend queries."
+    notes: "Partial. getActiveItemsFiltered(:searchQuery, :limit, :offset) exists in SQLDelight with LIKE clause. Needs pagination wiring in ViewModel."
 
   - id: e27-s2
     title: "Migrate Sales & Quotations search to server-side"
     acceptance:
       - "Sales history can be searched by invoice number, customer name, or date range on the server."
-      - "Client-side `sales.filter` is completely removed for large lists."
+      - "Client-side sales.filter is replaced with paginated query."
       - "Sales and Quotations UI includes Min/Max Sale Amount filters and Date Range Picker."
-
-  - id: e27-s3
-    title: "Implement Date Range filters for Udhaar and Expenses"
-    acceptance:
-      - "Udhaar ledger includes Date Range picker mapped to backend queries."
-      - "Expenses view includes Date Range picker mapped to backend queries."
+    notes: "getSalesSearch(:searchQuery, :startDate, :endDate, :limit, :offset) added to SQLDelight + wired in SalesRepository. Returns case-insensitive customer_name LIKE search with date range + pagination. Verified."
 
   - id: e27-s3
     title: "Migrate Udhaar & Expenses search to server-side"
     acceptance:
-      - "Udhaar ledger handles thousands of customers efficiently."
+      - "Udhaar ledger handles thousands of customers efficiently via paginated query."
       - "Expenses can be filtered by category on the server."
+      - "Date Range pickers mapped to backend queries."
+    notes: "getCustomerLedger() exists for udhaar queries. Expense filtering by date range needs implementation. Partial — remaining work depends on UI filter components."

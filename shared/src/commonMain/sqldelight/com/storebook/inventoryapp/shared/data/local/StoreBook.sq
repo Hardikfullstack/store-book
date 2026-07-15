@@ -31,7 +31,12 @@ SELECT * FROM items WHERE is_deleted = 0 AND quantity > 0;
 getActiveItemsFiltered:
 SELECT * FROM items
 WHERE is_deleted = 0
-  AND (name LIKE '%' || :searchQuery || '%' OR :searchQuery = '')
+  AND (
+    name LIKE '%' || :searchQuery || '%'
+    OR hsn_code LIKE '%' || :searchQuery || '%'
+    OR cloud_id LIKE '%' || :searchQuery || '%'
+    OR :searchQuery = ''
+  )
   AND (
     :category = 'All'
     OR (:category = 'Low Stock' AND quantity <= low_stock_threshold)
@@ -124,6 +129,18 @@ SELECT * FROM sales WHERE is_deleted = 0 AND type = 'ESTIMATE' ORDER BY timestam
 
 getSalesByDateRange:
 SELECT * FROM sales WHERE is_deleted = 0 AND type = 'SALE' AND timestamp >= ? AND timestamp <= ? ORDER BY timestamp DESC;
+
+-- E27-S2: Search sales by customer name with date range + pagination (server-side filter)
+getSalesSearch:
+SELECT * FROM sales
+WHERE is_deleted = 0 AND type = 'SALE'
+  AND (
+    customer_name LIKE '%' || :searchQuery || '%'
+    OR :searchQuery = ''
+  )
+  AND timestamp >= :startDate AND timestamp <= :endDate
+ORDER BY timestamp DESC
+LIMIT :limit OFFSET :offset;
 
 updateSaleType:
 UPDATE sales SET type = ?, is_synced = 0, updated_at = ? WHERE id = ?;

@@ -1,6 +1,7 @@
 @file:android.annotation.SuppressLint("LocalContextGetResourceValueCall")
 
 package com.storebook.inventoryapp.ui.screens.storebook
+import com.storebook.inventoryapp.utils.autoMarquee
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -423,7 +424,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                         OutlinedTextField(
                                 value = addQtyInput,
                                 onValueChange = { addQtyInput = it },
-                                label = { Text("Add Quantity") },
+                                label = { Text("Add Quantity", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 keyboardOptions =
                                         KeyboardOptions(
                                                 keyboardType = KeyboardType.Decimal,
@@ -481,7 +482,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                             OutlinedTextField(
                                     value = buyPriceInput,
                                     onValueChange = { buyPriceInput = it },
-                                    label = { Text("Buy Price (Per ${refillItem.unit})") },
+                                    label = { Text("Buy Price (Per ${refillItem.unit})", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                     keyboardOptions =
                                             KeyboardOptions(
                                                     keyboardType = KeyboardType.Decimal,
@@ -529,7 +530,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                             supplierSearchText = it
                                             showSupplierDropdown = true
                                         },
-                                        placeholder = { Text("Search or type new supplier...") },
+                                        placeholder = { Text("Search or type new supplier...", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                         keyboardOptions =
                                                 KeyboardOptions(imeAction = ImeAction.Done),
                                         keyboardActions =
@@ -634,8 +635,8 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                         OutlinedTextField(
                                 value = refillBatchNumber,
                                 onValueChange = { refillBatchNumber = it },
-                                label = { Text("Batch / Lot Number") },
-                                placeholder = { Text("e.g. MFG-2024-B1") },
+                                label = { Text("Batch / Lot Number", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                                placeholder = { Text("e.g. MFG-2024-B1", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                                 keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                                 modifier = Modifier.fillMaxWidth(),
@@ -652,8 +653,8 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                 value = refillExpiryDateMs?.let { java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date(it)) } ?: "",
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("Expiry Date") },
-                                placeholder = { Text("Tap calendar icon to set") },
+                                label = { Text("Expiry Date", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                                placeholder = { Text("Tap calendar icon to set", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 modifier = Modifier.fillMaxWidth(),
                                 enabled = false,
                                 shape = RoundedCornerShape(16.dp),
@@ -867,7 +868,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                     OutlinedTextField(
                             value = searchQ,
                             onValueChange = { searchQ = it },
-                            placeholder = { Text(stringResource(id = R.string.inv_search_hint)) },
+                            placeholder = { Text(stringResource(id = R.string.inv_search_hint), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                             modifier = Modifier.fillMaxWidth(),
                             leadingIcon = {
                                 Icon(
@@ -1674,7 +1675,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                     inputName = it
                                     nameError = false
                                 },
-                                label = { Text(stringResource(id = R.string.inv_name_label)) },
+                                label = { Text(stringResource(id = R.string.inv_name_label), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 modifier =
                                         Modifier.fillMaxWidth().focusRequester(focusRequesterName),
                                 singleLine = true,
@@ -1708,7 +1709,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                         inputQty = it
                                         qtyError = false
                                     },
-                                    label = { Text(stringResource(id = R.string.inv_qty_label)) },
+                                    label = { Text(stringResource(id = R.string.inv_qty_label), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                     suffix = { Text(inputUnit) },
                                     keyboardOptions =
                                             KeyboardOptions(
@@ -1767,9 +1768,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                             inputBuyPrice = it
                                             buyPriceError = false
                                         },
-                                        label = {
-                                            Text(stringResource(id = R.string.inv_buy_price_label))
-                                        },
+                                        label = { Text(stringResource(id = R.string.inv_buy_price_label), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                         prefix = { Text("₹ ") },
                                         keyboardOptions =
                                                 KeyboardOptions(
@@ -1799,9 +1798,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                         inputSellPrice = it
                                         sellPriceError = false
                                     },
-                                    label = {
-                                        Text(stringResource(id = R.string.inv_sell_price_label))
-                                    },
+                                    label = { Text(stringResource(id = R.string.inv_sell_price_label), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                     prefix = { Text("₹ ") },
                                     keyboardOptions =
                                             KeyboardOptions(
@@ -1829,7 +1826,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                         OutlinedTextField(
                                 value = inputThreshold,
                                 onValueChange = { inputThreshold = it },
-                                label = { Text(stringResource(id = R.string.inv_threshold_label)) },
+                                label = { Text(stringResource(id = R.string.inv_threshold_label), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 suffix = { Text(inputUnit) },
                                 keyboardOptions =
                                         KeyboardOptions(
@@ -1938,7 +1935,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                     OutlinedTextField(
                                             value = inputHsnCode,
                                             onValueChange = { inputHsnCode = it },
-                                            label = { Text("HSN/SAC Code") },
+                                            label = { Text("HSN/SAC Code", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                             keyboardOptions =
                                                     KeyboardOptions(imeAction = ImeAction.Next),
                                             keyboardActions =
@@ -1955,7 +1952,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                     OutlinedTextField(
                                             value = inputTaxRate,
                                             onValueChange = { inputTaxRate = it },
-                                            label = { Text("Tax Rate (%)") },
+                                            label = { Text("Tax Rate (%)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                             suffix = { Text("%") },
                                             keyboardOptions =
                                                     KeyboardOptions(
@@ -1985,8 +1982,8 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                 OutlinedTextField(
                                         value = inputBatchNumber,
                                         onValueChange = { inputBatchNumber = it },
-                                        label = { Text("Batch / Lot Number") },
-                                        placeholder = { Text("e.g. MFG-2024-B1") },
+                                        label = { Text("Batch / Lot Number", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                                        placeholder = { Text("e.g. MFG-2024-B1", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                         keyboardOptions =
                                                 KeyboardOptions(imeAction = ImeAction.Done),
                                         keyboardActions =
@@ -2007,8 +2004,8 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                                         ?: "",
                                         onValueChange = {},
                                         readOnly = true,
-                                        label = { Text("Expiry Date") },
-                                        placeholder = { Text("Tap calendar icon to set") },
+                                        label = { Text("Expiry Date", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                                        placeholder = { Text("Tap calendar icon to set", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                         modifier = Modifier.fillMaxWidth(),
                                         enabled = false,
                                         colors =

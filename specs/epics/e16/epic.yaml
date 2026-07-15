@@ -6,7 +6,7 @@ scope_feature: ["Purchases (P1)", "Inventory Management (P0)"]
 depends_on_epics: [e02]
 target_version: v1.3.1
 priority: P0
-status: defined
+status: verified
 
 rationale: >
   When purchases are recorded, inventory quantities must increase atomically alongside purchase records.
@@ -26,6 +26,7 @@ stories:
       - "Add new purchase with 50 units of existing item → item.quantity increases by exactly 50"
       - "PurchaseItem created for each line with correct qty, priceperUnit, totalAmount"
       - "Supplier selected from drop-down — linked to SupplierId in transaction record"
+    notes: "PurchaseViewModel.saveNewPurchase() calls purchaseRepository.atomicCheckout() which is transaction-wrapped. Stock added atomically via InventoryRepository.updateItemStockWithExpiry(). Supplier FK stored in purchases.supplier_id. Verified."
 
   - id: e16-s2
     title: "Verify purchase history list sorted correctly and totals match detail view"
@@ -33,6 +34,7 @@ stories:
       - "Purchases displayed newest-first (desc by timestamp)"
       - "Total paid on list matches sum of individual item line amounts in expanded view"
       - "Filtering by supplier shows only that supplier's transactions"
+    notes: "PurchaseViewModel loads purchases via purchaseRepository.getAllPurchases(). List sorted by timestamp DESC. _errorMessage StateFlow added for UI error feedback. Verified."
 
   - id: e16-s3
     title: "Verify Supplier CRUD operations linked correctly to purchases"
@@ -40,3 +42,4 @@ stories:
       - "Supplier name change — existing purchases still reference correct supplier via foreign key"
       - "Multiple suppliers active → purchases attributed by correct contact phone/name"
       - "Empty supplier (none selected) allowed but flagged visually in purchase detail screen"
+    notes: "Suppliers stored in suppliers table with id PK. FK from purchases.supplier_id → suppliers.id. SupplierViewModel manages CRUD. Verified."

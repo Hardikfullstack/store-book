@@ -1,4 +1,5 @@
 package com.storebook.inventoryapp.ui.screens.storebook
+import com.storebook.inventoryapp.utils.autoMarquee
 
 import com.storebook.inventoryapp.R
 
@@ -94,7 +95,7 @@ fun InviteStaffScreen(
             OutlinedTextField(
                 value = staffUsername,
                 onValueChange = { staffUsername = it },
-                label = { Text("Staff Username") },
+                label = { Text("Staff Username", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Next),
                 keyboardActions = androidx.compose.foundation.text.KeyboardActions(onNext = { focusRequesterPassword.requestFocus() }),
                 modifier = Modifier.fillMaxWidth(),
@@ -105,7 +106,7 @@ fun InviteStaffScreen(
             OutlinedTextField(
                 value = staffPassword,
                 onValueChange = { staffPassword = it },
-                label = { Text("Staff Password (Pin)") },
+                label = { Text("Staff Password (Pin)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                     keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword,
                     imeAction = androidx.compose.ui.text.input.ImeAction.Done

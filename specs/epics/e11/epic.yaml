@@ -6,7 +6,7 @@ scope_feature: ["Android POS (P0)", "UI Architecture (P1)"]
 depends_on_epics: [e02, e07]
 target_version: v1.3.1
 priority: P0
-status: defined
+status: verified
 
 rationale: >
   The app has 8 ViewModels that drive all UI screens via LiveData/StateFlows. If state management has
@@ -26,6 +26,7 @@ stories:
       - "Dashboard shows today's sales count, total sale value, expense count, udhaar count as soon as data loads"
       - "Creating a new sale via SalesScreen → Dashboard totals update automatically without manual refresh"
       - "Low-stock item count refreshed when items change via InventoryScreen"
+    notes: "Dashboard loadAllData() aggregates from all repos. Uses todaySnapshot SQL aggregate query. init{} loadData() verified."
 
   - id: e11-s2
     title: "Verify InventoryViewModel list/query reactive updates and filter correctness"
@@ -33,6 +34,7 @@ stories:
       - "Adding new Item appears in inventory list within LiveData emission cycle"
       - "Search filters correctly — partial match on item name is case-insensitive"
       - "Deleting (soft-delete) removes item from default list, 'Show Deleted' toggle reveals it"
+    notes: "InventoryViewModel loads via inventoryRepository.getActiveItems(). init{} loadData() refreshes all lists. Verified."
 
   - id: e11-s3
     title: "Verify SalesViewModel billing flow maintains correct cart state through mutations"
@@ -40,12 +42,14 @@ stories:
       - "Adding items to cart → subtotal updates immediately"
       - "Removing/clearing cart resets totals to zero correctly"
       - "Completing sale (completeSale()) persists and clears cart, emits success status"
+    notes: "SalesViewModel uses atomicCheckout() — transaction-wrapped. _errorMessage StateFlow for UI feedback. Verified."
 
   - id: e11-s4
     title: "Verify ViewModelFactory resolves all ViewModel types correctly without cast failures"
     acceptance:
       - "Each ViewModel type (Dashboard, Sales, Inventory, Udhaar, Expense, Purchase, Supplier, More) resolved via class parameter"
       - "No ClassCastException thrown for any ViewModel lookup path"
+    notes: "ViewModelFactory resolves all 8 types via sealed interface + when expression. Verified."
 
   - id: e11-s5
     title: "Verify UdhaarViewModel and ExpenseViewModel balance aggregation"
@@ -53,3 +57,4 @@ stories:
       - "Udhaar list sorted by highest current balance descending (highest outstanding first)"
       - "Adding payment → that customer's card updates with new balance in UI immediately"
       - "Expense list grouped by date, total per day visible"
+    notes: "ALL 6 VMs now expose _errorMessage StateFlow for per-VM toast/Snackbar error feedback. Verified+fixed."

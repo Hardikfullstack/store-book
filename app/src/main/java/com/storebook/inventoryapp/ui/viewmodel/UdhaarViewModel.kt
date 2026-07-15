@@ -24,6 +24,10 @@ class UdhaarViewModel(
     private val _detailedBalances = MutableStateFlow<List<CustomerDetailedBalance>>(emptyList())
     val detailedBalances: StateFlow<List<CustomerDetailedBalance>> = _detailedBalances
 
+    // E11-S5: Error StateFlow for per-VM toast/Snackbar error feedback
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
     // Dummy business name for the UI fallback
     val businessName = "StoreBook Kirana"
 

@@ -1,4 +1,5 @@
 package com.storebook.inventoryapp.ui.screens.storebook
+import com.storebook.inventoryapp.utils.autoMarquee
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
@@ -426,7 +427,7 @@ fun SalesAnalyticsScreen(
                     FilterChip(
                         selected = quickDateFilter != "All Time",
                         onClick = { showDateRangePicker = true },
-                        label = { Text(dateLabel) },
+                        label = { Text(dateLabel, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                         leadingIcon = { Icon(Icons.Default.CalendarToday, null, Modifier.size(16.dp)) },
                         trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) },
                     )
@@ -448,7 +449,7 @@ fun SalesAnalyticsScreen(
                             activeSheet = "CUSTOMER"
                             showSheet = true
                         },
-                        label = { Text(custLabel) },
+                        label = { Text(custLabel, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                         trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) },
                     )
                 }
@@ -469,7 +470,7 @@ fun SalesAnalyticsScreen(
                             activeSheet = "PRODUCT"
                             showSheet = true
                         },
-                        label = { Text(prodLabel) },
+                        label = { Text(prodLabel, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                         trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) },
                     )
                 }

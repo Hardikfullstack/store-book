@@ -1,5 +1,6 @@
 @file:android.annotation.SuppressLint("LocalContextGetResourceValueCall")
 package com.storebook.inventoryapp.ui.screens.storebook
+import com.storebook.inventoryapp.utils.autoMarquee
 
 import android.app.Activity
 import android.os.Build
@@ -1207,9 +1208,7 @@ fun MoreScreen(
                                                         OutlinedTextField(
                                                                 value = nameInput,
                                                                 onValueChange = { nameInput = it },
-                                                                label = {
-                                                                        Text("Store Owner's Name")
-                                                                },
+                                                                label = { Text("Store Owner's Name", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                                                                 keyboardActions = KeyboardActions(onNext = { focusRequesterGstin.requestFocus() }),
                                                                 modifier = Modifier.fillMaxWidth(),
@@ -1219,9 +1218,7 @@ fun MoreScreen(
                                                         OutlinedTextField(
                                                                 value = gstinInput,
                                                                 onValueChange = { gstinInput = it },
-                                                                label = {
-                                                                        Text("Store Owner's GSTIN")
-                                                                },
+                                                                label = { Text("Store Owner's GSTIN", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                                                                 keyboardActions = KeyboardActions(onNext = { focusRequesterAddress.requestFocus() }),
                                                                 modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterGstin),
@@ -1238,11 +1235,9 @@ fun MoreScreen(
                                                                 onValueChange = {
                                                                         addressInput = it
                                                                 },
-                                                                label = {
-                                                                        Text(
+                                                                label = { Text(
                                                                                 "Store Owner's Address"
-                                                                        )
-                                                                },
+                                                                        , modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                                                                 keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                                                                 modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterAddress),
@@ -1269,7 +1264,7 @@ fun MoreScreen(
                                                                 },
                                                                 onValueChange = {},
                                                                 readOnly = true,
-                                                                label = { Text("Business Currency") },
+                                                                label = { Text("Business Currency", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                                                 modifier = Modifier.fillMaxWidth(),
                                                                 shape = RoundedCornerShape(12.dp)
                                                             )
@@ -1447,7 +1442,7 @@ fun MoreScreen(
                                                 OutlinedTextField(
                                                         value = newStoreNameInput,
                                                         onValueChange = { newStoreNameInput = it },
-                                                        label = { Text("Or enter Store Name to create") },
+                                                        label = { Text("Or enter Store Name to create", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                                         modifier = Modifier.fillMaxWidth(),
                                                         singleLine = true,
                                                         shape = RoundedCornerShape(12.dp),
@@ -2077,7 +2072,7 @@ fun ExpenseSheetContent(
                         OutlinedTextField(
                                 value = expenseAmount,
                                 onValueChange = onAmountChange,
-                                label = { Text(stringResource(id = R.string.exp_amount_label)) },
+                                label = { Text(stringResource(id = R.string.exp_amount_label), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 keyboardOptions =
                                         KeyboardOptions(
                                                 keyboardType = KeyboardType.Number,
@@ -2091,7 +2086,7 @@ fun ExpenseSheetContent(
                         OutlinedTextField(
                                 value = expenseDesc,
                                 onValueChange = onDescChange,
-                                label = { Text(stringResource(id = R.string.exp_desc_label)) },
+                                label = { Text(stringResource(id = R.string.exp_desc_label), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                                 keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                                 modifier = Modifier.weight(1.5f).focusRequester(focusRequesterDesc),
@@ -2358,7 +2353,7 @@ fun RestockSheetContent(
                                 readOnly = true,
                                 value = selectedItem?.name ?: "Select Stock Item...",
                                 onValueChange = {},
-                                label = { Text(stringResource(id = R.string.more_stock_item)) },
+                                label = { Text(stringResource(id = R.string.more_stock_item), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 trailingIcon = {
                                         ExposedDropdownMenuDefaults.TrailingIcon(
                                                 expanded = itemDropdownExpanded
@@ -2391,7 +2386,7 @@ fun RestockSheetContent(
                         OutlinedTextField(
                                 value = restockQty,
                                 onValueChange = onQtyChange,
-                                label = { Text(stringResource(id = R.string.exp_restock_qty)) },
+                                label = { Text(stringResource(id = R.string.exp_restock_qty), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 keyboardOptions =
                                         KeyboardOptions(
                                                 keyboardType = KeyboardType.Number,
@@ -2407,7 +2402,7 @@ fun RestockSheetContent(
                         OutlinedTextField(
                                 value = restockCostPrice,
                                 onValueChange = onCostChange,
-                                label = { Text(stringResource(id = R.string.exp_cost_price)) },
+                                label = { Text(stringResource(id = R.string.exp_cost_price), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 keyboardOptions =
                                         KeyboardOptions(
                                                 keyboardType = KeyboardType.Number,
@@ -2425,7 +2420,7 @@ fun RestockSheetContent(
                 OutlinedTextField(
                         value = restockSupplier,
                         onValueChange = onSupplierChange,
-                        label = { Text(stringResource(id = R.string.exp_supplier_label)) },
+                        label = { Text(stringResource(id = R.string.exp_supplier_label), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                         keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Next),
                         keyboardActions = androidx.compose.foundation.text.KeyboardActions(
                                 onNext = { focusRequesterPhone.requestFocus() }
@@ -2437,7 +2432,7 @@ fun RestockSheetContent(
                 OutlinedTextField(
                         value = restockPhone,
                         onValueChange = onPhoneChange,
-                        label = { Text(stringResource(id = R.string.exp_supplier_phone)) },
+                        label = { Text(stringResource(id = R.string.exp_supplier_phone), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                         keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Phone,
                                 imeAction = androidx.compose.ui.text.input.ImeAction.Done

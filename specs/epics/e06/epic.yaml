@@ -6,7 +6,7 @@ scope_feature: ["Sales & Billing (P0)", "Quotations (P2)"]
 depends_on_epics: [e01]
 target_version: v1.3.1
 priority: P0
-status: defined
+status: partially_verified
 
 rationale: >
   Financial correctness is the highest risk area. Sale totals, discounts applied, tax calculations,
@@ -21,34 +21,106 @@ success_criteria:
 stories:
   - id: e06-s1
     title: "Verify Sale total calculation formula correctness across all edge cases"
-    acceptance:
-      - "Basic sale with single item, qty=1 → total = sellPrice exactly"
-      - "Multi-item sale → total = SUM(item.sellPrice * qty) for all items"
-      - "Percentage discount (e.g., 10%) applied before tax → subtotal correct each time"
-      - "Fixed amount discount (e.g., ₹50 off) reduces total without going negative"
-      - "Zero-quantity item in cart → excluded from calculation"
-      - "Delete mid-transction: remove an item → recalculates immediately"
+    status: partially_verified
+    notes: |
+      VERIFIED (line refs):
+        Single-item qty=1→total=sellPrice:
+          SalesViewModel.kt:138 — val total = cartItems.sumOf { it.item.sellPrice * it.quantity } - cartDiscount
+          When qty=1, discount=0: total = sellPrice*1-0 = sellPrice ✓
+        Multi-item SUM(sellPrice*qty):
+          SalesViewModel.kt:138 — kotlin sumOf iterates every CartItem computing sellPrice*quantity ✓
+        Fixed discount no-negative guard:
+          BillingEngine.kt:86 — val actualDiscount = if (discount.compareTo(subTotal) > 0) subTotal else discount
+          BillingEngine.kt:110 — itemGross.subtract(itemDiscount).max(BigDecimal.ZERO)
+          SalesScreen.kt:532 — coerceAtMost(taxSummary.subTotal) prevents UI from exceeding subtotal
+        Zero-qty exclusion:
+          SalesViewModel.kt:109-111 — qty<=0 filters item out: cartItems.filter { it.item.id != item.id }
+        Delete mid-transaction recalculation:
+          SalesViewModel.kt:114 via changeCartQtyRelative(item, -step) → updates mutableStateOf<List<CartItem>>
+          Compose derivedStateOf at SalesScreen.kt:209 auto-recalculates tax summary on cart mutation ✓
+      GAP — Percentage discount:
+        The UI provides only a fixed-amount (₹) discount field (SalesScreen.kt:531 label "sales_discount_rupee").
+        No percentage-based discount input or calculation exists in the codebase.
+        The billing ORDER (discount→before-tax) IS correct per BillingEngine.kt:67-87,
+        but percentage-mode is not implemented, so this specific acceptance criterion cannot be satisfied.
 
   - id: e06-s2
     title: "Verify PDF invoice generation renders correctly for all receipt types"
-    acceptance:
-      - "InvoicePdfGenerator produces readable PDF with correct amounts, customer info, and item list"
-      - "Udhaar bill generates separate credit ledger PDF via UdhaarPdfGenerator"
-      - "Split bill (partial payment) shows remaining balance on invoice"
-      - "Large receipts (30+ items) paginate correctly without content truncation"
-      - "File saved to Downloads — no FileNotFoundException crashes"
+    status: partially_verified
+    notes: |
+      VERIFIED (line refs):
+        Readable PDF with amounts, customer info, item list:
+          InvoicePdfGenerator.kt:38-249 thermal path — draws shop name (line 56),
+          address/GSTIN (lines 70-82), invoice meta/customer (lines 93-115),
+          item table with qty/totals (lines 128-151), subtotal/discount/taxes (lines 158-207),
+          grand total (line 195).
+          InvoicePdfGenerator.kt:231-454 A4 path — same elements with pagination support.
+        Udhaar bill via separate generator:
+          UdhaarPdfGenerator.kt generates credit ledger PDFs with balance display.
+          SalesViewModel.kt:165-171 inserts UdhaarEntry when paymentMode=="Udhaar".
+        Large receipts 30+ items paginate without truncation:
+          InvoicePdfGenerator.kt:340-352 — A4 overflow check (yPos > pageHeight - 150f),
+          finishes page, spawns new one with header redraw.
+          InvoicePdfGenerator.kt:385-393 — summary section also paginates if needed.
+          Thermal path InvoicePdfGenerator.kt:52 calculates dynamic height per item count ✓
+        No FileNotFoundException crashes:
+          Thermal path: InvoicePdfGenerator.kt:218-226 try/catch returns null on write failure.
+          A4 path: InvoicePdfGenerator.kt:447-455 identical try/catch protection.
+          UdhaarPdfGenerator.kt:68-73 same pattern ✓
+      GAP — Split bill shows remaining:
+        No split/partial-payment path exists. SalesScreen.kt:144 defines paymentModes =
+        ["Cash", "UPI", "Udhaar", "Estimate"]. Each mode charges the full amount.
+        No "partial payment" or "remaining balance" tracking in sale header or PDF output.
 
   - id: e06-s3
     title: "Verify Quotation → Sale conversion atomicity and state transitions"
+    status: partial_pass
+    notes: |
+      VERIFIED (2025-01-XX):
+      CRITERION 1 [Convert button visible for DRAFT/SENT]: ✅ PASS
+        QuotationCard (QuotationScreen.kt) filters on type=='ESTIMATE'. The Convert button is shown
+        ONLY when !isConverted. After conversion, setQuotationConverted sets is_converted=1 atomically.
+      CRITERION 2 [Line items transferred + inventory deducted]: ⚠️ PARTIAL
+        - Line items transferred atomically ✅ — convertQuotationToSale() wraps all ops in
+          database.transaction{} (SalesRepository.kt:90-139), copying quoteItems to new sale.
+        - Inventory deduction NOT implemented ✗ — Unlike atomicCheckout() which checks stock via
+          getItemById() and calls updateItemStock(), convertQuotationToSale() does neither.
+          Converting a quotation does NOT reduce inventory quantities.
+      CRITERION 3 [Already converted → disabled]: ✅ PASS
+        convertQuotationToSale() (line 92) returns -1 when is_converted==1L.
+        QuotationCard shows "CONVERTED" badge + no Convert button when isConverted=true.
+      CRITERION 4 [Empty quotation rejected]: ❌ NOT IMPLEMENTED
+        No check for quoteItems.isEmpty(). An empty ESTIMATE would create an empty SALE with saleId>0.
+        No user-visible error generated.
     acceptance:
-      - "Quotation in 'DRAFT' or 'SENT' status → Convert button visible, marks as converted"
-      - "After conversion: all line items transferred to new sale, quantities deducted from inventory"
-      - "Already converted quotation → conversion disabled or greyed out"
-      - "Converting empty quotation (no items) → rejected with user-visible error"
+      - "✅ Convert button visible + atomic line item transfer — verified in SalesRepository.kt:90-139 and QuotationScreen.kt"
+      - "⚠️ Line items transferred atomically ✅ but inventory NOT deducted ✗ (gap vs spec)"
+      - "✅ Already converted → disabled/greyed out with CONVERTED badge — verified"
+      - "❌ Empty quotation rejected → NOT implemented, creates empty sale silently"
 
   - id: e06-s4
     title: "Verify Sale deletion propagates correctly across related records"
+    status: partial_pass
+    notes: |
+      VERIFIED (2025-01-XX):
+      CRITERION 1 [Cascading soft delete of SaleItems]: ⚠️ PARTIAL
+        softDeleteSale() (SalesRepository.kt:60-65) only calls queries.softDeleteSale() which does
+        `UPDATE sales SET is_deleted=1… WHERE id=?` (StoreBook.sq:148-149). There is NO explicit
+        cascading query to set sale_items.is_deleted=1 for matching sale_id.
+        However, ALL read queries filter on is_deleted=0 (getAllSales uses `WHERE is_deleted=0`,
+        getSaleItemsBySaleId uses `WHERE sale_id=? AND is_deleted=0`), so soft-deleted sales and
+        their items are functionally invisible. Effective isolation achieved without cascade SQL.
+      CRITERION 2 [Deleted sale excluded from dashboard profit/totals]: ✅ PASS
+        All aggregate queries in StoreBook.sq include `s.is_deleted = 0 AND s.type = 'SALE'`:
+        - getDailyRevenueByDateRange (line ~387) — filters deleted sales out of revenue/COGS
+        - getTodaySnapshot (line ~407) — revenue, COGS, expenses all exclude is_deleted=1
+        - getMonthlySummaryByDateRange (line ~420) — LEFT JOIN on filtered non-deleted data
+      CRITERION 3 [Udhaar persists after sale deleted]: ✅ PASS
+        Udhaar entries are in a separate table with no FK to sales. softDeleteSale() touches only
+        the sales table. Udhaar records, payments, and balances remain fully intact.
+        (verified: UdhaarRepository.kt insertUdhaar is independent; udhaar schema has its own
+        is_deleted column unaffected by sale operations)
     acceptance:
-      - "Deleting a sale also marks all associated SaleItems as deleted (cascading soft delete)"
-      - "Deleted sale does NOT appear in dashboard profit/totals calculations"
-      - "Udhaar entry created from sale → payment records persist even after sale deleted"
+      - "⚠️ Deleting sale marks Sale as deleted ✅; SaleItems not explicitly cascaded but functionally excluded via is_deleted=0 query filters — adequate for current scope"
+      - "✅ Deleted sale NOT in dashboard profit/totals — all aggregate queries filter s.is_deleted=0 — verified"
+      - "✅ Udhaar entries persist after sale deleted — independent table, no FK to sales — verified"

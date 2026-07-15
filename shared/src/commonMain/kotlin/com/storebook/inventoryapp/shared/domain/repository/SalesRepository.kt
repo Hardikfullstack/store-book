@@ -219,4 +219,21 @@ class SalesRepository(
         withContext(Dispatchers.IO) {
             queries.getMonthlySummaryByDateRange(startTs, endTs).executeAsList()
         }
+
+    // ==========================================================================
+    // E27-S2: Server-side search — paginate sales by customer name + date range
+    // Case-insensitive partial match, LIMIT/OFFSET for server-side pagination
+    // ==========================================================================
+
+    /** Search sales by customer name with date range + pagination */
+    suspend fun getSalesSearch(
+        searchQuery: String,
+        startDate: Long,
+        endDate: Long,
+        limit: Long = 50,
+        offset: Long = 0
+    ) : List<Sales> = withContext(Dispatchers.IO) {
+        val query = if (searchQuery.isBlank()) "%" else searchQuery.lowercase()
+        queries.getSalesSearch(query, startDate, endDate, limit, offset).executeAsList()
+    }
 }

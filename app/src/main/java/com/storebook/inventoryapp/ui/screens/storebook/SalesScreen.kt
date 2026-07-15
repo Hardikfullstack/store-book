@@ -1,5 +1,6 @@
 @file:android.annotation.SuppressLint("LocalContextGetResourceValueCall")
 package com.storebook.inventoryapp.ui.screens.storebook
+import com.storebook.inventoryapp.utils.autoMarquee
 
 import android.content.Intent
 import android.net.Uri
@@ -148,6 +149,7 @@ fun SalesScreen(
 
     // Autocomplete — show dropdown when typing customer name
     var showCustomerSuggestions by remember { mutableStateOf(false) }
+    var showItemSuggestions by remember { mutableStateOf(false) }
 
     // Server-side filtered and limited customer suggestions
     val customerSuggestions by viewModel.customerSuggestions.collectAsStateWithLifecycle()
@@ -530,7 +532,7 @@ fun SalesScreen(
                 OutlinedTextField(
                     value = if (viewModel.cartDiscount == 0.0) "" else viewModel.cartDiscount.toString(),
                     onValueChange = { viewModel.cartDiscount = (it.toDoubleOrNull() ?: 0.0).coerceAtMost(taxSummary.subTotal) },
-                    label = { Text(stringResource(id = R.string.sales_discount_rupee), fontSize = 11.sp) },
+                    label = { Text(stringResource(id = R.string.sales_discount_rupee), fontSize = 11.sp, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal,
                         imeAction = ImeAction.Next
@@ -638,21 +640,21 @@ fun SalesScreen(
                             customerNameError = false
                             showCustomerSuggestions = true
                         },
-                        label = {
+                        label = { 
                             Text(
-                                if (isUdhaarMode) {
+                                text = if (isUdhaarMode) {
                                     "Customer Name *"
                                 } else {
-                                    stringResource(
-                                        id = R.string.sales_customer_label,
-                                    )
+                                    stringResource(id = R.string.sales_customer_label)
                                 },
+                                modifier = androidx.compose.ui.Modifier.autoMarquee()
                             )
                         },
-                        placeholder = {
+                        placeholder = { 
                             Text(
-                                if (isUdhaarMode) "Required for Udhaar" else "Optional",
+                                text = if (isUdhaarMode) "Required for Udhaar" else "Optional",
                                 fontSize = 12.sp,
+                                modifier = androidx.compose.ui.Modifier.autoMarquee()
                             )
                         },
                         leadingIcon = {
@@ -749,7 +751,7 @@ fun SalesScreen(
                         OutlinedTextField(
                             value = viewModel.cartCustomerGstin,
                             onValueChange = { viewModel.cartCustomerGstin = it },
-                            label = { Text("Customer GSTIN (Optional)") },
+                            label = { Text("Customer GSTIN (Optional)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                             keyboardOptions = KeyboardOptions(
                                 imeAction = ImeAction.Next
                             ),
@@ -767,7 +769,7 @@ fun SalesScreen(
                         OutlinedTextField(
                             value = viewModel.cartCustomerAddress,
                             onValueChange = { viewModel.cartCustomerAddress = it },
-                            label = { Text("Customer Address (Optional)") },
+                            label = { Text("Customer Address (Optional)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                             keyboardOptions = KeyboardOptions(
                                 imeAction = ImeAction.Done
                             ),
@@ -1015,54 +1017,107 @@ fun SalesScreen(
                 }
 
                 // Search bar
-                OutlinedTextField(
-                    value = searchQ,
-                    onValueChange = { searchQ = it },
-                    placeholder = { Text(stringResource(id = R.string.sales_add_cart_hint)) },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.ui_element_desc)) },
-                    trailingIcon = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (searchQ.isNotEmpty()) {
-                                IconButton(onClick = { searchQ = "" }) {
-                                    Icon(Icons.Rounded.Cancel, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
-                            IconButton(onClick = {
-                                scanner.startScan()
-                                .addOnSuccessListener { barcode: com.google.mlkit.vision.barcode.common.Barcode ->
-                                    val code = barcode.rawValue
-                                    if (!code.isNullOrBlank()) {
-                                        val matched = allItems.find { it.hsnCode == code }
-                                        if (matched != null) {
-                                            if (stepForUnit(matched.unit) == 1.0) {
-                                                viewModel.addToCart(matched, 1.0)
-                                                android.widget.Toast.makeText(context, "Added: ${matched.name}", android.widget.Toast.LENGTH_SHORT).show()
-                                            } else {
-                                                val step = stepForUnit(matched.unit)
-                                                val s = formatQty(step)
-                                                editingQtyText = TextFieldValue(s, TextRange(s.length))
-                                                editingQtyItem = matched
-                                            }
-                                        } else {
-                                            android.widget.Toast.makeText(context, "No item found with barcode/HSN: $code", android.widget.Toast.LENGTH_LONG).show()
-                                        }
+                // Search bar with Autocomplete
+                androidx.compose.foundation.layout.BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val boxWidth = maxWidth
+                    OutlinedTextField(
+                        value = searchQ,
+                        onValueChange = { 
+                            searchQ = it 
+                            showItemSuggestions = true
+                        },
+                        placeholder = { 
+                            Text(
+                                text = stringResource(id = R.string.sales_add_cart_hint),
+                                modifier = androidx.compose.ui.Modifier.autoMarquee()
+                            ) 
+                        },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .onFocusChanged { state ->
+                                    if (state.isFocused) {
+                                        showItemSuggestions = true
+                                    }
+                                },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.ui_element_desc)) },
+                        trailingIcon = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (searchQ.isNotEmpty()) {
+                                    IconButton(onClick = { searchQ = "" }) {
+                                        Icon(Icons.Rounded.Cancel, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
-                                .addOnFailureListener { e: Exception ->
-                                    android.widget.Toast.makeText(context, "Scan failed: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                                IconButton(onClick = {
+                                    scanner.startScan()
+                                    .addOnSuccessListener { barcode: com.google.mlkit.vision.barcode.common.Barcode ->
+                                        val code = barcode.rawValue
+                                        if (!code.isNullOrBlank()) {
+                                            val matched = allItems.find { it.hsnCode == code }
+                                            if (matched != null) {
+                                                if (stepForUnit(matched.unit) == 1.0) {
+                                                    viewModel.addToCart(matched, 1.0)
+                                                    android.widget.Toast.makeText(context, "Added: ${matched.name}", android.widget.Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    val step = stepForUnit(matched.unit)
+                                                    val s = formatQty(step)
+                                                    editingQtyText = TextFieldValue(s, TextRange(s.length))
+                                                    editingQtyItem = matched
+                                                }
+                                            } else {
+                                                android.widget.Toast.makeText(context, "No item found with barcode/HSN: $code", android.widget.Toast.LENGTH_LONG).show()
+                                            }
+                                        }
+                                    }
+                                    .addOnFailureListener { e: Exception ->
+                                        android.widget.Toast.makeText(context, "Scan failed: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                            }) {
+                                Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan Barcode")
+                            }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                    )
+
+                    // Autocomplete Dropdown
+                    com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
+                        modifier = Modifier.width(boxWidth).padding(horizontal = 16.dp),
+                        expanded = showItemSuggestions && searchQ.isNotBlank(),
+                        onDismissRequest = { showItemSuggestions = false },
+                        suggestions = filteredItems,
+                        itemText = { it.name },
+                        onSuggestionSelected = { item ->
+                            val step = stepForUnit(item.unit)
+                            if (step == 1.0) {
+                                if (cartMap[item.id] == null) {
+                                    viewModel.addToCart(item, 1.0)
+                                } else {
+                                    viewModel.updateCartQty(item, cartMap[item.id]!!.quantity + 1.0)
                                 }
-                        }) {
-                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan Barcode")
+                                android.widget.Toast.makeText(context, "Added: ${item.name}", android.widget.Toast.LENGTH_SHORT).show()
+                            } else {
+                                val s = formatQty(step)
+                                editingQtyText = TextFieldValue(s, TextRange(s.length))
+                                editingQtyItem = item
+                            }
+                            searchQ = ""
+                            showItemSuggestions = false
+                            focusManager.clearFocus()
+                        },
+                        avatarColor = MaterialTheme.colorScheme.secondaryContainer,
+                        avatarTextColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        additionalContent = { item ->
+                            Text(
+                                text = "Stock: ${formatQty(item.quantity)} ${item.unit} · ${item.sellPrice.toRupee()}",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                )
+                    )
+                }
 
                 // Items list
                 if (filteredItems.isEmpty()) {
@@ -1366,7 +1421,13 @@ fun SalesScreen(
                                     customerNameError = false
                                     showCustomerSuggestions = true
                                 },
-                                placeholder = { Text("Customer Name (Optional)", fontSize = 13.sp) },
+                                placeholder = { 
+                                    Text(
+                                        text = "Customer Name (Optional)", 
+                                        fontSize = 13.sp, 
+                                        modifier = androidx.compose.ui.Modifier.autoMarquee()
+                                    ) 
+                                },
                                 leadingIcon = {
                                     Icon(
                                         Icons.Default.Person,

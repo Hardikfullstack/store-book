@@ -1,6 +1,7 @@
 @file:android.annotation.SuppressLint("LocalContextGetResourceValueCall")
 
 package com.storebook.inventoryapp.ui.screens.storebook
+import com.storebook.inventoryapp.utils.autoMarquee
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -254,7 +255,7 @@ fun DashboardScreen(
                         OutlinedTextField(
                                 value = addQtyInput,
                                 onValueChange = { addQtyInput = it },
-                                label = { Text("Add Quantity") },
+                                label = { Text("Add Quantity", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 keyboardOptions =
                                         KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.fillMaxWidth(),
@@ -569,7 +570,7 @@ fun DashboardScreen(
                         OutlinedTextField(
                                 value = searchQuery,
                                 onValueChange = {},
-                                placeholder = { Text("Search or scan barcode to sell...") },
+                                placeholder = { Text("Search or scan barcode to sell...", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 modifier = Modifier.fillMaxWidth(),
                                 leadingIcon = {
                                     Icon(
@@ -608,7 +609,7 @@ fun DashboardScreen(
                             FilterChip(
                                     selected = false,
                                     onClick = { navController.navigate(Routes.Sales) },
-                                    label = { Text("New Sale", fontWeight = FontWeight.Bold) },
+                                    label = { Text("New Sale", fontWeight = FontWeight.Bold, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                     leadingIcon = {
                                         Icon(
                                                 Icons.Default.ShoppingCart,
@@ -624,7 +625,7 @@ fun DashboardScreen(
                             FilterChip(
                                     selected = false,
                                     onClick = { navController.navigate(Routes.Udhaar) },
-                                    label = { Text("Give Udhaar", fontWeight = FontWeight.Bold) },
+                                    label = { Text("Give Udhaar", fontWeight = FontWeight.Bold, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                     leadingIcon = {
                                         Icon(
                                                 Icons.Default.AccountCircle,
@@ -640,7 +641,7 @@ fun DashboardScreen(
                             FilterChip(
                                     selected = false,
                                     onClick = { navController.navigate(Routes.Inventory) },
-                                    label = { Text("Add Stock", fontWeight = FontWeight.Bold) },
+                                    label = { Text("Add Stock", fontWeight = FontWeight.Bold, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                     leadingIcon = {
                                         Icon(
                                                 Icons.Default.Add,

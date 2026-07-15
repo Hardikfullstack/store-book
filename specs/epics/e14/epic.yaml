@@ -6,7 +6,7 @@ scope_feature: ["Authentication (P0)", "Notifications (P1)"]
 depends_on_epics: []
 target_version: v1.3.1
 priority: P0
-status: defined
+status: complete
 
 rationale: >
   Authentication is the first user interaction. If phone OTP or email/password login fails, crashes,
@@ -20,20 +20,26 @@ success_criteria:
 
 stories:
   - id: e14-s1
+    status: complete
     title: "Verify Phone OTP flow handles valid and invalid input correctly"
+    notes: "Firebase PhoneAuthProvider with correct OTP flow. Wrong OTP shows user-friendly error. retryCount tracks attempts and blocks after threshold. Network-off handled via isOnline flag from NetworkMonitor."
     acceptance:
       - "Enter valid phone → receive OTP → enter correct OTP → login succeeds"
       - "Wrong OTP → error message shown, retry without re-requesting SMS"
 
   - id: e14-s2
+    status: complete
     title: "Verify Email/Password authentication correctness"
+    notes: "Email validation, password requirements checked. Friendly error messages replace raw Firebase errors. Network-off shows retry button via isOnline check."
     acceptance:
       - "Valid credentials → authenticated immediately"
       - "Invalid email/password → friendly error (not Firebase raw error)"
       - "Network off during auth → retry button or clear error message"
 
   - id: e14-s3
+    status: complete
     title: "Verify session persistence after login"
+    notes: "SecureSharedPreferences encrypt auth tokens + user_id. FirebaseAuth keeps session across process death. AuthScreen.onAuthSuccess triggers complete app restart with fresh ViewModelFactory — no stale state."
     acceptance:
       - "Successful login persists session — app relaunch doesn't log user out"
       - "User data loaded from local DB on startup if available, no forced re-auth"

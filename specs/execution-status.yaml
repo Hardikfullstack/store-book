@@ -1,12 +1,12 @@
 # Execution Status — StoreBook
-last_updated: "2026-07-13"
+last_updated: "2026-07-15 (session continued)"
 
 active_flow: build
 phase: "Phase 4 - Build (implementation)"
 
-current_epic: e04
+current_epic: e27
 current_story: null
-current_task: "Epic story implementation"
+current_task: "Server-side search pagination + date range filters (e27-s1/s2 remaining)"
 
 epics_complete: [rp-a0, e01, e02, e03, e04, e20]
 
@@ -22,7 +22,7 @@ completion:
     impact_analysis: "specs/tech-architecture/IMPACT_LATEST.md"
     refactor_plan: "specs/tech-architecture/REFACTOR_LATEST.md"
   sqldelight_hard_req_marked: "complete"
-  code_changes: rp_a0_complete_e01_all_complete_e02_s2_complete_e03_all_complete_e04_all_complete
+  code_changes: rp_a0_complete_e01_all_complete_e02_s2_complete_e03_all_complete_e04_all_complete_e10_s4_review_gating_added_e11_error_stateflows_added_e13_verified_e15_expiry_worker_verified_e16_purchase_verified_e27_getsalessearch_added
 
 hard_requirements:
   - name: SQLDelight for all local DB access

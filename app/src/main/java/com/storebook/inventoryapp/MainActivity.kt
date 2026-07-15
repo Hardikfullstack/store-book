@@ -57,6 +57,9 @@ class MainActivity : AppCompatActivity() {
         var keepSplash = true
         splashScreen.setKeepOnScreenCondition { keepSplash }
         super.onCreate(savedInstanceState)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode = android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
         val languageManager = LanguageManager(this)
         lifecycleScope.launch {
             val savedLang =

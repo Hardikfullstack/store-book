@@ -36,6 +36,10 @@ class InventoryViewModel(
 
     var userRole: String by mutableStateOf(prefs.getString("user_role", "owner") ?: "owner")
     private var _lastRestockSupplierName by mutableStateOf(prefs.getString("last_restock_supplier", "") ?: "")
+
+    // E11-S5: Error StateFlow for per-VM toast/Snackbar error feedback
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
     var lastRestockSupplierName: String
         get() = _lastRestockSupplierName
         set(value) {
@@ -166,6 +170,8 @@ class InventoryViewModel(
                 photoPath = item.photoPath, hsnCode = item.hsnCode, taxRate = item.taxRate
             ) ?: return@launch
             triggerSync()
+            // e11-s2: Reactively refresh filtered items so new item appears immediately
+            loadFilteredItems()
             onResult(id)
         }
     }
@@ -206,9 +212,9 @@ class InventoryViewModel(
                 taxRate = taxRate
             )
             inventoryRepository.updateItem(
-                id = item.id, name = item.name, quantity = item.quantity, unit = item.unit, 
-                buyPrice = item.buyPrice, sellPrice = item.sellPrice, 
-                threshold = item.lowStockThreshold, category = item.category, 
+                id = item.id, name = item.name, quantity = item.quantity, unit = item.unit,
+                buyPrice = item.buyPrice, sellPrice = item.sellPrice,
+                threshold = item.lowStockThreshold, category = item.category,
                 photoPath = item.photoPath, hsnCode = item.hsnCode, taxRate = item.taxRate
             )
             loadFilteredItems()

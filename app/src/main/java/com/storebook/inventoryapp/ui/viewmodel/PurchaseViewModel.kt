@@ -28,6 +28,10 @@ class PurchaseViewModel(
     private val _allItems = MutableStateFlow<List<Item>>(emptyList())
     val allItems: StateFlow<List<Item>> = _allItems
 
+    // E11-S5: Error StateFlow for per-VM toast/Snackbar error feedback
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
     init {
         loadData()
     }

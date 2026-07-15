@@ -70,6 +70,10 @@ class DashboardViewModel(
     private val _uiSyncStatus = MutableStateFlow(UiSyncStatus.initial)
     val uiSyncStatus: StateFlow<UiSyncStatus> = _uiSyncStatus
 
+    // E11-S5: Error StateFlow for per-VM toast/Snackbar error feedback
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
     // ==========================================================================
     // E03-S3: Today's Snapshot — aggregate from sale_items price snapshots (accurate profit)
     // Uses sell_price/buy_price captured AT TIME OF SALE, not current item prices

@@ -59,6 +59,21 @@ class SalesViewModel(
     var businessGstin by mutableStateOf("") // from prefs if needed
     var isHapticFeedbackEnabled by mutableStateOf(true)
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
+    init {
+        loadAllData()
+    }
+
+    fun showError(message: String) {
+        _errorMessage.value = message
+    }
+
+    fun clearError() {
+        _errorMessage.value = null
+    }
+
     fun loadAllData(force: Boolean = true) {
         viewModelScope.launch {
             _allItems.value = inventoryRepository.getActiveItems().map { i ->

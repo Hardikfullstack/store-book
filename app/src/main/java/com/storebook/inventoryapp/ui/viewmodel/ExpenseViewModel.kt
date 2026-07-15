@@ -15,6 +15,10 @@ class ExpenseViewModel(
     private val _expensesList = MutableStateFlow<List<ExpenseEntry>>(emptyList())
     val expensesList: StateFlow<List<ExpenseEntry>> = _expensesList
 
+    // E11-S5: Error StateFlow for per-VM toast/Snackbar error feedback
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
     init {
         loadData()
     }

@@ -1,5 +1,6 @@
 @file:android.annotation.SuppressLint("LocalContextGetResourceValueCall")
 package com.storebook.inventoryapp.ui.screens.storebook
+import com.storebook.inventoryapp.utils.autoMarquee
 
 import android.content.Intent
 import android.util.Log
@@ -290,7 +291,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                 OutlinedTextField(
                     value = searchQ,
                     onValueChange = { searchQ = it },
-                    placeholder = { Text(stringResource(id = R.string.udh_search_hint)) },
+                    placeholder = { Text(stringResource(id = R.string.udh_search_hint), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.ui_element_desc)) },
                     trailingIcon = {
@@ -997,7 +998,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                         inputCustomerName = it
                                         nameError = false
                                     },
-                                    label = { Text(if (nameError) "Valid Name Required" else "Customer Name") },
+                                    label = { Text(if (nameError) "Valid Name Required" else "Customer Name", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                     isError = nameError,
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -1025,15 +1026,14 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                     inputAmount = it
                                     amountError = false
                                 },
-                                label = {
+                                label = { 
                                     Text(
-                                        if (amountError) {
+                                        text = if (amountError) {
                                             "Valid Amount Required"
                                         } else {
-                                            stringResource(
-                                                id = R.string.udh_amount_label,
-                                            )
+                                            stringResource(id = R.string.udh_amount_label)
                                         },
+                                        modifier = androidx.compose.ui.Modifier.autoMarquee()
                                     )
                                 },
                                 isError = amountError,
@@ -1054,7 +1054,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                             OutlinedTextField(
                                 value = inputNotes,
                                 onValueChange = { inputNotes = it },
-                                label = { Text(stringResource(id = R.string.udh_desc_note)) },
+                                label = { Text(stringResource(id = R.string.udh_desc_note), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                                 keyboardOptions = KeyboardOptions(
                                     imeAction = ImeAction.Done
                                 ),

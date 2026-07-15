@@ -1,4 +1,5 @@
 package com.storebook.inventoryapp.ui.navigation
+import com.storebook.inventoryapp.utils.autoMarquee
 
 import android.content.Context
 import androidx.compose.animation.core.Spring
@@ -59,6 +60,8 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -86,6 +89,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.storebook.inventoryapp.MainActivity
 import com.storebook.inventoryapp.R
+import com.storebook.inventoryapp.utils.toRupee
+import com.storebook.inventoryapp.ui.screens.storebook.formatQty
+import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.ui.screens.auth.AuthScreen
 import com.storebook.inventoryapp.ui.screens.storebook.DashboardScreen
 import com.storebook.inventoryapp.ui.screens.storebook.InventoryScreen
@@ -256,7 +262,7 @@ fun AppNavigation() {
                     androidx.compose.material3.OutlinedTextField(
                         value = quickExpenseAmount,
                         onValueChange = { quickExpenseAmount = it },
-                        label = { Text("Amount (₹)") },
+                        label = { Text("Amount (₹)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                         singleLine = true,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
@@ -267,7 +273,7 @@ fun AppNavigation() {
                     androidx.compose.material3.OutlinedTextField(
                         value = quickExpenseDesc,
                         onValueChange = { quickExpenseDesc = it },
-                        label = { Text("Description") },
+                        label = { Text("Description", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                         singleLine = true,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
@@ -312,7 +318,7 @@ fun AppNavigation() {
                                 salesViewModel.customerSuggestions.value
                                 quickSaleCustomerExpanded = it.isNotBlank()
                             },
-                            label = { Text("Customer Name (Optional)") },
+                            label = { Text("Customer Name (Optional)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                             singleLine = true,
                         )
                         com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
@@ -332,7 +338,7 @@ fun AppNavigation() {
                     androidx.compose.material3.OutlinedTextField(
                         value = quickSaleAmount,
                         onValueChange = { quickSaleAmount = it },
-                        label = { Text("Total Amount (₹)") },
+                        label = { Text("Total Amount (₹)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                         singleLine = true,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                     )
@@ -386,7 +392,7 @@ fun AppNavigation() {
                                 selectedRestockItemId = null
                                 quickRestockNameExpanded = it.isNotBlank()
                             },
-                            label = { Text("Item Name") },
+                            label = { Text("Item Name", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                             singleLine = true,
                         )
                         val filteredItems = allItems.filter { it.name.contains(quickRestockName, ignoreCase = true) }.take(5)
@@ -403,20 +409,27 @@ fun AppNavigation() {
                                 quickRestockNameExpanded = false
                             },
                             avatarColor = MaterialTheme.colorScheme.secondary,
-                            avatarTextColor = MaterialTheme.colorScheme.onSecondary
+                            avatarTextColor = MaterialTheme.colorScheme.onSecondary,
+                            additionalContent = { item ->
+                                Text(
+                                    text = "Stock: ${formatQty(item.quantity)} ${item.unit} · ${item.sellPrice.toRupee()}",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         )
                     }
                     androidx.compose.material3.OutlinedTextField(
                         value = quickRestockQty,
                         onValueChange = { quickRestockQty = it },
-                        label = { Text("Stock Quantity") },
+                        label = { Text("Stock Quantity", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                         singleLine = true,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                     )
                     androidx.compose.material3.OutlinedTextField(
                         value = quickRestockPrice,
                         onValueChange = { quickRestockPrice = it },
-                        label = { Text("Sale Price (₹)") },
+                        label = { Text("Sale Price (₹)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                         singleLine = true,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                     )
@@ -427,10 +440,11 @@ fun AppNavigation() {
                     val qty = quickRestockQty.toDoubleOrNull() ?: 0.0
                     val cost = quickRestockPrice.toDoubleOrNull() ?: 0.0
                     if (quickRestockName.isNotBlank() && cost > 0.0) {
-                        if (selectedRestockItemId != null) {
+                        val currentId = selectedRestockItemId
+                        if (currentId != null) {
                             scope.launch {
                                 inventoryViewModel.restockItem(
-                                    itemId = selectedRestockItemId!!,
+                                    itemId = currentId,
                                     quantityToAdd = qty,
                                     costPrice = cost,
                                     supplierName = null,
@@ -485,7 +499,7 @@ fun AppNavigation() {
                                 salesViewModel.customerSuggestions.value
                                 quickPartyNameExpanded = it.isNotBlank()
                             },
-                            label = { Text("Party Name") },
+                            label = { Text("Party Name", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                             singleLine = true,
                         )
                         com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
@@ -505,7 +519,7 @@ fun AppNavigation() {
                     androidx.compose.material3.OutlinedTextField(
                         value = quickPartyAmount,
                         onValueChange = { quickPartyAmount = it },
-                        label = { Text("Amount (₹)") },
+                        label = { Text("Amount (₹)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                         singleLine = true,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                     )
@@ -513,13 +527,13 @@ fun AppNavigation() {
                         androidx.compose.material3.FilterChip(
                             selected = quickPartyType == "CREDIT",
                             onClick = { quickPartyType = "CREDIT" },
-                            label = { Text("Given (Due)") }
+                            label = { Text("Given (Due)", modifier = androidx.compose.ui.Modifier.autoMarquee()) }
                         )
                         Spacer(Modifier.width(8.dp))
                         androidx.compose.material3.FilterChip(
                             selected = quickPartyType == "PAYMENT",
                             onClick = { quickPartyType = "PAYMENT" },
-                            label = { Text("Got (Advance)") }
+                            label = { Text("Got (Advance)", modifier = androidx.compose.ui.Modifier.autoMarquee()) }
                         )
                     }
                 }
@@ -542,6 +556,7 @@ fun AppNavigation() {
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
         floatingActionButton = {
             if (showBottomBar && currentRoute != "com.storebook.inventoryapp.ui.navigation.Routes.Inventory") {
                 SpeedDialFab(
@@ -872,14 +887,14 @@ private fun ModernBottomNavBar(
                         )
                     }
                 },
-                label = {
-                    Text(
+                label = { Text(
                         text = stringResource(id = tab.labelRes),
                         fontSize = 10.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         fontFamily = Poppins,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = androidx.compose.ui.Modifier.autoMarquee()
                     )
                 },
                 colors =

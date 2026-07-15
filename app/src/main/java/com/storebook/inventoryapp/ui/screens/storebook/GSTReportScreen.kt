@@ -1,4 +1,5 @@
 package com.storebook.inventoryapp.ui.screens.storebook
+import com.storebook.inventoryapp.utils.autoMarquee
 
 import com.storebook.inventoryapp.R
 
@@ -688,7 +689,7 @@ private fun TransactionItemRow(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     SuggestionChip(
                         onClick = {},
-                        label = { Text(subtitle, fontSize = 10.sp, maxLines = 1, softWrap = false) },
+                        label = { Text(subtitle, fontSize = 10.sp, maxLines = 1, softWrap = false, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                         colors = SuggestionChipDefaults.suggestionChipColors(
                             containerColor = if (isSale) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
                         ),
@@ -844,7 +845,7 @@ private fun DetailedBreakupRow(row: DetailedRowData) {
                     Spacer(Modifier.width(6.dp))
                     SuggestionChip(
                         onClick = {},
-                        label = { Text(row.type, fontSize = 9.sp, maxLines = 1, softWrap = false) },
+                        label = { Text(row.type, fontSize = 9.sp, maxLines = 1, softWrap = false, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
                         colors = SuggestionChipDefaults.suggestionChipColors(
                             containerColor = if (row.type == "Sale") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f),
                             labelColor = if (row.type == "Sale") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.secondary
