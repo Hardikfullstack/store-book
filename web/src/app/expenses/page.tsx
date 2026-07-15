@@ -9,7 +9,7 @@ export default async function ExpensesPage() {
   if (session.role === 'staff' || session.role === 'cashier') redirect('/');
 
   const expenses: any[] = [];
-  const isPremium = true;
+  const isPremium = session.isPremium;
 
   return (
     <ExpensesClient

@@ -59,17 +59,19 @@ class SyncWorker(
             // E01-S1: Only set PULLING if push completed (not partial failure)
             repo.setSyncStatus("PULLING")
             onProgress(40, "Pulling")
-            val pulled = pull(repo, conn, storeId, appCtx)
+            val (pulled, pullHadEntityFailures) = pull(repo, conn, storeId, appCtx)
 
             // E01-S1: Update SyncState ONLY after both phases succeed fully
             // Push count + Pull count are batch metrics for tracking
             val failedCount = repo.getPendingFailureCount() ?: 0L
+            // BUG-02 FIX + F1: Set status to FAILED when push failures OR pull entity failures exist
+            val hasFailures = failedCount > 0 || pullHadEntityFailures
             repo.updateSyncState(
                 lastFullSyncAt = System.currentTimeMillis(),
                 lastPushBatchCount = pushed,
                 lastPullBatchCount = pulled,
                 totalFailedMutations = failedCount,
-                status = if (failedCount > 0) "DONE_WITH_WARNINGS" else "DONE"
+                status = if (hasFailures) "FAILED" else "DONE"
             )
 
             onProgress(100, "Done")
@@ -278,7 +280,7 @@ class SyncWorker(
         /* - SaleItems, PurchaseItems: cascade from parent entity lookup                */
         /* ========================================================================== */
 
-        private suspend fun pull(r: SyncRepository, c: StorebookConnectorConnector, sid: String, ctx: Context): Int {
+        private suspend fun pull(r: SyncRepository, c: StorebookConnectorConnector, sid: String, ctx: Context): Pair<Int, Boolean> {
             val prefs = com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(ctx)
             val ls = prefs.getLong("last_sync_timestamp_$sid", 0L)
             var pulled = 0
@@ -287,7 +289,7 @@ class SyncWorker(
             // Items — LWW via updatedAt comparison
             try {
                 val items = c.syncItems.execute(sid, ls.toDouble()).data.items
-                for (i in items) if (r.shouldAcceptRemote(i.updatedAt.toLong(), i.id)) r.upsertItem(i.id.toLongOrNull() ?: 0L, i.name, i.quantity, i.unit, i.buyPrice, i.sellPrice, i.lowStockThreshold, i.category, i.photoPath ?: "", i.hsnCode ?: "", 0.0, if (i.isDeleted) 1L else 0L, i.id, i.updatedAt.toLong())
+                for (i in items) if (r.shouldAcceptRemote(i.updatedAt.toLong(), i.id)) r.upsertItemWithCloudId(i.name, i.quantity, i.unit, i.buyPrice, i.sellPrice, i.lowStockThreshold, i.category, i.photoPath ?: "", i.hsnCode ?: "", 0.0, if (i.isDeleted) 1L else 0L, i.id, i.updatedAt.toLong())
                 pulled += items.size
             } catch (e: Exception) {
                 android.util.Log.e("SW-Pull", "Items pull failed: ${e.message}", e)
@@ -297,7 +299,7 @@ class SyncWorker(
             // Sales — append-only; skip existing cloudId duplicates
             try {
                 val sales = c.syncSales.execute(sid, ls.toDouble()).data.sales
-                for (sa in sales) if (!r.saleExistsLocally(sa.id)) r.upsertSale(sa.id.toLongOrNull() ?: 0L, sa.timestamp.toLong(), sa.totalAmount, sa.discountAmount, sanitize(sa.customerName), "", "", "", "", sa.type, "", if (sa.isDeleted) 1L else 0L, sa.id, sa.updatedAt.toLong())
+                for (sa in sales) if (!r.saleExistsLocally(sa.id)) r.upsertSaleWithCloudId(sa.timestamp.toLong(), sa.totalAmount, sa.discountAmount, sanitize(sa.customerName), sa.customerGstin, sa.businessGstin, sa.customerAddress, sa.businessAddress, sa.type, sa.notes, if (sa.isDeleted) 1L else 0L, sa.id, sa.updatedAt.toLong())
                 pulled += sales.size
             } catch (e: Exception) {
                 android.util.Log.e("SW-Pull", "Sales pull failed: ${e.message}", e)
@@ -307,8 +309,26 @@ class SyncWorker(
             // SaleItems — cascade from resolved parentId keys
             try {
                 val sis = c.syncSaleItems.execute(sid, ls.toDouble()).data.saleItemDetails
-                for (si in sis) r.upsertSaleItem(si.id.toLongOrNull() ?: 0L, r.resolveSaleIdByCloudId(si.saleId) ?: 0L, r.resolveItemIdByCloudId(si.itemId) ?: 0L, sanitize(si.itemName), si.unit, si.quantity, si.sellPrice, si.buyPrice, if (si.isDeleted) 1L else 0L, si.id, si.updatedAt.toLong())
-                pulled += sis.size
+                var saleItemsPulled = 0
+                saleItemsLoop@ for (si in sis) {
+                    // BUG-03 FIX: Skip orphan records instead of inserting with FK=0
+                    val resolvedSaleId = r.resolveSaleIdByCloudId(si.saleId)
+                    if (resolvedSaleId == null) {
+                        android.util.Log.w("SW-Pull", "BUG-03: Skipping saleItem ${si.id}: parent sale ${si.saleId} not found locally")
+                        continue@saleItemsLoop
+                    }
+                    val resolvedItemId = r.resolveItemIdByCloudId(si.itemId)
+                    if (resolvedItemId == null) {
+                        android.util.Log.w("SW-Pull", "BUG-03: Skipping saleItem ${si.id}: item ${si.itemId} not found locally")
+                        continue@saleItemsLoop
+                    }
+                    r.upsertSaleItemWithCloudId(resolvedSaleId, resolvedItemId, sanitize(si.itemName), si.unit, si.quantity, si.sellPrice, si.buyPrice, if (si.isDeleted) 1L else 0L, si.id, si.updatedAt.toLong())
+                    saleItemsPulled++
+                }
+                pulled += saleItemsPulled
+                if (saleItemsPulled < sis.size) {
+                    android.util.Log.w("SW-Pull", "SaleItems: $saleItemsPulled/${sis.size} processed, ${sis.size - saleItemsPulled} skipped (orphan parents not yet synced)")
+                }
             } catch (e: Exception) {
                 android.util.Log.e("SW-Pull", "SaleItems pull failed: ${e.message}", e)
                 entityFailures["sale_items_pull"] = e.message ?: "unknown"
@@ -317,7 +337,7 @@ class SyncWorker(
             // Udhaars — always accept new records
             try {
                 val us = c.syncUdhaars.execute(sid, ls.toDouble()).data.udhaarEntries
-                for (u in us) r.upsertUdhaar(u.id.toLongOrNull() ?: 0L, sanitize(u.customerName), u.amount, u.type, u.timestamp.toLong(), u.notes?.let(::sanitize), if (u.isDeleted) 1L else 0L, u.id, u.updatedAt.toLong())
+                for (u in us) r.upsertUdhaarWithCloudId(sanitize(u.customerName), u.amount, u.type, u.timestamp.toLong(), u.notes?.let(::sanitize), if (u.isDeleted) 1L else 0L, u.id, u.updatedAt.toLong())
                 pulled += us.size
             } catch (e: Exception) {
                 android.util.Log.e("SW-Pull", "Udhaars pull failed: ${e.message}", e)
@@ -327,7 +347,7 @@ class SyncWorker(
             // Expenses — always accept
             try {
                 val es = c.syncExpenses.execute(sid, ls.toDouble()).data.expenseEntries
-                for (ex in es) r.upsertExpense(ex.id.toLongOrNull() ?: 0L, ex.type, sanitize(ex.description), ex.amount, ex.timestamp.toLong(), ex.supplierName?.let(::sanitize), ex.supplierPhone?.let(::sanitize), if (ex.isDeleted) 1L else 0L, ex.id, ex.updatedAt.toLong())
+                for (ex in es) r.upsertExpenseWithCloudId(ex.type, sanitize(ex.description), ex.amount, ex.timestamp.toLong(), ex.supplierName?.let(::sanitize), ex.supplierPhone?.let(::sanitize), if (ex.isDeleted) 1L else 0L, ex.id, ex.updatedAt.toLong())
                 pulled += es.size
             } catch (e: Exception) {
                 android.util.Log.e("SW-Pull", "Expenses pull failed: ${e.message}", e)
@@ -337,7 +357,7 @@ class SyncWorker(
             // Suppliers — LWW via updatedAt
             try {
                 val ss = c.syncSuppliers.execute(sid, ls.toDouble()).data.suppliers
-                for (su in ss) if (r.shouldAcceptRemote(su.updatedAt.toLong(), su.id)) r.upsertSupplier(su.id.toLongOrNull() ?: 0L, sanitize(su.name), su.phone?.let(::sanitize), su.gstin?.let(::sanitize), su.address?.let(::sanitize), if (su.isDeleted) 1L else 0L, su.id, su.updatedAt.toLong())
+                for (su in ss) if (r.shouldAcceptRemote(su.updatedAt.toLong(), su.id)) r.upsertSupplierWithCloudId(sanitize(su.name), su.phone?.let(::sanitize), su.gstin?.let(::sanitize), su.address?.let(::sanitize), if (su.isDeleted) 1L else 0L, su.id, su.updatedAt.toLong())
                 pulled += ss.size
             } catch (e: Exception) {
                 android.util.Log.e("SW-Pull", "Suppliers pull failed: ${e.message}", e)
@@ -347,8 +367,22 @@ class SyncWorker(
             // Purchases — LWW via updatedAt
             try {
                 val ps = c.syncPurchases.execute(sid, ls.toDouble()).data.purchases
-                for (pu in ps) if (r.shouldAcceptRemote(pu.updatedAt.toLong(), pu.id)) r.upsertPurchase(pu.id.toLongOrNull() ?: 0L, r.resolveSupplierIdByCloudId(pu.supplierId)?.toLong() ?: 0L, sanitize(pu.supplierName), pu.totalAmount, pu.taxAmount, pu.type, pu.timestamp.toLong(), pu.notes?.let(::sanitize), if (pu.isDeleted) 1L else 0L, pu.id, pu.updatedAt.toLong())
-                pulled += ps.size
+                var purchasesProcessed = 0
+                purchasesLoop@ for (pu in ps) {
+                    if (!r.shouldAcceptRemote(pu.updatedAt.toLong(), pu.id)) continue@purchasesLoop
+                    // BUG-03 FIX: Skip orphan records instead of inserting with FK=0
+                    val resolvedSupplierId = r.resolveSupplierIdByCloudId(pu.supplierId)?.toLong()
+                    if (resolvedSupplierId == null) {
+                        android.util.Log.w("SW-Pull", "BUG-03: Skipping purchase ${pu.id}: supplier ${pu.supplierId} not found locally")
+                        continue@purchasesLoop
+                    }
+                    r.upsertPurchaseWithCloudId(resolvedSupplierId, sanitize(pu.supplierName), pu.totalAmount, pu.taxAmount, pu.type, pu.timestamp.toLong(), pu.notes?.let(::sanitize), if (pu.isDeleted) 1L else 0L, pu.id, pu.updatedAt.toLong())
+                    purchasesProcessed++
+                }
+                pulled += purchasesProcessed
+                if (purchasesProcessed < ps.size) {
+                    android.util.Log.w("SW-Pull", "Purchases: $purchasesProcessed/${ps.size} processed, ${ps.size - purchasesProcessed} skipped")
+                }
             } catch (e: Exception) {
                 android.util.Log.e("SW-Pull", "Purchases pull failed: ${e.message}", e)
                 entityFailures["purchases_pull"] = e.message ?: "unknown"
@@ -357,8 +391,26 @@ class SyncWorker(
             // PurchaseItems — cascade from resolved parentId keys
             try {
                 val pis = c.syncPurchaseItems.execute(sid, ls.toDouble()).data.purchaseItemDetails
-                for (pi in pis) r.upsertPurchaseItem(pi.id.toLongOrNull() ?: 0L, r.resolvePurchaseIdByCloudId(pi.purchaseId)?.toLong() ?: 0L, r.resolveItemIdByCloudId(pi.itemId) ?: 0L, sanitize(pi.itemName), pi.quantity, pi.unit, pi.buyPrice, if (pi.isDeleted) 1L else 0L, pi.id, pi.updatedAt.toLong())
-                pulled += pis.size
+                var purchaseItemsPulled = 0
+                purchaseItemsLoop@ for (pi in pis) {
+                    // BUG-03 FIX: Skip orphan records instead of inserting with FK=0
+                    val resolvedPurchaseId = r.resolvePurchaseIdByCloudId(pi.purchaseId)?.toLong()
+                    if (resolvedPurchaseId == null) {
+                        android.util.Log.w("SW-Pull", "BUG-03: Skipping purchaseItem ${pi.id}: parent purchase ${pi.purchaseId} not found")
+                        continue@purchaseItemsLoop
+                    }
+                    val resolvedItemId = r.resolveItemIdByCloudId(pi.itemId)
+                    if (resolvedItemId == null) {
+                        android.util.Log.w("SW-Pull", "BUG-03: Skipping purchaseItem ${pi.id}: item ${pi.itemId} not found")
+                        continue@purchaseItemsLoop
+                    }
+                    r.upsertPurchaseItemWithCloudId(resolvedPurchaseId, resolvedItemId, sanitize(pi.itemName), pi.quantity, pi.unit, pi.buyPrice, if (pi.isDeleted) 1L else 0L, pi.id, pi.updatedAt.toLong())
+                    purchaseItemsPulled++
+                }
+                pulled += purchaseItemsPulled
+                if (purchaseItemsPulled < pis.size) {
+                    android.util.Log.w("SW-Pull", "PurchaseItems: $purchaseItemsPulled/${pis.size} processed, ${pis.size - purchaseItemsPulled} skipped")
+                }
             } catch (e: Exception) {
                 android.util.Log.e("SW-Pull", "PurchaseItems pull failed: ${e.message}", e)
                 entityFailures["purchase_items_pull"] = e.message ?: "unknown"
@@ -374,7 +426,8 @@ class SyncWorker(
             } else {
                 android.util.Log.d("SW", "E01-S3 pull complete: $pulled entities processed")
             }
-            return pulled
+            // Return (countPull, hadEntityFailures) so doWork can drive FAILED status
+            return Pair(pulled, entityFailures.isNotEmpty())
         }
     }
 }

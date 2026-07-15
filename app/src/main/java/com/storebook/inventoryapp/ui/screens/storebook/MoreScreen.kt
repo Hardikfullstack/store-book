@@ -41,6 +41,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.filled.Star
@@ -160,6 +161,9 @@ fun MoreScreen(
         var showUpgradeDialog by remember { mutableStateOf(false) }
         var showClearDataDialog by remember { mutableStateOf(false) }
         var showLogoutConfirmation by remember { mutableStateOf(false) }
+        var isSyncing by remember { mutableStateOf(false) }
+        var syncProgress by remember { mutableStateOf(0) }
+        var syncMessage by remember { mutableStateOf("Initializing sync...") }
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         val themeManager = com.storebook.inventoryapp.ui.theme.appThemeManager
 
@@ -1417,14 +1421,20 @@ fun MoreScreen(
                                                         val storeName = storeNames[sId] ?: viewModel.getStoreName(sId)
                                                         Card(
                                                             modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Action") {
-                                                                viewModel.switchStore(sId)
                                                                 showSheet = false
-                                                                android.widget.Toast.makeText(context, context.getString(R.string.toast_switched_store, storeName), android.widget.Toast.LENGTH_SHORT).show()
-                                                                (context as? androidx.activity.ComponentActivity)?.viewModelStore?.clear()
-                                                                val intent = android.content.Intent(context, com.storebook.inventoryapp.MainActivity::class.java)
-                                                                intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                                                context.startActivity(intent)
-                                                                (context as? android.app.Activity)?.finish()
+                                                                isSyncing = true
+                                                                syncMessage = "Switching to $storeName..."
+                                                                viewModel.switchStore(sId, onProgress = { progress, msg ->
+                                                                    syncProgress = progress
+                                                                    syncMessage = msg
+                                                                }, onComplete = {
+                                                                    android.widget.Toast.makeText(context, context.getString(R.string.toast_switched_store, storeName), android.widget.Toast.LENGTH_SHORT).show()
+                                                                    (context as? androidx.activity.ComponentActivity)?.viewModelStore?.clear()
+                                                                    val intent = android.content.Intent(context, com.storebook.inventoryapp.MainActivity::class.java)
+                                                                    intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                                                    context.startActivity(intent)
+                                                                    (context as? android.app.Activity)?.finish()
+                                                                })
                                                             },
                                                             colors = CardDefaults.cardColors(containerColor = if (sId == viewModel.activeStoreId) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant),
                                                             shape = RoundedCornerShape(12.dp)
@@ -1448,18 +1458,24 @@ fun MoreScreen(
                                                                 if (!viewModel.isPremiumUser && viewModel.userStores.size >= 2) {
                                                                     showUpgradeDialog = true
                                                                 } else {
-                                                                    val newStoreId = viewModel.createLocalStore(newStoreNameInput.trim())
                                                                     showSheet = false
-                                                                    android.widget.Toast.makeText(
-                                                                            context,
-                                                                            context.getString(R.string.toast_switched_store, newStoreNameInput.trim()),
-                                                                            android.widget.Toast.LENGTH_SHORT,
-                                                                    ).show()
-                                                                    (context as? androidx.activity.ComponentActivity)?.viewModelStore?.clear()
-                                                                    val intent = android.content.Intent(context, com.storebook.inventoryapp.MainActivity::class.java)
-                                                                    intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                                                    context.startActivity(intent)
-                                                                    (context as? android.app.Activity)?.finish()
+                                                                    isSyncing = true
+                                                                    syncMessage = "Creating ${newStoreNameInput.trim()}..."
+                                                                    viewModel.createLocalStore(newStoreNameInput.trim(), onProgress = { progress, msg ->
+                                                                        syncProgress = progress
+                                                                        syncMessage = msg
+                                                                    }, onComplete = {
+                                                                        android.widget.Toast.makeText(
+                                                                                context,
+                                                                                context.getString(R.string.toast_switched_store, newStoreNameInput.trim()),
+                                                                                android.widget.Toast.LENGTH_SHORT,
+                                                                        ).show()
+                                                                        (context as? androidx.activity.ComponentActivity)?.viewModelStore?.clear()
+                                                                        val intent = android.content.Intent(context, com.storebook.inventoryapp.MainActivity::class.java)
+                                                                        intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                                                        context.startActivity(intent)
+                                                                        (context as? android.app.Activity)?.finish()
+                                                                    })
                                                                 }
                                                             }
                                                         },
@@ -1542,6 +1558,72 @@ fun MoreScreen(
                                 }
                         }
                 }
+        }
+
+        // Full Screen Sync Progress Overlay
+        if (isSyncing) {
+            androidx.compose.ui.window.Dialog(
+                onDismissRequest = { /* Prevent dismiss */ },
+                properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                androidx.compose.material3.Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Sync,
+                            contentDescription = "Syncing",
+                            modifier = Modifier.size(80.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        Text(
+                            text = syncMessage,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        val animatedProgress by androidx.compose.animation.core.animateFloatAsState(
+                            targetValue = syncProgress / 100f,
+                            animationSpec = androidx.compose.animation.core.tween(durationMillis = 500, easing = androidx.compose.animation.core.LinearOutSlowInEasing),
+                            label = "syncProgress"
+                        )
+
+                        androidx.compose.material3.LinearProgressIndicator(
+                            progress = { animatedProgress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.primaryContainer,
+                        )
+
+                        Spacer(modifier = Modifier.height(48.dp))
+
+                        val displayProgress = (animatedProgress * 100).toInt()
+
+                        Text(
+                            text = "$displayProgress%",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 48.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
         }
 }
 

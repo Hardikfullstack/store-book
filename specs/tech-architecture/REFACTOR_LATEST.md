@@ -1,7 +1,7 @@
 # Refactoring Plan — StoreBook Epic Rollout
 
 refactor_plan_doc: RP1.0
-last_updated: "2025-07-13"
+last_updated: "2026-07-13"
 epics_covered: [e01, e02, e03]
 goal: Extract technical debt blockers and structural improvements into actionable refactor tickets with clear before/after shapes
 

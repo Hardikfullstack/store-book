@@ -115,44 +115,68 @@ class SalesViewModel(
 
     private var isCheckoutProcessing = false
 
+    // BUG-01 FIX: Atomic checkout — all DB writes in ONE transaction; on failure entire block rolls back.
     fun checkout(paymentMode: String, type: String, onResult: (Long, Double) -> Unit) {
         if (isCheckoutProcessing || cartItems.isEmpty()) return
         isCheckoutProcessing = true
         viewModelScope.launch {
             val total = cartItems.sumOf { it.item.sellPrice * it.quantity } - cartDiscount
-            val saleId = salesRepository.insertSale(
-                totalAmount = total,
-                discountAmount = cartDiscount,
-                customerName = cartCustomerName.ifBlank { "Cash / Anonymous" },
-                customerGstin = cartCustomerGstin,
-                businessGstin = "",
-                customerAddress = cartCustomerAddress,
-                businessAddress = "",
-                type = type,
-                notes = ""
-            )
-            cartItems.forEach { cartItem ->
-                salesRepository.insertSaleItem(saleId, cartItem.item.id, cartItem.item.name, cartItem.item.unit, cartItem.quantity, cartItem.item.buyPrice, cartItem.item.sellPrice)
-                inventoryRepository.updateItemStock(cartItem.item.id, -cartItem.quantity)
-            }
-
-            lastSaleId = saleId
-            lastSaleTime = System.currentTimeMillis()
-            
-            // if Udhaar, log entry
-            if (paymentMode == "Udhaar" && type == "SALE") {
-                udhaarRepository.insertUdhaar(
-                    customerName = cartCustomerName.trim(),
-                    amount = total,
-                    type = "CREDIT",
-                    notes = "Credit Sale #$saleId"
+            // Prepare data for atomic call
+            val cartItemsData = cartItems.map { ci ->
+                mapOf<String, Any>(
+                    "itemId" to ci.item.id,
+                    "itemName" to ci.item.name,
+                    "unit" to ci.item.unit,
+                    "quantity" to ci.quantity,
+                    "buyPrice" to ci.item.buyPrice,
+                    "sellPrice" to ci.item.sellPrice
                 )
             }
-            
-            clearCart()
-            triggerSync()
-            isCheckoutProcessing = false
-            onResult(saleId, total)
+            try {
+                // BUG-01: All-or-nothing atomic insert + deduce inside a single database.transaction{}
+                val saleId = salesRepository.atomicCheckout(
+                    cartItemsData = cartItemsData,
+                    totalAmount = total,
+                    discountAmount = cartDiscount,
+                    customerName = cartCustomerName.ifBlank { "Cash / Anonymous" },
+                    type = type
+                )
+
+                if (saleId > 0) {
+                    lastSaleId = saleId
+                    lastSaleTime = System.currentTimeMillis()
+
+                    // if Udhaar, log entry (separate from atomic sale so it doesn't block rollbacks)
+                    if (paymentMode == "Udhaar" && type == "SALE") {
+                        udhaarRepository.insertUdhaar(
+                            customerName = cartCustomerName.trim(),
+                            amount = total,
+                            type = "CREDIT",
+                            notes = "Credit Sale #$saleId"
+                        )
+                    }
+
+                    clearCart()
+                    triggerSync()
+                    isCheckoutProcessing = false
+                    onResult(saleId, total)
+                } else {
+                    android.util.Log.e("SalesVM", "BUG-01: atomicCheckout returned -1 (roll-back)")
+                    isCheckoutProcessing = false
+                    onResult(-1, 0.0)
+                    // Keep cart intact — user can fix/adjust and retry
+                }
+            } catch (ise: com.storebook.inventoryapp.shared.domain.repository.InventoryRepository.InsufficientStockException) {
+                android.util.Log.w("SalesVM", "BUG-07 caught: ${ise.itemName} has ${ise.currentQuantity}, need ${Math.abs(ise.requestedChange)}")
+                isCheckoutProcessing = false
+                onResult(-1, 0.0)
+                // Keep cart intact; call onResult with -1 so UI can show stock toast
+            } catch (e: Exception) {
+                android.util.Log.e("SalesVM", "BUG-01: checkout failed, rolled back: ${e.message}")
+                isCheckoutProcessing = false
+                onResult(-1, 0.0)
+                // Keep cart intact
+            }
         }
     }
 

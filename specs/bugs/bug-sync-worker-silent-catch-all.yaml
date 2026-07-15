@@ -3,8 +3,8 @@
 id: bug-sync-worker-silent-catch-all
 title: "SyncWorker pull uses catch(_:Exception) on every entity — silent discard"
 severity: P0
-status: open
-reported: "2025-07-14"
+status: resolved
+reported: "2026-07-14"
 component: [SyncWorker]
 
 root_cause: |

@@ -4,7 +4,7 @@ id: bug-web-stale-dashboard-stats
 title: "Dashboard stats not invalidated after mutations — stale revenue numbers shown"
 severity: P1
 status: open
-reported: "2025-07-14"
+reported: "2026-07-14"
 component: [actions.ts, DashboardClient.tsx]
 
 root_cause: |

@@ -8,7 +8,7 @@ session:
     next_skill: implement          # Execute RP-A0 ✅ DONE → now E01/E02 epic stories
   rp_a0:
     status: complete
-    completed_at: "2025-07-13"
+    completed_at: "2026-07-13"
     summary: "SQLDelight migration done. All entities + FailedSyncQueue in .sq, SyncRepository typed DAOs, LegacySyncHelper deleted, SyncWorker rewritten."
 
 git:
@@ -22,5 +22,5 @@ defensive_categories:
   - timeout                       # Data Connect queries
 
 timestamps:
-  seeded: "2025-07-13T10:39:00Z"
+  seeded: "2026-07-13T10:39:00Z"
   story_start: null

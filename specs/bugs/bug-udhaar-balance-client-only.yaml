@@ -3,8 +3,8 @@
 id: bug-udhaar-balance-client-only
 title: "Udhaar balance computed locally — two devices show different outstanding amounts for same customer"
 severity: P1
-status: open
-reported: "2025-07-14"
+status: deferred
+reported: "2026-07-14"
 component: [UdhaarRepository, SyncWorker]
 
 root_cause: |

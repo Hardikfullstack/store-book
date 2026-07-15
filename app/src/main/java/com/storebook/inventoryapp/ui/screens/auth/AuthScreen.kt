@@ -893,15 +893,21 @@ private fun completeLoginForStore(
     kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
         try {
             val oldStoreId = prefs.getString("active_store_id", "default")
-            if (oldStoreId == "default" && storeId != "default") {
+            val newDbFile = context.getDatabasePath("storebook_$storeId.db")
+            
+            // If the user logs in and the target store DB already exists, delete it so we pull fresh cloud data (override local)
+            if (oldStoreId != "default" && newDbFile.exists()) {
+                context.deleteDatabase("storebook_$storeId.db")
+            } else if (oldStoreId == "default" && storeId != "default") {
                 val oldDbFile = context.getDatabasePath("storebook_default.db")
-                val newDbFile = context.getDatabasePath("storebook_$storeId.db")
                 if (oldDbFile.exists() && !newDbFile.exists()) {
                     oldDbFile.renameTo(newDbFile)
                     val oldWal = java.io.File(oldDbFile.path + "-wal")
                     if (oldWal.exists()) oldWal.renameTo(java.io.File(newDbFile.path + "-wal"))
                     val oldShm = java.io.File(oldDbFile.path + "-shm")
                     if (oldShm.exists()) oldShm.renameTo(java.io.File(newDbFile.path + "-shm"))
+                } else if (oldDbFile.exists() && newDbFile.exists()) {
+                    context.deleteDatabase("storebook_$storeId.db")
                 }
             }
 
@@ -959,6 +965,8 @@ private fun signInWithPhoneAuthCredential(
                             if (user != null) {
                                 val role = user.role
                                 val resolvedStores = if (!user.stores.isNullOrEmpty()) user.stores.filterNotNull().filter { it.isNotBlank() } else if (!user.storeId.isNullOrBlank()) listOf(user.storeId) else emptyList()
+                                // Single source of truth: User-level subscription
+                                // DataConnect query has limited fields; expiry is tracked via BillingClient in PlayBillingManager.
                                 val isPremium = user.subscriptionPlan == "pro" && user.subscriptionStatus == "active"
                                 
                                 val fetchedStores = mutableListOf<com.storebook.inventoryapp.dataconnect.GetStoreQuery.Data.Store>()

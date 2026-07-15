@@ -134,6 +134,69 @@ class SalesRepository(
         newSaleId
     }
 
+
+    // ==========================================================================
+    // BUG-01 FIX: Atomic checkout — sale header + line items + stock deduction
+    //             ALL inside a single database.transaction{...} so partial writes
+    //             are impossible on crash/OOM/constraint violation.
+    // ==========================================================================
+
+    /**
+     * Atomically inserts the sale header, all line items, and deducts inventory.
+     * Returns -1 if stock is insufficient for any item (BUG-07 enforcement).
+     * All or nothing: on ANY failure the entire block rolls back via SQLDelight transaction.
+     */
+    suspend fun atomicCheckout(
+        cartItemsData: List<Map<String, Any>>, // each map: itemId, itemName, unit, quantity, buyPrice, sellPrice
+        totalAmount: Double,
+        discountAmount: Double,
+        customerName: String,
+        type: String
+    ): Long = withContext(Dispatchers.IO) {
+        var newSaleId = -1L
+        database.transaction {
+            // Step 1: Insert sale header
+            val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+            queries.insertSale(
+                timestamp, totalAmount, discountAmount, customerName,
+                null, null, null, null, type, null, timestamp
+            )
+            newSaleId = queries.getLastInsertRowId().executeAsOne()
+
+            // Step 2: Insert all sale items + deduct stock atomically
+            for (ci in cartItemsData) {
+                val itemId = ci["itemId"] as Long
+                val itemName = ci["itemName"] as String
+                val unit = ci["unit"] as String
+                val quantity = ci["quantity"] as Double
+                val buyPrice = ci["buyPrice"] as Double
+                val sellPrice = ci["sellPrice"] as Double
+
+                // Check current stock BEFORE deducting (BUG-07 guard)
+                val currentItem = queries.getItemById(itemId).executeAsOneOrNull()
+                if (currentItem != null) {
+                    val newQty = currentItem.quantity - quantity
+                    if (newQty < 0) {
+                        throw com.storebook.inventoryapp.shared.domain.repository.InventoryRepository.InsufficientStockException(
+                            itemId = itemId,
+                            itemName = currentItem.name,
+                            currentQuantity = currentItem.quantity,
+                            requestedChange = -quantity
+                        )
+                    }
+                    val curTime = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                    queries.updateItemStock(newQty, curTime, itemId)
+                }
+
+                // Insert sale item
+                queries.insertSaleItem(
+                    newSaleId, itemId, itemName, unit, quantity, sellPrice, buyPrice, timestamp
+                )
+            }
+        }
+        newSaleId
+    }
+
     // ============================================================================
     // E03-S3: Daily/Monthly aggregate queries — profit from sale_items price snapshots
     // Uses sell_price/buy_price captured AT TIME OF SALE (not current item prices)

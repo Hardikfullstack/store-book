@@ -10,7 +10,7 @@ export default async function UdhaarPage() {
 
   const udhaar: any[] = [];
   const storeName = "Your Store";
-  const isPremium = true;
+  const isPremium = session.isPremium;
 
   return (
     <UdhaarClient

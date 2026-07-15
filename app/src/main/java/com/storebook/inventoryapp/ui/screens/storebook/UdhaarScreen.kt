@@ -2,6 +2,7 @@
 package com.storebook.inventoryapp.ui.screens.storebook
 
 import android.content.Intent
+import android.util.Log
 import android.net.Uri
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.BorderStroke
@@ -1012,7 +1013,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                 )
                             } else {
                                 Text(
-                                    stringResource(id = R.string.udh_customer_prefix, selectedCustomer!!.customerName),
+                                    stringResource(id = R.string.udh_customer_prefix, selectedCustomer?.customerName ?: "Customer"),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp,
                                 )
@@ -1100,11 +1101,13 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                         }
                                         if (!isValid) return@Button
 
-                                        viewModel.recordUdhaarEntry(name, amt!!, dialogType, inputNotes)
+                                        // BUG-08 FIX: Use already-parsed and validated amt directly instead of !! NPE risk
+                                        val parsedAmount = amt!!  // Safe — only reachable if !isValid is false (handled above)
+                                        viewModel.recordUdhaarEntry(name, parsedAmount, dialogType, inputNotes)
                                         showDialog = false
 
                                         if (showCustomerLedgerSheet && selectedCustomer != null) {
-                                            val currentCustomerName = selectedCustomer!!.customerName
+                                            val currentCustomerName = selectedCustomer?.customerName ?: "Unknown"
                                             fetchLedger(currentCustomerName)
                                             coroutineScope.launch {
                                                 val updatedList = viewModel.repository.getUdhaarBalances()

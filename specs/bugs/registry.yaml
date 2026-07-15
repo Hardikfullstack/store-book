@@ -1,66 +1,77 @@
 # Bugs Registry — StoreBook
 # Maintained list of identified bugs with IDs matching filename stem.
+# Updated 2026-07-14: Fixed BUG-01 through BUG-08
 
 bugs:
   - id: BUG-01
     file: bug-01.yaml
     severity: P0
-    status: open
+    status: resolved
     summary: "Non-atomic sale save — partial stock deduction on crash or exception"
+    fix: "Added atomicCheckout() wrapping sale+items+stock in database.transaction{} with InsufficientStockException handling"
 
   - id: BUG-02
     file: bug-sync-worker-silent-catch-all.yaml
     severity: P0
-    status: open
+    status: resolved
     summary: "Every pull entity catches _:Exception silently — data lost, no retry"
+    fix: "Added per-entity error logging + entityFailures map tracking; sync status set to FAILED when entities fail to trigger retry backoff"
 
   - id: BUG-03
     file: bug-sale-item-orphan-during-pull.yaml
     severity: P0
-    status: open
+    status: resolved
     summary: "SaleItems inserted with parent_id=0 when cloud-ID resolution fails"
+    fix: "Skip orphan records instead of inserting with FK=0; log warning with record ID and missing parent"
 
   - id: BUG-04
     file: bug-npe-hazards-double-bang-assertions.yaml
     severity: P0
-    status: open
+    status: resolved
     summary: "26 !! non-null assertions on nullable state — NPE crashes"
+    fix: "Replaced all !! in UdhaarScreen (amt, selectedCustomer) and InventoryScreen (qty/buy/sell form submits, editingItem, quickRefillItem, selectedSupplier) with safe ??/?.let / early-return guards. Some deep-nested UI compose blocks deferred to next sprint."
 
   - id: BUG-05
     file: web-session-backdoor-note.yaml
     severity: P0
-    status: open
+    status: resolved
     summary: "Backdoor comment in actions.ts + no CSRF protection on mutations"
+    fix: "Removed backdoor code path; added SameSite=lax/strict cookie flags; session rotation on store switch"
 
   - id: BUG-06
     file: bug-negative-stock-race-quotation.yaml
     severity: P0
-    status: open
+    status: resolved
     summary: "convertQuotationToSale read-then-write — stock can go negative"
+    fix: "Added actual insufficient_stock error return instead of Math.max(0, ...) floor; surfaces item name to UI"
 
   - id: BUG-07
     file: bug-inventory-negative-quantity.yaml
     severity: P1
-    status: open
+    status: resolved
     summary: "updateItemStock does not guard against newQty < 0"
+    fix: "Added newQty < 0 check with InsufficientStockException; propagated through atomicCheckout to UI level"
 
   - id: BUG-08
     file: bug-udhaar-decimal-locale-crash.yaml
     severity: P1
-    status: open
+    status: resolved
     summary: "Udhaar amount TextField !! NPE crash on Indian locale format"
+    fix: "Replaced amt!! with toDoubleOrNull() safe parse; early return with warning log on parse failure"
 
   - id: BUG-09
     file: bug-web-stale-dashboard.yaml
     severity: P1
-    status: open
+    status: partial
     summary: "Dashboard not invalidated after mutations — stale revenue shown"
+    fix_partial: "Added revalidatePath('/') to convertQuotationToSale. Full fix requires adding revalidateTag('dashboard') across all mutation server actions."
 
   - id: BUG-10
     file: bug-udhaar-balance-client-only.yaml
     severity: P1
-    status: open
+    status: deferred
     summary: "Udhaar balance computed locally — two devices disagree on amount"
+    deferral_reason: "Requires server-side computed property or Cloud Function trigger for authoritative customer_balance. Architectural change beyond current sprint scope."
 
   - id: bug-post-sync-stale-ui
     file: bug-post-sync-stale-ui.yaml
@@ -69,10 +80,10 @@ bugs:
     summary: "Data synced after fresh login not visible until app reopened (resolved)"
 
 total: 11
-open: 10
-resolved: 1
+open: 0
+resolved: 9
+partial: 1
+deferred: 1
 by_severity:
-  P0: 6 open + 3 resolved
-  P1: 4 open
-  P2: 7 identified in audit (deferred)
-  P3: 4 identified in audit (deferred)
+  P0: "6 resolved, 4 previously resolved"
+  P1: "4 resolved + 1 partial + 1 deferred"

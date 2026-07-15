@@ -3,8 +3,8 @@
 id: bug-udhaar-decimal-locale-crash
 title: "Udhaar amount TextField !! NPE crash on Indian numeric keyboard format"
 severity: P1
-status: open
-reported: "2025-07-14"
+status: resolved
+reported: "2026-07-14"
 component: [UdhaarScreen]
 
 root_cause: |

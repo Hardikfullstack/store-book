@@ -797,10 +797,14 @@ fun SalesScreen(
                         lastCartSnap = viewModel.cartItems.toList()
                         showCheckoutSheet = false
                         viewModel.checkout(paymentMode = viewModel.cartPaymentMode, type = "SALE") { saleId, total ->
-                            generatedSaleId = saleId
-                            generatedTotalAmount = total
-                            generatedSaleType = "SALE"
-                            showSuccessScreen = true
+                            if (saleId > 0) {
+                                generatedSaleId = saleId
+                                generatedTotalAmount = total
+                                generatedSaleType = "SALE"
+                                showSuccessScreen = true
+                            } else {
+                                android.widget.Toast.makeText(context, "Checkout failed — check stock and retry", android.widget.Toast.LENGTH_LONG).show()
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -847,10 +851,14 @@ fun SalesScreen(
                             lastCartSnap = viewModel.cartItems.toList()
                             showCheckoutSheet = false
                             viewModel.checkout(paymentMode = viewModel.cartPaymentMode, type = "ESTIMATE") { saleId, total ->
-                                generatedSaleId = saleId
-                                generatedTotalAmount = total
-                                generatedSaleType = "ESTIMATE"
-                                showSuccessScreen = true
+                                if (saleId > 0) {
+                                    generatedSaleId = saleId
+                                    generatedTotalAmount = total
+                                    generatedSaleType = "ESTIMATE"
+                                    showSuccessScreen = true
+                                } else {
+                                    android.widget.Toast.makeText(context, "Checkout failed — check stock and retry", android.widget.Toast.LENGTH_LONG).show()
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -1506,10 +1514,14 @@ fun SalesScreen(
                                     lastCartSnap = viewModel.cartItems.toList()
                                     val type = if (viewModel.cartPaymentMode == "Estimate") "ESTIMATE" else "SALE"
                                     viewModel.checkout(paymentMode = if(type == "ESTIMATE") "Cash" else viewModel.cartPaymentMode, type = type) { saleId, total ->
-                                        generatedSaleId = saleId
-                                        generatedTotalAmount = total
-                                        generatedSaleType = type
-                                        showSuccessScreen = true
+                                        if (saleId > 0) {
+                                            generatedSaleId = saleId
+                                            generatedTotalAmount = total
+                                            generatedSaleType = type
+                                            showSuccessScreen = true
+                                        } else {
+                                            android.widget.Toast.makeText(context, "Checkout failed — check stock and retry", android.widget.Toast.LENGTH_LONG).show()
+                                        }
                                     }
                                 }
                             },

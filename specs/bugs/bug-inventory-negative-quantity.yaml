@@ -3,8 +3,8 @@
 id: bug-inventory-negative-quantity
 title: "updateItemStock allows negative quantity — no minimum-zero guard"
 severity: P1
-status: open
-reported: "2025-07-14"
+status: resolved
+reported: "2026-07-14"
 component: [InventoryRepository]
 
 root_cause: |

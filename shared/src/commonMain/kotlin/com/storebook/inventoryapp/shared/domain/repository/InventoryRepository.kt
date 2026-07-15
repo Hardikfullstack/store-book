@@ -65,10 +65,27 @@ class InventoryRepository(
             val currentItem = queries.getItemById(id).executeAsOneOrNull()
             if (currentItem != null) {
                 val newQty = currentItem.quantity + addedQuantity
+                // BUG-07 FIX: Guard against negative stock — reject and throw
+                if (newQty < 0) {
+                    throw InsufficientStockException(
+                        itemId = id,
+                        itemName = currentItem.name,
+                        currentQuantity = currentItem.quantity,
+                        requestedChange = addedQuantity
+                    )
+                }
                 queries.updateItemStock(newQty, currentTime, id)
             }
         }
     }
+
+    /** BUG-07: Custom exception for insufficient stock — allows UI to show targeted toast + keep cart intact */
+    data class InsufficientStockException(
+        val itemId: Long,
+        val itemName: String,
+        val currentQuantity: Double,
+        val requestedChange: Double
+    ) : RuntimeException("Insufficient stock for '$itemName': have $currentQuantity, tried to change by $requestedChange")
 
     suspend fun softDeleteItem(id: Long) = withContext(Dispatchers.IO) {
         database.transaction {

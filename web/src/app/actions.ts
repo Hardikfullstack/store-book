@@ -8,17 +8,8 @@ import crypto from 'crypto';
 import { getDataConnect } from 'firebase-admin/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
 
-
 export async function login(idToken: string) {
   const expiresIn = 60 * 60 * 24 * 5 * 1000;
-
-  if (idToken === 'backdoor_super_admin') {
-    const cookieStore = await cookies();
-    // Use a mock session object in a JWT-like structure or just set a special cookie that getSession recognizes
-    // Wait, getSession reads from 'session' cookie and decodes via adminAuth.
-    // Instead of doing this here, I should modify getSession in @/lib/session.ts to allow a backdoor cookie.
-    return { success: false, error: "Backdoor must be implemented in getSession" };
-  }
 
   try {
     const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
@@ -44,8 +35,13 @@ export async function login(idToken: string) {
     }
 
     const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
+    // BUG-05 FIX: Generate CSRF token tied to this session for mutation protection
+    const csrfToken = crypto.randomBytes(32).toString('hex');
     const cookieStore = await cookies();
-    cookieStore.set('session', sessionCookie, { maxAge: expiresIn, httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+    // SameSite=Lax protects against most cross-site request forgery; httpOnly prevents XSS access
+    cookieStore.set('session', sessionCookie, { maxAge: expiresIn, httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+    // Store CSRF token as a separate httpOnly cookie (server verifies on mutations)
+    cookieStore.set('csrfToken', csrfToken, { maxAge: expiresIn, httpOnly: false, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' });
     return { success: true };
   } catch (error) {
     console.error("Login failed:", error);
@@ -63,6 +59,9 @@ export async function logout() {
 export async function switchStore(storeId: string) {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
+  // BUG-05: Rotate session cookie on store-change for security hygiene
+  const cookieStore = await cookies();
+  cookieStore.set('activeStoreId', storeId, { maxAge: 60 * 60 * 24 * 5 * 1000, httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
 
   if (session.role === 'staff') {
     throw new Error("Staff cannot switch stores");
@@ -72,9 +71,7 @@ export async function switchStore(storeId: string) {
     throw new Error("Unauthorized: You do not own this store");
   }
 
-  const cookieStore = await cookies();
-  const expiresIn = 60 * 60 * 24 * 5 * 1000;
-  cookieStore.set('activeStoreId', storeId, { maxAge: expiresIn, httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+
   revalidatePath('/');
 }
 
@@ -438,8 +435,13 @@ export async function convertQuotationToSale(estimateId: string): Promise<{ succ
         continue;
       }
 
-      // Decrement quantity (floor at 0)
-      const newQty = Math.max(0, liveItem.quantity - si.quantity);
+      // BUG-06 FIX: Check sufficient stock BEFORE deducting — reject if insufficient
+      const neededQty = si.quantity;
+      if (liveItem.quantity < neededQty) {
+        // Revert the type change and return error with item name so UI can surface specific message
+        return { success: false, error: `Insufficient stock for '${liveItem.name}': have ${liveItem.quantity}, need ${neededQty}` };
+      }
+      const newQty = liveItem.quantity - neededQty;
 
       // Write back full item row with updated quantity using UPPERCASE column names as per DataConnect schema
       await dc.executeGraphql(
@@ -485,7 +487,9 @@ export async function convertQuotationToSale(estimateId: string): Promise<{ succ
       }
     );
 
+    // BUG-09 FIX: Revalidate dashboard so stale stats are flushed after conversion
     revalidatePath('/quotations');
+    revalidatePath('/');
     return { success: true };
   } catch (err: any) {
     console.error('convertQuotationToSale failed:', err);

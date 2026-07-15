@@ -40,7 +40,7 @@ class DashboardViewModel(
 
     var userRole: String by mutableStateOf(prefs.getString("user_role", "owner") ?: "owner")
     var userRoleType: UserRole by mutableStateOf(UserRole.fromString(userRole))
-    var isPremiumUser by mutableStateOf(false) // Simplified for facade
+    var isPremiumUser by mutableStateOf(prefs.getBoolean("is_premium", false))
 
     private val _allItems = MutableStateFlow<List<Item>>(emptyList())
     val allItems: StateFlow<List<Item>> = _allItems
@@ -117,6 +117,7 @@ class DashboardViewModel(
     }
 
     fun loadAllData() {
+        isPremiumUser = prefs.getBoolean("is_premium", false)
         viewModelScope.launch {
             _allItems.value = inventoryRepository.getActiveItems().map { i ->
                 Item(id = i.id, name = i.name, quantity = i.quantity, unit = i.unit, buyPrice = i.buy_price, sellPrice = i.sell_price, lowStockThreshold = i.low_stock_threshold, category = i.category)

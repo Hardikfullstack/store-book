@@ -95,6 +95,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -521,7 +522,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                 OutlinedTextField(
                                         value =
                                                 if (selectedSupplier != null)
-                                                        selectedSupplier!!.name
+                                                        selectedSupplier?.name ?: "N/A"
                                                 else supplierSearchText,
                                         onValueChange = {
                                             selectedSupplier = null
@@ -2079,13 +2080,18 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                     )
                                             return@PrimaryButton
 
+                                    // BUG-04 FIX: Guard against null state on rotation / race condition
+                                    val safeQty = qty ?: run { Toast.makeText(context, "Quantity required", Toast.LENGTH_SHORT).show(); return@PrimaryButton }
+                                    val safeBuy = buy ?: run { Toast.makeText(context, "Buy price required", Toast.LENGTH_SHORT).show(); return@PrimaryButton }
+                                    val safeSell = sell ?: run { Toast.makeText(context, "Sell price required", Toast.LENGTH_SHORT).show(); return@PrimaryButton }
+
                                     if (editingItem == null) {
                                         viewModel.addItem(
                                                 name,
-                                                qty!!,
+                                                safeQty,
                                                 inputUnit,
-                                                buy!!,
-                                                sell!!,
+                                                safeBuy,
+                                                safeSell,
                                                 threshold,
                                                 inputCategory,
                                                 hsn,
@@ -2099,8 +2105,8 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                                                 itemId = newItemId,
                                                                 batchNumber = batchNum,
                                                                 expiryDate = expiryMs,
-                                                                quantity = qty!!,
-                                                                costPrice = buy!!,
+                                                                quantity = safeQty,
+                                                                costPrice = safeBuy,
                                                                 timestamp =
                                                                         System.currentTimeMillis(),
                                                                 notes = "Initial stock batch"
@@ -2110,12 +2116,12 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                         }
                                     } else {
                                         viewModel.updateItem(
-                                                editingItem!!.id,
+                                                editingItem?.id ?: run { Toast.makeText(context, "Invalid item", Toast.LENGTH_SHORT).show(); return@PrimaryButton },
                                                 name,
-                                                qty!!,
+                                                safeQty,
                                                 inputUnit,
-                                                buy!!,
-                                                sell!!,
+                                                safeBuy,
+                                                safeSell,
                                                 threshold,
                                                 inputCategory,
                                                 hsn,
@@ -2125,11 +2131,11 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                         if (batchNum != null || expiryMs != null) {
                                             viewModel.addItemBatch(
                                                     ItemBatch(
-                                                            itemId = editingItem!!.id,
+                                                            itemId = editingItem?.id ?: run { Toast.makeText(context, "Invalid item", Toast.LENGTH_SHORT).show(); return@PrimaryButton },
                                                             batchNumber = batchNum,
                                                             expiryDate = expiryMs,
                                                             quantity = qty,
-                                                            costPrice = buy!!,
+                                                            costPrice = safeBuy,
                                                             timestamp = System.currentTimeMillis(),
                                                             notes = "Batch logged on edit"
                                                     )

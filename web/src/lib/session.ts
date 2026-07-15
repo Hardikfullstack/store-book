@@ -13,7 +13,7 @@ export async function getSession() {
     
     // Attempt to fetch user by UID first
     let result = await dc.executeGraphql(
-      `query GetUser($id: String!) { user(id: $id) { id, phoneNumber, role, stores, storeId } }`,
+      `query GetUser($id: String!) { user(id: $id) { id, phoneNumber, role, stores, storeId, subscriptionPlan, subscriptionStatus } }`,
       { variables: { id: decodedClaims.uid } }
     );
     
@@ -22,7 +22,7 @@ export async function getSession() {
     // Fallback for legacy phone-number based IDs if not found
     if (!userDoc && decodedClaims.phone_number) {
       result = await dc.executeGraphql(
-        `query GetUser($id: String!) { user(id: $id) { id, phoneNumber, role, stores, storeId } }`,
+        `query GetUser($id: String!) { user(id: $id) { id, phoneNumber, role, stores, storeId, subscriptionPlan, subscriptionStatus } }`,
         { variables: { id: decodedClaims.phone_number } }
       );
       userDoc = (result.data as any).user;
@@ -63,13 +63,16 @@ export async function getSession() {
       ? userData.stores 
       : (userData?.storeId ? [userData.storeId] : []);
 
+    const isPremium = userDoc.subscriptionPlan === 'pro' && userDoc.subscriptionStatus === 'active';
+
     return { 
       uid: decodedClaims.uid, 
       phone: decodedClaims.phone_number,
       role: role, 
       storeId: activeStoreId,
       stores: resolvedStores,
-      docId: userDoc.id
+      docId: userDoc.id,
+      isPremium: isPremium
     };
   } catch (error) {
     console.error("Session verification failed:", error);

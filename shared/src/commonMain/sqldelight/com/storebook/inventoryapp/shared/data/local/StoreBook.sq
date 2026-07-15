@@ -707,28 +707,28 @@ ORDER BY d.date_key;
 -- (Firestore cloud IDs are non-numeric strings, not usable as SQLite INTEGER keys)
 -- ============================================================================
 getNextItemId:
-SELECT COALESCE((SELECT MAX(id) + 1 FROM items), 1);
+SELECT COALESCE((SELECT id FROM items WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM items), 1);
 
 getNextSaleId:
-SELECT COALESCE((SELECT MAX(id) + 1 FROM sales), 1);
+SELECT COALESCE((SELECT id FROM sales WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM sales), 1);
 
 getNextSaleItemId:
-SELECT COALESCE((SELECT MAX(id) + 1 FROM sale_items), 1);
+SELECT COALESCE((SELECT id FROM sale_items WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM sale_items), 1);
 
 getNextUdhaarId:
-SELECT COALESCE((SELECT MAX(id) + 1 FROM udhaar), 1);
+SELECT COALESCE((SELECT id FROM udhaar WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM udhaar), 1);
 
 getNextExpenseId:
-SELECT COALESCE((SELECT MAX(id) + 1 FROM expenses), 1);
+SELECT COALESCE((SELECT id FROM expenses WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM expenses), 1);
 
 getNextSupplierId:
-SELECT COALESCE((SELECT MAX(id) + 1 FROM suppliers), 1);
+SELECT COALESCE((SELECT id FROM suppliers WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM suppliers), 1);
 
 getNextPurchaseId:
-SELECT COALESCE((SELECT MAX(id) + 1 FROM purchases), 1);
+SELECT COALESCE((SELECT id FROM purchases WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM purchases), 1);
 
 getNextPurchaseItemId:
-SELECT COALESCE((SELECT MAX(id) + 1 FROM purchase_items), 1);
+SELECT COALESCE((SELECT id FROM purchase_items WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM purchase_items), 1);
 
 -- ============================================================================
 -- UPSERT REMOTE: Insert/update remote-pulled entities by cloud_id
@@ -739,7 +739,7 @@ upsertItemRemote:
 INSERT OR REPLACE INTO items(id, name, quantity, unit, buy_price, sell_price,
     low_stock_threshold, category, photo_path, hsn_code, tax_rate,
     is_deleted, cloud_id, is_synced, updated_at)
-VALUES(COALESCE((SELECT MAX(id) + 1 FROM items), 1), :name, :quantity, :unit, :buyPrice, :sellPrice,
+VALUES(COALESCE((SELECT id FROM items WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM items), 1), :name, :quantity, :unit, :buyPrice, :sellPrice,
     :lowStockThreshold, :category, :photoPath, :hsnCode, :taxRate,
     :isDeleted, :cloudId, 1, :updatedAt);
 
@@ -747,42 +747,42 @@ upsertSaleRemote:
 INSERT OR REPLACE INTO sales(id, timestamp, total_amount, discount_amount,
     customer_name, customer_gstin, business_gstin, customer_address,
     business_address, type, notes, is_deleted, cloud_id, is_synced, updated_at)
-VALUES(COALESCE((SELECT MAX(id) + 1 FROM sales), 1), :timestamp, :totalAmount, :discountAmount,
+VALUES(COALESCE((SELECT id FROM sales WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM sales), 1), :timestamp, :totalAmount, :discountAmount,
     :customerName, :customerGstin, :businessGstin, :customerAddress,
     :businessAddress, :type, :notes, :isDeleted, :cloudId, 1, :updatedAt);
 
 upsertSaleItemRemote:
 INSERT OR REPLACE INTO sale_items(id, sale_id, item_id, item_name, unit,
     quantity, sell_price, buy_price, is_deleted, cloud_id, is_synced, updated_at)
-VALUES(COALESCE((SELECT MAX(id) + 1 FROM sale_items), 1), :saleId, :itemId, :itemName, :unit, :quantity, :sellPrice, :buyPrice,
+VALUES(COALESCE((SELECT id FROM sale_items WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM sale_items), 1), :saleId, :itemId, :itemName, :unit, :quantity, :sellPrice, :buyPrice,
     :isDeleted, :cloudId, 1, :updatedAt);
 
 upsertUdhaarRemote:
 INSERT OR REPLACE INTO udhaar(id, customer_name, amount, type, timestamp, notes,
     is_deleted, cloud_id, is_synced, updated_at)
-VALUES(COALESCE((SELECT MAX(id) + 1 FROM udhaar), 1), :customerName, :amount, :type, :timestamp, :notes,
+VALUES(COALESCE((SELECT id FROM udhaar WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM udhaar), 1), :customerName, :amount, :type, :timestamp, :notes,
     :isDeleted, :cloudId, 1, :updatedAt);
 
 upsertExpenseRemote:
 INSERT OR REPLACE INTO expenses(id, type, description, amount, timestamp, supplier_name, supplier_phone,
     is_deleted, cloud_id, is_synced, updated_at)
-VALUES(COALESCE((SELECT MAX(id) + 1 FROM expenses), 1), :type, :description, :amount, :timestamp, :supplierName, :supplierPhone,
+VALUES(COALESCE((SELECT id FROM expenses WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM expenses), 1), :type, :description, :amount, :timestamp, :supplierName, :supplierPhone,
     :isDeleted, :cloudId, 1, :updatedAt);
 
 upsertSupplierRemote:
 INSERT OR REPLACE INTO suppliers(id, name, phone, gstin, address, is_deleted, cloud_id, is_synced, updated_at)
-VALUES(COALESCE((SELECT MAX(id) + 1 FROM suppliers), 1), :name, :phone, :gstin, :address, :isDeleted, :cloudId, 1, :updatedAt);
+VALUES(COALESCE((SELECT id FROM suppliers WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM suppliers), 1), :name, :phone, :gstin, :address, :isDeleted, :cloudId, 1, :updatedAt);
 
 upsertPurchaseRemote:
 INSERT OR REPLACE INTO purchases(id, supplier_id, supplier_name, total_amount, tax_amount,
     type, timestamp, notes, is_deleted, cloud_id, is_synced, updated_at)
-VALUES(COALESCE((SELECT MAX(id) + 1 FROM purchases), 1), :supplierId, :supplierName, :totalAmount, :taxAmount,
+VALUES(COALESCE((SELECT id FROM purchases WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM purchases), 1), :supplierId, :supplierName, :totalAmount, :taxAmount,
     :type, :timestamp, :notes, :isDeleted, :cloudId, 1, :updatedAt);
 
 upsertPurchaseItemRemote:
 INSERT OR REPLACE INTO purchase_items(id, purchase_id, item_id, item_name, quantity, unit, buy_price,
     is_deleted, cloud_id, is_synced, updated_at)
-VALUES(COALESCE((SELECT MAX(id) + 1 FROM purchase_items), 1), :purchaseId, :itemId, :itemName, :quantity, :unit, :buyPrice,
+VALUES(COALESCE((SELECT id FROM purchase_items WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM purchase_items), 1), :purchaseId, :itemId, :itemName, :quantity, :unit, :buyPrice,
     :isDeleted, :cloudId, 1, :updatedAt);
 
 

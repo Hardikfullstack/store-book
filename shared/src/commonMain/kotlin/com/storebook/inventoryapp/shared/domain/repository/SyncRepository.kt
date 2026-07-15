@@ -220,13 +220,14 @@ class SyncRepository(
 
     suspend fun upsertSaleWithCloudId(
         timestamp: Long, totalAmount: Double, discountAmount: Double,
-        customerName: String?, type: String, notes: String?,
+        customerName: String?, customerGstin: String?, businessGstin: String?,
+        customerAddress: String?, businessAddress: String?, type: String, notes: String?,
         isDeleted: Long, cloudId: String, updatedAt: Long,
     ) {
         database.transaction { queries.upsertSaleRemote(
             timestamp = timestamp, totalAmount = totalAmount, discountAmount = discountAmount,
-            customerName = customerName, customerGstin = null, businessGstin = null,
-            customerAddress = null, businessAddress = null, type = type, notes = notes,
+            customerName = customerName, customerGstin = customerGstin, businessGstin = businessGstin,
+            customerAddress = customerAddress, businessAddress = businessAddress, type = type, notes = notes,
             isDeleted = isDeleted, cloudId = cloudId, updatedAt = updatedAt,
         ) }
     }

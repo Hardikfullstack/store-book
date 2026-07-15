@@ -5,7 +5,7 @@ import QuotationsClient from './QuotationsClient';
 export default async function QuotationsPage() {
   const session = await getSession();
   if (!session) redirect('/login');
-  const isPremium = true;
+  const isPremium = session.isPremium;
 
   return (
     <div className="max-w-6xl mx-auto">

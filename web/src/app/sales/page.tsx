@@ -6,7 +6,7 @@ export default async function SalesPage() {
   if (!session) return <div>Please login</div>;
   
   const sales: any[] = [];
-  const isPremium = true;
+  const isPremium = session.isPremium;
 
   return (
     <SalesClient 

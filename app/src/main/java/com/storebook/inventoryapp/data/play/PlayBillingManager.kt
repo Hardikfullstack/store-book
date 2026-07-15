@@ -9,6 +9,9 @@ import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
+import com.google.firebase.auth.FirebaseAuth
+import com.storebook.inventoryapp.dataconnect.StorebookConnectorConnector
+import com.storebook.inventoryapp.utils.SecurityUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +40,13 @@ class PlayBillingManager(
                                     isProUnlocked = true,
                                     purchasedProductIds = ids,
                                 )
+
+                            // Persist to SharedPreferences so UI picks it up immediately without re-login
+                            if (!ids.isEmpty()) {
+                                val prefs = SecurityUtils.getEncryptedPrefs(appContext)
+                                prefs.edit().putBoolean("is_premium", true).apply()
+                                if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.d(TAG, "SharedPrefs updated: is_premium=true")
+                            }
                         }
                 }
             }.enablePendingPurchases()

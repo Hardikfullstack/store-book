@@ -1,7 +1,7 @@
 # Security Plan — StoreBook Epic Rollout
 
 security_plan_doc: SP1.0
-last_updated: "2025-07-13"
+last_updated: "2026-07-13"
 epics_covered: [e01, e02, e03, e04, e05]
 risk_model: OWASP Mobile + OWASP API Top 10
 

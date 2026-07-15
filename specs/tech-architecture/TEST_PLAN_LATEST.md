@@ -1,7 +1,7 @@
 # Test Plan — StoreBook Epic Rollout
 
 test_plan_doc: TP1.0
-last_updated: "2025-07-13"
+last_updated: "2026-07-13"
 epics_covered: [e01, e02, e03]
 test_framework_kotlin: JUnit 4 + Mockito + Turbine (Flow testing)
 test_framework_ts: Jest + React Testing Library + MSW (API mocking)

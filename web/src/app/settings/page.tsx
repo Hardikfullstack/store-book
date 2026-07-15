@@ -16,7 +16,7 @@ export default async function SettingsPage() {
 
   let storeData = null;
   if (session.storeId) {
-    storeData = { name: 'Migrated Store', is_premium: true, subscription_platform: 'web' };
+    storeData = { name: 'Migrated Store', is_premium: session.isPremium, subscription_platform: 'web' };
   }
 
   const userData = session;

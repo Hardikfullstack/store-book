@@ -6,7 +6,7 @@ export default async function ItemsPage() {
   if (!session) return <div>Please login</div>;
   
   const items: any[] = [];
-  const isPremium = true;
+  const isPremium = session.isPremium;
 
   return (
     <ItemsClient 
