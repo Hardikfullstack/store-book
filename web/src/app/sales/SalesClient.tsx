@@ -33,8 +33,13 @@ export default function SalesClient({
   const [dataVersion, setDataVersion] = useState(0);
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [minAmountFilter, setMinAmountFilter] = useState('');
+  const [maxAmountFilter, setMaxAmountFilter] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchResultsKeyRef = useRef('');
 
   const buildSortVars = (sortField: string | null, direction: 'asc' | 'desc') => {
@@ -63,11 +68,13 @@ export default function SalesClient({
     }
   };
 
+  // Fetch total count — skip when searching or filtering
   useEffect(() => {
-    if (!isPremium || !storeId || debouncedSearch) return;
-    const countKey = `count`;
+    if (!isPremium || !storeId || debouncedSearch || minAmountFilter || maxAmountFilter || startDateFilter || endDateFilter) return;
+    const countKey = `count-SALE`;
     const needsServerFetch = (fetchedPagesAtVersionRef.current.get(countKey) ?? -1) < dataVersion;
     const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
+
     const fetchTotal = async () => {
       try {
         const resp = await executeQuery(getSalesCountRef(dataConnect, { storeId, type: 'SALE' }), options);
@@ -78,7 +85,7 @@ export default function SalesClient({
       }
     };
     fetchTotal();
-  }, [isPremium, storeId, refreshTrigger, debouncedSearch]);
+  }, [isPremium, storeId, refreshTrigger, debouncedSearch, minAmountFilter, maxAmountFilter, startDateFilter, endDateFilter]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -93,16 +100,25 @@ export default function SalesClient({
       setIsLoading(true);
       try {
         const isSearching = debouncedSearch.length >= 3;
-        const currentSearchKey = `${debouncedSearch}-${sortField}-${sortDirection}`;
-        if (isSearching && searchResults.length > 0 && searchResultsKeyRef.current === currentSearchKey) { setIsLoading(false); return; }
+        const isFiltering = !!minAmountFilter || !!maxAmountFilter || !!startDateFilter || !!endDateFilter;
+        const needsFullFetch = isSearching || isFiltering;
+        const currentSearchKey = `${debouncedSearch}-${sortField}-${sortDirection}-${minAmountFilter}-${maxAmountFilter}-${startDateFilter}-${endDateFilter}`;
+
+        if (needsFullFetch && searchResults.length > 0 && searchResultsKeyRef.current === currentSearchKey) { setIsLoading(false); return; }
+
         const offset = (currentPage - 1) * pageSize;
-        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}-${debouncedSearch}`;
+        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}-${debouncedSearch}-${minAmountFilter}-${maxAmountFilter}-${startDateFilter}-${endDateFilter}`;
         const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
         const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
         const vars: any = { storeId, type: 'SALE', ...buildSortVars(sortField, sortDirection) };
-        if (isSearching) {
-          vars.searchTerm = debouncedSearch;
+        if (minAmountFilter) vars.minAmount = Number(minAmountFilter);
+        if (maxAmountFilter) vars.maxAmount = Number(maxAmountFilter);
+        if (startDateFilter) vars.startDate = new Date(startDateFilter).getTime();
+        if (endDateFilter) vars.endDate = new Date(endDateFilter).setHours(23, 59, 59, 999);
+
+        if (needsFullFetch) {
+          if (isSearching) vars.searchTerm = debouncedSearch;
         } else {
           vars.limit = pageSize;
           vars.offset = offset;
@@ -123,7 +139,7 @@ export default function SalesClient({
             total_amount: sale.totalAmount
           }));
 
-        if (isSearching) {
+        if (needsFullFetch) {
           searchResultsKeyRef.current = currentSearchKey;
           setSearchResults(updated);
           setTotalItems(updated.length);
@@ -145,9 +161,8 @@ export default function SalesClient({
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion, debouncedSearch]);
+  }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion, debouncedSearch, minAmountFilter, maxAmountFilter, startDateFilter, endDateFilter]);
   const [showModal, setShowModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
@@ -160,7 +175,8 @@ export default function SalesClient({
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    if (debouncedSearch && searchResults.length > 0) {
+    const isFiltering = !!minAmountFilter || !!maxAmountFilter || !!startDateFilter || !!endDateFilter;
+    if ((debouncedSearch || isFiltering) && searchResults.length > 0) {
       const start = (page - 1) * pageSize;
       setSales(searchResults.slice(start, start + pageSize));
     }
@@ -249,18 +265,58 @@ export default function SalesClient({
       </div>
 
       <div className="glass-card overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
-          <div className="relative w-64">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={16} className="text-gray-400" />
+        <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+          <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center w-full">
+            <div className="relative w-full md:w-64 flex-shrink-0">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={16} className="text-gray-400" />
+              </div>
+              <input aria-label="text"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(sanitizeInput(e.target.value))}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all dark:text-gray-100"
+                placeholder="Search sales by customer..."
+              />
             </div>
-            <input aria-label="text"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(sanitizeInput(e.target.value))}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all dark:text-gray-100"
-              placeholder="Search invoice or customer..."
-            />
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Date:</span>
+                <input
+                  type="date"
+                  value={startDateFilter}
+                  onChange={(e) => { setStartDateFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-[110px] px-1 py-1 bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0"
+                />
+                <span className="text-gray-300 dark:text-gray-600">-</span>
+                <input
+                  type="date"
+                  value={endDateFilter}
+                  onChange={(e) => { setEndDateFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-[110px] px-1 py-1 bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Total:</span>
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={minAmountFilter}
+                  onChange={(e) => { setMinAmountFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-16 px-1 py-1 bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0"
+                />
+                <span className="text-gray-300 dark:text-gray-600">-</span>
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={maxAmountFilter}
+                  onChange={(e) => { setMaxAmountFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-16 px-1 py-1 bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0"
+                />
+              </div>
+            </div>
           </div>
         </div>
 

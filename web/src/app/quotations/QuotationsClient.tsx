@@ -29,6 +29,10 @@ export default function QuotationsClient({
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [minAmountFilter, setMinAmountFilter] = useState('');
+  const [maxAmountFilter, setMaxAmountFilter] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
   // E04-S3: Status filter — 'draft' shows only ESTIMATEs, 'all' shows both
   const [statusFilter, setStatusFilter] = useState<'draft' | 'all'>('draft');
 
@@ -43,7 +47,8 @@ export default function QuotationsClient({
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    if (debouncedSearch && searchResults.length > 0) {
+    const isFiltering = !!minAmountFilter || !!maxAmountFilter || !!startDateFilter || !!endDateFilter;
+    if ((debouncedSearch || isFiltering) && searchResults.length > 0) {
       const start = (page - 1) * pageSize;
       setQuotations(searchResults.slice(start, start + pageSize));
     }
@@ -85,7 +90,7 @@ export default function QuotationsClient({
   };
 
   useEffect(() => {
-    if (!isPremium || !storeId || debouncedSearch) return;
+    if (!isPremium || !storeId || debouncedSearch || minAmountFilter || maxAmountFilter || startDateFilter || endDateFilter) return;
     const countKey = `count`;
     const needsServerFetch = (fetchedPagesAtVersionRef.current.get(countKey) ?? -1) < dataVersion;
     const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
@@ -95,7 +100,7 @@ export default function QuotationsClient({
         fetchedPagesAtVersionRef.current.set(countKey, dataVersion);
       })
       .catch(err => console.error('Count fetch error:', err));
-  }, [isPremium, storeId, refreshTrigger, debouncedSearch, statusFilter]);
+  }, [isPremium, storeId, refreshTrigger, debouncedSearch, statusFilter, minAmountFilter, maxAmountFilter, startDateFilter, endDateFilter]);
 
   // Fetch paginated quotations
   useEffect(() => {
@@ -105,16 +110,25 @@ export default function QuotationsClient({
       setIsLoading(true);
       try {
         const isSearching = debouncedSearch.length >= 3;
-        const currentSearchKey = `${debouncedSearch}-${sortField}-${sortDirection}`;
-        if (isSearching && searchResults.length > 0 && searchResultsKeyRef.current === currentSearchKey) { setIsLoading(false); return; }
+        const isFiltering = !!minAmountFilter || !!maxAmountFilter || !!startDateFilter || !!endDateFilter;
+        const needsFullFetch = isSearching || isFiltering;
+        const currentSearchKey = `${debouncedSearch}-${sortField}-${sortDirection}-${minAmountFilter}-${maxAmountFilter}-${startDateFilter}-${endDateFilter}`;
+
+        if (needsFullFetch && searchResults.length > 0 && searchResultsKeyRef.current === currentSearchKey) { setIsLoading(false); return; }
+
         const offset = (currentPage - 1) * pageSize;
-        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}-${debouncedSearch}`;
+        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}-${debouncedSearch}-${minAmountFilter}-${maxAmountFilter}-${startDateFilter}-${endDateFilter}`;
         const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
         const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
         const vars: any = { storeId, type: 'ESTIMATE', ...buildSortVars(sortField, sortDirection) };
-        if (isSearching) {
-          vars.searchTerm = debouncedSearch;
+        if (minAmountFilter) vars.minAmount = Number(minAmountFilter);
+        if (maxAmountFilter) vars.maxAmount = Number(maxAmountFilter);
+        if (startDateFilter) vars.startDate = new Date(startDateFilter).getTime();
+        if (endDateFilter) vars.endDate = new Date(endDateFilter).setHours(23, 59, 59, 999);
+
+        if (needsFullFetch) {
+          if (isSearching) vars.searchTerm = debouncedSearch;
         } else {
           vars.limit = pageSize;
           vars.offset = offset;
@@ -134,7 +148,7 @@ export default function QuotationsClient({
           total_amount: q.totalAmount
         }));
 
-        if (isSearching) {
+        if (needsFullFetch) {
           searchResultsKeyRef.current = currentSearchKey;
           setSearchResults(updated);
           setTotalItems(updated.length);
@@ -151,7 +165,7 @@ export default function QuotationsClient({
       }
     };
     fetchQuotations();
-  }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion, debouncedSearch]);
+  }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion, debouncedSearch, minAmountFilter, maxAmountFilter, startDateFilter, endDateFilter]);
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this quotation?')) {
@@ -254,27 +268,69 @@ export default function QuotationsClient({
               <button
                 key={tab}
                 onClick={() => { setStatusFilter(tab); setCurrentPage(1); }}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                  statusFilter === tab
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${statusFilter === tab
                     ? 'bg-white dark:bg-gray-700 shadow-sm text-purple-600 dark:text-purple-400'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 {tab === 'draft' ? 'Drafts' : 'All'}
               </button>
             ))}
           </div>
-          <div className="relative w-64">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={16} className="text-gray-400" />
+        </div>
+
+        <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+          <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center w-full">
+            <div className="relative w-full md:w-64 flex-shrink-0">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={16} className="text-gray-400" />
+              </div>
+              <input aria-label="text"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(sanitizeInput(e.target.value))}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all dark:text-gray-100"
+                placeholder="Search quotations by customer..."
+              />
             </div>
-            <input aria-label="text"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(sanitizeInput(e.target.value))}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all dark:text-gray-100"
-              placeholder="Search estimate or customer..."
-            />
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Date:</span>
+                <input
+                  type="date"
+                  value={startDateFilter}
+                  onChange={(e) => { setStartDateFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-[110px] px-1 py-1 bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0"
+                />
+                <span className="text-gray-300 dark:text-gray-600">-</span>
+                <input
+                  type="date"
+                  value={endDateFilter}
+                  onChange={(e) => { setEndDateFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-[110px] px-1 py-1 bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Total:</span>
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={minAmountFilter}
+                  onChange={(e) => { setMinAmountFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-16 px-1 py-1 bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0"
+                />
+                <span className="text-gray-300 dark:text-gray-600">-</span>
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={maxAmountFilter}
+                  onChange={(e) => { setMaxAmountFilter(e.target.value); setCurrentPage(1); }}
+                  className="w-16 px-1 py-1 bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
