@@ -416,3 +416,29 @@ mutation SyncItemBatch(
     }
   )
 }
+
+mutation SyncStockAdjustment(
+  $id: String!
+  $storeId: String!
+  $itemId: String!
+  $itemName: String!
+  $reason: String!
+  $delta: Float!
+  $timestamp: Float!
+  $isDeleted: Boolean!
+  $updatedAt: Float!
+) @auth(level: USER) {
+  stockAdjustment_upsert(
+    data: {
+      id: $id
+      storeId: $storeId
+      itemId: $itemId
+      itemName: $itemName
+      reason: $reason
+      delta: $delta
+      timestamp: $timestamp
+      isDeleted: $isDeleted
+      updatedAt: $updatedAt
+    }
+  )
+}

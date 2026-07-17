@@ -498,3 +498,45 @@ query GetStore($id: String!) @auth(level: USER) {
     isPremium
   }
 }
+
+query GetStockAdjustments(
+  $storeId: String!
+  $limit: Int
+  $offset: Int
+  $searchTerm: String
+  $reason: String
+  $startDate: Float
+  $endDate: Float
+) @auth(level: USER) {
+  stockAdjustments(
+    where: {
+      _and: [
+        { storeId: { eq: $storeId } }
+        { isDeleted: { eq: false } }
+        { reason: { eq: $reason } }
+        { timestamp: { ge: $startDate, le: $endDate } }
+        { itemName: { contains: $searchTerm } }
+      ]
+    }
+    limit: $limit
+    offset: $offset
+    orderBy: [{ timestamp: DESC }]
+  ) {
+    id
+    storeId
+    itemId
+    itemName
+    reason
+    delta
+    timestamp
+    isDeleted
+    updatedAt
+  }
+}
+
+query GetStockAdjustmentsCount($storeId: String!) @auth(level: USER) {
+  stockAdjustments(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    id
+  }
+}
+

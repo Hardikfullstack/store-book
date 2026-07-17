@@ -220,3 +220,15 @@ type PromoCode @table {
   expiresAt: Float @col(name: "expires_at")
   isActive: Boolean! @col(name: "is_active") @default(value: true)
 }
+
+type StockAdjustment @table {
+  id: String! @col(name: "id") @default(expr: "uuidV4()")
+  storeId: String! @col(name: "store_id")
+  itemId: String! @col(name: "item_id")
+  itemName: String! @col(name: "item_name")
+  reason: String!
+  delta: Float!
+  timestamp: Float!
+  isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
+  updatedAt: Float! @col(name: "updated_at")
+}
