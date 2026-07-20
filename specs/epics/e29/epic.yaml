@@ -1,7 +1,7 @@
 epic_id: e29
 title: "Inventory Auditing & Stock Adjustment Logs"
 priority: P1
-status: defined
+status: complete
 target_version: v1.7.0
 description: |
   Moving from direct, untracked stock overrides to a formal adjustment logging system.
