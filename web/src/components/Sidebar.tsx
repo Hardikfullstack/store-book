@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Users, Receipt, LogOut, Database, Store, Settings, BadgeCheck, LockKeyhole } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, Receipt, LogOut, Database, Store, Settings, BadgeCheck, LockKeyhole, History } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useState } from 'react';
 import CreateStoreModal from '@/components/CreateStoreModal';
@@ -16,6 +16,7 @@ const ROUTE_PERMISSIONS = [
   { name: 'Udhaar', path: '/udhaar', icon: Users, permKey: 'canViewUdhaar' },
   { name: 'Expenses', path: '/expenses', icon: Receipt, permKey: 'canViewExpenses' },
   { name: 'Reports', path: '/reports', icon: Database, permKey: 'canViewReports' },
+  { name: 'Stock Audit', path: '/audit', icon: History, permKey: 'canViewReports' },
   { name: 'Settings', path: '/settings', icon: Settings, permKey: 'canViewSettings' },
 ];
 

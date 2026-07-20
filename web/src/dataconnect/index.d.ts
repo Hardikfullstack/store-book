@@ -1327,3 +1327,29 @@ export function getStoreRef(dc: DataConnect, vars: GetStoreVariables): QueryRef<
 export function getStore(vars: GetStoreVariables): QueryPromise<GetStoreData, GetStoreVariables>;
 export function getStore(dc: DataConnect, vars: GetStoreVariables): QueryPromise<GetStoreData, GetStoreVariables>;
 
+interface GetStockAdjustmentsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetStockAdjustmentsVariables): QueryRef<GetStockAdjustmentsData, GetStockAdjustmentsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetStockAdjustmentsVariables): QueryRef<GetStockAdjustmentsData, GetStockAdjustmentsVariables>;
+  operationName: string;
+}
+export const getStockAdjustmentsRef: GetStockAdjustmentsRef;
+
+export function getStockAdjustments(vars: GetStockAdjustmentsVariables, options?: ExecuteQueryOptions): QueryPromise<GetStockAdjustmentsData, GetStockAdjustmentsVariables>;
+export function getStockAdjustments(dc: DataConnect, vars: GetStockAdjustmentsVariables, options?: ExecuteQueryOptions): QueryPromise<GetStockAdjustmentsData, GetStockAdjustmentsVariables>;
+
+interface GetStockAdjustmentsCountRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetStockAdjustmentsCountVariables): QueryRef<GetStockAdjustmentsCountData, GetStockAdjustmentsCountVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetStockAdjustmentsCountVariables): QueryRef<GetStockAdjustmentsCountData, GetStockAdjustmentsCountVariables>;
+  operationName: string;
+}
+export const getStockAdjustmentsCountRef: GetStockAdjustmentsCountRef;
+
+export function getStockAdjustmentsCount(vars: GetStockAdjustmentsCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetStockAdjustmentsCountData, GetStockAdjustmentsCountVariables>;
+export function getStockAdjustmentsCount(dc: DataConnect, vars: GetStockAdjustmentsCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetStockAdjustmentsCountData, GetStockAdjustmentsCountVariables>;
+
+
+

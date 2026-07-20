@@ -7,7 +7,7 @@ import ExportButtons from '@/app/ExportButtons';
 import { sanitizeInput } from '@/lib/sanitize';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
-import { getActiveItemsRef, syncItem, softDeleteItem, getItemsCountRef, OrderDirection } from '@/dataconnect';
+import { getActiveItemsRef, syncItem, softDeleteItem, getItemsCountRef, OrderDirection, syncStockAdjustment } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import RestockQuantity from '@/components/models/RestockQuantity';
 import { useDispatch, useSelector } from 'react-redux';
@@ -208,6 +208,8 @@ export default function ItemsClient({
   }, [isPremium, storeId, userRole, currentPage, refreshTrigger, dataVersion, debouncedSearch, minPriceFilter, maxPriceFilter]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [originalItem, setOriginalItem] = useState<any | null>(null);
+  const [adjustmentReason, setAdjustmentReason] = useState<string>('Count Correction');
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
@@ -266,6 +268,22 @@ export default function ItemsClient({
         updatedAt: Math.floor(Date.now() / 1000),
         ...payload,
       });
+
+      if (editingId && originalItem && formData.quantity !== originalItem.quantity) {
+        const delta = formData.quantity - originalItem.quantity;
+        await syncStockAdjustment(dataConnect, {
+          id: crypto.randomUUID(),
+          storeId: storeId as string,
+          itemId: id,
+          itemName: formData.name,
+          reason: adjustmentReason,
+          delta: delta,
+          timestamp: Date.now(),
+          isDeleted: false,
+          updatedAt: Date.now()
+        });
+      }
+
       setShowModal(false);
       if (editingId) {
         const updatedItem = {
@@ -318,6 +336,8 @@ export default function ItemsClient({
 
     setFormData(next);
     setEditingId(item.id);
+    setOriginalItem(item);
+    setAdjustmentReason('Count Correction');
 
     const shouldShow =
       !!next.hsnCode ||
@@ -344,6 +364,7 @@ export default function ItemsClient({
 
   const openCreate = () => {
     setEditingId(null);
+    setOriginalItem(null);
     setFormData(emptyFormData());
     setShowAdvanced(false);
     setShowModal(true);
@@ -566,6 +587,24 @@ export default function ItemsClient({
                   <input aria-label="number" required type="number" step="any" value={formData.low_stock_threshold} onChange={e => setFormData({ ...formData, low_stock_threshold: parseFloat(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
                 </div>
               </div>
+
+              {editingId && originalItem && formData.quantity !== originalItem.quantity && (
+                <div>
+                  <label className="block text-sm font-medium dark:text-gray-300">Reason for Stock Adjustment</label>
+                  <select
+                    required
+                    value={adjustmentReason}
+                    onChange={(e) => setAdjustmentReason(e.target.value)}
+                    className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
+                  >
+                    <option value="Count Correction">Count Correction</option>
+                    <option value="Damage">Damage</option>
+                    <option value="Expiry">Expiry</option>
+                    <option value="Loss">Loss</option>
+                    <option value="Restock">Restock</option>
+                  </select>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 {userRole !== 'staff' && (
                   <div>
@@ -708,6 +747,19 @@ export default function ItemsClient({
             isDeleted: false,
             updatedAt: updatedItem.updated_at
           });
+
+          await syncStockAdjustment(dataConnect, {
+            id: crypto.randomUUID(),
+            storeId: storeId as string,
+            itemId: reStockQuantity.id,
+            itemName: updatedItem.name,
+            reason: 'Restock',
+            delta: payload.quantity,
+            timestamp: Date.now(),
+            isDeleted: false,
+            updatedAt: Date.now()
+          });
+
           invalidateAllPages();
           setCurrentPage(1);
           setRefreshTrigger(prev => prev + 1);

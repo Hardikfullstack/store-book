@@ -542,3 +542,29 @@ export function getStore(dcOrVars, vars) {
   return executeQuery(getStoreRef(dcOrVars, vars));
 }
 
+export const getStockAdjustmentsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetStockAdjustments', inputVars);
+}
+getStockAdjustmentsRef.operationName = 'GetStockAdjustments';
+
+export function getStockAdjustments(dcOrVars, varsOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getStockAdjustmentsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const getStockAdjustmentsCountRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetStockAdjustmentsCount', inputVars);
+}
+getStockAdjustmentsCountRef.operationName = 'GetStockAdjustmentsCount';
+
+export function getStockAdjustmentsCount(dcOrVars, varsOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getStockAdjustmentsCountRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
