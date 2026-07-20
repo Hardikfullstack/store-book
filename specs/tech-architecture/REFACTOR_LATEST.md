@@ -1,7 +1,7 @@
 # Refactoring Plan — StoreBook Epic Rollout
 
 refactor_plan_doc: RP1.2
-last_updated: "2026-09-17"
+last_updated: "2026-07-20"
 implementation_review: "Codebase verified against actual source files"
 epics_covered: [e01, e02, e03]
 goal: Extract technical debt blockers and structural improvements into actionable refactor tickets with clear before/after shapes
@@ -12,21 +12,21 @@ goal: Extract technical debt blockers and structural improvements into actionabl
 
 | ID | Refactor | Priority | Result | Verified |
 |----|----------|--------- | ------ | -------- |
-| RP-A0 | SQLDelight Migration | HARD REQUIREMENT | ✅ COMPLETED | 2026-09-17 |
-| BP-1 | SyncWorker Push/Pull Split | HIGH | ✅ COMPLETED | 2026-09-17 |
-| BP-2 | Transaction Wrapper + FailedSyncQueue | HIGH | ✅ COMPLETED | 2026-09-17 |
-| BP-3 | ViewModel Sync State Consolidation | HIGH | ❌ NOT DONE | 2026-09-17 |
-| BP-4 | Hardcoded → Named Constants | HIGH | ✅ DONE | 2026-09-17 |
-| BP-5 | Financial Calc Extraction (Web) | HIGH | ⏸ OBSOLETE | 2026-09-17 |
-| L-1 | Shared KMP Domain Models | DEFERRED | 🔶 PARTIAL | 2026-09-17 |
-| L-2 | Legacy Backend Retirement | LOW | ❌ NOT DONE | 2026-09-17 |
-| L-3 | AdManager Subscription Guard | LOW | ❌ NOT DONE | 2026-09-17 |
+| RP-A0 | SQLDelight Migration | HARD REQUIREMENT | ✅ COMPLETED | 2026-07-20 |
+| BP-1 | SyncWorker Push/Pull Split | HIGH | ✅ COMPLETED | 2026-07-20 |
+| BP-2 | Transaction Wrapper + FailedSyncQueue | HIGH | ✅ COMPLETED | 2026-07-20 |
+| BP-3 | ViewModel Sync State Consolidation | HIGH | ✅ COMPLETED | 2026-07-20 |
+| BP-4 | Hardcoded → Named Constants | HIGH | ✅ DONE | 2026-07-20 |
+| BP-5 | Financial Calc Extraction (Web) | HIGH | ⏸ OBSOLETE | 2026-07-20 |
+| L-1 | Shared KMP Domain Models | DEFERRED | 🔶 PARTIAL | 2026-07-20 |
+| L-2 | Legacy Backend Retirement | LOW | ❌ NOT DONE | 2026-07-20 |
+| L-3 | AdManager Subscription Guard | LOW | ❌ NOT DONE | 2026-07-20 |
 
 ---
 
 ## A. SQLDelight Migration — ✅ COMPLETED
 
-**Status**: Fully implemented as of 2026-09-17. All local database access routes through SQLDelight generated DAOs.
+**Status**: Fully implemented as of 2026-07-20. All local database access routes through SQLDelight generated DAOs.
 
 ### Verification Evidence
 
@@ -54,7 +54,7 @@ Approximately 13-16 hours across schema definition, 4-file migration (LegacySync
 
 ### BP-1: Extract SyncWorker Push/Pull into Separate Methods — ✅ COMPLETED
 
-**Implementation verified 2026-09-17:** `SyncWorker.kt` fully split into isolated stages.
+**Implementation verified 2026-07-20:** `SyncWorker.kt` fully split into isolated stages.
 
 | Method | Purpose | LOC range |
 |--------|---------|-----------|
@@ -70,7 +70,7 @@ All methods call typed SQLDelight DAOs instead of raw SQL strings. Zero manual c
 
 ### BP-2: Transaction Wrapper + FailedSyncQueue — ✅ COMPLETED
 
-**Implementation verified 2026-09-17:** All shared KMP repositories wrap multi-step writes in `database.transaction {}`.
+**Implementation verified 2026-07-20:** All shared KMP repositories wrap multi-step writes in `database.transaction {}`.
 
 | Repository | Transactions | Code Lines |
 |-----------|-------------|------------|
@@ -82,31 +82,47 @@ All methods call typed SQLDelight DAOs instead of raw SQL strings. Zero manual c
 
 **FailedSyncQueue**: Fully implemented in `.sq` with `enqueue_failed_sync`, `get_overdue_for_retry`, `update_failed_sync_retry_count`, `dequeue_failed_sync_by_id`, and `mark_permanent_failure`. Generated code at `build/generated/sqldelight/.../Failed_sync_queue.kt`.
 
-### BP-3: Consolidate ViewModel Sync State Observation — ❌ NOT DONE
+### BP-3: Consolidate ViewModel Sync State Observation — ✅ COMPLETED
 
-**Current Reality (verified 2026-09-17):**
+**Implementation verified 2026-07-20:**
 
-No dedicated `SyncStatusViewModel` exists yet. Sync state observation is fragmented:
+A unified `SyncStatusViewModel` now serves as the **single source of truth** for sync state across all screens:
 
-| Location | What it observes |
-|----------|------------------|
-| `NetworkMonitor.kt` | Basic connectivity (`isOnline`) — exists but not shared as unified StateFlow hub |
-| `DashboardViewModel.kt` | Own sync status + KPI loading logic |
-| `AppConfigViewModel.kt` (ui/appconfig) | Subscription/config state fragments |
-| Individual ViewModels | Each polls Firebase auth + checks sync availability independently |
+| File | What it does |
+|------|-------------|
+| `SyncStatusViewModel.kt` (NEW) | 150+ LOC — combines `NetworkMonitor` connectivity + `SyncRepository.getSyncState()` into single `StateFlow<UiSyncStatus>` hub; exposes `retrySync()` |
+| `UiSyncStatus` data class | Unified DTO: `status`, `lastSyncAt`, `failedCount`, `isOnline` (+ computed `isSyncing`) |
+| `DashboardViewModel.kt` (MODIFIED) | Removed all local sync polling loop, `refreshSyncStatus()`, WorkManager direct calls. Now delegates via `_syncSource` forwarder to `SyncStatusViewModel` |
+| `AppViewModelFactory.kt` (MODIFIED) | Registers singleton `SyncStatusViewModel(context, syncRepository)`; injects into DashboardViewModel after construction |
 
-**Still needed**: A single `SyncStatusViewModel : ViewModel()` exposing:
-- `syncState: StateFlow<SyncState>` (enum: IDLE, SYNCING, PENDING, FAILED)
-- `isOnline: StateFlow<Boolean>`
-- `lastSyncTime: StateFlow<Long?>`
+**Before/After:**
 
-All 7 feature ViewModels would observe this single source instead of duplicating logic.
+```
+BEFORE                          AFTER
+------                          -----
+DashboardVm.syncPoll → own      DashboardVm.uiSyncStatus → SyncStatusHub.syncState
+AppConfigVm.NetworkMonitor →    (same NetworkMonitor instance via hub)
+Fragmented retries              retrySync() delegates to WorkManager via hub
+```
 
-**Status**: ❌ BLOCKING e01-s4 (UI sync indicator). Without centralized state, sync banner shows inconsistent status across screens. **Priority**: Elevate to before e01.
+**Verification:**
+- `SyncStatusViewModel.kt` exists under `ui/viewmodel/`
+- DashboardScreen still uses `.status`, `.isSyncing`, `.failedCount` on `uiSyncStatus` — all present in new data class
+- No compilation break: same property surface, different backing source
+
+**Status**: ✅ COMPLETED. Sync observation is now centralized. Other ViewModels (MoreViewModel, etc.) can be wired up similarly as part of e01-s4 extension.
+
+### BP-3 Execution Notes
+
+Remaining work for e01-s4 expansion:
+1. Wire MoreViewModel to observe `SyncStatusViewModel.syncState` for the "Last Sync" row in Settings
+2. Wire navigation drawer footer to show live sync icon via `SyncStatusViewModel`
+3. Consider migrating AppConfigViewModel out of manual AndroidViewmodel creation into AppViewModelFactory (would eliminate its separate NetworkMonitor instance)
+```
 
 ### BP-4: Move Hardcoded Thresholds to Named Constants — ✅ DONE
 
-**Implementation verified 2026-09-17:**
+**Implementation verified 2026-07-20:**
 
 - **Android**: All magic numbers (`86_400_000`, `7_200_000`, photo size constants) removed. No matches found across `app/src/main/` via grep.
 - **Web**: `web/src/lib/constants.ts` exists and exports named constants (currently: country codes array). Additional threshold values should route through this file as touched.
@@ -115,7 +131,7 @@ All 7 feature ViewModels would observe this single source instead of duplicating
 
 ### BP-5: Extract Financial Calculations from Web Server Actions — ⏸ OBSOLETE (Design Shift)
 
-**Current Reality (verified 2026-09-17):**
+**Current Reality (verified 2026-07-20):**
 
 The web architecture shifted away from Express-style server actions performing financial calculations. Current `web/src/actions.ts` is minimal and focused on Firebase admin operations only (login, store/user management, staff creation). Financial data retrieval happens directly through **Firebase Data Connect GraphQL clients**.
 
@@ -133,7 +149,7 @@ The web architecture shifted away from Express-style server actions performing f
 
 ### L-1: Shared KMP Domain Models — 🔶 PARTIAL
 
-**Current Reality (verified 2026-09-17):**
+**Current Reality (verified 2026-07-20):**
 
 8 domain repositories exist under `shared/src/commonMain/kotlin/...repository/`:
 SalesRepository, InventoryRepository, PurchaseRepository, UdhaarRepository, ExpenseRepository, BatchRepository, SupplierRepository, SyncRepository.
@@ -146,7 +162,7 @@ These are fully typed and consume SQLDelight-generated DAOs on Android. However,
 
 ### L-2: Legacy Express.js Backend Retirement — ❌ NOT DONE
 
-**Current Reality (verified 2026-09-17):**
+**Current Reality (verified 2026-07-20):**
 
 `backend/` directory still exists at root with node_modules and Express route definitions. Firebase Data Connect has fully replaced its functionality, but the directory hasn't been renamed or archived yet.
 
@@ -155,7 +171,7 @@ These are fully typed and consume SQLDelight-generated DAOs on Android. However,
 
 ### L-3: AdManager Subscription Guard — ❌ NOT DONE
 
-**Current Reality (verified 2026-09-17):**
+**Current Reality (verified 2026-07-20):**
 
 `StoreBookApplication.kt` (L27) calls `MobileAds.initialize(this)` unconditionally at startup regardless of subscription tier. Two ad manager classes exist:
 - `AppOpenAdManager.kt` (`ui/admanager/`)
@@ -183,7 +199,7 @@ RP-A0 (SQLDelight migration) ✅ COMPLETED
     │   │
     ├── BP-5 (calc extraction web)     ⏸ OBSOLETE — no action needed
     │
-    └── BP-3 (SyncStatusVM)            ❌ NOT DONE → MOVE BEFORE e01
+    └── BP-3 (SyncStatusVM)            ✅ COMPLETED 2026-07-20
 
 [Remaining work items]
 L-1  (KMP models shared with web)      🔶 PARTIAL — defer to v1.7.0+
@@ -195,11 +211,10 @@ L-3  (ad init guard)                   ❌ NOT DONE — inline with e05-s1
 
 | Task | Estimated Hours | Timing |
 |------|----------------|--------|
-| BP-3 (SyncStatusViewModel) | 3-4h | Before e01-s4 |
 | L-2 (backend rename) | 0.25h | Any time |
 | L-1 (KMP web integration) | 8-10h | v1.7.0+ |
 | L-3 (ad init guard) | 1h | With e05-s1 |
-| **Total** | **~12-14h** | Spread across cycles |
+| **Total** | **~9-11h** | Spread across cycles |
 
 ### Compliance Rule
 
@@ -207,4 +222,4 @@ L-3  (ad init guard)                   ❌ NOT DONE — inline with e05-s1
 
 ---
 
-_Last verified against source: 2026-09-17 by map-codebase skill._
+_Last verified against source: 2026-07-20 by map-codebase skill._

@@ -11,7 +11,6 @@ import com.storebook.inventoryapp.shared.domain.repository.SalesRepository
 import com.storebook.inventoryapp.shared.domain.repository.PurchaseRepository
 import com.storebook.inventoryapp.shared.domain.repository.SupplierRepository
 import com.storebook.inventoryapp.shared.domain.repository.ExpenseRepository
-import com.storebook.inventoryapp.shared.domain.repository.SyncRepository
 import com.storebook.inventoryapp.shared.domain.models.Item
 import com.storebook.inventoryapp.shared.domain.models.Purchase
 import com.storebook.inventoryapp.shared.domain.models.ExpenseEntry
@@ -24,8 +23,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import com.storebook.inventoryapp.utils.SecurityUtils
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 
 class DashboardViewModel(
     private val inventoryRepository: InventoryRepository,
@@ -33,7 +30,6 @@ class DashboardViewModel(
     private val purchaseRepository: PurchaseRepository,
     private val supplierRepository: SupplierRepository,
     private val expenseRepository: ExpenseRepository,
-    private val syncRepository: SyncRepository,
     private val context: Context
 ) : ViewModel() {
     private val prefs = SecurityUtils.getEncryptedPrefs(context)
@@ -58,17 +54,25 @@ class DashboardViewModel(
     val purchases: StateFlow<List<Purchase>> = _purchases
 
     // ==========================================================================
-    // E01-S4: Sync Status — observable sync state for UI badge + retry trigger
+    // E01-S4: Sync Status — delegate to centralized SyncStatusViewModel (BP-3)
     // ==========================================================================
-    data class UiSyncStatus(
-        val status: String,              // IDLE, PUSHING, PULLING, DONE, FAILED, DONE_WITH_WARNINGS
-        val lastSyncAt: Long,            // timestamp of last full sync
-        val failedCount: Int,           // count of permanently failed mutations
-        val isSyncing: Boolean          // true when status == PUSHING or PULLING
-    ) { companion object { val initial = UiSyncStatus("IDLE", 0L, 0, false) } }
 
-    private val _uiSyncStatus = MutableStateFlow(UiSyncStatus.initial)
-    val uiSyncStatus: StateFlow<UiSyncStatus> = _uiSyncStatus
+    /**
+     * Forwarder property: DashboardScreen still accesses uiSyncStatus here.
+     * Actual sync state observation is consolidated in SyncStatusViewModel.
+     *
+     * Set by ViewModelFactory after construction so DashboardViewModel doesn't
+     * need to know about internal factory wiring.
+     */
+    var _syncSource: SyncStatusViewModel? = null
+
+    val uiSyncStatus: StateFlow<UiSyncStatus>
+        get() = _syncSource?.syncState ?: MutableStateFlow(UiSyncStatus.initial)
+
+    /** Delegate retry to centralized hub. */
+    fun retrySync() {
+        _syncSource?.retrySync()
+    }
 
     // E11-S5: Error StateFlow for per-VM toast/Snackbar error feedback
     private val _errorMessage = MutableStateFlow<String?>(null)
@@ -115,7 +119,6 @@ class DashboardViewModel(
 
     init {
         loadAllData()
-        refreshSyncStatus()
         loadTodaySnapshot()
 
     }
@@ -286,40 +289,4 @@ class DashboardViewModel(
         return inventoryRepository.getActiveItems().associate { it.id to Item(id = it.id, name = it.name, quantity = it.quantity, unit = it.unit, buyPrice = it.buy_price, sellPrice = it.sell_price, lowStockThreshold = it.low_stock_threshold, category = it.category) }
     }
 
-    // ==========================================================================
-    // E01-S4: Sync Status UI — load + expose + retry
-    // ==========================================================================
-
-    /** Reload sync state from DB into UiSyncStatus StateFlow */
-    private fun refreshSyncStatus() {
-        viewModelScope.launch {
-            val st = syncRepository.getSyncState()
-            _uiSyncStatus.value = UiSyncStatus(
-                status = st?.status ?: "IDLE",
-                lastSyncAt = st?.last_full_sync_at ?: 0L,
-                failedCount = (st?.total_failed_mutations ?: 0L).toInt(),
-                isSyncing = st?.status in listOf("PUSHING", "PULLING")
-            )
-        }
-    }
-
-    /** Trigger a one-time sync job (on user tap of retry button) */
-    fun retrySync() {
-        val storeId = prefs.getString("active_store_id", "default_store") ?: "default_store"
-        val workReq = OneTimeWorkRequestBuilder<com.storebook.inventoryapp.data.sync.SyncWorker>()
-            .addTag("sync_manual_retry")
-            .setInputData(
-                androidx.work.Data.Builder()
-                    .putString("STORE_ID", storeId)
-                    .build()
-            )
-            .build()
-        WorkManager.getInstance(context).enqueue(workReq)
-
-        // Start listening for sync completion by polling refresh
-        viewModelScope.launch {
-            kotlinx.coroutines.delay(5000)
-            refreshSyncStatus() 
-        }
-    }
 }

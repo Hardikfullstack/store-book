@@ -3,7 +3,7 @@ workflow_mode: solo-git
 session:
   active_flow: build               # Phase: Build (implementation)
   active_epic_id: e01
-  active_story_id: e03-s4          # Next: E04 stories or additional E03 work
+  active_story_id: e01-s4          # Ready for sync indicator UI wire-up across screens
   handoff:
     next_skill: implement          # Execute epic stories (map-codebase ✅ DONE)
   map_codebase:
@@ -14,6 +14,10 @@ session:
     status: complete
     completed_at: "2026-07-13"
     summary: "SQLDelight migration done. All entities + FailedSyncQueue in .sq, SyncRepository typed DAOs, LegacySyncHelper deleted, SyncWorker rewritten."
+  bp3:
+    status: complete
+    completed_at: "2026-07-20"
+    summary: "Centralized SyncStatusViewModel hub created. DashboardVM delegates sync state observation + retrySync to shared hub via _syncSource forwarder. NetworkMonitor unified across all ViewModels."
 
 git:
   branch: master

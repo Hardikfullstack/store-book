@@ -42,6 +42,9 @@ class AppViewModelFactory(private val context: Context) : ViewModelProvider.Fact
     private val systemRepository by lazy { SystemRepository(database) }
     private val syncRepository by lazy { SyncRepository(database) }
 
+    // BP-3: Centralized sync status hub — shared across all ViewModels via the factory
+    private val syncStatusViewModel by lazy { SyncStatusViewModel(context, syncRepository) }
+
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when {
             modelClass.isAssignableFrom(UdhaarViewModel::class.java) -> {
@@ -54,7 +57,17 @@ class AppViewModelFactory(private val context: Context) : ViewModelProvider.Fact
                 SalesViewModel(salesRepository, inventoryRepository, udhaarRepository, context) as T
             }
             modelClass.isAssignableFrom(DashboardViewModel::class.java) -> {
-                DashboardViewModel(inventoryRepository, salesRepository, purchaseRepository, supplierRepository, expenseRepository, syncRepository, context) as T
+                val vm = DashboardViewModel(
+                    inventoryRepository,
+                    salesRepository,
+                    purchaseRepository,
+                    supplierRepository,
+                    expenseRepository,
+                    context
+                )
+                // BP-3: Inject centralized sync hub into DashboardViewModel
+                vm._syncSource = syncStatusViewModel
+                vm as T
             }
             modelClass.isAssignableFrom(PurchaseViewModel::class.java) -> {
                 PurchaseViewModel(purchaseRepository, supplierRepository, inventoryRepository) as T
@@ -67,6 +80,9 @@ class AppViewModelFactory(private val context: Context) : ViewModelProvider.Fact
             }
             modelClass.isAssignableFrom(MoreViewModel::class.java) -> {
                 MoreViewModel(salesRepository, expenseRepository, inventoryRepository, systemRepository, context) as T
+            }
+            modelClass.isAssignableFrom(SyncStatusViewModel::class.java) -> {
+                syncStatusViewModel as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
