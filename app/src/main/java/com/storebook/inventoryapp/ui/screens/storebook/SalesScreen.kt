@@ -1236,7 +1236,7 @@ fun SalesScreen(
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 15.sp,
                                                 maxLines = 1,
-                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                                modifier = Modifier.autoMarquee(),
                                             )
                                             Text(
                                                 text = "${item.sellPrice.toRupee()}/${item.unit}  •  Stock: ${formatQty(

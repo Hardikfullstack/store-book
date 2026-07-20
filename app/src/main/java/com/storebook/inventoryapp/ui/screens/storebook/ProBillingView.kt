@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material.icons.outlined.Diamond
 import androidx.compose.material.icons.outlined.StarOutline
+import com.storebook.inventoryapp.utils.autoMarquee
 import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -476,7 +477,7 @@ private fun PlanCard(
                     text = subtitle,
                     fontSize = 12.sp,
                     maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.autoMarquee(),
                     color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.6f)
                 )
             }

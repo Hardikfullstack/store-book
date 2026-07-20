@@ -1,0 +1,68 @@
+epic_id: e31
+title: "Business Logic & Local Database Testing"
+priority: P0
+status: defined
+target_version: v1.3.2
+description: |
+  Ensure the offline-first core (SQLDelight) and business logic (ViewModels/StateFlows) remain bulletproof.
+  Write automated unit tests to verify profit calculations, stock deductions, concurrency management, database transaction
+  atomicity, sync-retry queue behavior, and numerical edge cases. Every critical path that handles money or inventory quantities
+  MUST have at least one test verifying its correctness under normal + adversarial inputs.
+
+  Tests must guard against the most expensive bugs: incorrect profit reports, double-stock deductions, silent data loss during
+  sync failures, and floating-point precision issues in financial aggregates.
+
+success_criteria:
+  - "JUnit5, MockK, and Turbine dependencies are added for unit testing."
+  - "SQLDelight in-memory SQLite driver (JdbcSqliteDriver) is configured for database testing on JVM."
+  - "Core view models (Dashboard, Sales, Inventory, Udhaar) achieve 80%+ line coverage on all critical algorithms and flows."
+  - "Every repository method that mutates data has a test asserting transaction atomicity or successful persistence."
+
+stories:
+  - id: e31-s1
+    title: "Set up Unit Testing Dependencies & Test Dispatchers"
+    acceptance:
+      - "JUnit5, MockK, and Turbine added to project for mocking, coroutine testing, and Flow verification."
+      - "MainDispatcherRule (or TestDispatcher) is created globally so all suspend functions execute deterministically — no flaky timing bugs in CI."
+      - "Corner Case: Verify that `withContext(Dispatchers.IO)` blocks in repositories are testable on JVM (not just Android). SQLDelight's JdbcSqliteDriver must run queries without needing an emulator."
+      - "Corner Case: Add a shared TestBase class that injects fake Clock via kotlinx-datetime so all timestamp-based logic is reproducible across test runs."
+      - "Configure Gradle task `./gradlew :shared:jvmTest` to run pure-JVM tests for shared module — fast feedback without Android device."
+
+  - id: e31-s2
+    title: "Test SQLDelight Queries and Transaction Rollbacks"
+    acceptance:
+      - "JdbcSqliteDriver is used to run real SQLDelight queries in JVM tests. No mocking of database layer."
+      - "Corner Case: Test transaction atomicity. If a sale's item deduction partially fails (e.g., mid-batch crash), assert that ALL stock deductions within that transaction are rolled back — no half-deducted inventory."
+      - "Corner Case: Test SQL integer overflow — insert Udhaar balance entries whose running total exceeds 2^31-1 and verify REAL/FLOAT columns handle ₹99,99,99,999 without wrapping to negative."
+      - "Corner Case: Verify soft-delete enforcement. Calling delete on an item sets `is_deleted = 1`, does NOT remove the row. Subsequent queries filtered by is_deleted=0 must not return it."
+      - "Corner Case: Test concurrent inserts from two coroutines into same table — verify SQLite WAL mode handles contention without data loss or SQLITE_BUSY deadlock in production."
+      - "Corner Case: Verify that FailedSyncQueue entries transition through correct states: PENDING_RETRY → PERMANENT_FAILURE after max_retries exceeded. No entry vanishes mid-stream."
+      - "Corner Case: Test schema migration safety — if a test inserts OLD-format data, the current queries must still read it without SQLiteException (column-not-found crashes)."
+
+  - id: e31-s3
+    title: "Test ViewModel Business Logic & Flow Concurrency"
+    acceptance:
+      - "DashboardViewModel profit calculation is verified against mock datasets. Test includes: normal profits, zero-profit days, negative profits (loss scenario), and days with 0 sales but > 0 expenses."
+      - "SyncStatusViewModel's state emissions (IDLE → PUSHING → PULLING → DONE, or FAILED) are tested sequentially using Turbine.`testIn` + `assertItems(...)`."
+      - "Corner Case: Concurrency stress test — simulate 10 rapid calls to refreshSyncStatus concurrently. Assert that WorkManager dequeues only ONE running job (enqueueUniqueWork policy). No duplicate workers spamming database."
+      - "Corner Case: Verify timeout fallbacks — if a simulated database operation blocks for >30s, the ViewModel must emit ERROR state and not hang indefinitely. Use TestDispatcher.advanceTimeBy()."
+      - "Corner Case: SalesViewModel cart add → remove → add same item: verify price snapshot stays from first-add time (not current sell_price). Historical accuracy matters for financial reports."
+      - "Corner Case: Test that StateFlows are replay-safe — collecting syncStateFlow after a restart returns the last known state, not 'null' or a cold emission crash."
+      - "Corner Case: Quotation conversion double-press protection: calling convertQuotation() twice on same ID should succeed-only-once (idempotent). second call is no-op or returns already-converted toast."
+
+  - id: e31-s4
+    title: "Test Financial Calculations & Numerical Precision"
+    acceptance:
+      - "Revenue, COGS, gross profit, and net profit calculations in DashboardScreen are tested with synthetic data (mix of sales, discounts, expenses across 7 days)."
+      - "Corner Case: Floating-point precision — verify that summing ₹10.10 + ₹20.20 results in ₹30.30 exactly (not ₹30.300000000000001). Use ROUND() in SQL or Kotlin's BigDecimal if needed."
+      - "Corner Case: Test discount application in billing — item priced at ₹999 with 5% discount must show ₹949.05 exactly, and total_amount reflects discounted not original price."
+      - "Corner Case: Expense-only day (no sales) must render correctly: revenue = ₹0, expenses > 0, display shows negative or zero profit without crash or NaN in chart data points."
+      - "Corner Case: Verify that getDailyRevenueByDateRange and getDailyExpensesByDateRange SQL queries return correct GROUP BY results when date range contains empty days. Empty days should appear with revenue=0 (COALESCE guard)."
+
+  - id: e31-s5
+    title: "Test Sync State & Retry Logic"
+    acceptance:
+      - "Simulate a failed push batch: verify that mutations are marked is_synced=0 again and enqueued in FailedSyncQueue."
+      - "Corner Case: After max_retries (3) exceeded, mutation moves to PERMANENT_FAILURE status and total_failed_mutations counter increments in sync_state table. Dashboard must surface this count visually (tested via ViewModel)."
+      - "Corner Case: Test that SyncState.lastFullSyncAt updates ONLY after a FULL successful batch — partial success mid-push MUST NOT update the timestamp (E01-S1 regression guard)."
+      - "Corner Case: Verify that retry queue's exponential backoff calculates correct next_retry_at timestamps: 30s → 60s → 120s. No negative or past-due values after arithmetic."

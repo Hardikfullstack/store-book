@@ -1,35 +1,69 @@
 epic_id: e30
-title: "Supplier Attribution on Item Creation & Initial Stock Purchase Logging"
-priority: P1
+title: "Automated UI & Snapshot Testing (Paparazzi/Roborazzi)"
+priority: P0
 status: defined
-target_version: v1.8.0
+target_version: v1.3.2
 description: |
-  Currently, when adding a new item to inventory, only stock quantity and prices are specified without supplier attribution—supplier selection is only available during subsequent stock restocks.
-  This epic introduces supplier selection directly into the "Add New Item" workflow on both Android POS and Web Dashboard. Upon creating an item with an initial stock quantity > 0, an initial purchase record (`Purchase` & `PurchaseItemDetail`) is automatically created and attributed to the selected supplier (or "Cash / Anonymous"), ensuring complete inventory provenance and supplier history from day one.
+  Implement screenshot/snapshot testing to prevent UI layout regressions (e.g., squished text, overlapping FABs, clipped alphabets,
+  misaligned Grid items). Set up Compose UI test frameworks to automatically verify user interactions, navigation states,
+  deep UI corner cases, and graceful degradation under stressed conditions (low memory, network loss, rapid taps).
+
+  This epic ensures that every visual surface of the app is regression-protected. A single bad merge shall not ship a squished
+  price label or invisible dark-mode text undetected. Tests must cover RTL-like long strings, foldable hinge state, window size
+  class shifts (compact ↔ expanded), Compose focus-management traps, and deterministic date/locale rendering so CI never flakes.
 
 success_criteria:
-  - "Supplier selector dropdown added to 'Add New Item' form on both Android POS and Web Dashboard."
-  - "Creating a new item with initial quantity > 0 automatically logs an initial Purchase and PurchaseItem record tied to the selected supplier."
-  - "If no supplier is selected, purchase is attributed to 'Cash / Anonymous'."
-  - "Supplier relationship is retained on the item record and queryable in Supplier purchase history."
+  - "Snapshot testing library (Paparazzi or Roborazzi) is configured in the Android project."
+  - "Baseline golden images are captured for core screens in multiple configurations: Light/Dark Mode, Default/Large Font Scales, and diverse screen constraints."
+  - "Compose UI tests can successfully navigate the bottom bar, interact with quick actions, and gracefully handle rapid/concurrent user inputs."
+  - "Zero snapshot failures on CI when code has not changed (deterministic renders)."
+  - "All interactive Compose screens have at least one navigation + one error-state test."
 
 stories:
   - id: e30-s1
-    title: "Add Supplier selector dropdown to 'Add New Item' form"
+    title: "Configure UI Snapshot Testing framework & CI Matrix"
     acceptance:
-      - "Android AddItemScreen / Dialog includes Supplier dropdown with search & inline quick-create."
-      - "Web ItemsClient Add Item modal includes Supplier dropdown with search & inline quick-create."
-      - "Defaults to 'Cash / Anonymous' if no supplier is chosen."
+      - "Paparazzi or Roborazzi gradle plugin is added and configured in app/build.gradle.kts."
+      - "A dedicated `test` source set is created for UI snapshot tests."
+      - "Snapshot tests run automatically on GitHub Actions CI (headless, no emulator required)."
+      - "Golden images are version-controlled inside `src/test/snapshots/` and checked into git."
+      - "Corner Case: Snapshot test output must be deterministic — disable animations via TestCompose.setContent, lock locale to en-IN, fix date via a fake Clock provider so timestamps do not cause daily diff flips."
+      - "Corner Case: Verify snapshot plugin compatibility with current Compose BOM version; pin exact dependency versions to avoid CI drift after library updates."
+      - "Corner Case: If Roborazzi is chosen (for screen-record video support), verify that both screenshot AND video modes work without OOM on CI runner's 7GB RAM limit."
 
   - id: e30-s2
-    title: "Log initial Purchase & PurchaseItem record upon item creation"
+    title: "Capture Baseline Snapshots for Extreme UI Constraints"
     acceptance:
-      - "Creating a new item with initial quantity > 0 generates a Purchase record (type: BILL) linked to the selected supplier."
-      - "Creates corresponding PurchaseItem line item linked to the newly created item ID."
-      - "If batch number or expiry date is specified, logs corresponding ItemBatch record."
+      - "Snapshot tests written for DashboardScreen, SalesScreen, UdhaarScreen, InventoryScreen, and QuotationScreen (min 5 core screens)."
+      - "Corner Case: Tests render screens with 200% font scaling (Accessibility) — verify no text clipping, overflow, or truncated labels."
+      - "Corner Case: Tests render with extremely long text strings (e.g., 50-character store names, 100-character item names) to verify autoMarquee and text wrapping do not crash."
+      - "Corner Case: Tests render in both Light and Dark themes to catch invisible borders or poor contrast issues."
+      - "Tests render across phone (360x800), foldable inner screen (673x841), and tablet (1280x800) dimensions."
+      - "Corner Case: Empty-state snapshots — verify placeholder illustrations/text appear when lists have 0 items (Dashboard with 0 sales, Inventory with 0 items)."
+      - "Corner Case: Overflow states — render Dashboard with synthetic dataset of 10,000 items to verify LazyColumn does not break layout or throw IndexOutOfBoundsException."
+      - "Corner Case: Sync-error banner visible on top of all screens; snapshot when UiSyncStatus is FAILED/ERROR so red indicator is verifiable."
+      - "Corner Case: Verify that bottom navigation labels do not overlap FAB or floating elements at narrow widths (<320dp)."
+      - "Corner Case: RTL-like locale rendering test — even if app ships en-IN only, force a hypothetical RTL BidiText to verify alignment does not mirror incorrectly."
 
   - id: e30-s3
-    title: "Integrate initial purchases with Supplier Purchase History reports"
+    title: "Implement Robust Compose Interaction Tests"
     acceptance:
-      - "Supplier purchase detail screen displays initial stock purchases alongside subsequent restocks."
-      - "Supplier totals and item counts accurately reflect initial item creation purchases."
+      - "compose:ui-test-junit4 dependency is added to `androidTest`."
+      - "Corner Case: Test rapid double-clicks on critical buttons (e.g. 'Checkout' or 'Save Udhaar') — assert that only ONE submission event fires (debounce/confirmDialog prevents duplicates)."
+      - "Corner Case: Verify UI state retention across configuration changes (simulating screen rotation or backgrounding via changeConfiguration). Cart items must survive."
+      - "Verify error states are rendered correctly (e.g., empty lists, 'No Internet' banners, failed sync badges)."
+      - "Corner Case: Bottom nav deep-link — launch app via navigation route to `/sales` and verify correct tab is active, back-nav returns to dashboard."
+      - "Corner Case: Focus trap test — after dialog dismisses (e.g., Delete Confirmation), focus returns to parent surface, not lost into void."
+      - "Corner Case: Verify that back-press from SalesScreen correctly clears cart state — no phantom items persist when re-entering after nav.popBackStack()."
+      - "Corner Case: Test lazy-list scroll performance in snapshot — LazyColumn with 1000 synthetic items must render without ANR or OutOfMemoryError."
+      - "Corner Case: Concurrent navigation — if user taps Inventory → Sales rapidly, verify NavHost does not stack duplicate routes (use singleTop / popUpTo appropriately)."
+
+  - id: e30-s4
+    title: "Snapshot Regression Guard & Developer Workflow"
+    acceptance:
+      - "Provide a Gradle task `verifyRoborazzi` (or `verifyPaparazzi`) and an `updateXxx` task that regenerates golden images locally. Document how developers update baselines after intentional UI changes."
+      - "Corner Case: CI must fail if any snapshot diff exceeds 0.5% pixel difference (configure acceptablePixelDiffRatio). No silent drift."
+      - "Add a README section in `app/src/test/` documenting how to add new snapshot tests, regenerate goldens, and what the pixel-diff tolerance means."
+      - "Corner Case: Verify that device-specific fonts (e.g., Roboto vs device-default) do not cause false positives — force font family via Typography override in test theme preview."
+      - "Include at least one integration test that renders the onboarding flow (Scaffolded screen → store config → first dashboard render) to catch flow-level regressions."
+      - "Corner Case: Snapshot tests must run inside `./gradlew testDebug` so they are visible locally before committing — no hidden CI-only surprises."
