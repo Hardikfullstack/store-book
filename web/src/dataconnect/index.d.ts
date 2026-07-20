@@ -1,4 +1,4 @@
-import { ConnectorConfig, DataConnect, QueryRef, QueryPromise, MutationRef, MutationPromise } from 'firebase/data-connect';
+import { ConnectorConfig, DataConnect, QueryRef, QueryPromise, ExecuteQueryOptions, MutationRef, MutationPromise } from 'firebase/data-connect';
 
 export const connectorConfig: ConnectorConfig;
 
@@ -7,13 +7,14 @@ export type UUIDString = string;
 export type Int64String = string;
 export type DateString = string;
 
+
 export enum OrderDirection {
-
   ASC = "ASC",
-
   DESC = "DESC",
+};
 
-}
+
+
 export interface AdminAuditLog_Key {
   id: string;
   __typename?: 'AdminAuditLog_Key';
@@ -88,6 +89,10 @@ export interface GetActiveExpensesVariables {
   limit?: number | null;
   offset?: number | null;
   searchTerm?: string | null;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  startDate?: number | null;
+  endDate?: number | null;
   orderByTimestamp?: OrderDirection | null;
   orderByType?: OrderDirection | null;
   orderBySupplierName?: OrderDirection | null;
@@ -116,6 +121,8 @@ export interface GetActiveItemsVariables {
   limit?: number | null;
   offset?: number | null;
   searchTerm?: string | null;
+  minPrice?: number | null;
+  maxPrice?: number | null;
   orderByName?: OrderDirection | null;
   orderByQuantity?: OrderDirection | null;
   orderByBuyPrice?: OrderDirection | null;
@@ -159,6 +166,10 @@ export interface GetActiveSalesVariables {
   limit?: number | null;
   offset?: number | null;
   searchTerm?: string | null;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  startDate?: number | null;
+  endDate?: number | null;
   orderByTimestamp?: OrderDirection | null;
   orderByCustomerName?: OrderDirection | null;
   orderByTotalAmount?: OrderDirection | null;
@@ -196,6 +207,10 @@ export interface GetActiveUdhaarsVariables {
   limit?: number | null;
   offset?: number | null;
   searchTerm?: string | null;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  startDate?: number | null;
+  endDate?: number | null;
   orderByTimestamp?: OrderDirection | null;
   orderByCustomerName?: OrderDirection | null;
   orderByType?: OrderDirection | null;
@@ -278,6 +293,40 @@ export interface GetSalesCountData {
 export interface GetSalesCountVariables {
   storeId: string;
   type?: string | null;
+}
+
+export interface GetStockAdjustmentsCountData {
+  stockAdjustments: ({
+    id: string;
+  } & StockAdjustment_Key)[];
+}
+
+export interface GetStockAdjustmentsCountVariables {
+  storeId: string;
+}
+
+export interface GetStockAdjustmentsData {
+  stockAdjustments: ({
+    id: string;
+    storeId: string;
+    itemId: string;
+    itemName: string;
+    reason: string;
+    delta: number;
+    timestamp: number;
+    isDeleted: boolean;
+    updatedAt: number;
+  } & StockAdjustment_Key)[];
+}
+
+export interface GetStockAdjustmentsVariables {
+  storeId: string;
+  limit?: number | null;
+  offset?: number | null;
+  searchTerm?: string | null;
+  reason?: string | null;
+  startDate?: number | null;
+  endDate?: number | null;
 }
 
 export interface GetStoreData {
@@ -424,6 +473,11 @@ export interface SoftDeleteUdhaarData {
 export interface SoftDeleteUdhaarVariables {
   id: string;
   updatedAt: number;
+}
+
+export interface StockAdjustment_Key {
+  id: string;
+  __typename?: 'StockAdjustment_Key';
 }
 
 export interface Store_Key {
@@ -715,6 +769,22 @@ export interface SyncSalesVariables {
   lastSync: number;
 }
 
+export interface SyncStockAdjustmentData {
+  stockAdjustment_upsert: StockAdjustment_Key;
+}
+
+export interface SyncStockAdjustmentVariables {
+  id: string;
+  storeId: string;
+  itemId: string;
+  itemName: string;
+  reason: string;
+  delta: number;
+  timestamp: number;
+  isDeleted: boolean;
+  updatedAt: number;
+}
+
 export interface SyncStoreData {
   store_upsert: Store_Key;
 }
@@ -903,426 +973,650 @@ export interface User_Key {
   __typename?: 'User_Key';
 }
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncItemRef(vars: SyncItemVariables): MutationRef<SyncItemData, SyncItemVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncItemRef(dc: DataConnect, vars: SyncItemVariables): MutationRef<SyncItemData, SyncItemVariables>;
+interface SyncItemRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncItemVariables): MutationRef<SyncItemData, SyncItemVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncItemVariables): MutationRef<SyncItemData, SyncItemVariables>;
+  operationName: string;
+}
+export const syncItemRef: SyncItemRef;
 
 export function syncItem(vars: SyncItemVariables): MutationPromise<SyncItemData, SyncItemVariables>;
 export function syncItem(dc: DataConnect, vars: SyncItemVariables): MutationPromise<SyncItemData, SyncItemVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncSaleRef(vars: SyncSaleVariables): MutationRef<SyncSaleData, SyncSaleVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncSaleRef(dc: DataConnect, vars: SyncSaleVariables): MutationRef<SyncSaleData, SyncSaleVariables>;
+interface SyncSaleRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncSaleVariables): MutationRef<SyncSaleData, SyncSaleVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncSaleVariables): MutationRef<SyncSaleData, SyncSaleVariables>;
+  operationName: string;
+}
+export const syncSaleRef: SyncSaleRef;
 
 export function syncSale(vars: SyncSaleVariables): MutationPromise<SyncSaleData, SyncSaleVariables>;
 export function syncSale(dc: DataConnect, vars: SyncSaleVariables): MutationPromise<SyncSaleData, SyncSaleVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncSaleItemRef(vars: SyncSaleItemVariables): MutationRef<SyncSaleItemData, SyncSaleItemVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncSaleItemRef(dc: DataConnect, vars: SyncSaleItemVariables): MutationRef<SyncSaleItemData, SyncSaleItemVariables>;
+interface SyncSaleItemRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncSaleItemVariables): MutationRef<SyncSaleItemData, SyncSaleItemVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncSaleItemVariables): MutationRef<SyncSaleItemData, SyncSaleItemVariables>;
+  operationName: string;
+}
+export const syncSaleItemRef: SyncSaleItemRef;
 
 export function syncSaleItem(vars: SyncSaleItemVariables): MutationPromise<SyncSaleItemData, SyncSaleItemVariables>;
 export function syncSaleItem(dc: DataConnect, vars: SyncSaleItemVariables): MutationPromise<SyncSaleItemData, SyncSaleItemVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function softDeleteItemRef(vars: SoftDeleteItemVariables): MutationRef<SoftDeleteItemData, SoftDeleteItemVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function softDeleteItemRef(dc: DataConnect, vars: SoftDeleteItemVariables): MutationRef<SoftDeleteItemData, SoftDeleteItemVariables>;
+interface SoftDeleteItemRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SoftDeleteItemVariables): MutationRef<SoftDeleteItemData, SoftDeleteItemVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SoftDeleteItemVariables): MutationRef<SoftDeleteItemData, SoftDeleteItemVariables>;
+  operationName: string;
+}
+export const softDeleteItemRef: SoftDeleteItemRef;
 
 export function softDeleteItem(vars: SoftDeleteItemVariables): MutationPromise<SoftDeleteItemData, SoftDeleteItemVariables>;
 export function softDeleteItem(dc: DataConnect, vars: SoftDeleteItemVariables): MutationPromise<SoftDeleteItemData, SoftDeleteItemVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function softDeleteSaleRef(vars: SoftDeleteSaleVariables): MutationRef<SoftDeleteSaleData, SoftDeleteSaleVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function softDeleteSaleRef(dc: DataConnect, vars: SoftDeleteSaleVariables): MutationRef<SoftDeleteSaleData, SoftDeleteSaleVariables>;
+interface SoftDeleteSaleRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SoftDeleteSaleVariables): MutationRef<SoftDeleteSaleData, SoftDeleteSaleVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SoftDeleteSaleVariables): MutationRef<SoftDeleteSaleData, SoftDeleteSaleVariables>;
+  operationName: string;
+}
+export const softDeleteSaleRef: SoftDeleteSaleRef;
 
 export function softDeleteSale(vars: SoftDeleteSaleVariables): MutationPromise<SoftDeleteSaleData, SoftDeleteSaleVariables>;
 export function softDeleteSale(dc: DataConnect, vars: SoftDeleteSaleVariables): MutationPromise<SoftDeleteSaleData, SoftDeleteSaleVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncUserRef(vars: SyncUserVariables): MutationRef<SyncUserData, SyncUserVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncUserRef(dc: DataConnect, vars: SyncUserVariables): MutationRef<SyncUserData, SyncUserVariables>;
+interface SyncUserRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncUserVariables): MutationRef<SyncUserData, SyncUserVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncUserVariables): MutationRef<SyncUserData, SyncUserVariables>;
+  operationName: string;
+}
+export const syncUserRef: SyncUserRef;
 
 export function syncUser(vars: SyncUserVariables): MutationPromise<SyncUserData, SyncUserVariables>;
 export function syncUser(dc: DataConnect, vars: SyncUserVariables): MutationPromise<SyncUserData, SyncUserVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function updateUserRef(vars: UpdateUserVariables): MutationRef<UpdateUserData, UpdateUserVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function updateUserRef(dc: DataConnect, vars: UpdateUserVariables): MutationRef<UpdateUserData, UpdateUserVariables>;
+interface UpdateUserRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateUserVariables): MutationRef<UpdateUserData, UpdateUserVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpdateUserVariables): MutationRef<UpdateUserData, UpdateUserVariables>;
+  operationName: string;
+}
+export const updateUserRef: UpdateUserRef;
 
 export function updateUser(vars: UpdateUserVariables): MutationPromise<UpdateUserData, UpdateUserVariables>;
 export function updateUser(dc: DataConnect, vars: UpdateUserVariables): MutationPromise<UpdateUserData, UpdateUserVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncStoreRef(vars: SyncStoreVariables): MutationRef<SyncStoreData, SyncStoreVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncStoreRef(dc: DataConnect, vars: SyncStoreVariables): MutationRef<SyncStoreData, SyncStoreVariables>;
+interface SyncStoreRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncStoreVariables): MutationRef<SyncStoreData, SyncStoreVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncStoreVariables): MutationRef<SyncStoreData, SyncStoreVariables>;
+  operationName: string;
+}
+export const syncStoreRef: SyncStoreRef;
 
 export function syncStore(vars: SyncStoreVariables): MutationPromise<SyncStoreData, SyncStoreVariables>;
 export function syncStore(dc: DataConnect, vars: SyncStoreVariables): MutationPromise<SyncStoreData, SyncStoreVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function updateStoreRef(vars: UpdateStoreVariables): MutationRef<UpdateStoreData, UpdateStoreVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function updateStoreRef(dc: DataConnect, vars: UpdateStoreVariables): MutationRef<UpdateStoreData, UpdateStoreVariables>;
+interface UpdateStoreRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateStoreVariables): MutationRef<UpdateStoreData, UpdateStoreVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpdateStoreVariables): MutationRef<UpdateStoreData, UpdateStoreVariables>;
+  operationName: string;
+}
+export const updateStoreRef: UpdateStoreRef;
 
 export function updateStore(vars: UpdateStoreVariables): MutationPromise<UpdateStoreData, UpdateStoreVariables>;
 export function updateStore(dc: DataConnect, vars: UpdateStoreVariables): MutationPromise<UpdateStoreData, UpdateStoreVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncUdhaarRef(vars: SyncUdhaarVariables): MutationRef<SyncUdhaarData, SyncUdhaarVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncUdhaarRef(dc: DataConnect, vars: SyncUdhaarVariables): MutationRef<SyncUdhaarData, SyncUdhaarVariables>;
+interface SyncUdhaarRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncUdhaarVariables): MutationRef<SyncUdhaarData, SyncUdhaarVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncUdhaarVariables): MutationRef<SyncUdhaarData, SyncUdhaarVariables>;
+  operationName: string;
+}
+export const syncUdhaarRef: SyncUdhaarRef;
 
 export function syncUdhaar(vars: SyncUdhaarVariables): MutationPromise<SyncUdhaarData, SyncUdhaarVariables>;
 export function syncUdhaar(dc: DataConnect, vars: SyncUdhaarVariables): MutationPromise<SyncUdhaarData, SyncUdhaarVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function softDeleteUdhaarRef(vars: SoftDeleteUdhaarVariables): MutationRef<SoftDeleteUdhaarData, SoftDeleteUdhaarVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function softDeleteUdhaarRef(dc: DataConnect, vars: SoftDeleteUdhaarVariables): MutationRef<SoftDeleteUdhaarData, SoftDeleteUdhaarVariables>;
+interface SoftDeleteUdhaarRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SoftDeleteUdhaarVariables): MutationRef<SoftDeleteUdhaarData, SoftDeleteUdhaarVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SoftDeleteUdhaarVariables): MutationRef<SoftDeleteUdhaarData, SoftDeleteUdhaarVariables>;
+  operationName: string;
+}
+export const softDeleteUdhaarRef: SoftDeleteUdhaarRef;
 
 export function softDeleteUdhaar(vars: SoftDeleteUdhaarVariables): MutationPromise<SoftDeleteUdhaarData, SoftDeleteUdhaarVariables>;
 export function softDeleteUdhaar(dc: DataConnect, vars: SoftDeleteUdhaarVariables): MutationPromise<SoftDeleteUdhaarData, SoftDeleteUdhaarVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncExpenseRef(vars: SyncExpenseVariables): MutationRef<SyncExpenseData, SyncExpenseVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncExpenseRef(dc: DataConnect, vars: SyncExpenseVariables): MutationRef<SyncExpenseData, SyncExpenseVariables>;
+interface SyncExpenseRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncExpenseVariables): MutationRef<SyncExpenseData, SyncExpenseVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncExpenseVariables): MutationRef<SyncExpenseData, SyncExpenseVariables>;
+  operationName: string;
+}
+export const syncExpenseRef: SyncExpenseRef;
 
 export function syncExpense(vars: SyncExpenseVariables): MutationPromise<SyncExpenseData, SyncExpenseVariables>;
 export function syncExpense(dc: DataConnect, vars: SyncExpenseVariables): MutationPromise<SyncExpenseData, SyncExpenseVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function softDeleteExpenseRef(vars: SoftDeleteExpenseVariables): MutationRef<SoftDeleteExpenseData, SoftDeleteExpenseVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function softDeleteExpenseRef(dc: DataConnect, vars: SoftDeleteExpenseVariables): MutationRef<SoftDeleteExpenseData, SoftDeleteExpenseVariables>;
+interface SoftDeleteExpenseRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SoftDeleteExpenseVariables): MutationRef<SoftDeleteExpenseData, SoftDeleteExpenseVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SoftDeleteExpenseVariables): MutationRef<SoftDeleteExpenseData, SoftDeleteExpenseVariables>;
+  operationName: string;
+}
+export const softDeleteExpenseRef: SoftDeleteExpenseRef;
 
 export function softDeleteExpense(vars: SoftDeleteExpenseVariables): MutationPromise<SoftDeleteExpenseData, SoftDeleteExpenseVariables>;
 export function softDeleteExpense(dc: DataConnect, vars: SoftDeleteExpenseVariables): MutationPromise<SoftDeleteExpenseData, SoftDeleteExpenseVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncSupplierRef(vars: SyncSupplierVariables): MutationRef<SyncSupplierData, SyncSupplierVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncSupplierRef(dc: DataConnect, vars: SyncSupplierVariables): MutationRef<SyncSupplierData, SyncSupplierVariables>;
+interface SyncSupplierRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncSupplierVariables): MutationRef<SyncSupplierData, SyncSupplierVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncSupplierVariables): MutationRef<SyncSupplierData, SyncSupplierVariables>;
+  operationName: string;
+}
+export const syncSupplierRef: SyncSupplierRef;
 
 export function syncSupplier(vars: SyncSupplierVariables): MutationPromise<SyncSupplierData, SyncSupplierVariables>;
 export function syncSupplier(dc: DataConnect, vars: SyncSupplierVariables): MutationPromise<SyncSupplierData, SyncSupplierVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function upsertGlobalSettingRef(vars: UpsertGlobalSettingVariables): MutationRef<UpsertGlobalSettingData, UpsertGlobalSettingVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function upsertGlobalSettingRef(dc: DataConnect, vars: UpsertGlobalSettingVariables): MutationRef<UpsertGlobalSettingData, UpsertGlobalSettingVariables>;
+interface UpsertGlobalSettingRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertGlobalSettingVariables): MutationRef<UpsertGlobalSettingData, UpsertGlobalSettingVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertGlobalSettingVariables): MutationRef<UpsertGlobalSettingData, UpsertGlobalSettingVariables>;
+  operationName: string;
+}
+export const upsertGlobalSettingRef: UpsertGlobalSettingRef;
 
 export function upsertGlobalSetting(vars: UpsertGlobalSettingVariables): MutationPromise<UpsertGlobalSettingData, UpsertGlobalSettingVariables>;
 export function upsertGlobalSetting(dc: DataConnect, vars: UpsertGlobalSettingVariables): MutationPromise<UpsertGlobalSettingData, UpsertGlobalSettingVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function createAdminAuditLogRef(vars: CreateAdminAuditLogVariables): MutationRef<CreateAdminAuditLogData, CreateAdminAuditLogVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function createAdminAuditLogRef(dc: DataConnect, vars: CreateAdminAuditLogVariables): MutationRef<CreateAdminAuditLogData, CreateAdminAuditLogVariables>;
+interface CreateAdminAuditLogRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateAdminAuditLogVariables): MutationRef<CreateAdminAuditLogData, CreateAdminAuditLogVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CreateAdminAuditLogVariables): MutationRef<CreateAdminAuditLogData, CreateAdminAuditLogVariables>;
+  operationName: string;
+}
+export const createAdminAuditLogRef: CreateAdminAuditLogRef;
 
 export function createAdminAuditLog(vars: CreateAdminAuditLogVariables): MutationPromise<CreateAdminAuditLogData, CreateAdminAuditLogVariables>;
 export function createAdminAuditLog(dc: DataConnect, vars: CreateAdminAuditLogVariables): MutationPromise<CreateAdminAuditLogData, CreateAdminAuditLogVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function upsertAnnouncementRef(vars: UpsertAnnouncementVariables): MutationRef<UpsertAnnouncementData, UpsertAnnouncementVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function upsertAnnouncementRef(dc: DataConnect, vars: UpsertAnnouncementVariables): MutationRef<UpsertAnnouncementData, UpsertAnnouncementVariables>;
+interface UpsertAnnouncementRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertAnnouncementVariables): MutationRef<UpsertAnnouncementData, UpsertAnnouncementVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertAnnouncementVariables): MutationRef<UpsertAnnouncementData, UpsertAnnouncementVariables>;
+  operationName: string;
+}
+export const upsertAnnouncementRef: UpsertAnnouncementRef;
 
 export function upsertAnnouncement(vars: UpsertAnnouncementVariables): MutationPromise<UpsertAnnouncementData, UpsertAnnouncementVariables>;
 export function upsertAnnouncement(dc: DataConnect, vars: UpsertAnnouncementVariables): MutationPromise<UpsertAnnouncementData, UpsertAnnouncementVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function deleteAnnouncementRef(vars: DeleteAnnouncementVariables): MutationRef<DeleteAnnouncementData, DeleteAnnouncementVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function deleteAnnouncementRef(dc: DataConnect, vars: DeleteAnnouncementVariables): MutationRef<DeleteAnnouncementData, DeleteAnnouncementVariables>;
+interface DeleteAnnouncementRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteAnnouncementVariables): MutationRef<DeleteAnnouncementData, DeleteAnnouncementVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: DeleteAnnouncementVariables): MutationRef<DeleteAnnouncementData, DeleteAnnouncementVariables>;
+  operationName: string;
+}
+export const deleteAnnouncementRef: DeleteAnnouncementRef;
 
 export function deleteAnnouncement(vars: DeleteAnnouncementVariables): MutationPromise<DeleteAnnouncementData, DeleteAnnouncementVariables>;
 export function deleteAnnouncement(dc: DataConnect, vars: DeleteAnnouncementVariables): MutationPromise<DeleteAnnouncementData, DeleteAnnouncementVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function upsertPromoCodeRef(vars: UpsertPromoCodeVariables): MutationRef<UpsertPromoCodeData, UpsertPromoCodeVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function upsertPromoCodeRef(dc: DataConnect, vars: UpsertPromoCodeVariables): MutationRef<UpsertPromoCodeData, UpsertPromoCodeVariables>;
+interface UpsertPromoCodeRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertPromoCodeVariables): MutationRef<UpsertPromoCodeData, UpsertPromoCodeVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertPromoCodeVariables): MutationRef<UpsertPromoCodeData, UpsertPromoCodeVariables>;
+  operationName: string;
+}
+export const upsertPromoCodeRef: UpsertPromoCodeRef;
 
 export function upsertPromoCode(vars: UpsertPromoCodeVariables): MutationPromise<UpsertPromoCodeData, UpsertPromoCodeVariables>;
 export function upsertPromoCode(dc: DataConnect, vars: UpsertPromoCodeVariables): MutationPromise<UpsertPromoCodeData, UpsertPromoCodeVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function deletePromoCodeRef(vars: DeletePromoCodeVariables): MutationRef<DeletePromoCodeData, DeletePromoCodeVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function deletePromoCodeRef(dc: DataConnect, vars: DeletePromoCodeVariables): MutationRef<DeletePromoCodeData, DeletePromoCodeVariables>;
+interface DeletePromoCodeRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeletePromoCodeVariables): MutationRef<DeletePromoCodeData, DeletePromoCodeVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: DeletePromoCodeVariables): MutationRef<DeletePromoCodeData, DeletePromoCodeVariables>;
+  operationName: string;
+}
+export const deletePromoCodeRef: DeletePromoCodeRef;
 
 export function deletePromoCode(vars: DeletePromoCodeVariables): MutationPromise<DeletePromoCodeData, DeletePromoCodeVariables>;
 export function deletePromoCode(dc: DataConnect, vars: DeletePromoCodeVariables): MutationPromise<DeletePromoCodeData, DeletePromoCodeVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function toggleStoreStatusRef(vars: ToggleStoreStatusVariables): MutationRef<ToggleStoreStatusData, ToggleStoreStatusVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function toggleStoreStatusRef(dc: DataConnect, vars: ToggleStoreStatusVariables): MutationRef<ToggleStoreStatusData, ToggleStoreStatusVariables>;
+interface ToggleStoreStatusRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ToggleStoreStatusVariables): MutationRef<ToggleStoreStatusData, ToggleStoreStatusVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ToggleStoreStatusVariables): MutationRef<ToggleStoreStatusData, ToggleStoreStatusVariables>;
+  operationName: string;
+}
+export const toggleStoreStatusRef: ToggleStoreStatusRef;
 
 export function toggleStoreStatus(vars: ToggleStoreStatusVariables): MutationPromise<ToggleStoreStatusData, ToggleStoreStatusVariables>;
 export function toggleStoreStatus(dc: DataConnect, vars: ToggleStoreStatusVariables): MutationPromise<ToggleStoreStatusData, ToggleStoreStatusVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function purgeStoreRef(vars: PurgeStoreVariables): MutationRef<PurgeStoreData, PurgeStoreVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function purgeStoreRef(dc: DataConnect, vars: PurgeStoreVariables): MutationRef<PurgeStoreData, PurgeStoreVariables>;
+interface PurgeStoreRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: PurgeStoreVariables): MutationRef<PurgeStoreData, PurgeStoreVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: PurgeStoreVariables): MutationRef<PurgeStoreData, PurgeStoreVariables>;
+  operationName: string;
+}
+export const purgeStoreRef: PurgeStoreRef;
 
 export function purgeStore(vars: PurgeStoreVariables): MutationPromise<PurgeStoreData, PurgeStoreVariables>;
 export function purgeStore(dc: DataConnect, vars: PurgeStoreVariables): MutationPromise<PurgeStoreData, PurgeStoreVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function createUserRef(vars: CreateUserVariables): MutationRef<CreateUserData, CreateUserVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function createUserRef(dc: DataConnect, vars: CreateUserVariables): MutationRef<CreateUserData, CreateUserVariables>;
+interface CreateUserRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateUserVariables): MutationRef<CreateUserData, CreateUserVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CreateUserVariables): MutationRef<CreateUserData, CreateUserVariables>;
+  operationName: string;
+}
+export const createUserRef: CreateUserRef;
 
 export function createUser(vars: CreateUserVariables): MutationPromise<CreateUserData, CreateUserVariables>;
 export function createUser(dc: DataConnect, vars: CreateUserVariables): MutationPromise<CreateUserData, CreateUserVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncPurchaseRef(vars: SyncPurchaseVariables): MutationRef<SyncPurchaseData, SyncPurchaseVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncPurchaseRef(dc: DataConnect, vars: SyncPurchaseVariables): MutationRef<SyncPurchaseData, SyncPurchaseVariables>;
+interface SyncPurchaseRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncPurchaseVariables): MutationRef<SyncPurchaseData, SyncPurchaseVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncPurchaseVariables): MutationRef<SyncPurchaseData, SyncPurchaseVariables>;
+  operationName: string;
+}
+export const syncPurchaseRef: SyncPurchaseRef;
 
 export function syncPurchase(vars: SyncPurchaseVariables): MutationPromise<SyncPurchaseData, SyncPurchaseVariables>;
 export function syncPurchase(dc: DataConnect, vars: SyncPurchaseVariables): MutationPromise<SyncPurchaseData, SyncPurchaseVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncPurchaseItemRef(vars: SyncPurchaseItemVariables): MutationRef<SyncPurchaseItemData, SyncPurchaseItemVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncPurchaseItemRef(dc: DataConnect, vars: SyncPurchaseItemVariables): MutationRef<SyncPurchaseItemData, SyncPurchaseItemVariables>;
+interface SyncPurchaseItemRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncPurchaseItemVariables): MutationRef<SyncPurchaseItemData, SyncPurchaseItemVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncPurchaseItemVariables): MutationRef<SyncPurchaseItemData, SyncPurchaseItemVariables>;
+  operationName: string;
+}
+export const syncPurchaseItemRef: SyncPurchaseItemRef;
 
 export function syncPurchaseItem(vars: SyncPurchaseItemVariables): MutationPromise<SyncPurchaseItemData, SyncPurchaseItemVariables>;
 export function syncPurchaseItem(dc: DataConnect, vars: SyncPurchaseItemVariables): MutationPromise<SyncPurchaseItemData, SyncPurchaseItemVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncItemBatchRef(vars: SyncItemBatchVariables): MutationRef<SyncItemBatchData, SyncItemBatchVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncItemBatchRef(dc: DataConnect, vars: SyncItemBatchVariables): MutationRef<SyncItemBatchData, SyncItemBatchVariables>;
+interface SyncItemBatchRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncItemBatchVariables): MutationRef<SyncItemBatchData, SyncItemBatchVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncItemBatchVariables): MutationRef<SyncItemBatchData, SyncItemBatchVariables>;
+  operationName: string;
+}
+export const syncItemBatchRef: SyncItemBatchRef;
 
 export function syncItemBatch(vars: SyncItemBatchVariables): MutationPromise<SyncItemBatchData, SyncItemBatchVariables>;
 export function syncItemBatch(dc: DataConnect, vars: SyncItemBatchVariables): MutationPromise<SyncItemBatchData, SyncItemBatchVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncItemsRef(vars: SyncItemsVariables): QueryRef<SyncItemsData, SyncItemsVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncItemsRef(dc: DataConnect, vars: SyncItemsVariables): QueryRef<SyncItemsData, SyncItemsVariables>;
+interface SyncStockAdjustmentRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncStockAdjustmentVariables): MutationRef<SyncStockAdjustmentData, SyncStockAdjustmentVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncStockAdjustmentVariables): MutationRef<SyncStockAdjustmentData, SyncStockAdjustmentVariables>;
+  operationName: string;
+}
+export const syncStockAdjustmentRef: SyncStockAdjustmentRef;
 
-export function syncItems(vars: SyncItemsVariables): QueryPromise<SyncItemsData, SyncItemsVariables>;
-export function syncItems(dc: DataConnect, vars: SyncItemsVariables): QueryPromise<SyncItemsData, SyncItemsVariables>;
+export function syncStockAdjustment(vars: SyncStockAdjustmentVariables): MutationPromise<SyncStockAdjustmentData, SyncStockAdjustmentVariables>;
+export function syncStockAdjustment(dc: DataConnect, vars: SyncStockAdjustmentVariables): MutationPromise<SyncStockAdjustmentData, SyncStockAdjustmentVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncSalesRef(vars: SyncSalesVariables): QueryRef<SyncSalesData, SyncSalesVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncSalesRef(dc: DataConnect, vars: SyncSalesVariables): QueryRef<SyncSalesData, SyncSalesVariables>;
+interface SyncItemsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncItemsVariables): QueryRef<SyncItemsData, SyncItemsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncItemsVariables): QueryRef<SyncItemsData, SyncItemsVariables>;
+  operationName: string;
+}
+export const syncItemsRef: SyncItemsRef;
 
-export function syncSales(vars: SyncSalesVariables): QueryPromise<SyncSalesData, SyncSalesVariables>;
-export function syncSales(dc: DataConnect, vars: SyncSalesVariables): QueryPromise<SyncSalesData, SyncSalesVariables>;
+export function syncItems(vars: SyncItemsVariables, options?: ExecuteQueryOptions): QueryPromise<SyncItemsData, SyncItemsVariables>;
+export function syncItems(dc: DataConnect, vars: SyncItemsVariables, options?: ExecuteQueryOptions): QueryPromise<SyncItemsData, SyncItemsVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncSaleItemsRef(vars: SyncSaleItemsVariables): QueryRef<SyncSaleItemsData, SyncSaleItemsVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncSaleItemsRef(dc: DataConnect, vars: SyncSaleItemsVariables): QueryRef<SyncSaleItemsData, SyncSaleItemsVariables>;
+interface SyncSalesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncSalesVariables): QueryRef<SyncSalesData, SyncSalesVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncSalesVariables): QueryRef<SyncSalesData, SyncSalesVariables>;
+  operationName: string;
+}
+export const syncSalesRef: SyncSalesRef;
 
-export function syncSaleItems(vars: SyncSaleItemsVariables): QueryPromise<SyncSaleItemsData, SyncSaleItemsVariables>;
-export function syncSaleItems(dc: DataConnect, vars: SyncSaleItemsVariables): QueryPromise<SyncSaleItemsData, SyncSaleItemsVariables>;
+export function syncSales(vars: SyncSalesVariables, options?: ExecuteQueryOptions): QueryPromise<SyncSalesData, SyncSalesVariables>;
+export function syncSales(dc: DataConnect, vars: SyncSalesVariables, options?: ExecuteQueryOptions): QueryPromise<SyncSalesData, SyncSalesVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getActiveItemsRef(vars: GetActiveItemsVariables): QueryRef<GetActiveItemsData, GetActiveItemsVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getActiveItemsRef(dc: DataConnect, vars: GetActiveItemsVariables): QueryRef<GetActiveItemsData, GetActiveItemsVariables>;
+interface SyncSaleItemsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncSaleItemsVariables): QueryRef<SyncSaleItemsData, SyncSaleItemsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncSaleItemsVariables): QueryRef<SyncSaleItemsData, SyncSaleItemsVariables>;
+  operationName: string;
+}
+export const syncSaleItemsRef: SyncSaleItemsRef;
 
-export function getActiveItems(vars: GetActiveItemsVariables): QueryPromise<GetActiveItemsData, GetActiveItemsVariables>;
-export function getActiveItems(dc: DataConnect, vars: GetActiveItemsVariables): QueryPromise<GetActiveItemsData, GetActiveItemsVariables>;
+export function syncSaleItems(vars: SyncSaleItemsVariables, options?: ExecuteQueryOptions): QueryPromise<SyncSaleItemsData, SyncSaleItemsVariables>;
+export function syncSaleItems(dc: DataConnect, vars: SyncSaleItemsVariables, options?: ExecuteQueryOptions): QueryPromise<SyncSaleItemsData, SyncSaleItemsVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncUdhaarsRef(vars: SyncUdhaarsVariables): QueryRef<SyncUdhaarsData, SyncUdhaarsVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncUdhaarsRef(dc: DataConnect, vars: SyncUdhaarsVariables): QueryRef<SyncUdhaarsData, SyncUdhaarsVariables>;
+interface GetActiveItemsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetActiveItemsVariables): QueryRef<GetActiveItemsData, GetActiveItemsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetActiveItemsVariables): QueryRef<GetActiveItemsData, GetActiveItemsVariables>;
+  operationName: string;
+}
+export const getActiveItemsRef: GetActiveItemsRef;
 
-export function syncUdhaars(vars: SyncUdhaarsVariables): QueryPromise<SyncUdhaarsData, SyncUdhaarsVariables>;
-export function syncUdhaars(dc: DataConnect, vars: SyncUdhaarsVariables): QueryPromise<SyncUdhaarsData, SyncUdhaarsVariables>;
+export function getActiveItems(vars: GetActiveItemsVariables, options?: ExecuteQueryOptions): QueryPromise<GetActiveItemsData, GetActiveItemsVariables>;
+export function getActiveItems(dc: DataConnect, vars: GetActiveItemsVariables, options?: ExecuteQueryOptions): QueryPromise<GetActiveItemsData, GetActiveItemsVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncExpensesRef(vars: SyncExpensesVariables): QueryRef<SyncExpensesData, SyncExpensesVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncExpensesRef(dc: DataConnect, vars: SyncExpensesVariables): QueryRef<SyncExpensesData, SyncExpensesVariables>;
+interface SyncUdhaarsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncUdhaarsVariables): QueryRef<SyncUdhaarsData, SyncUdhaarsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncUdhaarsVariables): QueryRef<SyncUdhaarsData, SyncUdhaarsVariables>;
+  operationName: string;
+}
+export const syncUdhaarsRef: SyncUdhaarsRef;
 
-export function syncExpenses(vars: SyncExpensesVariables): QueryPromise<SyncExpensesData, SyncExpensesVariables>;
-export function syncExpenses(dc: DataConnect, vars: SyncExpensesVariables): QueryPromise<SyncExpensesData, SyncExpensesVariables>;
+export function syncUdhaars(vars: SyncUdhaarsVariables, options?: ExecuteQueryOptions): QueryPromise<SyncUdhaarsData, SyncUdhaarsVariables>;
+export function syncUdhaars(dc: DataConnect, vars: SyncUdhaarsVariables, options?: ExecuteQueryOptions): QueryPromise<SyncUdhaarsData, SyncUdhaarsVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getActiveSalesRef(vars: GetActiveSalesVariables): QueryRef<GetActiveSalesData, GetActiveSalesVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getActiveSalesRef(dc: DataConnect, vars: GetActiveSalesVariables): QueryRef<GetActiveSalesData, GetActiveSalesVariables>;
+interface SyncExpensesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncExpensesVariables): QueryRef<SyncExpensesData, SyncExpensesVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncExpensesVariables): QueryRef<SyncExpensesData, SyncExpensesVariables>;
+  operationName: string;
+}
+export const syncExpensesRef: SyncExpensesRef;
 
-export function getActiveSales(vars: GetActiveSalesVariables): QueryPromise<GetActiveSalesData, GetActiveSalesVariables>;
-export function getActiveSales(dc: DataConnect, vars: GetActiveSalesVariables): QueryPromise<GetActiveSalesData, GetActiveSalesVariables>;
+export function syncExpenses(vars: SyncExpensesVariables, options?: ExecuteQueryOptions): QueryPromise<SyncExpensesData, SyncExpensesVariables>;
+export function syncExpenses(dc: DataConnect, vars: SyncExpensesVariables, options?: ExecuteQueryOptions): QueryPromise<SyncExpensesData, SyncExpensesVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getActiveSaleItemsRef(vars: GetActiveSaleItemsVariables): QueryRef<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getActiveSaleItemsRef(dc: DataConnect, vars: GetActiveSaleItemsVariables): QueryRef<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
+interface GetActiveSalesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetActiveSalesVariables): QueryRef<GetActiveSalesData, GetActiveSalesVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetActiveSalesVariables): QueryRef<GetActiveSalesData, GetActiveSalesVariables>;
+  operationName: string;
+}
+export const getActiveSalesRef: GetActiveSalesRef;
 
-export function getActiveSaleItems(vars: GetActiveSaleItemsVariables): QueryPromise<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
-export function getActiveSaleItems(dc: DataConnect, vars: GetActiveSaleItemsVariables): QueryPromise<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
+export function getActiveSales(vars: GetActiveSalesVariables, options?: ExecuteQueryOptions): QueryPromise<GetActiveSalesData, GetActiveSalesVariables>;
+export function getActiveSales(dc: DataConnect, vars: GetActiveSalesVariables, options?: ExecuteQueryOptions): QueryPromise<GetActiveSalesData, GetActiveSalesVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getActiveUdhaarsRef(vars: GetActiveUdhaarsVariables): QueryRef<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getActiveUdhaarsRef(dc: DataConnect, vars: GetActiveUdhaarsVariables): QueryRef<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
+interface GetActiveSaleItemsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetActiveSaleItemsVariables): QueryRef<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetActiveSaleItemsVariables): QueryRef<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
+  operationName: string;
+}
+export const getActiveSaleItemsRef: GetActiveSaleItemsRef;
 
-export function getActiveUdhaars(vars: GetActiveUdhaarsVariables): QueryPromise<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
-export function getActiveUdhaars(dc: DataConnect, vars: GetActiveUdhaarsVariables): QueryPromise<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
+export function getActiveSaleItems(vars: GetActiveSaleItemsVariables, options?: ExecuteQueryOptions): QueryPromise<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
+export function getActiveSaleItems(dc: DataConnect, vars: GetActiveSaleItemsVariables, options?: ExecuteQueryOptions): QueryPromise<GetActiveSaleItemsData, GetActiveSaleItemsVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getActiveExpensesRef(vars: GetActiveExpensesVariables): QueryRef<GetActiveExpensesData, GetActiveExpensesVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getActiveExpensesRef(dc: DataConnect, vars: GetActiveExpensesVariables): QueryRef<GetActiveExpensesData, GetActiveExpensesVariables>;
+interface GetActiveUdhaarsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetActiveUdhaarsVariables): QueryRef<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetActiveUdhaarsVariables): QueryRef<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
+  operationName: string;
+}
+export const getActiveUdhaarsRef: GetActiveUdhaarsRef;
 
-export function getActiveExpenses(vars: GetActiveExpensesVariables): QueryPromise<GetActiveExpensesData, GetActiveExpensesVariables>;
-export function getActiveExpenses(dc: DataConnect, vars: GetActiveExpensesVariables): QueryPromise<GetActiveExpensesData, GetActiveExpensesVariables>;
+export function getActiveUdhaars(vars: GetActiveUdhaarsVariables, options?: ExecuteQueryOptions): QueryPromise<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
+export function getActiveUdhaars(dc: DataConnect, vars: GetActiveUdhaarsVariables, options?: ExecuteQueryOptions): QueryPromise<GetActiveUdhaarsData, GetActiveUdhaarsVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getActiveSuppliersRef(vars: GetActiveSuppliersVariables): QueryRef<GetActiveSuppliersData, GetActiveSuppliersVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getActiveSuppliersRef(dc: DataConnect, vars: GetActiveSuppliersVariables): QueryRef<GetActiveSuppliersData, GetActiveSuppliersVariables>;
+interface GetActiveExpensesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetActiveExpensesVariables): QueryRef<GetActiveExpensesData, GetActiveExpensesVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetActiveExpensesVariables): QueryRef<GetActiveExpensesData, GetActiveExpensesVariables>;
+  operationName: string;
+}
+export const getActiveExpensesRef: GetActiveExpensesRef;
 
-export function getActiveSuppliers(vars: GetActiveSuppliersVariables): QueryPromise<GetActiveSuppliersData, GetActiveSuppliersVariables>;
-export function getActiveSuppliers(dc: DataConnect, vars: GetActiveSuppliersVariables): QueryPromise<GetActiveSuppliersData, GetActiveSuppliersVariables>;
+export function getActiveExpenses(vars: GetActiveExpensesVariables, options?: ExecuteQueryOptions): QueryPromise<GetActiveExpensesData, GetActiveExpensesVariables>;
+export function getActiveExpenses(dc: DataConnect, vars: GetActiveExpensesVariables, options?: ExecuteQueryOptions): QueryPromise<GetActiveExpensesData, GetActiveExpensesVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getUserRef(vars: GetUserVariables): QueryRef<GetUserData, GetUserVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getUserRef(dc: DataConnect, vars: GetUserVariables): QueryRef<GetUserData, GetUserVariables>;
+interface GetActiveSuppliersRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetActiveSuppliersVariables): QueryRef<GetActiveSuppliersData, GetActiveSuppliersVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetActiveSuppliersVariables): QueryRef<GetActiveSuppliersData, GetActiveSuppliersVariables>;
+  operationName: string;
+}
+export const getActiveSuppliersRef: GetActiveSuppliersRef;
 
-export function getUser(vars: GetUserVariables): QueryPromise<GetUserData, GetUserVariables>;
-export function getUser(dc: DataConnect, vars: GetUserVariables): QueryPromise<GetUserData, GetUserVariables>;
+export function getActiveSuppliers(vars: GetActiveSuppliersVariables, options?: ExecuteQueryOptions): QueryPromise<GetActiveSuppliersData, GetActiveSuppliersVariables>;
+export function getActiveSuppliers(dc: DataConnect, vars: GetActiveSuppliersVariables, options?: ExecuteQueryOptions): QueryPromise<GetActiveSuppliersData, GetActiveSuppliersVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getStoresPaginatedRef(): QueryRef<GetStoresPaginatedData, undefined>;
-/* Allow users to pass in custom DataConnect instances */
-export function getStoresPaginatedRef(dc: DataConnect): QueryRef<GetStoresPaginatedData, undefined>;
+interface GetUserRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetUserVariables): QueryRef<GetUserData, GetUserVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetUserVariables): QueryRef<GetUserData, GetUserVariables>;
+  operationName: string;
+}
+export const getUserRef: GetUserRef;
 
-export function getStoresPaginated(): QueryPromise<GetStoresPaginatedData, undefined>;
-export function getStoresPaginated(dc: DataConnect): QueryPromise<GetStoresPaginatedData, undefined>;
+export function getUser(vars: GetUserVariables, options?: ExecuteQueryOptions): QueryPromise<GetUserData, GetUserVariables>;
+export function getUser(dc: DataConnect, vars: GetUserVariables, options?: ExecuteQueryOptions): QueryPromise<GetUserData, GetUserVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getUsersPaginatedRef(): QueryRef<GetUsersPaginatedData, undefined>;
-/* Allow users to pass in custom DataConnect instances */
-export function getUsersPaginatedRef(dc: DataConnect): QueryRef<GetUsersPaginatedData, undefined>;
+interface GetStoresPaginatedRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<GetStoresPaginatedData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<GetStoresPaginatedData, undefined>;
+  operationName: string;
+}
+export const getStoresPaginatedRef: GetStoresPaginatedRef;
 
-export function getUsersPaginated(): QueryPromise<GetUsersPaginatedData, undefined>;
-export function getUsersPaginated(dc: DataConnect): QueryPromise<GetUsersPaginatedData, undefined>;
+export function getStoresPaginated(options?: ExecuteQueryOptions): QueryPromise<GetStoresPaginatedData, undefined>;
+export function getStoresPaginated(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetStoresPaginatedData, undefined>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getGlobalSettingsRef(): QueryRef<GetGlobalSettingsData, undefined>;
-/* Allow users to pass in custom DataConnect instances */
-export function getGlobalSettingsRef(dc: DataConnect): QueryRef<GetGlobalSettingsData, undefined>;
+interface GetUsersPaginatedRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<GetUsersPaginatedData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<GetUsersPaginatedData, undefined>;
+  operationName: string;
+}
+export const getUsersPaginatedRef: GetUsersPaginatedRef;
 
-export function getGlobalSettings(): QueryPromise<GetGlobalSettingsData, undefined>;
-export function getGlobalSettings(dc: DataConnect): QueryPromise<GetGlobalSettingsData, undefined>;
+export function getUsersPaginated(options?: ExecuteQueryOptions): QueryPromise<GetUsersPaginatedData, undefined>;
+export function getUsersPaginated(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetUsersPaginatedData, undefined>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getAdminAuditLogsRef(): QueryRef<GetAdminAuditLogsData, undefined>;
-/* Allow users to pass in custom DataConnect instances */
-export function getAdminAuditLogsRef(dc: DataConnect): QueryRef<GetAdminAuditLogsData, undefined>;
+interface GetGlobalSettingsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<GetGlobalSettingsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<GetGlobalSettingsData, undefined>;
+  operationName: string;
+}
+export const getGlobalSettingsRef: GetGlobalSettingsRef;
 
-export function getAdminAuditLogs(): QueryPromise<GetAdminAuditLogsData, undefined>;
-export function getAdminAuditLogs(dc: DataConnect): QueryPromise<GetAdminAuditLogsData, undefined>;
+export function getGlobalSettings(options?: ExecuteQueryOptions): QueryPromise<GetGlobalSettingsData, undefined>;
+export function getGlobalSettings(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetGlobalSettingsData, undefined>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getAnnouncementsRef(): QueryRef<GetAnnouncementsData, undefined>;
-/* Allow users to pass in custom DataConnect instances */
-export function getAnnouncementsRef(dc: DataConnect): QueryRef<GetAnnouncementsData, undefined>;
+interface GetAdminAuditLogsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<GetAdminAuditLogsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<GetAdminAuditLogsData, undefined>;
+  operationName: string;
+}
+export const getAdminAuditLogsRef: GetAdminAuditLogsRef;
 
-export function getAnnouncements(): QueryPromise<GetAnnouncementsData, undefined>;
-export function getAnnouncements(dc: DataConnect): QueryPromise<GetAnnouncementsData, undefined>;
+export function getAdminAuditLogs(options?: ExecuteQueryOptions): QueryPromise<GetAdminAuditLogsData, undefined>;
+export function getAdminAuditLogs(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetAdminAuditLogsData, undefined>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getPromoCodesRef(): QueryRef<GetPromoCodesData, undefined>;
-/* Allow users to pass in custom DataConnect instances */
-export function getPromoCodesRef(dc: DataConnect): QueryRef<GetPromoCodesData, undefined>;
+interface GetAnnouncementsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<GetAnnouncementsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<GetAnnouncementsData, undefined>;
+  operationName: string;
+}
+export const getAnnouncementsRef: GetAnnouncementsRef;
 
-export function getPromoCodes(): QueryPromise<GetPromoCodesData, undefined>;
-export function getPromoCodes(dc: DataConnect): QueryPromise<GetPromoCodesData, undefined>;
+export function getAnnouncements(options?: ExecuteQueryOptions): QueryPromise<GetAnnouncementsData, undefined>;
+export function getAnnouncements(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetAnnouncementsData, undefined>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncSuppliersRef(vars: SyncSuppliersVariables): QueryRef<SyncSuppliersData, SyncSuppliersVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncSuppliersRef(dc: DataConnect, vars: SyncSuppliersVariables): QueryRef<SyncSuppliersData, SyncSuppliersVariables>;
+interface GetPromoCodesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<GetPromoCodesData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<GetPromoCodesData, undefined>;
+  operationName: string;
+}
+export const getPromoCodesRef: GetPromoCodesRef;
 
-export function syncSuppliers(vars: SyncSuppliersVariables): QueryPromise<SyncSuppliersData, SyncSuppliersVariables>;
-export function syncSuppliers(dc: DataConnect, vars: SyncSuppliersVariables): QueryPromise<SyncSuppliersData, SyncSuppliersVariables>;
+export function getPromoCodes(options?: ExecuteQueryOptions): QueryPromise<GetPromoCodesData, undefined>;
+export function getPromoCodes(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetPromoCodesData, undefined>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncPurchasesRef(vars: SyncPurchasesVariables): QueryRef<SyncPurchasesData, SyncPurchasesVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncPurchasesRef(dc: DataConnect, vars: SyncPurchasesVariables): QueryRef<SyncPurchasesData, SyncPurchasesVariables>;
+interface SyncSuppliersRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncSuppliersVariables): QueryRef<SyncSuppliersData, SyncSuppliersVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncSuppliersVariables): QueryRef<SyncSuppliersData, SyncSuppliersVariables>;
+  operationName: string;
+}
+export const syncSuppliersRef: SyncSuppliersRef;
 
-export function syncPurchases(vars: SyncPurchasesVariables): QueryPromise<SyncPurchasesData, SyncPurchasesVariables>;
-export function syncPurchases(dc: DataConnect, vars: SyncPurchasesVariables): QueryPromise<SyncPurchasesData, SyncPurchasesVariables>;
+export function syncSuppliers(vars: SyncSuppliersVariables, options?: ExecuteQueryOptions): QueryPromise<SyncSuppliersData, SyncSuppliersVariables>;
+export function syncSuppliers(dc: DataConnect, vars: SyncSuppliersVariables, options?: ExecuteQueryOptions): QueryPromise<SyncSuppliersData, SyncSuppliersVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncPurchaseItemsRef(vars: SyncPurchaseItemsVariables): QueryRef<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncPurchaseItemsRef(dc: DataConnect, vars: SyncPurchaseItemsVariables): QueryRef<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+interface SyncPurchasesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncPurchasesVariables): QueryRef<SyncPurchasesData, SyncPurchasesVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncPurchasesVariables): QueryRef<SyncPurchasesData, SyncPurchasesVariables>;
+  operationName: string;
+}
+export const syncPurchasesRef: SyncPurchasesRef;
 
-export function syncPurchaseItems(vars: SyncPurchaseItemsVariables): QueryPromise<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
-export function syncPurchaseItems(dc: DataConnect, vars: SyncPurchaseItemsVariables): QueryPromise<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+export function syncPurchases(vars: SyncPurchasesVariables, options?: ExecuteQueryOptions): QueryPromise<SyncPurchasesData, SyncPurchasesVariables>;
+export function syncPurchases(dc: DataConnect, vars: SyncPurchasesVariables, options?: ExecuteQueryOptions): QueryPromise<SyncPurchasesData, SyncPurchasesVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function syncItemBatchesRef(vars: SyncItemBatchesVariables): QueryRef<SyncItemBatchesData, SyncItemBatchesVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function syncItemBatchesRef(dc: DataConnect, vars: SyncItemBatchesVariables): QueryRef<SyncItemBatchesData, SyncItemBatchesVariables>;
+interface SyncPurchaseItemsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncPurchaseItemsVariables): QueryRef<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncPurchaseItemsVariables): QueryRef<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+  operationName: string;
+}
+export const syncPurchaseItemsRef: SyncPurchaseItemsRef;
 
-export function syncItemBatches(vars: SyncItemBatchesVariables): QueryPromise<SyncItemBatchesData, SyncItemBatchesVariables>;
-export function syncItemBatches(dc: DataConnect, vars: SyncItemBatchesVariables): QueryPromise<SyncItemBatchesData, SyncItemBatchesVariables>;
+export function syncPurchaseItems(vars: SyncPurchaseItemsVariables, options?: ExecuteQueryOptions): QueryPromise<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
+export function syncPurchaseItems(dc: DataConnect, vars: SyncPurchaseItemsVariables, options?: ExecuteQueryOptions): QueryPromise<SyncPurchaseItemsData, SyncPurchaseItemsVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getItemsCountRef(vars: GetItemsCountVariables): QueryRef<GetItemsCountData, GetItemsCountVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getItemsCountRef(dc: DataConnect, vars: GetItemsCountVariables): QueryRef<GetItemsCountData, GetItemsCountVariables>;
+interface SyncItemBatchesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncItemBatchesVariables): QueryRef<SyncItemBatchesData, SyncItemBatchesVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncItemBatchesVariables): QueryRef<SyncItemBatchesData, SyncItemBatchesVariables>;
+  operationName: string;
+}
+export const syncItemBatchesRef: SyncItemBatchesRef;
 
-export function getItemsCount(vars: GetItemsCountVariables): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
-export function getItemsCount(dc: DataConnect, vars: GetItemsCountVariables): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
+export function syncItemBatches(vars: SyncItemBatchesVariables, options?: ExecuteQueryOptions): QueryPromise<SyncItemBatchesData, SyncItemBatchesVariables>;
+export function syncItemBatches(dc: DataConnect, vars: SyncItemBatchesVariables, options?: ExecuteQueryOptions): QueryPromise<SyncItemBatchesData, SyncItemBatchesVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getSalesCountRef(vars: GetSalesCountVariables): QueryRef<GetSalesCountData, GetSalesCountVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getSalesCountRef(dc: DataConnect, vars: GetSalesCountVariables): QueryRef<GetSalesCountData, GetSalesCountVariables>;
+interface GetItemsCountRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetItemsCountVariables): QueryRef<GetItemsCountData, GetItemsCountVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetItemsCountVariables): QueryRef<GetItemsCountData, GetItemsCountVariables>;
+  operationName: string;
+}
+export const getItemsCountRef: GetItemsCountRef;
 
-export function getSalesCount(vars: GetSalesCountVariables): QueryPromise<GetSalesCountData, GetSalesCountVariables>;
-export function getSalesCount(dc: DataConnect, vars: GetSalesCountVariables): QueryPromise<GetSalesCountData, GetSalesCountVariables>;
+export function getItemsCount(vars: GetItemsCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
+export function getItemsCount(dc: DataConnect, vars: GetItemsCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getUdhaarEntriesCountRef(vars: GetUdhaarEntriesCountVariables): QueryRef<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getUdhaarEntriesCountRef(dc: DataConnect, vars: GetUdhaarEntriesCountVariables): QueryRef<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
+interface GetSalesCountRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetSalesCountVariables): QueryRef<GetSalesCountData, GetSalesCountVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetSalesCountVariables): QueryRef<GetSalesCountData, GetSalesCountVariables>;
+  operationName: string;
+}
+export const getSalesCountRef: GetSalesCountRef;
 
-export function getUdhaarEntriesCount(vars: GetUdhaarEntriesCountVariables): QueryPromise<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
-export function getUdhaarEntriesCount(dc: DataConnect, vars: GetUdhaarEntriesCountVariables): QueryPromise<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
+export function getSalesCount(vars: GetSalesCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetSalesCountData, GetSalesCountVariables>;
+export function getSalesCount(dc: DataConnect, vars: GetSalesCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetSalesCountData, GetSalesCountVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getExpenseEntriesCountRef(vars: GetExpenseEntriesCountVariables): QueryRef<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getExpenseEntriesCountRef(dc: DataConnect, vars: GetExpenseEntriesCountVariables): QueryRef<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+interface GetUdhaarEntriesCountRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetUdhaarEntriesCountVariables): QueryRef<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetUdhaarEntriesCountVariables): QueryRef<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
+  operationName: string;
+}
+export const getUdhaarEntriesCountRef: GetUdhaarEntriesCountRef;
 
-export function getExpenseEntriesCount(vars: GetExpenseEntriesCountVariables): QueryPromise<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
-export function getExpenseEntriesCount(dc: DataConnect, vars: GetExpenseEntriesCountVariables): QueryPromise<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+export function getUdhaarEntriesCount(vars: GetUdhaarEntriesCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
+export function getUdhaarEntriesCount(dc: DataConnect, vars: GetUdhaarEntriesCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetUdhaarEntriesCountData, GetUdhaarEntriesCountVariables>;
 
-/* Allow users to create refs without passing in DataConnect */
-export function getStoreRef(vars: GetStoreVariables): QueryRef<GetStoreData, GetStoreVariables>;
-/* Allow users to pass in custom DataConnect instances */
-export function getStoreRef(dc: DataConnect, vars: GetStoreVariables): QueryRef<GetStoreData, GetStoreVariables>;
+interface GetExpenseEntriesCountRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetExpenseEntriesCountVariables): QueryRef<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetExpenseEntriesCountVariables): QueryRef<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+  operationName: string;
+}
+export const getExpenseEntriesCountRef: GetExpenseEntriesCountRef;
+
+export function getExpenseEntriesCount(vars: GetExpenseEntriesCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+export function getExpenseEntriesCount(dc: DataConnect, vars: GetExpenseEntriesCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetExpenseEntriesCountData, GetExpenseEntriesCountVariables>;
+
+interface GetStoreRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetStoreVariables): QueryRef<GetStoreData, GetStoreVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetStoreVariables): QueryRef<GetStoreData, GetStoreVariables>;
+  operationName: string;
+}
+export const getStoreRef: GetStoreRef;
 
 export function getStore(vars: GetStoreVariables): QueryPromise<GetStoreData, GetStoreVariables>;
 export function getStore(dc: DataConnect, vars: GetStoreVariables): QueryPromise<GetStoreData, GetStoreVariables>;
