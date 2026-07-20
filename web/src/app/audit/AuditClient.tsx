@@ -24,13 +24,13 @@ export default function AuditClient({
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
+
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [reasonFilter, setReasonFilter] = useState('');
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
-  
+
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const searchResultsKeyRef = useRef('');
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
@@ -235,36 +235,36 @@ export default function AuditClient({
             </div>
 
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1">
+              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 h-9">
                 <span className="text-xs text-gray-500 dark:text-gray-400">Reason:</span>
                 <select
                   value={reasonFilter}
                   onChange={(e) => { setReasonFilter(e.target.value); setCurrentPage(1); }}
-                  className="bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0 cursor-pointer pr-8"
+                  className="bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0 cursor-pointer pr-8 py-0"
                 >
-                  <option value="">All Reasons</option>
-                  <option value="Count Correction">Count Correction</option>
-                  <option value="Damage">Damage</option>
-                  <option value="Expiry">Expiry</option>
-                  <option value="Loss">Loss</option>
-                  <option value="Restock">Restock</option>
+                  <option className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white" value="">All Reasons</option>
+                  <option className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white" value="Count Correction">Count Correction</option>
+                  <option className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white" value="Damage">Damage</option>
+                  <option className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white" value="Expiry">Expiry</option>
+                  <option className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white" value="Loss">Loss</option>
+                  <option className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white" value="Restock">Restock</option>
                 </select>
               </div>
 
-              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1">
+              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 h-9">
                 <span className="text-xs text-gray-500 dark:text-gray-400">Date:</span>
                 <input
                   type="date"
                   value={startDateFilter}
                   onChange={(e) => { setStartDateFilter(e.target.value); setCurrentPage(1); }}
-                  className="w-[110px] px-1 py-1 bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0"
+                  className="w-[110px] px-1 py-0 bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0"
                 />
                 <span className="text-gray-300 dark:text-gray-600">-</span>
                 <input
                   type="date"
                   value={endDateFilter}
                   onChange={(e) => { setEndDateFilter(e.target.value); setCurrentPage(1); }}
-                  className="w-[110px] px-1 py-1 bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0"
+                  className="w-[110px] px-1 py-0 bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0"
                 />
               </div>
             </div>
