@@ -181,7 +181,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = stringResource(id = R.string.udh_title),
                             fontSize = 20.sp,
@@ -203,9 +203,10 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                             dialogType = "CREDIT"
                             showDialog = true
                         },
+                        modifier = Modifier.height(36.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onPrimary, contentColor = MaterialTheme.colorScheme.primary),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
                     ) {
                         Icon(Icons.Default.Add, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
@@ -467,7 +468,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 maxLines = 1,
-                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                                modifier = Modifier.autoMarquee(),
                                             )
                                             Text(
                                                 bal.netBalance.toRupee(),
@@ -1197,7 +1198,7 @@ fun UdhaarCustomerCard(
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    modifier = Modifier.autoMarquee()
                 )
                 Text(
                     text =

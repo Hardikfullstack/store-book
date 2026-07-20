@@ -34,6 +34,30 @@ estimated_effort_m: ~8-10
 
 ---
 
+### v1.3.2 — Test Automation & Stability Guardrails (Target: after v1.3.1 Verifications)
+
+epics: [e30, e31, e32]
+focus: >
+  Establish a comprehensive automated testing strategy to prevent future regressions.
+  This includes UI Snapshot testing for layout stability, Unit testing for ViewModel/Flow
+  and SQLDelight queries, and a CI/CD pipeline to block broken PRs.
+
+stories_included:
+  - "e30-s1: Configure UI Snapshot Testing framework"
+  - "e30-s2: Capture Baseline Snapshots for Core Screens"
+  - "e31-s2: Test SQLDelight Queries in Memory"
+  - "e31-s3: Test ViewModel Business Logic (Turbine/MockK)"
+  - "e32-s2: Set up GitHub Actions Workflow for CI/CD"
+
+gate_criteria:
+  - "GitHub Action runs successfully on PR creation"
+  - "At least 4 core screens have passing Paparazzi/Roborazzi snapshot baselines"
+  - "Dashboard and Sales ViewModel unit tests achieve 80%+ coverage on business logic"
+
+estimated_effort_m: ~5-7
+
+---
+
 ### v1.4.0 — Financial Accuracy (Target: after v1.3.0)
 
 epics: [e03]

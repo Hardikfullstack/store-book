@@ -1,0 +1,65 @@
+epic_id: e32
+title: "CI/CD Pipeline & Static Analysis"
+priority: P0
+status: defined
+target_version: v1.3.2
+description: |
+  Automate the execution of tests, linting, and code quality analysis to guard against regressions on every push/PR.
+  Establish a robust GitHub Actions pipeline that builds, lints, tests, and enforces coverage gates — so no broken build,
+  formatting violation, or complexity spike ever merges uncaught.
+
+  This epic also covers secure secrets management (Firebase config), reproducible local↔CI parity, build caching to keep
+  CI under 5min, and release-automation guardrails (versioning checks, signoff requirements) that protect production APKs.
+
+success_criteria:
+  - "A GitHub Actions workflow automatically builds, lints, and runs tests on every push to `main` or PR targeting `main`."
+  - "Static analysis tools (ktlint, detekt, Android Lint) are configured with zero-tolerance for critical issues."
+  - "CI pipeline enforces code coverage gates and caches Gradle dependencies/build-cache to minimize build times."
+  - "Secrets (firebase.json, signing keys) are never checked into git; CI injects them securely via encrypted env vars."
+
+stories:
+  - id: e32-s1
+    title: "Configure Strict Static Analysis & Code Quality Gates"
+    acceptance:
+      - "ktlint is integrated via Spotless plugin to enforce consistent Kotlin formatting on every file touched by the PR."
+      - "detekt is configured with a custom baseline. Ruleset catches: Cyclomatic Complexity > 15, too-many-parameters (>6), long methods (>60 LOC), unused private members, and magic numbers outside tests."
+      - "Android Lint is configured to fail on `Error` and `Fatal` severity issues (missing translations, hardcoded strings, accessibility contentDescription gaps, deprecated API usage)."
+      - "Corner Case: Ensure auto-generated files (SQLDelight output, Navigation Compose generated routes, R8 mapping intermediates) are EXPLICITLY excluded from ktlint/detekt to avoid impossible-to-fix false positives."
+      - "Corner Case: detekt baseline file must be committed. When a new rule is added that violates existing code, the CI fails until the developer either fixes the violation or consciously updates the baseline with `./gradlew detektGenerateBaseline`."
+      - "Corner Case: Verify that ktlint auto-format does NOT corrupt multiline SQL strings inside SQLDelight .sq files — exclude `**/*.sq` from spotless formatting if needed."
+
+  - id: e32-s2
+    title: "Set up Optimized GitHub Actions CI Workflow"
+    acceptance:
+      - ".github/workflows/android.yml is created to trigger on push to `main` and PRs targeting `main`."
+      - "Workflow runs the pipeline: `./gradlew ktlintCheck detekt lintKotlin testDebugUnitTest jacocoTestReport verifyRoborazzi` — order matters so cheap checks fail fast before expensive builds."
+      - "Corner Case: Implement Gradle Build Cache (`--build-cache`) and dependency caching via actions/cache (key: hash of build.gradle.kts + settings.gradle.kts). CI must complete full pipeline in under 6 minutes on ubuntu-latest with 2 CPU cores."
+      - "Corner Case: Matrix testing. Run tests against JDK 17 AND verify that the workflow explicitly pins Java toolchain to prevent runner environment drift when GitHub updates default images."
+      - "Corner Case: If snapshot verification fails, CI must upload the diff artifacts (PNG) as build artifacts so reviewers can visually inspect what changed without re-running manually."
+      - "Corner Case: Handle flaky test failures gracefully. Add the `./gradlew test --rerun-tasks --fail-fast` flag but also configure a retry mechanism for known-flaky Roborazzi tests using gradle-retry-plugin (max 2 retries)."
+
+  - id: e32-s3
+    title: "Enforce PR Validation & Coverage Policies"
+    acceptance:
+      - "Configure PR title linting via action to enforce Conventional Commits format (`feat:`, `fix:`, `chore:`, `refactor:`). Non-conforming PR titles get a failing check with helpful instructions."
+      - "JaCoCo report is generated after each test run. Thresholds are enforced:"
+        - "Overall business logic (Repositories + ViewModels) ≥ 75% line coverage"
+        - "New code introduced by PR must not drop overall coverage below baseline by more than 2%"
+      - "Corner Case: CI must fail if tests produce zero bytecode output (empty test suite). Prevents accidental merge of a commit that deletes all test files."
+      - "Corner Case: Build cache must be SHARED across workflows but ISOLATED per branch. A PR's cached outputs must not leak into another contributor's branch builds (use `${{ github.ref }}` in cache key prefix)."
+
+  - id: e32-s4
+    title: "Secrets Management & Secure Release Pipeline"
+    acceptance:
+      - "Firebase `google-services.json` and any API keys are NEVER checked into git. CI workflow injects them via GitHub encrypted secrets + write-to-file-before-build step."
+      - "Corner Case: Verify that the generated APK from CI does NOT contain debuggable=true or log-sensitive data leaks. Add a lint check that scans for `Log.d`, `printStackTrace()`, or raw key strings in production code."
+      - "Signing config must use encrypted keystore secrets stored in GitHub repo-level secrets. Local developer builds use a separate debug keystore committed in .gitignore'd local.properties."
+      - "Corner Case: Workflow must fail loudly (NOT silently skip) if required secret is missing. Use `if: env.MY_SECRET == ''` early-exit with actionable error message pointing to docs on how maintainers enable secrets."
+
+  - id: e32-s5
+    title: "Release Automation Guards"
+    acceptance:
+      - "On pushes to tags matching `v*`, CI triggers an additional workflow that assembles a signed release APK and uploads it as a GitHub Release artifact with checksum (SHA-256)."
+      - "Corner Case: Before assembling release, CI must verify that `versionCode` in build.gradle.kts has INCREMENTED since last tag. If unchanged, fail with message: 'versionCode not incremented since vX.Y.Z'."
+      - "Corner Case: Release workflow requires TWO approved reviews before the green 'Approve' button on PR targeting main merges — enforced via CODEOWNERS + branch protection rule."
+      - "Add a Gradle task `./gradlew assembleReleaseWithSignature` that only works in CI (fails locally if signing secrets are absent). Prevents unauthorized local release builds by contributors without access to keystore."

@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
+import com.storebook.inventoryapp.utils.autoMarquee
 
 @Composable
 fun <T> StoreBookAutocompleteDropdown(
@@ -64,7 +65,7 @@ fun <T> StoreBookAutocompleteDropdown(
                                 color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 2,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                modifier = Modifier.autoMarquee()
                             )
                             additionalContent?.invoke(item)
                         }

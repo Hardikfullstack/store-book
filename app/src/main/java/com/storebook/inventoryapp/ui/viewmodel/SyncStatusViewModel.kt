@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -172,6 +173,3 @@ class SyncStatusViewModel(
     }
 }
 
-// Extension helpers to make .map work nicely on StateFlow without an import everywhere
-private fun <T, R> kotlinx.coroutines.flow.StateFlow<T>.map(transform: (T) -> R): kotlinx.coroutines.flow.Flow<R> =
-    this.map { transform(it) }

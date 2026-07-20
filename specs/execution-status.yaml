@@ -165,3 +165,12 @@ next_steps:
           backup timestamp display, Cancel + Restore buttons (Cancel = surfaceVariant color,
           Restore = secondary color with 🔄 icon).
         - Inline LinearProgressIndicator during restore showing stage progress.
+
+  - complete: "UI Polish — Android Dashboard & Layout Fixes",
+    notes: |
+      - Dashboard TopBar redesigned to use a vertically stacked layout instead of autoMarquee to prevent horizontal squishing on narrow screens.
+      - Removed redundant Quick Action Chips (horizontal scroll row) from Dashboard to reduce visual clutter.
+      - Restored global SpeedDialFab on the Dashboard screen for primary actions (New Sale, Udhaar, Add Stock, Expense).
+      - Fixed "Add" button vertical stretch bug in UdhaarScreen.
+      - Fixed AlphabetScrubber rendering in UdhaarScreen where alphabets were partially clipped (adjusted height/weight constraints).
+      - Applied autoMarquee to various OutlinedTextField labels and placeholders across Sales and Inventory screens to gracefully handle long text strings without breaking layout.

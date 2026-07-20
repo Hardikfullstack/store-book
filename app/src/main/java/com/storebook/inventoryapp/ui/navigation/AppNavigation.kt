@@ -893,7 +893,6 @@ private fun ModernBottomNavBar(
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         fontFamily = Poppins,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                         modifier = androidx.compose.ui.Modifier.autoMarquee()
                     )
                 },

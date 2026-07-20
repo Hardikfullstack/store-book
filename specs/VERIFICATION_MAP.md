@@ -27,6 +27,9 @@ This document maps every logic domain in the StoreBook Android app to a verifica
 | **e15** | ⏰ ExpiryCheckWorker | Expiry detection within 7-day window, low-stock threshold alerts, worker scheduling respects battery limits | 3 |
 | **e16** | 📦 Purchase & Supplier | Purchase adds stock correctly to inventory, purchase history sorted/filterable, supplier CRUD with FK protection | 3 |
 | **e17** | 🚀 App Launch & Nav | Splash→Auth routing, config change survival (rotation), offline-first mode works fully without network | 3 |
+| **e30** | 📸 UI Snapshot Testing | Prevent layout regressions using Paparazzi/Roborazzi for Dashboard, Sales, Udhaar, and Inventory screens | 3 |
+| **e31** | 🧪 Unit & DB Testing | JUnit4 + Turbine for Flow testing, and SQLDelight JdbcSqliteDriver for in-memory DB operations | 3 |
+| **e32** | ⚙️ CI/CD & Linting | ktlint, detekt, and GitHub Actions configuration to block PRs on failed tests or lint rules | 2 |
 
 ### P1 — Should Verify (Financial Records & Gating)
 

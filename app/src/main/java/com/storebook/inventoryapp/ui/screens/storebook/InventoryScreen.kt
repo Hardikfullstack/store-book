@@ -2226,8 +2226,7 @@ fun InventoryItemCard(
                             fontSize = 16.sp,
                             color = if (isLowStock) lowStockTextColor else Color.Unspecified,
                             maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false),
+                            modifier = Modifier.weight(1f, fill = false).autoMarquee(),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     // Category Badge

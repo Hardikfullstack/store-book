@@ -330,125 +330,148 @@ fun DashboardScreen(
                                         .statusBarsPadding()
                                         .padding(horizontal = 24.dp, vertical = 22.dp),
                 ) {
-                    Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                    Column(
+                            modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column {
+                        // Top Row: Greeting and Avatar
+                        Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Top,
+                        ) {
+                            // Greeting Row
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                val greetingIcon =
-                                        when {
-                                            hourOfDay < 12 -> Icons.Filled.WbTwilight
-                                            hourOfDay < 17 -> Icons.Filled.WbSunny
-                                            else -> Icons.Filled.ModeNight
-                                        }
+                                val greetingIcon = when {
+                                    hourOfDay < 12 -> Icons.Filled.WbTwilight
+                                    hourOfDay < 17 -> Icons.Filled.WbSunny
+                                    else -> Icons.Filled.ModeNight
+                                }
                                 Icon(
                                         greetingIcon,
-                                        contentDescription =
-                                                stringResource(R.string.ui_element_desc),
+                                        contentDescription = stringResource(R.string.ui_element_desc),
                                         modifier = Modifier.size(15.dp),
-                                        tint =
-                                                MaterialTheme.colorScheme.onPrimary.copy(
-                                                        alpha = 0.75f
-                                                )
+                                        tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
                                 )
                                 Spacer(Modifier.width(4.dp))
                                 Text(
                                         text = "$greetingStr!",
                                         fontSize = 12.sp,
-                                        color =
-                                                MaterialTheme.colorScheme.onPrimary.copy(
-                                                        alpha = 0.75f
-                                                ),
+                                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
                                         fontWeight = FontWeight.Medium,
                                         letterSpacing = 0.2.sp,
                                 )
                             }
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                        text = stringResource(id = R.string.app_name),
-                                        style =
-                                                MaterialTheme.typography.titleLarge.copy(
-                                                        fontWeight = FontWeight.ExtraBold,
-                                                        fontSize = 24.sp,
-                                                ),
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                )
-                            }
-                            Text(
-                                    text = stringResource(id = R.string.dash_subtitle),
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                                    fontWeight = FontWeight.Medium,
-                            )
-                        }
 
-                        Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            // Premium pill badge
+                            // Profile Avatar
+                            val auth = remember { com.google.firebase.auth.FirebaseAuth.getInstance() }
+                            val currentUser = auth.currentUser
+                            val avatarLetter = remember(currentUser) {
+                                val phone = currentUser?.phoneNumber
+                                if (phone != null && phone.length > 3) {
+                                    val digits = phone.filter { it.isDigit() }
+                                    if (digits.isNotEmpty()) {
+                                        val mainNumber = if (digits.length >= 10) digits.takeLast(10) else digits
+                                        mainNumber.take(1).uppercase()
+                                    } else {
+                                        "S"
+                                    }
+                                } else {
+                                    "S"
+                                }
+                            }
+
                             Box(
-                                    modifier =
-                                            Modifier.clip(RoundedCornerShape(20.dp))
-                                                    .background(
-                                                            if (viewModel.isPremiumUser) {
-                                                                Gold400
-                                                            } else {
-                                                                MaterialTheme.colorScheme.onPrimary
-                                                                        .copy(alpha = 0.15f)
-                                                            },
-                                                    )
-                                                    .clickable(onClickLabel = "Action") {
-                                                        navController.navigate(Routes.PremiumPlans)
-                                                    }
-                                                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                                    modifier = Modifier
+                                            .size(32.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f))
+                                            .clickable(onClickLabel = "Action") {
+                                                if (currentUser == null) {
+                                                    navController.navigate(Routes.Auth)
+                                                } else {
+                                                    android.widget.Toast.makeText(
+                                                            context,
+                                                            "Logged in: ${currentUser.phoneNumber}",
+                                                            android.widget.Toast.LENGTH_SHORT,
+                                                    ).show()
+                                                }
+                                            },
+                                    contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                        text = if (viewModel.isPremiumUser) "★ PRO" else "FREE",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color =
-                                                if (viewModel.isPremiumUser) Color(0xFF452E00)
-                                                else MaterialTheme.colorScheme.onPrimary,
+                                        text = avatarLetter,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
                                 )
                             }
+                        }
 
-                            // ==========================================================================
-                            // E01-S4 Sync Status Badge — shows syncing/synced/failed + tap-to-retry
-                            // ==========================================================================
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Middle Row: Title, PRO badge, Synced Badge
+                        Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                        text = stringResource(id = R.string.app_name),
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontSize = 24.sp,
+                                        ),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                )
+                                // Premium pill badge
+                                Box(
+                                        modifier = Modifier
+                                                .clip(RoundedCornerShape(20.dp))
+                                                .background(
+                                                        if (viewModel.isPremiumUser) Gold400
+                                                        else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
+                                                )
+                                                .clickable(onClickLabel = "Action") {
+                                                    navController.navigate(Routes.PremiumPlans)
+                                                }
+                                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                                ) {
+                                    Text(
+                                            text = if (viewModel.isPremiumUser) "★ PRO" else "FREE",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = if (viewModel.isPremiumUser) Color(0xFF452E00)
+                                            else MaterialTheme.colorScheme.onPrimary,
+                                    )
+                                }
+                            }
+
                             val isSyncing = uiSyncStatus.isSyncing
-                            val syncBadgeColor =
-                                    when {
-                                        isSyncing ->
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                                        uiSyncStatus.status in listOf("DONE") ->
-                                                androidx.compose.ui.graphics.Color(0xFF4CAF50)
-                                                        .copy(alpha = 0.18f)
-                                        else -> MaterialTheme.colorScheme.error.copy(alpha = 0.18f)
-                                    }
-                            val syncLabelText =
-                                    when (uiSyncStatus.status) {
-                                        "PUSHING" -> "Pushing…"
-                                        "PULLING" -> "Pulling…"
-                                        "DONE", "IDLE" -> "✓ Synced"
-                                        "FAILED" ->
-                                                if (uiSyncStatus.failedCount > 0)
-                                                        "⚠ Failed · ${uiSyncStatus.failedCount}"
-                                                else "Failed"
-                                        else -> "⏸ Idle"
-                                    }
+                            val syncBadgeColor = when {
+                                isSyncing -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                uiSyncStatus.status in listOf("DONE") -> androidx.compose.ui.graphics.Color(0xFF4CAF50).copy(alpha = 0.18f)
+                                else -> MaterialTheme.colorScheme.error.copy(alpha = 0.18f)
+                            }
+                            val syncLabelText = when (uiSyncStatus.status) {
+                                "PUSHING" -> "Pushing…"
+                                "PULLING" -> "Pulling…"
+                                "DONE", "IDLE" -> "✓ Synced"
+                                "FAILED" -> if (uiSyncStatus.failedCount > 0) "⚠ Failed · ${uiSyncStatus.failedCount}" else "Failed"
+                                else -> "⏸ Idle"
+                            }
 
                             Box(
-                                    modifier =
-                                            Modifier.clip(RoundedCornerShape(20.dp))
-                                                    .background(syncBadgeColor)
-                                                    .clickable(onClickLabel = "Retry sync") {
-                                                        viewModel.retrySync()
-                                                    }
-                                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    modifier = Modifier
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .background(syncBadgeColor)
+                                            .clickable(onClickLabel = "Retry sync") {
+                                                viewModel.retrySync()
+                                            }
+                                            .padding(horizontal = 10.dp, vertical = 4.dp),
                             ) {
                                 Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -456,84 +479,31 @@ fun DashboardScreen(
                                 ) {
                                     Icon(
                                             if (isSyncing) Icons.Default.Notifications
-                                            else if (uiSyncStatus.status == "FAILED")
-                                                    Icons.Default.Warning
+                                            else if (uiSyncStatus.status == "FAILED") Icons.Default.Warning
                                             else Icons.Outlined.CheckCircleOutline,
                                             contentDescription = "Sync status",
-                                            modifier = Modifier.size(14.dp),
-                                            tint =
-                                                    MaterialTheme.colorScheme.onPrimary.copy(
-                                                            alpha = 0.8f
-                                                    )
+                                            modifier = Modifier.size(12.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                                     )
                                     Text(
                                             text = syncLabelText,
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color =
-                                                    MaterialTheme.colorScheme.onPrimary.copy(
-                                                            alpha = 0.85f
-                                                    ),
+                                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
                                     )
                                 }
                             }
-
-                            // Profile Avatar
-                            val auth = remember {
-                                com.google.firebase.auth.FirebaseAuth.getInstance()
-                            }
-                            val currentUser = auth.currentUser
-                            val avatarLetter =
-                                    remember(currentUser) {
-                                        val phone = currentUser?.phoneNumber
-                                        if (phone != null && phone.length > 3) {
-                                            val digits = phone.filter { it.isDigit() }
-                                            if (digits.isNotEmpty()) {
-                                                // Skip the country code if possible by taking last
-                                                // 10, then first
-                                                val mainNumber =
-                                                        if (digits.length >= 10) digits.takeLast(10)
-                                                        else digits
-                                                mainNumber.take(1).uppercase()
-                                            } else {
-                                                "S"
-                                            }
-                                        } else {
-                                            "S"
-                                        }
-                                    }
-
-                            Box(
-                                    modifier =
-                                            Modifier.size(40.dp)
-                                                    .clip(CircleShape)
-                                                    .background(
-                                                            MaterialTheme.colorScheme.onPrimary
-                                                                    .copy(alpha = 0.15f)
-                                                    )
-                                                    .clickable(onClickLabel = "Action") {
-                                                        if (currentUser == null) {
-                                                            navController.navigate(Routes.Auth)
-                                                        } else {
-                                                            android.widget.Toast.makeText(
-                                                                            context,
-                                                                            "Logged in: ${currentUser.phoneNumber}",
-                                                                            android.widget.Toast
-                                                                                    .LENGTH_SHORT,
-                                                                    )
-                                                                    .show()
-                                                        }
-                                                    },
-                                    contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                        text = avatarLetter,
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
-                                )
-                            }
                         }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // Bottom Row: Subtitle
+                        Text(
+                                text = stringResource(id = R.string.dash_subtitle),
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                fontWeight = FontWeight.Medium,
+                        )
                     }
                 }
             },
@@ -599,62 +569,7 @@ fun DashboardScreen(
                     }
                 }
 
-                // Command Center - Quick Action Chips
-                item {
-                    LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            contentPadding = PaddingValues(horizontal = 4.dp),
-                    ) {
-                        item {
-                            FilterChip(
-                                    selected = false,
-                                    onClick = { navController.navigate(Routes.Sales) },
-                                    label = { Text("New Sale", fontWeight = FontWeight.Bold, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                    leadingIcon = {
-                                        Icon(
-                                                Icons.Default.ShoppingCart,
-                                                contentDescription =
-                                                        stringResource(R.string.ui_element_desc),
-                                                modifier = Modifier.size(16.dp)
-                                        )
-                                    },
-                                    shape = RoundedCornerShape(16.dp),
-                            )
-                        }
-                        item {
-                            FilterChip(
-                                    selected = false,
-                                    onClick = { navController.navigate(Routes.Udhaar) },
-                                    label = { Text("Give Udhaar", fontWeight = FontWeight.Bold, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                    leadingIcon = {
-                                        Icon(
-                                                Icons.Default.AccountCircle,
-                                                contentDescription =
-                                                        stringResource(R.string.ui_element_desc),
-                                                modifier = Modifier.size(16.dp)
-                                        )
-                                    },
-                                    shape = RoundedCornerShape(16.dp),
-                            )
-                        }
-                        item {
-                            FilterChip(
-                                    selected = false,
-                                    onClick = { navController.navigate(Routes.Inventory) },
-                                    label = { Text("Add Stock", fontWeight = FontWeight.Bold, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                    leadingIcon = {
-                                        Icon(
-                                                Icons.Default.Add,
-                                                contentDescription =
-                                                        stringResource(R.string.ui_element_desc),
-                                                modifier = Modifier.size(16.dp)
-                                        )
-                                    },
-                                    shape = RoundedCornerShape(16.dp),
-                            )
-                        }
-                    }
-                }
+
 
                 // Low-stock alert panel
                 if (lowStockItems.isNotEmpty()) {
@@ -1378,7 +1293,7 @@ fun AnimatedMetricCard(
                         fontWeight = FontWeight.ExtraBold,
                         fontFamily = Inter,
                         maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.autoMarquee(),
                 )
             }
         }
@@ -1429,7 +1344,7 @@ fun SaleTimelineCard(
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        modifier = Modifier.autoMarquee()
                 )
                 if (sale.items.size == 1) {
                     val item = sale.items.first()
@@ -1441,7 +1356,7 @@ fun SaleTimelineCard(
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            modifier = Modifier.autoMarquee()
                     )
                     Text(
                             text = saleTime,
