@@ -5,7 +5,11 @@ session:
   active_epic_id: e01
   active_story_id: e03-s4          # Next: E04 stories or additional E03 work
   handoff:
-    next_skill: implement          # Execute RP-A0 ✅ DONE → now E01/E02 epic stories
+    next_skill: implement          # Execute epic stories (map-codebase ✅ DONE)
+  map_codebase:
+    status: complete
+    completed_at: "2026-07-13"
+    summary: "Full tech stack doc generated. Android 32,176 LOC | Web 8,831 LOC | Shared KMP 747 LOC | 15 Data Connect tables | Zero tests on either platform"
   rp_a0:
     status: complete
     completed_at: "2026-07-13"

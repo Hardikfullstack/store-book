@@ -53,8 +53,8 @@ store-book/
 | **UI Framework** | Jetpack Compose | composeBom 2024.01.00 | Full declarative UI |
 | **Navigation** | Compose Navigation | 2.7.6 | Single-activity nav graph |
 | **Architecture** | MVVM + Coroutine Flows | — | ViewModels + `ViewModelFactory` |
-| **DI** | Manual DI via ViewModelFactory | — | No Hilt/Koin; manual injection of repository |
-| **Sync Scheduler** | WorkManager | — | SyncWorker (periodic, constraints-based) |
+| **DI** | Manual DI via ViewModelFactory | — | No Hilt/Koin; injection of shared KMP repo + auth provider
+| **Data layer files** | Various (see §6.2) | — | SyncWorker 408, LegacySyncHelper 240, PlayBillingManager 227, BillingEngine 157 |
 | **Barcode Scanning** | ML Kit Barcode Scanning | — | Runtime permission flow in SplashActivity |
 | **PDF Generation** | iText 7 + OpenHTMLtoPDF | 7.x / 1.0.53 | Sales invoice PDF with QR codes |
 | **Local Storage** | SQLDelight (via shared KMP) | — | Local offline cache |
@@ -127,29 +127,29 @@ store-book/
 - **Single Activity**: `MainActivity` hosts Compose navigation graph
 - **SplashActivity**: Handles init — checks internet, verifies barcode camera permissions, navigates to MainActivity or shows permission dialog
 - **ViewModel Factory**: Manual DI pattern; instantiates ViewModels with shared repository instances + auth provider
-- **Repository**: `StoreBookRepository.kt` bridges SQLDelight (local) → Firebase Data Connect (remote) via suspend functions + coroutines
+- **Data layer**: SyncWorker (408 LOC), LegacySyncHelper (240 LOC), PlayBillingManager (227 LOC), BillingEngine (157 LOC) + network client layers
 - **⚠️ HARD REQUIREMENT — SQLDelight Migration**: Current codebase uses raw `SQLiteOpenHelper` (`LegacySyncHelper.kt`) and Room-backed queries. These must be replaced with SQLDelight generated DAOs before ANY epic story implementation begins. See `REFACTOR_LATEST.md §A (RP-A0)` for migration plan. Dependency exists in build.gradle.kts but zero `.sq` files written yet.
-- **SyncWorker**: `WorkManager` periodic worker that pushes local changes to remote and pulls remote changes down; uses high-water mark timestamps
+---
 
 ### 3.3 Web Layer Details
 
-```
+`````
 web/src/app/layout.tsx (async RootLayout)
 ├── getSession() → server-side session cookie validation
 ├── ThemeProvider → next-themes (light/dark mode, system default)
 ├── StoreProvider → Redux Toolkit store hydration
 └── Sidebar + {children} per route
 
-Redux Slices (web/src/store/):
-- authSlice.ts          — login/logout state
-- dashboardSlice.ts     — dashboard KPIs
-- salesSlice.ts         — sales listing + thunks
-- inventorySlice.ts     — items CRUD + low stock alerts
-- udhaarSlice.ts        — credit entries
-- purchaseSlice.ts      — supplier purchases
-- expenseSlice.ts       — expense tracking
-- quotationSlice.ts     → quotations → convert to sale
-```
+└── Sidebar + {children} per route
+
+Redux Slices (web/src/store/) — 171 LOC total across 4 files:
+- cartSlice.ts          — Cart management (55 LOC)
+- udhaarSlice.ts        — Credit/udhaar entries (42 LOC) 
+- inventorySlice.ts     — Item CRUD state (38 LOC)
+- index.ts              — Store config + reducer merge (36 LOC)
+
+**Note**: Web Redux is intentionally lightweight. Most data operations route directly through Firebase Data Connect from Client components rather than Redux thunks.
+`````
 
 ### 3.4 Data Connect Entity Model (15 Tables)
 
@@ -247,21 +247,22 @@ Redux Slices (web/src/store/):
 
 | Layer | Files (est.) | LOC Range | Notes |
 |-------|-------------|-----------|-------|
-| Android Kotlin (`app/src/main`) | ~50-70 .kt files | ~8,000-12,000 | Including data, ui, navigation, sync |
+| Android Kotlin (`app/src/main`) | ~50-70 .kt files | **32,176** | Including data, ui, navigation, sync |
 | Shared KMP (`shared/commonMain`) | ~15 .kt files | ~747 | Domain models + repo interfaces |
-| Web TypeScript/TSX (`web/src`) | ~40-60 .ts/.tsx | ~3,000-5,000 | App router, slices, components, API |
+| Web TypeScript/TSX (`web/src`) | ~40-60 .ts/.tsx | **8,831** | App router, slices, components, API |
 | Data Connect (GQL) | 3 files | ~800+ combined | Schema + queries + mutations |
 
 ### 6.2 Hotspot Files
 
 | File | LOC | Concern |
 |------|-----|---------|
-| `data/repository/StoreBookRepository.kt` | ~1,500+ **(estimated from pattern density)** | Single monolith bridging all CRUD across 9 entity domains; 0 explicit try/catch lines found but heavy suspend/Flow usage |
+| `ui/viewmodel/MoreViewModel.kt` | 350 | Largest ViewModel — multi-feature consolidation |
+| `data/sync/SyncWorker.kt` | 408 | Offline sync orchestration; 46 error-handling references |
+| `data/sync/LegacySyncHelper.kt` | 240 | Legacy sync migration path (alongside modern SyncWorker) |
 | `ui/viewmodel/DashboardViewModel.kt` | 221 | Dashboard analytics + KPI loading |
-| `ui/viewmodel/MoreViewModel.kt` | 350 | Largest ViewModel — likely multi-feature consolidation |
 | `ui/viewmodel/SalesViewModel.kt` | 220 | Sales CRUD + batch operations |
 | `ui/viewmodel/InventoryViewModel.kt` | 216 | Item inventory management |
-| `data/sync/SyncWorker.kt` | 408 | Offline sync orchestration; 46 error-handling references |
+| `data/play/PlayBillingManager.kt` | 227 | Google Play billing subscriptions |
 
 ### 6.3 API Surface (Web)
 
@@ -285,7 +286,7 @@ Redux Slices (web/src/store/):
 
 | Pattern | Android | Web | Assessment |
 |---------|---------|-----|------------|
-| Structured error handling (try/catch) in Repository | Low coverage | — | `StoreBookRepository.kt` relies on Flow errors rather than explicit try/catch; crash risk on unhandled coroutine exceptions |
+| Structured error handling (try/catch) in **Data layer** | Low coverage | — | SyncWorker uses extensive try/catch/Result patterns (46 refs), but ViewModels and repository impls rely on unstructured Flow errors. Crash risk on unhandled coroutine exceptions.
 | console.error usage | N/A | ~50+ occurrences across Client components | Errors logged to browser console but never shown to user as in-app toasts/banners |
 | Worker retry behavior | WorkManager handles retry | — | SyncWorker has error handling (46 references) but no circuit-breaker or backoff cap observed |
 | Surface feedback | Limited Toast calls | No unified error boundary | User-facing error UX is sparse |
@@ -343,9 +344,9 @@ Redux Slices (web/src/store/):
 ```
 User Action → Compose Screen → ViewModel (LiveData/StateFlow)
                                       │
-                              StoreBookRepository.suspend()
+                              [Repository Interface].suspend()
                                       │
-                        ┌─────────────┴─────────────┐
+                        ┌─────────────┴──────────────┐
                         │                           │
                 SQLDelight Local DB         Firebase Data Connect (Remote)
                 (offline primary)           (sync via GraphQL mutations)
@@ -379,17 +380,16 @@ User Action → Client Component → Redux dispatch()
 |---|--------|----------|----------------|
 | 0 | **SQLDelight hard requirement not yet enforced** | `LegacySyncHelper.kt`, `SyncWorker.kt`, `ExpiryCheckWorker.kt`, `ViewModelFactory.kt` — all use raw SQLiteOpenHelper/Room; zero `.sq` files exist despite dependency in build.gradle.kts | **RP-A0: Full SQLDelight migration before ANY epic implementation. See `REFACTOR_LATEST.md §A`.** Compile-time query validation, type-safe DAOs, migration safety.** |
 | 1 | **Zero test coverage** | Android + Web both have 0 test files | Establish baseline unit tests for Repository and Redux slices first |
-| 2 | **Monolithic StoreBookRepository** | `data/repository/StoreBookRepository.kt` | Split per domain (SalesRepo, InventoryRepo, etc.) mirroring the 9 shared KMP interfaces |
-| 3 | **No crash observability** | Both platforms | Add Firebase Crashlytics (Android) + Sentry/ErrorBoundary (Web) before next release |
+| 2 | **No crash observability** | Both platforms | Add Firebase Crashlytics (Android) + Sentry/ErrorBoundary (Web) before next release |
 
 ### 🟡 High Priority (Debt accumulation)
 
 | # | Signal | Location | Recommendation |
 |---|--------|----------|----------------|
-| 4 | **Ad-hoc error UX** | Web ~50+ console.error sites; sparse Android Toasts | Build centralized ErrorBoundary + user toast/notification system |
-| 5 | **MoreViewModel bloat (350 LOC)** | `ui/viewmodel/MoreViewModel.kt` | Decompose into feature-specific ViewModels |
-| 6 | **No middleware auth protection** | `web/src/middleware.ts` absent | Add Next.js middleware for route-level authentication checks |
-| 7 | **High-water mark sync has no conflict resolution** | `SyncWorker.kt` | Implement merge strategies (vector clocks or server-authoritative with explicit conflict UI) |
+| 3 | **Ad-hoc error UX** | Web ~50+ console.error sites; sparse Android Toasts | Build centralized ErrorBoundary + user toast/notification system |
+| 4 | **MoreViewModel bloat (350 LOC)** | `ui/viewmodel/MoreViewModel.kt` | Decompose into feature-specific ViewModels |
+| 5 | **No middleware auth protection** | `web/src/middleware.ts` absent | Add Next.js middleware for route-level authentication checks |
+| 6 | **High-water mark sync has no conflict resolution** | `SyncWorker.kt` | Implement merge strategies (vector clocks or server-authoritative with explicit conflict UI) | |
 
 ### 🟢 Medium Priority (Nice-to-have)
 
