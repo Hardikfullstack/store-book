@@ -7,7 +7,7 @@ import ExportButtons from '@/app/ExportButtons';
 import { sanitizeInput } from '@/lib/sanitize';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
-import { getActiveItemsRef, syncItem, softDeleteItem, getItemsCountRef, OrderDirection, syncStockAdjustment } from '@/dataconnect';
+import { getActiveItemsRef, syncItem, softDeleteItem, getItemsCountRef, OrderDirection, syncStockAdjustment, syncPurchase, syncPurchaseItem, syncItemBatch } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import RestockQuantity from '@/components/models/RestockQuantity';
 import { useDispatch, useSelector } from 'react-redux';
@@ -759,6 +759,54 @@ export default function ItemsClient({
             isDeleted: false,
             updatedAt: Date.now()
           });
+
+          // Create Purchase & PurchaseItem records to match Android behavior
+          const purchaseId = crypto.randomUUID();
+          const totalAmount = payload.quantity * (payload.buyPrice || 0);
+          const taxAmount = totalAmount * ((reStockQuantity.taxRate || 0) / 100);
+
+          await syncPurchase(dataConnect, {
+            id: purchaseId,
+            storeId: storeId as string,
+            supplierId: payload.supplierId || '',
+            supplierName: payload.supplierName || 'Cash / Anonymous',
+            totalAmount,
+            taxAmount,
+            type: 'BILL',
+            timestamp: Date.now(),
+            notes: `Refill stock for ${reStockQuantity.name}`,
+            isDeleted: false,
+            updatedAt: Math.floor(Date.now() / 1000)
+          });
+
+          await syncPurchaseItem(dataConnect, {
+            id: crypto.randomUUID(),
+            storeId: storeId as string,
+            purchaseId: purchaseId,
+            itemId: reStockQuantity.id,
+            itemName: reStockQuantity.name,
+            quantity: payload.quantity,
+            unit: reStockQuantity.unit || 'pcs',
+            buyPrice: payload.buyPrice || 0,
+            isDeleted: false,
+            updatedAt: Math.floor(Date.now() / 1000)
+          });
+
+          if (payload.batchNumber || payload.expiryDate) {
+            await syncItemBatch(dataConnect, {
+              id: crypto.randomUUID(),
+              storeId: storeId as string,
+              itemId: reStockQuantity.id,
+              batchNumber: payload.batchNumber || null,
+              expiryDate: payload.expiryDate ? new Date(payload.expiryDate).getTime() : null,
+              quantity: payload.quantity,
+              costPrice: payload.buyPrice || 0,
+              timestamp: Date.now(),
+              notes: 'Added via restock',
+              isDeleted: false,
+              updatedAt: Math.floor(Date.now() / 1000)
+            });
+          }
 
           invalidateAllPages();
           setCurrentPage(1);

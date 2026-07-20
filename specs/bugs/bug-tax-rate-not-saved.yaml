@@ -1,0 +1,27 @@
+# Bug — Tax Rate Field Not Saved When Creating or Editing Items
+
+id: bug-tax-rate-not-saved
+title: "Entered Tax Rate is not persisted to database when creating or updating items"
+severity: P1
+status: defined
+reported: "2026-07-20"
+component: [InventoryScreen, AddEditItemDialog, InventoryViewModel, ItemsClient]
+
+issue: |
+  When creating a new item or editing an existing item, the Tax Rate field is not being saved to the database.
+
+expected_behavior: >
+  The entered Tax Rate should be saved successfully and persist in the database after creating or updating the item.
+
+actual_behavior: >
+  Although a Tax Rate can be entered in the form, it is not stored in the database after the item is created or updated.
+
+root_cause: >
+  In the item creation/edit forms (e.g., InventoryScreen.kt on Android / ItemsClient.tsx when advanced options are toggled off), the `taxRate` field value is omitted from the repository update method payload or defaults to 0.0 before saving to SQLite / DataConnect. Consequently, user-entered tax percentages are lost during item creation and edit commits.
+
+fix_approach: >
+  Ensure `taxRate` is included in item form models, ViewModel state, and database update mutation calls regardless of whether advanced options are expanded. Preserve existing item `taxRate` when performing item updates.
+
+affected_screens:
+  - InventoryScreen / ItemsClient (Add/Edit Item modal)
+  - SalesScreen / POS (Billing calculations default to 0% tax due to missing saved taxRate)

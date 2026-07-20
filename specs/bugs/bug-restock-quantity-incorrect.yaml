@@ -1,0 +1,26 @@
+# Bug — Inventory Restock Quantity Increases Incorrectly
+
+id: bug-restock-quantity-incorrect
+title: "Inventory restock quantity increases incorrectly instead of applying exact entered value"
+severity: P1
+status: defined
+reported: "2026-07-20"
+component: [InventoryScreen, InventoryViewModel, InventoryRepository]
+
+issue: |
+  When restocking inventory, the entered quantity is not applied correctly. Instead of increasing the stock by the specified amount, the system sometimes adds an incorrect or unexpected value.
+
+expected_behavior: >
+  The inventory should increase by exactly the quantity entered during restocking (e.g., adding 50 units to 10 units yields exactly 60 units).
+
+actual_behavior: >
+  The inventory occasionally increases by an incorrect, seemingly random amount instead of the entered quantity.
+
+root_cause: >
+  In InventoryScreen.kt (lines ~705-732), during quick restock, both PurchaseViewModel.addPurchase() and InventoryViewModel.addItemBatch() / updateItemStock() are invoked, or the existing quantity calculation uses stale cached state from Compose ViewModels rather than atomic database updates. Duplicate button triggers or race conditions between local state and SQLDelight queries can cause double-addition or incorrect stock increments.
+
+fix_approach: >
+  Ensure restock quantity calculation is atomic and derived directly from single-source-of-truth SQLDelight update statement (`updateItemStock` using `quantity = quantity + :addedQuantity`). Ensure UI button onClick handlers consume state idempotently to prevent duplicate triggers.
+
+affected_screens:
+  - InventoryScreen (restock / refill stock modal dialog)

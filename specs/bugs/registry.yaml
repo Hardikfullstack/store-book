@@ -79,11 +79,25 @@ bugs:
     status: resolved
     summary: "Data synced after fresh login not visible until app reopened (resolved)"
 
-total: 11
-open: 0
+  - id: BUG-11
+    file: bug-restock-quantity-incorrect.yaml
+    severity: P1
+    status: defined
+    summary: "Inventory restock quantity increases incorrectly — non-atomic/stale state addition"
+    fix: "Ensure atomic quantity addition via SQLDelight update query + guard against duplicate button click triggers in Compose UI"
+
+  - id: BUG-12
+    file: bug-tax-rate-not-saved.yaml
+    severity: P1
+    status: defined
+    summary: "Entered Tax Rate is not persisted to database when creating or updating items"
+    fix: "Include taxRate in item form state, ViewModel/repository payload, and database update mutations"
+
+total: 13
+open: 2
 resolved: 9
 partial: 1
 deferred: 1
 by_severity:
   P0: "6 resolved, 4 previously resolved"
-  P1: "4 resolved + 1 partial + 1 deferred"
+  P1: "9 resolved + 2 open + 1 partial + 1 deferred"

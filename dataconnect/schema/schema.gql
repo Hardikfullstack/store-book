@@ -110,8 +110,6 @@ type Purchase @table {
   timestamp: Float!
   notes: String
   
-  supplier: Supplier! @ref
-  
   # Sync Columns
   isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
   updatedAt: Float! @col(name: "updated_at")

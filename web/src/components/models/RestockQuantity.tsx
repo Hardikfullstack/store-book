@@ -17,6 +17,7 @@ type RestockQuantityProps = {
   readonly onConfirm?: (payload: {
     quantity: number;
     buyPrice: number;
+    supplierId: string;
     supplierName: string;
     batchNumber: string;
     expiryDate: string;
@@ -50,7 +51,7 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
       try {
         const res = await getActiveSuppliers(dataConnect, { storeId });
         if (!isMounted) return;
-        
+
         const nextSuppliers = res.data.suppliers
           .map((doc: any) => {
             const rawName = doc.name;
@@ -150,13 +151,13 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
         return;
       }
     }
-
     setIsSubmitting(true);
     try {
       await onConfirm?.({
         quantity: parsedQuantity,
         buyPrice: userRole === 'staff' ? Number(item?.buy_price || 0) : Number(buyPrice || 0),
-        supplierName: selectedSupplier?.name ?? '',
+        supplierId: selectedSupplier?.id ?? '',
+        supplierName: selectedSupplier?.name ?? 'Cash / Anonymous',
         batchNumber: batchNumber.trim(),
         expiryDate: expiryDate,
       });

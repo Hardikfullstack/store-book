@@ -1,0 +1,35 @@
+epic_id: e30
+title: "Supplier Attribution on Item Creation & Initial Stock Purchase Logging"
+priority: P1
+status: defined
+target_version: v1.8.0
+description: |
+  Currently, when adding a new item to inventory, only stock quantity and prices are specified without supplier attribution—supplier selection is only available during subsequent stock restocks.
+  This epic introduces supplier selection directly into the "Add New Item" workflow on both Android POS and Web Dashboard. Upon creating an item with an initial stock quantity > 0, an initial purchase record (`Purchase` & `PurchaseItemDetail`) is automatically created and attributed to the selected supplier (or "Cash / Anonymous"), ensuring complete inventory provenance and supplier history from day one.
+
+success_criteria:
+  - "Supplier selector dropdown added to 'Add New Item' form on both Android POS and Web Dashboard."
+  - "Creating a new item with initial quantity > 0 automatically logs an initial Purchase and PurchaseItem record tied to the selected supplier."
+  - "If no supplier is selected, purchase is attributed to 'Cash / Anonymous'."
+  - "Supplier relationship is retained on the item record and queryable in Supplier purchase history."
+
+stories:
+  - id: e30-s1
+    title: "Add Supplier selector dropdown to 'Add New Item' form"
+    acceptance:
+      - "Android AddItemScreen / Dialog includes Supplier dropdown with search & inline quick-create."
+      - "Web ItemsClient Add Item modal includes Supplier dropdown with search & inline quick-create."
+      - "Defaults to 'Cash / Anonymous' if no supplier is chosen."
+
+  - id: e30-s2
+    title: "Log initial Purchase & PurchaseItem record upon item creation"
+    acceptance:
+      - "Creating a new item with initial quantity > 0 generates a Purchase record (type: BILL) linked to the selected supplier."
+      - "Creates corresponding PurchaseItem line item linked to the newly created item ID."
+      - "If batch number or expiry date is specified, logs corresponding ItemBatch record."
+
+  - id: e30-s3
+    title: "Integrate initial purchases with Supplier Purchase History reports"
+    acceptance:
+      - "Supplier purchase detail screen displays initial stock purchases alongside subsequent restocks."
+      - "Supplier totals and item counts accurately reflect initial item creation purchases."
