@@ -24,16 +24,16 @@ jobs:
       run: chmod +x gradlew
 
     - name: Run Detekt and ktlint
-      run: ./gradlew ktlintCheck # Assuming detekt will be added in e32
+      run: ./gradlew ktlintCheck  --stacktrace # Assuming detekt will be added in e32
 
     - name: Verify Roborazzi Snapshot Baselines
-      run: ./gradlew verifyRoborazziDebug
+      run: ./gradlew verifyRoborazziDebug  --stacktrace
 
     - name: Run Unit Tests
-      run: ./gradlew testDebugUnitTest
+      run: ./gradlew testDebugUnitTest  --stacktrace
 
     - name: Build Android Debug APK
-      run: ./gradlew assembleDebug
+      run: ./gradlew assembleDebug  --stacktrace
 
     - name: Upload Roborazzi failures
       if: failure()
