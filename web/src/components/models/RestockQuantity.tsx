@@ -26,6 +26,8 @@ type RestockQuantityProps = {
 
 const PRESET_AMOUNTS = [5, 10, 25, 50];
 
+const CASH_SUPPLIER_ID = '068cdba2-f58e-4ab8-a596-13806e4cb18e';
+
 function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onConfirm }: Readonly<RestockQuantityProps>) {
   const [quantity, setQuantity] = useState('');
   const [buyPrice, setBuyPrice] = useState('');
@@ -158,8 +160,8 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
       await onConfirm?.({
         quantity: parsedQuantity,
         buyPrice: userRole === 'staff' ? Number(item?.buy_price || 0) : Number(buyPrice || 0),
-        supplierId: selectedSupplier?.id ?? '',
-        supplierName: selectedSupplier?.name ?? 'Cash / Anonymous',
+        supplierId: selectedSupplier?.id || CASH_SUPPLIER_ID,
+        supplierName: selectedSupplier?.name || 'Cash / Anonymous',
         batchNumber: batchNumber.trim(),
         expiryDate: expiryDate,
       });
