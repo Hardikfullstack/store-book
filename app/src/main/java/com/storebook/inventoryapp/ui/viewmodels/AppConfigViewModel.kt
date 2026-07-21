@@ -22,8 +22,8 @@ class AppConfigViewModel(
     private val prefs = application.getSharedPreferences("app_config", Context.MODE_PRIVATE)
     private val defaultAppName = "StoreBook"
     private val defaultAppBrand = " Kirana"
-    @Suppress("ktlint:standard:constant")
-    private val API_PACKAGE_NAME = "StoreBook"
+
+    private val apiPackageName = "StoreBook"
     private val _appResponse = MutableStateFlow<AppResponse?>(loadCachedResponse())
     val appResponse: StateFlow<AppResponse?> = _appResponse
     private val _appName =
@@ -90,7 +90,7 @@ class AppConfigViewModel(
         viewModelScope.launch {
             try {
                 val mediaType = "text/plain".toMediaTypeOrNull()
-                val packageNameBody = API_PACKAGE_NAME.toRequestBody(mediaType)
+                val packageNameBody = apiPackageName.toRequestBody(mediaType)
 
                 val response = ApiClient.apiService.getAppData(packageNameBody)
                 if (response.status == 200) {
@@ -134,7 +134,10 @@ class AppConfigViewModel(
                 }
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.e(AppConfigViewModel::class.java.simpleName, "Failed to fetch app data: ${e.message}", e)
+                if (com.storebook.inventoryapp.BuildConfig.DEBUG) {
+                    Log
+                        .e(AppConfigViewModel::class.java.simpleName, "Failed to fetch app data: ${e.message}", e)
+                }
             }
         }
     }

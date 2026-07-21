@@ -1,16 +1,18 @@
 package com.storebook.inventoryapp.ui.viewmodels
 
 enum class UserRole {
-    OWNER, MANAGER, STAFF;
+    OWNER,
+    MANAGER,
+    STAFF,
+    ;
 
     companion object {
-        fun fromString(role: String): UserRole {
-            return try {
+        fun fromString(role: String): UserRole =
+            try {
                 valueOf(role.uppercase())
             } catch (e: Exception) {
                 STAFF
             }
-        }
     }
 }
 
@@ -21,13 +23,16 @@ enum class AppPermission {
     MANAGE_STAFF,
     EDIT_SETTINGS,
     MANAGE_PREMIUM,
-    MANAGE_BUSINESS_SETTINGS
+    MANAGE_BUSINESS_SETTINGS,
 }
 
-fun UserRole.hasPermission(permission: AppPermission): Boolean {
-    return when (this) {
+fun UserRole.hasPermission(permission: AppPermission): Boolean =
+    when (this) {
         UserRole.OWNER -> true
-        UserRole.MANAGER -> permission != AppPermission.MANAGE_STAFF && permission != AppPermission.EDIT_SETTINGS && permission != AppPermission.MANAGE_BUSINESS_SETTINGS && permission != AppPermission.MANAGE_PREMIUM
+        UserRole.MANAGER ->
+            permission != AppPermission.MANAGE_STAFF &&
+                permission != AppPermission.EDIT_SETTINGS &&
+                permission != AppPermission.MANAGE_BUSINESS_SETTINGS &&
+                permission != AppPermission.MANAGE_PREMIUM
         UserRole.STAFF -> permission == AppPermission.MANAGE_INVENTORY || permission == AppPermission.VIEW_FINANCIALS
     }
-}

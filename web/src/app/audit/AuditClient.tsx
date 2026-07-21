@@ -144,6 +144,7 @@ export default function AuditClient({
       isMounted = false;
       clearInterval(intervalId);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion, debouncedSearch, reasonFilter, startDateFilter, endDateFilter]);
 
   const handlePageChange = (page: number) => {

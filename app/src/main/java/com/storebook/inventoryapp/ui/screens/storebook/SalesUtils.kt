@@ -1,10 +1,10 @@
 package com.storebook.inventoryapp.ui.screens.storebook
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Balance
-import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material.icons.outlined.Numbers
+import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**

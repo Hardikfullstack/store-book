@@ -25,10 +25,11 @@ object ShareUtils {
                 clipData = android.content.ClipData.newRawUri("", uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-        val chooserIntent = Intent.createChooser(intent, "Share PDF").apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
+        val chooserIntent =
+            Intent.createChooser(intent, "Share PDF").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
         context.startActivity(chooserIntent)
     }
 

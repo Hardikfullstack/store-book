@@ -37,6 +37,7 @@ sealed class Routes(
 
     @Serializable
     object Auth : Routes("auth_screen")
+
     @Serializable
     object Quotations : Routes("quotations_screen")
 

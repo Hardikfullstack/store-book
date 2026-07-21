@@ -1,0 +1,7 @@
+root = false
+
+[*.kt]
+ktlint_standard = disabled
+ktlint_experimental = disabled
+ktlint_code_style = disabled
+ktlint = disabled

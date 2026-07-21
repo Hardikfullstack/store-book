@@ -1,114 +1,74 @@
 
 @file:kotlin.Suppress(
-  "KotlinRedundantDiagnosticSuppress",
-  "LocalVariableName",
-  "MayBeConstant",
-  "RedundantVisibilityModifier",
-  "RemoveEmptyClassBody",
-  "SpellCheckingInspection",
-  "LocalVariableName",
-  "unused",
+    "KotlinRedundantDiagnosticSuppress",
+    "LocalVariableName",
+    "MayBeConstant",
+    "RedundantVisibilityModifier",
+    "RemoveEmptyClassBody",
+    "SpellCheckingInspection",
+    "LocalVariableName",
+    "unused",
 )
 
-
-
 package com.storebook.inventoryapp.dataconnect
-
 
 import kotlinx.coroutines.flow.filterNotNull as _flow_filterNotNull
 import kotlinx.coroutines.flow.map as _flow_map
 
-
 public interface GetStoresPaginatedQuery :
     com.google.firebase.dataconnect.generated.GeneratedQuery<
-      StorebookConnectorConnector,
-      GetStoresPaginatedQuery.Data,
-      Unit
-    >
-{
-  
-
-  
+        StorebookConnectorConnector,
+        GetStoresPaginatedQuery.Data,
+        Unit,
+    > {
     @kotlinx.serialization.Serializable
-  public data class Data(
-  
-    val stores:
-    List<StoresItem>
-  ) {
-    
-      
+    public data class Data(
+        val stores: List<StoresItem>,
+    ) {
         @kotlinx.serialization.Serializable
-  public data class StoresItem(
-  
-    val id:
-    String,
-    val name:
-    String?,
-    val isActive:
-    Boolean?,
-    val isPremium:
-    Boolean?,
-    val subscriptionPlatform:
-    String?,
-    val subscriptionStatus:
-    String?,
-    val subscriptionExpiresAt:
-    Double?
-  ) {
-    
-    
-  }
-      
-    
-    
-  }
-  
+        public data class StoresItem(
+            val id: String,
+            val name: String?,
+            val isActive: Boolean?,
+            val isPremium: Boolean?,
+            val subscriptionPlatform: String?,
+            val subscriptionStatus: String?,
+            val subscriptionExpiresAt: Double?,
+        )
+    }
 
-  public companion object {
-    public val operationName: String = "GetStoresPaginated"
+    public companion object {
+        public val operationName: String = "GetStoresPaginated"
 
-    public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
-      kotlinx.serialization.serializer()
+        public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
+            kotlinx.serialization.serializer()
 
-    public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Unit> =
-      kotlinx.serialization.serializer()
-  }
+        public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Unit> =
+            kotlinx.serialization.serializer()
+    }
 }
 
-public fun GetStoresPaginatedQuery.ref(
-  
-): com.google.firebase.dataconnect.QueryRef<
+public fun GetStoresPaginatedQuery.ref(): com.google.firebase.dataconnect.QueryRef<
     GetStoresPaginatedQuery.Data,
-    Unit
-  > =
-  ref(
-    
-      Unit
-    
-  )
-
-public suspend fun GetStoresPaginatedQuery.execute(
-  
-  ): com.google.firebase.dataconnect.QueryResult<
-    GetStoresPaginatedQuery.Data,
-    Unit
-  > =
-  ref(
-    
-  ).execute()
-
-
-  public fun GetStoresPaginatedQuery.flow(
-    
-    ): kotlinx.coroutines.flow.Flow<GetStoresPaginatedQuery.Data> =
+    Unit,
+> =
     ref(
-        
-      ).subscribe()
-      .flow
-      ._flow_map { querySubscriptionResult -> querySubscriptionResult.result.getOrNull() }
-      ._flow_filterNotNull()
-      ._flow_map { it.data }
+        Unit,
+    )
 
+public suspend fun GetStoresPaginatedQuery.execute(): com.google.firebase.dataconnect.QueryResult<
+    GetStoresPaginatedQuery.Data,
+    Unit,
+> =
+    ref().execute()
+
+public fun GetStoresPaginatedQuery.flow(): kotlinx.coroutines.flow.Flow<GetStoresPaginatedQuery.Data> =
+    ref()
+        .subscribe()
+        .flow
+        ._flow_map { querySubscriptionResult -> querySubscriptionResult.result.getOrNull() }
+        ._flow_filterNotNull()
+        ._flow_map { it.data }
 
 // The lines below are used by the code generator to ensure that this file is deleted if it is no
 // longer needed. Any files in this directory that contain the lines below will be deleted by the

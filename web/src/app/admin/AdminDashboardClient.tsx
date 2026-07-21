@@ -133,7 +133,7 @@ export default function AdminDashboardClient({ stores, users }: { stores: any[],
               <AlertTriangle size={18} className="mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-semibold">Store Data Purge Executed</p>
-                <p className="text-xs opacity-80 mt-1">Admin 'hari' permanently deleted store ID 'old-demo-123' to comply with GDPR request.</p>
+                <p className="text-xs opacity-80 mt-1">Admin &apos;hari&apos; permanently deleted store ID &apos;old-demo-123&apos; to comply with GDPR request.</p>
                 <p className="text-[10px] mt-2 opacity-60">2 hours ago</p>
               </div>
             </div>

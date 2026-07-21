@@ -4,7 +4,6 @@ import com.storebook.inventoryapp.shared.domain.models.CartItem
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.max
-import kotlin.math.min
 
 // Enum to define Tax Types
 enum class TaxType {
@@ -100,12 +99,15 @@ object BillingEngine {
         val roundMode = RoundingMode.HALF_UP
 
         for (cartItem in cartItems) {
-            val itemGross = BigDecimal(cartItem.item.sellPrice.toString()).multiply(BigDecimal(cartItem.quantity.toString()))
-            val itemDiscountRatio = if (subTotal.compareTo(BigDecimal.ZERO) > 0) {
-                itemGross.divide(subTotal, scale, roundMode)
-            } else {
-                BigDecimal.ZERO
-            }
+            val itemGross =
+                BigDecimal(cartItem.item.sellPrice.toString())
+                    .multiply(BigDecimal(cartItem.quantity.toString()))
+            val itemDiscountRatio =
+                if (subTotal.compareTo(BigDecimal.ZERO) > 0) {
+                    itemGross.divide(subTotal, scale, roundMode)
+                } else {
+                    BigDecimal.ZERO
+                }
             val itemDiscount = actualDiscount.multiply(itemDiscountRatio)
             val itemNetTaxable = itemGross.subtract(itemDiscount).max(BigDecimal.ZERO)
 

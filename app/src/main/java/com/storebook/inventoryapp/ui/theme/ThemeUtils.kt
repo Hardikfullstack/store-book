@@ -4,7 +4,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -15,11 +14,13 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun Modifier.premiumShadow(
     elevation: Dp = 8.dp,
-    shape: androidx.compose.ui.graphics.Shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
-    useNeonGlow: Boolean = true
+    shape: androidx.compose.ui.graphics.Shape =
+        androidx.compose.foundation.shape
+            .RoundedCornerShape(20.dp),
+    useNeonGlow: Boolean = true,
 ): Modifier {
     val isDark = isAppDarkMode
-    
+
     return if (isDark && useNeonGlow) {
         // Neon Glow in Dark Mode
         val neonColor = MaterialTheme.colorScheme.primary

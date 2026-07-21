@@ -2,18 +2,17 @@ package com.storebook.inventoryapp.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.storebook.inventoryapp.shared.domain.repository.UdhaarRepository
-import com.storebook.inventoryapp.shared.domain.models.UdhaarEntry
 import com.storebook.inventoryapp.shared.domain.models.CustomerBalance
 import com.storebook.inventoryapp.shared.domain.models.CustomerDetailedBalance
+import com.storebook.inventoryapp.shared.domain.models.UdhaarEntry
+import com.storebook.inventoryapp.shared.domain.repository.UdhaarRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class UdhaarViewModel(
-    val repository: UdhaarRepository
+    val repository: UdhaarRepository,
 ) : ViewModel() {
-
     private val _udhaarEntries = MutableStateFlow<List<UdhaarEntry>>(emptyList())
     val udhaarEntries: StateFlow<List<UdhaarEntry>> = _udhaarEntries
 
@@ -44,7 +43,10 @@ class UdhaarViewModel(
     }
 
     fun recordUdhaarEntry(
-        customerName: String, amount: Double, type: String, notes: String?
+        customerName: String,
+        amount: Double,
+        type: String,
+        notes: String?,
     ) {
         viewModelScope.launch {
             repository.insertUdhaar(customerName, amount, type, notes)

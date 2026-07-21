@@ -57,43 +57,56 @@ fun updateCurrencyConfig(currencyCode: String) {
  * Example: 1234567.89 -> ₹12,34,568
  */
 fun Double.toRupee(): String {
-    val bd = try {
-        BigDecimal(this.toString()).setScale(0, RoundingMode.HALF_UP)
-    } catch (e: Exception) {
-        if (e is kotlinx.coroutines.CancellationException) throw e
-        BigDecimal(this).setScale(0, RoundingMode.HALF_UP)
-    }
+    val bd =
+        try {
+            BigDecimal(this.toString()).setScale(0, RoundingMode.HALF_UP)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            BigDecimal(this).setScale(0, RoundingMode.HALF_UP)
+        }
     val format = NumberFormat.getNumberInstance(CurrencySettings.currencyLocale)
     format.maximumFractionDigits = 0
     val formatted = format.format(bd.abs())
-    return if (bd.signum() < 0) "-${CurrencySettings.currencySymbol}$formatted" else "${CurrencySettings.currencySymbol}$formatted"
+    return if (bd.signum() <
+        0
+    ) {
+        "-${CurrencySettings.currencySymbol}$formatted"
+    } else {
+        "${CurrencySettings.currencySymbol}$formatted"
+    }
 }
 
 /**
  * Formats a Double to a currency string with up to designated decimal places.
  */
 fun Double.toRupeeWithDecimals(): String {
-    val bd = try {
-        BigDecimal(this.toString()).setScale(CurrencySettings.maxDecimalPlaces, RoundingMode.HALF_UP)
-    } catch (e: Exception) {
-        if (e is kotlinx.coroutines.CancellationException) throw e
-        BigDecimal(this).setScale(CurrencySettings.maxDecimalPlaces, RoundingMode.HALF_UP)
-    }
+    val bd =
+        try {
+            BigDecimal(this.toString()).setScale(CurrencySettings.maxDecimalPlaces, RoundingMode.HALF_UP)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            BigDecimal(this).setScale(CurrencySettings.maxDecimalPlaces, RoundingMode.HALF_UP)
+        }
     val format = NumberFormat.getNumberInstance(CurrencySettings.currencyLocale)
     format.maximumFractionDigits = CurrencySettings.maxDecimalPlaces
     format.minimumFractionDigits = 0
     val formatted = format.format(bd.abs())
-    return if (bd.signum() < 0) "-${CurrencySettings.currencySymbol}$formatted" else "${CurrencySettings.currencySymbol}$formatted"
+    return if (bd.signum() <
+        0
+    ) {
+        "-${CurrencySettings.currencySymbol}$formatted"
+    } else {
+        "${CurrencySettings.currencySymbol}$formatted"
+    }
 }
 
-fun Double.toBigDecimal(): BigDecimal {
-    return try {
+fun Double.toBigDecimal(): BigDecimal =
+    try {
         BigDecimal(this.toString())
     } catch (e: Exception) {
         if (e is kotlinx.coroutines.CancellationException) throw e
         BigDecimal(this)
     }
-}
 
 fun <T> Iterable<T>.sumOfBigDecimal(selector: (T) -> BigDecimal): BigDecimal {
     var sum = BigDecimal.ZERO
@@ -102,4 +115,3 @@ fun <T> Iterable<T>.sumOfBigDecimal(selector: (T) -> BigDecimal): BigDecimal {
     }
     return sum
 }
-

@@ -21,9 +21,6 @@ import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WorkspacePremium
-import androidx.compose.material.icons.outlined.Diamond
-import androidx.compose.material.icons.outlined.StarOutline
-import com.storebook.inventoryapp.utils.autoMarquee
 import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -45,7 +42,7 @@ import com.storebook.inventoryapp.data.play.PlayBillingManager
 import com.storebook.inventoryapp.ui.theme.Gold200
 import com.storebook.inventoryapp.ui.theme.Gold400
 import com.storebook.inventoryapp.ui.theme.StoreBookTheme
-import com.storebook.inventoryapp.ui.theme.PrimaryButton
+import com.storebook.inventoryapp.utils.autoMarquee
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,14 +52,15 @@ fun ProBillingView(
     onDismiss: () -> Unit,
 ) {
     val ctx = LocalContext.current
-    val activity = remember(ctx) {
-        var context = ctx
-        while (context is android.content.ContextWrapper) {
-            if (context is Activity) return@remember context
-            context = context.baseContext
+    val activity =
+        remember(ctx) {
+            var context = ctx
+            while (context is android.content.ContextWrapper) {
+                if (context is Activity) return@remember context
+                context = context.baseContext
+            }
+            null
         }
-        null
-    }
     val billingManager = remember { PlayBillingManager(ctx.applicationContext) }
     DisposableEffect(billingManager) {
         onDispose {
@@ -70,7 +68,11 @@ fun ProBillingView(
         }
     }
     val billingState by billingManager.state.collectAsState()
-    val auth = remember { com.google.firebase.auth.FirebaseAuth.getInstance() }
+    val auth =
+        remember {
+            com.google.firebase.auth.FirebaseAuth
+                .getInstance()
+        }
     var selectedPlanIndex by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var productsFetched by remember { mutableStateOf<List<ProductDetails>?>(null) }
 
@@ -92,30 +94,34 @@ fun ProBillingView(
     val isDark = true // Always force dark mode for Premium screen
 
     // Premium Dark/Gold Gradient Background
-    val bgGradient = Brush.verticalGradient(
-        colors = if (isDark) {
-            listOf(Color(0xFF1A1A1A), Color(0xFF0D0D0D), Color(0xFF1F1A0C))
-        } else {
-            listOf(Color(0xFFFFFFFF), Color(0xFFF9F9F9), Color(0xFFFFFDF5))
-        }
-    )
+    val bgGradient =
+        Brush.verticalGradient(
+            colors =
+                if (isDark) {
+                    listOf(Color(0xFF1A1A1A), Color(0xFF0D0D0D), Color(0xFF1F1A0C))
+                } else {
+                    listOf(Color(0xFFFFFFFF), Color(0xFFF9F9F9), Color(0xFFFFFDF5))
+                },
+        )
 
     val glassBgColor = if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f)
     val glassBorderColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.08f)
 
     StoreBookTheme(darkTheme = true) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(bgGradient)
-                .systemBarsPadding()
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(bgGradient)
+                    .systemBarsPadding(),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(24.dp)
-                    .padding(bottom = 32.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(24.dp)
+                        .padding(bottom = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
@@ -125,7 +131,7 @@ fun ProBillingView(
                     Text(
                         stringResource(id = R.string.pro_err_play_store),
                         color = MaterialTheme.colorScheme.error,
-                        fontSize = 12.sp
+                        fontSize = 12.sp,
                     )
                 }
 
@@ -134,22 +140,22 @@ fun ProBillingView(
 
                 // Header Icon
                 Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(Gold400, Color(0xFFB8860B)) // Using a dark gold color
-                            )
-                        )
-                        .border(2.dp, Gold200.copy(alpha = 0.5f), CircleShape),
+                    modifier =
+                        Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(Gold400, Color(0xFFB8860B)), // Using a dark gold color
+                                ),
+                            ).border(2.dp, Gold200.copy(alpha = 0.5f), CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = if (isActuallyPro) Icons.Default.WorkspacePremium else Icons.Default.AutoAwesome,
                         contentDescription = "Premium",
                         tint = Color.White,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(40.dp),
                     )
                 }
 
@@ -158,7 +164,7 @@ fun ProBillingView(
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 1.sp,
-                    color = if (isDark) Color.White else Color.Black
+                    color = if (isDark) Color.White else Color.Black,
                 )
 
                 Text(
@@ -166,17 +172,18 @@ fun ProBillingView(
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center,
                     color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp),
                 )
 
                 if (isActuallyPro) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(glassBgColor)
-                            .border(1.dp, glassBorderColor, RoundedCornerShape(20.dp))
-                            .padding(20.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(glassBgColor)
+                                .border(1.dp, glassBorderColor, RoundedCornerShape(20.dp))
+                                .padding(20.dp),
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -186,20 +193,26 @@ fun ProBillingView(
                                 Icons.Default.CheckCircle,
                                 contentDescription = "Active",
                                 tint = Gold400,
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.size(32.dp),
                             )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "Pro Membership Active",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 16.sp,
-                                    color = if (isDark) Color.White else Color.Black
+                                    color = if (isDark) Color.White else Color.Black,
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = "You have full access to all premium features.",
                                     fontSize = 13.sp,
-                                    color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.6f)
+                                    color =
+                                        if (isDark) {
+                                            Color.White.copy(alpha = 0.7f)
+                                        } else {
+                                            Color.Black
+                                                .copy(alpha = 0.6f)
+                                        },
                                 )
                             }
                         }
@@ -208,12 +221,13 @@ fun ProBillingView(
 
                 // Glassmorphism Features Card
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(glassBgColor)
-                        .border(1.dp, glassBorderColor, RoundedCornerShape(24.dp))
-                        .padding(24.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(glassBgColor)
+                            .border(1.dp, glassBorderColor, RoundedCornerShape(24.dp))
+                            .padding(24.dp),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text(
@@ -221,31 +235,33 @@ fun ProBillingView(
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             color = Gold400,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier.padding(bottom = 8.dp),
                         )
 
-                        val features = listOf(
-                            Icons.Default.CloudSync to "Cloud Backup & Sync",
-                            Icons.Default.Inventory to "Unlimited Inventory Items",
-                            Icons.Default.QueryStats to "Detailed P&L Reports",
-                            Icons.Default.NotificationsActive to "Smart Low-Stock Alerts",
-                            Icons.Default.Share to "WhatsApp Invoice Sharing"
-                        )
+                        val features =
+                            listOf(
+                                Icons.Default.CloudSync to "Cloud Backup & Sync",
+                                Icons.Default.Inventory to "Unlimited Inventory Items",
+                                Icons.Default.QueryStats to "Detailed P&L Reports",
+                                Icons.Default.NotificationsActive to "Smart Low-Stock Alerts",
+                                Icons.Default.Share to "WhatsApp Invoice Sharing",
+                            )
 
                         features.forEach { feature ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(CircleShape)
-                                        .background(Gold400.copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
+                                    modifier =
+                                        Modifier
+                                            .size(32.dp)
+                                            .clip(CircleShape)
+                                            .background(Gold400.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center,
                                 ) {
                                     Icon(
                                         feature.first,
                                         contentDescription = stringResource(R.string.ui_element_desc),
                                         tint = Gold400,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(16.dp),
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(16.dp))
@@ -253,7 +269,13 @@ fun ProBillingView(
                                     text = feature.second,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = if (isDark) Color.White.copy(alpha = 0.9f) else Color.Black.copy(alpha = 0.8f)
+                                    color =
+                                        if (isDark) {
+                                            Color.White.copy(alpha = 0.9f)
+                                        } else {
+                                            Color.Black
+                                                .copy(alpha = 0.8f)
+                                        },
                                 )
                             }
                         }
@@ -265,15 +287,16 @@ fun ProBillingView(
                 if (isActuallyPro) {
                     androidx.compose.material3.Button(
                         onClick = {
-                            val intent = android.content.Intent(
-                                android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.parse("https://play.google.com/store/account/subscriptions")
-                            )
+                            val intent =
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse("https://play.google.com/store/account/subscriptions"),
+                                )
                             ctx.startActivity(intent)
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Gold400, contentColor = Color.White)
+                        colors = ButtonDefaults.buttonColors(containerColor = Gold400, contentColor = Color.White),
                     ) {
                         Text("Manage Subscription", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
@@ -283,19 +306,35 @@ fun ProBillingView(
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             products.forEachIndexed { index, product ->
                                 val price =
-                                    product.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
+                                    product.subscriptionOfferDetails
+                                        ?.firstOrNull()
+                                        ?.pricingPhases
+                                        ?.pricingPhaseList
+                                        ?.firstOrNull()
+                                        ?.formattedPrice
                                         ?: product.oneTimePurchaseOfferDetails?.formattedPrice
                                         ?: ""
 
                                 PlanCard(
-                                    icon = if (index == 0) Icons.Default.WorkspacePremium else if (index == 1) Icons.Default.Star else Icons.Default.FlashOn,
+                                    icon =
+                                        if (index ==
+                                            0
+                                        ) {
+                                            Icons.Default.WorkspacePremium
+                                        } else if (index ==
+                                            1
+                                        ) {
+                                            Icons.Default.Star
+                                        } else {
+                                            Icons.Default.FlashOn
+                                        },
                                     title = product.name,
                                     subtitle = "$price - ${product.description}",
                                     isSelected = selectedPlanIndex == index,
                                     isDark = isDark,
                                     onClick = {
                                         selectedPlanIndex = index
-                                    }
+                                    },
                                 )
                             }
                         }
@@ -315,19 +354,20 @@ fun ProBillingView(
                                             offerToken,
                                             onSuccess = { onDismiss() },
                                             onFail = { err ->
-                                                android.widget.Toast.makeText(
-                                                    ctx,
-                                                    err,
-                                                    android.widget.Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
+                                                android.widget.Toast
+                                                    .makeText(
+                                                        ctx,
+                                                        err,
+                                                        android.widget.Toast.LENGTH_SHORT,
+                                                    ).show()
+                                            },
                                         )
                                     }
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(56.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Gold400, contentColor = Color.White)
+                            colors = ButtonDefaults.buttonColors(containerColor = Gold400, contentColor = Color.White),
                         ) {
                             Text("Continue to Payment", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
@@ -342,7 +382,7 @@ fun ProBillingView(
                                 isDark = isDark,
                                 onClick = {
                                     selectedPlanIndex = 0
-                                }
+                                },
                             )
                             PlanCard(
                                 icon = Icons.Default.Star,
@@ -352,7 +392,7 @@ fun ProBillingView(
                                 isDark = isDark,
                                 onClick = {
                                     selectedPlanIndex = 1
-                                }
+                                },
                             )
                             PlanCard(
                                 icon = Icons.Default.FlashOn,
@@ -362,7 +402,7 @@ fun ProBillingView(
                                 isDark = isDark,
                                 onClick = {
                                     selectedPlanIndex = 2
-                                }
+                                },
                             )
                         }
 
@@ -372,12 +412,17 @@ fun ProBillingView(
                                 if (auth.currentUser == null) {
                                     onRequireSignIn()
                                 } else {
-                                    android.widget.Toast.makeText(ctx, "Play Store billing is unavailable on this device.", android.widget.Toast.LENGTH_SHORT).show()
+                                    android.widget.Toast
+                                        .makeText(
+                                            ctx,
+                                            "Play Store billing is unavailable on this device.",
+                                            android.widget.Toast.LENGTH_SHORT,
+                                        ).show()
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(56.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Gold400, contentColor = Color.White)
+                            colors = ButtonDefaults.buttonColors(containerColor = Gold400, contentColor = Color.White),
                         ) {
                             Text("Continue", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
@@ -390,26 +435,28 @@ fun ProBillingView(
                     fontSize = 11.sp,
                     textAlign = TextAlign.Center,
                     color = if (isDark) Color.White.copy(alpha = 0.5f) else Color.Black.copy(alpha = 0.5f),
-                    modifier = Modifier.padding(horizontal = 24.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp),
                 )
             }
 
             // Close/Back Button
             FilledTonalIconButton(
                 onClick = { onDismiss() },
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 16.dp, top = 16.dp)
-                    .size(34.dp),
-                colors = IconButtonDefaults.filledTonalIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                )
+                modifier =
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 16.dp, top = 16.dp)
+                        .size(34.dp),
+                colors =
+                    IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(22.dp),
                 )
             }
         }
@@ -425,43 +472,60 @@ private fun PlanCard(
     isDark: Boolean,
     onClick: (() -> Unit)? = null,
 ) {
-    val glassBgColor = if (isSelected) {
-        Gold400.copy(alpha = if (isDark) 0.15f else 0.1f)
-    } else {
-        if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f)
-    }
+    val glassBgColor =
+        if (isSelected) {
+            Gold400.copy(alpha = if (isDark) 0.15f else 0.1f)
+        } else {
+            if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f)
+        }
 
-    val glassBorderColor = if (isSelected) {
-        Gold400.copy(alpha = 0.5f)
-    } else {
-        if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.08f)
-    }
+    val glassBorderColor =
+        if (isSelected) {
+            Gold400.copy(alpha = 0.5f)
+        } else {
+            if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.08f)
+        }
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(glassBgColor)
-            .border(if (isSelected) 1.5.dp else 1.dp, glassBorderColor, RoundedCornerShape(20.dp))
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(20.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(glassBgColor)
+                .border(if (isSelected) 1.5.dp else 1.dp, glassBorderColor, RoundedCornerShape(20.dp))
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                .padding(20.dp),
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(if (isSelected) Gold400 else (if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f))),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (isSelected) {
+                                Gold400
+                            } else {
+                                (
+                                    if (isDark) {
+                                        Color.White.copy(alpha = 0.1f)
+                                    } else {
+                                        Color.Black
+                                            .copy(alpha = 0.05f)
+                                    }
+                                )
+                            },
+                        ),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = stringResource(R.string.ui_element_desc),
                     tint = if (isSelected) Color.White else (if (isDark) Color.White else Color.Black),
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(24.dp),
                 )
             }
 
@@ -470,7 +534,7 @@ private fun PlanCard(
                     text = title,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = if (isDark) Color.White else Color.Black
+                    color = if (isDark) Color.White else Color.Black,
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
@@ -478,7 +542,7 @@ private fun PlanCard(
                     fontSize = 12.sp,
                     maxLines = 2,
                     modifier = Modifier.autoMarquee(),
-                    color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.6f)
+                    color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.6f),
                 )
             }
 

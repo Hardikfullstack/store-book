@@ -1,56 +1,43 @@
 package com.storebook.inventoryapp.ui.navigation
-import com.storebook.inventoryapp.utils.autoMarquee
-
 import android.content.Context
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import kotlinx.coroutines.launch
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoneyOff
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.ShoppingCart
-import androidx.compose.material.icons.outlined.Book
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.LibraryAdd
-import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -60,8 +47,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.ui.unit.dp
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -69,17 +54,21 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -89,21 +78,22 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.storebook.inventoryapp.MainActivity
 import com.storebook.inventoryapp.R
-import com.storebook.inventoryapp.utils.toRupee
-import com.storebook.inventoryapp.ui.screens.storebook.formatQty
-import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.ui.screens.auth.AuthScreen
 import com.storebook.inventoryapp.ui.screens.storebook.DashboardScreen
+import com.storebook.inventoryapp.ui.screens.storebook.GSTReportScreen
 import com.storebook.inventoryapp.ui.screens.storebook.InventoryScreen
 import com.storebook.inventoryapp.ui.screens.storebook.MoreScreen
+import com.storebook.inventoryapp.ui.screens.storebook.PriceDriftReportScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SalesScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SplashScreen
-import com.storebook.inventoryapp.ui.screens.storebook.UdhaarScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SupplierLedgerScreen
-import com.storebook.inventoryapp.ui.screens.storebook.GSTReportScreen
-import com.storebook.inventoryapp.ui.screens.storebook.PriceDriftReportScreen
+import com.storebook.inventoryapp.ui.screens.storebook.UdhaarScreen
+import com.storebook.inventoryapp.ui.screens.storebook.formatQty
 import com.storebook.inventoryapp.ui.theme.Poppins
 import com.storebook.inventoryapp.ui.theme.PrimaryButton
+import com.storebook.inventoryapp.utils.autoMarquee
+import com.storebook.inventoryapp.utils.toRupee
+import kotlinx.coroutines.launch
 
 data class BottomNavTab(
     val route: Any,
@@ -118,45 +108,60 @@ fun AppNavigation() {
     val activity = context as? MainActivity
     val navController = rememberNavController()
 
-
     val udhaarViewModel: com.storebook.inventoryapp.ui.viewmodel.UdhaarViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel(
-            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+            factory =
+                com.storebook.inventoryapp.ui.viewmodel
+                    .AppViewModelFactory(context),
         )
 
     val inventoryViewModel: com.storebook.inventoryapp.ui.viewmodel.InventoryViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel(
-            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+            factory =
+                com.storebook.inventoryapp.ui.viewmodel
+                    .AppViewModelFactory(context),
         )
 
     val salesViewModel: com.storebook.inventoryapp.ui.viewmodel.SalesViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel(
-            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+            factory =
+                com.storebook.inventoryapp.ui.viewmodel
+                    .AppViewModelFactory(context),
         )
 
     val dashboardViewModel: com.storebook.inventoryapp.ui.viewmodel.DashboardViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel(
-            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+            factory =
+                com.storebook.inventoryapp.ui.viewmodel
+                    .AppViewModelFactory(context),
         )
 
     val purchaseViewModel: com.storebook.inventoryapp.ui.viewmodel.PurchaseViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel(
-            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+            factory =
+                com.storebook.inventoryapp.ui.viewmodel
+                    .AppViewModelFactory(context),
         )
 
     val supplierViewModel: com.storebook.inventoryapp.ui.viewmodel.SupplierViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel(
-            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+            factory =
+                com.storebook.inventoryapp.ui.viewmodel
+                    .AppViewModelFactory(context),
         )
 
     val expenseViewModel: com.storebook.inventoryapp.ui.viewmodel.ExpenseViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel(
-            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+            factory =
+                com.storebook.inventoryapp.ui.viewmodel
+                    .AppViewModelFactory(context),
         )
 
     val moreViewModel: com.storebook.inventoryapp.ui.viewmodel.MoreViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel(
-            factory = com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+            factory =
+                com.storebook.inventoryapp.ui.viewmodel
+                    .AppViewModelFactory(context),
         )
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -262,22 +267,41 @@ fun AppNavigation() {
                     androidx.compose.material3.OutlinedTextField(
                         value = quickExpenseAmount,
                         onValueChange = { quickExpenseAmount = it },
-                        label = { Text("Amount (₹)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                        label = {
+                            Text(
+                                "Amount (₹)",
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
+                        },
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
-                            imeAction = ImeAction.Next
-                        ),
+                        keyboardOptions =
+                            androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                                imeAction = ImeAction.Next,
+                            ),
                         keyboardActions = KeyboardActions(onNext = { focusRequesterDesc.requestFocus() }),
                     )
                     androidx.compose.material3.OutlinedTextField(
                         value = quickExpenseDesc,
                         onValueChange = { quickExpenseDesc = it },
-                        label = { Text("Description", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                        label = {
+                            Text(
+                                "Description",
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
+                        },
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardOptions =
+                            androidx.compose.foundation.text
+                                .KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                        modifier = androidx.compose.ui.Modifier.focusRequester(focusRequesterDesc)
+                        modifier =
+                            androidx.compose.ui.Modifier
+                                .focusRequester(focusRequesterDesc),
                     )
                 }
             },
@@ -288,7 +312,7 @@ fun AppNavigation() {
                         expenseViewModel.addExpense(
                             type = "OVERHEAD",
                             amount = amt,
-                            notes = quickExpenseDesc.trim()
+                            notes = quickExpenseDesc.trim(),
                         )
                         quickExpenseAmount = ""
                         quickExpenseDesc = ""
@@ -298,7 +322,7 @@ fun AppNavigation() {
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showQuickExpense = false }) { Text("Cancel") }
-            }
+            },
         )
     }
 
@@ -318,7 +342,14 @@ fun AppNavigation() {
                                 salesViewModel.customerSuggestions.value
                                 quickSaleCustomerExpanded = it.isNotBlank()
                             },
-                            label = { Text("Customer Name (Optional)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                            label = {
+                                Text(
+                                    "Customer Name (Optional)",
+                                    modifier =
+                                        androidx.compose.ui.Modifier
+                                            .autoMarquee(),
+                                )
+                            },
                             singleLine = true,
                         )
                         com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
@@ -332,15 +363,24 @@ fun AppNavigation() {
                                 quickSaleCustomerExpanded = false
                             },
                             avatarColor = MaterialTheme.colorScheme.primary,
-                            avatarTextColor = MaterialTheme.colorScheme.onPrimary
+                            avatarTextColor = MaterialTheme.colorScheme.onPrimary,
                         )
                     }
                     androidx.compose.material3.OutlinedTextField(
                         value = quickSaleAmount,
                         onValueChange = { quickSaleAmount = it },
-                        label = { Text("Total Amount (₹)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                        label = {
+                            Text(
+                                "Total Amount (₹)",
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
+                        },
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                        keyboardOptions =
+                            androidx.compose.foundation.text
+                                .KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                     )
                 }
             },
@@ -349,16 +389,17 @@ fun AppNavigation() {
                     val amt = quickSaleAmount.toDoubleOrNull()
                     if (amt != null && amt > 0) {
                         salesViewModel.clearCart()
-                        val dummyItem = com.storebook.inventoryapp.shared.domain.models.Item(
-                            id = 0L,
-                            name = "Quick Sale",
-                            quantity = 0.0,
-                            unit = "pcs",
-                            buyPrice = 0.0,
-                            sellPrice = amt,
-                            lowStockThreshold = 0.0,
-                            category = "General"
-                        )
+                        val dummyItem =
+                            com.storebook.inventoryapp.shared.domain.models.Item(
+                                id = 0L,
+                                name = "Quick Sale",
+                                quantity = 0.0,
+                                unit = "pcs",
+                                buyPrice = 0.0,
+                                sellPrice = amt,
+                                lowStockThreshold = 0.0,
+                                category = "General",
+                            )
                         salesViewModel.addToCart(dummyItem, 1.0)
                         if (quickSaleCustomer.isNotBlank()) {
                             salesViewModel.cartCustomerName = quickSaleCustomer.trim()
@@ -372,7 +413,7 @@ fun AppNavigation() {
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showQuickSale = false }) { Text("Cancel") }
-            }
+            },
         )
     }
 
@@ -392,10 +433,20 @@ fun AppNavigation() {
                                 selectedRestockItemId = null
                                 quickRestockNameExpanded = it.isNotBlank()
                             },
-                            label = { Text("Item Name", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                            label = {
+                                Text(
+                                    "Item Name",
+                                    modifier =
+                                        androidx.compose.ui.Modifier
+                                            .autoMarquee(),
+                                )
+                            },
                             singleLine = true,
                         )
-                        val filteredItems = allItems.filter { it.name.contains(quickRestockName, ignoreCase = true) }.take(5)
+                        val filteredItems =
+                            allItems
+                                .filter { it.name.contains(quickRestockName, ignoreCase = true) }
+                                .take(5)
                         com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
                             modifier = Modifier.width(boxWidth),
                             expanded = quickRestockNameExpanded,
@@ -412,26 +463,45 @@ fun AppNavigation() {
                             avatarTextColor = MaterialTheme.colorScheme.onSecondary,
                             additionalContent = { item ->
                                 Text(
-                                    text = "Stock: ${formatQty(item.quantity)} ${item.unit} · ${item.sellPrice.toRupee()}",
+                                    text =
+                                        "Stock: ${formatQty(item.quantity)} ${item.unit} · ${item.sellPrice.toRupee()}",
                                     fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                            }
+                            },
                         )
                     }
                     androidx.compose.material3.OutlinedTextField(
                         value = quickRestockQty,
                         onValueChange = { quickRestockQty = it },
-                        label = { Text("Stock Quantity", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                        label = {
+                            Text(
+                                "Stock Quantity",
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
+                        },
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                        keyboardOptions =
+                            androidx.compose.foundation.text
+                                .KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                     )
                     androidx.compose.material3.OutlinedTextField(
                         value = quickRestockPrice,
                         onValueChange = { quickRestockPrice = it },
-                        label = { Text("Sale Price (₹)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                        label = {
+                            Text(
+                                "Sale Price (₹)",
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
+                        },
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                        keyboardOptions =
+                            androidx.compose.foundation.text
+                                .KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                     )
                 }
             },
@@ -448,7 +518,7 @@ fun AppNavigation() {
                                     quantityToAdd = qty,
                                     costPrice = cost,
                                     supplierName = null,
-                                    supplierPhone = null
+                                    supplierPhone = null,
                                 )
                                 inventoryViewModel.loadFilteredItems()
                             }
@@ -464,7 +534,7 @@ fun AppNavigation() {
                                     category = "Uncategorized",
                                     hsnCode = null,
                                     taxRate = 0.0,
-                                    onResult = {}
+                                    onResult = {},
                                 )
                                 inventoryViewModel.loadFilteredItems()
                             }
@@ -479,7 +549,7 @@ fun AppNavigation() {
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showQuickRestock = false }) { Text("Cancel") }
-            }
+            },
         )
     }
 
@@ -499,7 +569,14 @@ fun AppNavigation() {
                                 salesViewModel.customerSuggestions.value
                                 quickPartyNameExpanded = it.isNotBlank()
                             },
-                            label = { Text("Party Name", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                            label = {
+                                Text(
+                                    "Party Name",
+                                    modifier =
+                                        androidx.compose.ui.Modifier
+                                            .autoMarquee(),
+                                )
+                            },
                             singleLine = true,
                         )
                         com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
@@ -512,28 +589,53 @@ fun AppNavigation() {
                                 quickPartyName = name
                                 quickPartyNameExpanded = false
                             },
-                            avatarColor = com.storebook.inventoryapp.ui.theme.Coral500.copy(alpha = 0.12f),
-                            avatarTextColor = com.storebook.inventoryapp.ui.theme.Coral500
+                            avatarColor =
+                                com.storebook.inventoryapp.ui.theme.Coral500
+                                    .copy(alpha = 0.12f),
+                            avatarTextColor = com.storebook.inventoryapp.ui.theme.Coral500,
                         )
                     }
                     androidx.compose.material3.OutlinedTextField(
                         value = quickPartyAmount,
                         onValueChange = { quickPartyAmount = it },
-                        label = { Text("Amount (₹)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                        label = {
+                            Text(
+                                "Amount (₹)",
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
+                        },
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                        keyboardOptions =
+                            androidx.compose.foundation.text
+                                .KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                     )
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         androidx.compose.material3.FilterChip(
                             selected = quickPartyType == "CREDIT",
                             onClick = { quickPartyType = "CREDIT" },
-                            label = { Text("Given (Due)", modifier = androidx.compose.ui.Modifier.autoMarquee()) }
+                            label = {
+                                Text(
+                                    "Given (Due)",
+                                    modifier =
+                                        androidx.compose.ui.Modifier
+                                            .autoMarquee(),
+                                )
+                            },
                         )
                         Spacer(Modifier.width(8.dp))
                         androidx.compose.material3.FilterChip(
                             selected = quickPartyType == "PAYMENT",
                             onClick = { quickPartyType = "PAYMENT" },
-                            label = { Text("Got (Advance)", modifier = androidx.compose.ui.Modifier.autoMarquee()) }
+                            label = {
+                                Text(
+                                    "Got (Advance)",
+                                    modifier =
+                                        androidx.compose.ui.Modifier
+                                            .autoMarquee(),
+                                )
+                            },
                         )
                     }
                 }
@@ -551,7 +653,7 @@ fun AppNavigation() {
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showQuickParty = false }) { Text("Cancel") }
-            }
+            },
         )
     }
 
@@ -601,7 +703,10 @@ fun AppNavigation() {
                                 }
                             } catch (e: Exception) {
                                 if (e is kotlinx.coroutines.CancellationException) throw e
-                                if (com.storebook.inventoryapp.BuildConfig.DEBUG) android.util.Log.e("AppNav", "Navigation error", e)
+                                if (com.storebook.inventoryapp.BuildConfig.DEBUG) {
+                                    android.util.Log
+                                        .e("AppNav", "Navigation error", e)
+                                }
                             }
                         }
                     },
@@ -664,7 +769,11 @@ fun AppNavigation() {
             }
 
             composable<Routes.Dashboard> {
-                DashboardScreen(navController = navController, viewModel = dashboardViewModel, salesViewModel = salesViewModel)
+                DashboardScreen(
+                    navController = navController,
+                    viewModel = dashboardViewModel,
+                    salesViewModel = salesViewModel,
+                )
             }
             composable<Routes.Inventory> {
                 InventoryScreen(viewModel = inventoryViewModel)
@@ -675,7 +784,7 @@ fun AppNavigation() {
             composable<Routes.SupplierLedger> {
                 com.storebook.inventoryapp.ui.screens.storebook.SupplierLedgerScreen(
                     viewModel = supplierViewModel,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable<Routes.SalesHistory> {
@@ -693,7 +802,7 @@ fun AppNavigation() {
             composable<Routes.Quotations> {
                 com.storebook.inventoryapp.ui.screens.storebook.QuotationScreen(
                     navController = navController,
-                    viewModel = salesViewModel
+                    viewModel = salesViewModel,
                 )
             }
             composable<Routes.Udhaar> {
@@ -718,12 +827,14 @@ fun AppNavigation() {
                     onAuthSuccess = {
                         moreViewModel.refreshUserState()
                         // Bug fix: Force a complete app restart to ensure all ViewModels
-                        // and AppViewModelFactory reconnect to the correct, freshly-synced 
+                        // and AppViewModelFactory reconnect to the correct, freshly-synced
                         // storeId database. This prevents the stale UI bug.
                         activity?.let { act ->
                             act.viewModelStore.clear()
                             val intent = android.content.Intent(act, MainActivity::class.java)
-                            intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            intent.flags =
+                                android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                                android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
                             act.startActivity(intent)
                             act.finish()
                         }
@@ -747,7 +858,7 @@ fun AppNavigation() {
             composable<Routes.GSTReport> {
                 GSTReportScreen(
                     navController = navController,
-                    viewModel = dashboardViewModel
+                    viewModel = dashboardViewModel,
                 )
             }
 
@@ -755,7 +866,7 @@ fun AppNavigation() {
             composable<Routes.PriceDriftReport> {
                 PriceDriftReportScreen(
                     navController = navController,
-                    viewModel = salesViewModel
+                    viewModel = salesViewModel,
                 )
             }
         }
@@ -774,14 +885,15 @@ fun SpeedDialFab(
     val rotation by animateFloatAsState(
         targetValue = if (expanded) 45f else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "fab_rotation"
+        label = "fab_rotation",
     )
-    val actions = listOf(
-        Triple(Icons.Filled.ShoppingCart, "New Sale", onNewSale),
-        Triple(Icons.Filled.Inventory, "Restock", onRestock),
-        Triple(Icons.Filled.MoneyOff, "Expense", onExpense),
-        Triple(Icons.Filled.PersonAdd, "Add Party", onAddParty),
-    )
+    val actions =
+        listOf(
+            Triple(Icons.Filled.ShoppingCart, "New Sale", onNewSale),
+            Triple(Icons.Filled.Inventory, "Restock", onRestock),
+            Triple(Icons.Filled.MoneyOff, "Expense", onExpense),
+            Triple(Icons.Filled.PersonAdd, "Add Party", onAddParty),
+        )
     Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
         actions.forEachIndexed { i, (icon, label, action) ->
             AnimatedVisibility(
@@ -799,7 +911,15 @@ fun SpeedDialFab(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         elevation = CardDefaults.cardElevation(2.dp),
                     ) {
-                        Text(label, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            label,
+                            modifier =
+                                Modifier.padding(
+                                    horizontal = 10.dp,
+                                    vertical = 6.dp,
+                                ),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                     }
                     Spacer(Modifier.width(8.dp))
                     SmallFloatingActionButton(
@@ -820,9 +940,10 @@ fun SpeedDialFab(
             Icon(
                 Icons.Default.Add,
                 contentDescription = "Quick Actions",
-                modifier = Modifier
-                    .size(26.dp)
-                    .then(Modifier.graphicsLayer { rotationZ = rotation })
+                modifier =
+                    Modifier
+                        .size(26.dp)
+                        .then(Modifier.graphicsLayer { rotationZ = rotation }),
             )
         }
     }
@@ -887,13 +1008,16 @@ private fun ModernBottomNavBar(
                         )
                     }
                 },
-                label = { Text(
+                label = {
+                    Text(
                         text = stringResource(id = tab.labelRes),
                         fontSize = 10.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         fontFamily = Poppins,
                         maxLines = 1,
-                        modifier = androidx.compose.ui.Modifier.autoMarquee()
+                        modifier =
+                            androidx.compose.ui.Modifier
+                                .autoMarquee(),
                     )
                 },
                 colors =

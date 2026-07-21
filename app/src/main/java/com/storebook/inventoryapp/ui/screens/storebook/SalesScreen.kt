@@ -1,7 +1,6 @@
 @file:android.annotation.SuppressLint("LocalContextGetResourceValueCall")
-package com.storebook.inventoryapp.ui.screens.storebook
-import com.storebook.inventoryapp.utils.autoMarquee
 
+package com.storebook.inventoryapp.ui.screens.storebook
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
@@ -12,9 +11,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,42 +29,44 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.QrCodeScanner
-import androidx.compose.material.icons.outlined.MenuBook
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -80,37 +79,34 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.rounded.Cancel
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
-import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.data.billing.BillingEngine
 import com.storebook.inventoryapp.shared.domain.models.CartItem
 import com.storebook.inventoryapp.shared.domain.models.Item
-import com.storebook.inventoryapp.ui.navigation.Routes
 import com.storebook.inventoryapp.ui.theme.*
+import com.storebook.inventoryapp.ui.theme.PrimaryButton
+import com.storebook.inventoryapp.ui.theme.primaryGradient
 import com.storebook.inventoryapp.ui.viewmodel.SalesViewModel
+import com.storebook.inventoryapp.utils.autoMarquee
 import com.storebook.inventoryapp.utils.toRupee
 import java.net.URLEncoder
-import com.storebook.inventoryapp.ui.theme.primaryGradient
-import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 // ─── Sales Screen ─────────────────────────────────────────────────────────────
 
@@ -125,13 +121,17 @@ fun SalesScreen(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
 
-    val scanner = remember {
-        val options = com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions.Builder()
-            .setBarcodeFormats(com.google.mlkit.vision.barcode.common.Barcode.FORMAT_ALL_FORMATS)
-            .enableAutoZoom()
-            .build()
-        com.google.mlkit.vision.codescanner.GmsBarcodeScanning.getClient(context, options)
-    }
+    val scanner =
+        remember {
+            val options =
+                com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+                    .Builder()
+                    .setBarcodeFormats(com.google.mlkit.vision.barcode.common.Barcode.FORMAT_ALL_FORMATS)
+                    .enableAutoZoom()
+                    .build()
+            com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+                .getClient(context, options)
+        }
 
     var searchQ by remember { mutableStateOf("") }
     var showSuccessScreen by remember { mutableStateOf(false) }
@@ -214,7 +214,7 @@ fun SalesScreen(
                 cartItems = viewModel.cartItems,
                 totalDiscount = viewModel.cartDiscount,
                 businessGstin = viewModel.businessGstin,
-                customerGstin = viewModel.cartCustomerGstin
+                customerGstin = viewModel.cartCustomerGstin,
             )
         }
     }
@@ -267,86 +267,96 @@ fun SalesScreen(
             dragHandle = { BottomSheetDefaults.DragHandle() },
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(unitIcon(item.unit), contentDescription = stringResource(R.string.ui_element_desc), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(26.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(item.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            Text(
-                                text =
-                                    stringResource(
-                                        id = R.string.sales_item_stock,
-                                        formatQty(item.quantity),
-                                        item.unit,
-                                        item.sellPrice.toRupee(),
-                                        item.unit,
-                                    ),
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            )
-                        }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        unitIcon(item.unit),
+                        contentDescription = stringResource(R.string.ui_element_desc),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier =
+                            Modifier
+                                .size(26.dp),
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(item.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(
+                            text =
+                                stringResource(
+                                    id = R.string.sales_item_stock,
+                                    formatQty(item.quantity),
+                                    item.unit,
+                                    item.sellPrice.toRupee(),
+                                    item.unit,
+                                ),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.primaryGradient)
+                                .clickable(onClickLabel = "Action") {
+                                    val cur = editingQtyText.text.toDoubleOrNull() ?: step
+                                    val next = (cur - step).coerceAtLeast(0.0)
+                                    val s = formatQty(next)
+                                    editingQtyText = TextFieldValue(s, TextRange(s.length))
+                                },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "−",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 22.sp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(44.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.primaryGradient)
-                                    .clickable(onClickLabel = "Action") {
-                                        val cur = editingQtyText.text.toDoubleOrNull() ?: step
-                                        val next = (cur - step).coerceAtLeast(0.0)
-                                        val s = formatQty(next)
-                                        editingQtyText = TextFieldValue(s, TextRange(s.length))
-                                    },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                "−",
+                    OutlinedTextField(
+                        value = editingQtyText,
+                        onValueChange = { editingQtyText = it },
+                        modifier =
+                            Modifier
+                                .width(130.dp)
+                                .padding(horizontal = 12.dp)
+                                .focusRequester(editingQtyFocus),
+                        textStyle =
+                            MaterialTheme.typography.headlineSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 22.sp,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                        }
-
-                        OutlinedTextField(
-                            value = editingQtyText,
-                            onValueChange = { editingQtyText = it },
-                            modifier =
-                                Modifier
-                                    .width(130.dp)
-                                    .padding(horizontal = 12.dp)
-                                    .focusRequester(editingQtyFocus),
-                            textStyle =
-                                MaterialTheme.typography.headlineSmall.copy(
-                                    fontWeight = FontWeight.Black,
-                                    textAlign = TextAlign.Center,
-                                ),
-                            suffix = {
-                                Text(
-                                    item.unit,
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Decimal,
-                                imeAction = ImeAction.Done
+                                textAlign = TextAlign.Center,
                             ),
-                            keyboardActions = KeyboardActions(
+                        suffix = {
+                            Text(
+                                item.unit,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        },
+                        singleLine = true,
+                        keyboardOptions =
+                            KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal,
+                                imeAction = ImeAction.Done,
+                            ),
+                        keyboardActions =
+                            KeyboardActions(
                                 onDone = {
                                     val qty = editingQtyText.text.toDoubleOrNull()
                                     if (qty != null && qty > 0.0) {
@@ -357,139 +367,139 @@ fun SalesScreen(
                                         }
                                     }
                                     editingQtyItem = null
-                                }
+                                },
                             ),
-                            shape = RoundedCornerShape(14.dp),
-                        )
+                        shape = RoundedCornerShape(14.dp),
+                    )
 
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.primaryGradient)
+                                .clickable(onClickLabel = "Action") {
+                                    val cur = editingQtyText.text.toDoubleOrNull() ?: 0.0
+                                    val next = cur + step
+                                    val s = formatQty(next)
+                                    editingQtyText = TextFieldValue(s, TextRange(s.length))
+                                },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "+",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 22.sp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
+                }
+
+                // Quick Presets Row
+                val presets =
+                    when (item.unit.lowercase()) {
+                        "kg", "ltr", "liter" -> listOf(0.5, 1.0, 2.0, 5.0)
+                        "gm", "g" -> listOf(100.0, 250.0, 500.0, 1000.0)
+                        else -> listOf(1.0, 2.0, 5.0, 10.0)
+                    }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                ) {
+                    presets.forEach { presetVal ->
                         Box(
                             modifier =
                                 Modifier
-                                    .size(44.dp)
-                                    .clip(CircleShape)
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(MaterialTheme.primaryGradient)
                                     .clickable(onClickLabel = "Action") {
                                         val cur = editingQtyText.text.toDoubleOrNull() ?: 0.0
-                                        val next = cur + step
+                                        val next = cur + presetVal
                                         val s = formatQty(next)
                                         editingQtyText = TextFieldValue(s, TextRange(s.length))
-                                    },
+                                    }.padding(horizontal = 12.dp, vertical = 6.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                "+",
-                                fontWeight = FontWeight.Black,
-                                fontSize = 22.sp,
+                                text = "+${formatQty(presetVal)} ${item.unit}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimary,
                             )
                         }
                     }
+                }
 
-                    // Quick Presets Row
-                    val presets =
-                        when (item.unit.lowercase()) {
-                            "kg", "ltr", "liter" -> listOf(0.5, 1.0, 2.0, 5.0)
-                            "gm", "g" -> listOf(100.0, 250.0, 500.0, 1000.0)
-                            else -> listOf(1.0, 2.0, 5.0, 10.0)
-                        }
+                Text(
+                    text =
+                        when {
+                            step == 1.0 -> "Type exact amount or use + / −"
+                            step == 0.5 -> "Tap + / − for 0.5 ${item.unit} steps, or type exact (e.g. 2.5)"
+                            else -> "Tap + / − for ${formatQty(step)} ${item.unit} steps, or type exact"
+                        },
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                val enteredQty = editingQtyText.text.toDoubleOrNull() ?: 0.0
+                if (enteredQty > 0) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        presets.forEach { presetVal ->
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(MaterialTheme.primaryGradient)
-                                        .clickable(onClickLabel = "Action") {
-                                            val cur = editingQtyText.text.toDoubleOrNull() ?: 0.0
-                                            val next = cur + presetVal
-                                            val s = formatQty(next)
-                                            editingQtyText = TextFieldValue(s, TextRange(s.length))
-                                        }.padding(horizontal = 12.dp, vertical = 6.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = "+${formatQty(presetVal)} ${item.unit}",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                )
-                            }
-                        }
+                        Text(
+                            "${formatQty(enteredQty)} ${item.unit} × ${item.sellPrice.toRupee()}",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        )
+                        Text(
+                            "= ${(enteredQty * item.sellPrice).toRupee()}",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                     }
+                }
 
-                    Text(
-                        text =
-                            when {
-                                step == 1.0 -> "Type exact amount or use + / −"
-                                step == 0.5 -> "Tap + / − for 0.5 ${item.unit} steps, or type exact (e.g. 2.5)"
-                                else -> "Tap + / − for ${formatQty(step)} ${item.unit} steps, or type exact"
-                            },
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-
-                    val enteredQty = editingQtyText.text.toDoubleOrNull() ?: 0.0
-                    if (enteredQty > 0) {
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
-                                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                "${formatQty(enteredQty)} ${item.unit} × ${item.sellPrice.toRupee()}",
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            )
-                            Text(
-                                "= ${(enteredQty * item.sellPrice).toRupee()}",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    androidx.compose.material3.Button(
+                        onClick = { editingQtyItem = null },
+                        modifier = Modifier.weight(1f),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
+                        Text(stringResource(id = R.string.btn_cancel), fontWeight = FontWeight.Bold)
                     }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        androidx.compose.material3.Button(
-                            onClick = { editingQtyItem = null },
-                            modifier = Modifier.weight(1f),
-                            colors =
-                                ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                ),
-                            shape = RoundedCornerShape(14.dp),
-                        ) {
-                            Text(stringResource(id = R.string.btn_cancel), fontWeight = FontWeight.Bold)
-                        }
-                        PrimaryButton(
-                            onClick = {
-                                val qty = editingQtyText.text.toDoubleOrNull()
-                                if (qty != null && qty > 0.0) {
-                                    if (cartMap[item.id] == null) {
-                                        viewModel.addToCart(item, qty)
-                                    } else {
-                                        viewModel.updateCartQty(item, qty)
-                                    }
+                    PrimaryButton(
+                        onClick = {
+                            val qty = editingQtyText.text.toDoubleOrNull()
+                            if (qty != null && qty > 0.0) {
+                                if (cartMap[item.id] == null) {
+                                    viewModel.addToCart(item, qty)
+                                } else {
+                                    viewModel.updateCartQty(item, qty)
                                 }
-                                editingQtyItem = null
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(14.dp),
-                        ) {
-                            Text(stringResource(id = R.string.sales_add_to_cart), fontWeight = FontWeight.Bold)
-                        }
+                            }
+                            editingQtyItem = null
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
+                        Text(stringResource(id = R.string.sales_add_to_cart), fontWeight = FontWeight.Bold)
                     }
+                }
             }
         }
     }
@@ -503,46 +513,60 @@ fun SalesScreen(
         ) {
             var showAdvancedBilling by remember { mutableStateOf(false) }
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp)
-                    .padding(bottom = 24.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp)
+                        .padding(bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = "Checkout Summary",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = grandTotal.toRupee(),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
 
                 OutlinedTextField(
                     value = if (viewModel.cartDiscount == 0.0) "" else viewModel.cartDiscount.toString(),
-                    onValueChange = { viewModel.cartDiscount = (it.toDoubleOrNull() ?: 0.0).coerceAtMost(taxSummary.subTotal) },
-                    label = { Text(stringResource(id = R.string.sales_discount_rupee), fontSize = 11.sp, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal,
-                        imeAction = ImeAction.Next
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { focusRequesterCustomer.requestFocus() }
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequesterDiscount),
+                    onValueChange = {
+                        viewModel.cartDiscount =
+                            (it.toDoubleOrNull() ?: 0.0).coerceAtMost(taxSummary.subTotal)
+                    },
+                    label = {
+                        Text(
+                            stringResource(id = R.string.sales_discount_rupee), fontSize = 11.sp,
+                            modifier =
+                                androidx.compose.ui.Modifier
+                                    .autoMarquee(),
+                        )
+                    },
+                    keyboardOptions =
+                        KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Next,
+                        ),
+                    keyboardActions =
+                        KeyboardActions(
+                            onNext = { focusRequesterCustomer.requestFocus() },
+                        ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequesterDiscount),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                 )
@@ -575,19 +599,27 @@ fun SalesScreen(
                                         }.padding(horizontal = 14.dp, vertical = 8.dp),
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    val icon = when(mode) {
-                                        "Udhaar" -> androidx.compose.material.icons.Icons.Outlined.MenuBook
-                                        "Cash" -> androidx.compose.material.icons.Icons.Outlined.Payments
-                                        "UPI" -> androidx.compose.material.icons.Icons.Outlined.QrCodeScanner
-                                        else -> null
-                                    }
-                                    val textColor = when {
-                                        isSelected && isUdhaar -> MaterialTheme.colorScheme.onError
-                                        isSelected -> MaterialTheme.colorScheme.onPrimary
-                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
+                                    val icon =
+                                        when (mode) {
+                                            "Udhaar" -> androidx.compose.material.icons.Icons.Outlined.MenuBook
+                                            "Cash" -> androidx.compose.material.icons.Icons.Outlined.Payments
+                                            "UPI" -> androidx.compose.material.icons.Icons.Outlined.QrCodeScanner
+                                            else -> null
+                                        }
+                                    val textColor =
+                                        when {
+                                            isSelected && isUdhaar -> MaterialTheme.colorScheme.onError
+                                            isSelected -> MaterialTheme.colorScheme.onPrimary
+                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
                                     if (icon != null) {
-                                        Icon(icon, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(16.dp), tint = textColor)
+                                        Icon(
+                                            icon, contentDescription = stringResource(R.string.ui_element_desc),
+                                            modifier =
+                                                Modifier
+                                                    .size(16.dp),
+                                            tint = textColor,
+                                        )
                                         Spacer(Modifier.width(4.dp))
                                     }
                                     Text(
@@ -640,21 +672,26 @@ fun SalesScreen(
                             customerNameError = false
                             showCustomerSuggestions = true
                         },
-                        label = { 
+                        label = {
                             Text(
-                                text = if (isUdhaarMode) {
-                                    "Customer Name *"
-                                } else {
-                                    stringResource(id = R.string.sales_customer_label)
-                                },
-                                modifier = androidx.compose.ui.Modifier.autoMarquee()
+                                text =
+                                    if (isUdhaarMode) {
+                                        "Customer Name *"
+                                    } else {
+                                        stringResource(id = R.string.sales_customer_label)
+                                    },
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
                             )
                         },
-                        placeholder = { 
+                        placeholder = {
                             Text(
                                 text = if (isUdhaarMode) "Required for Udhaar" else "Optional",
                                 fontSize = 12.sp,
-                                modifier = androidx.compose.ui.Modifier.autoMarquee()
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
                             )
                         },
                         leadingIcon = {
@@ -677,23 +714,30 @@ fun SalesScreen(
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         isError = customerNameError,
-                        keyboardOptions = KeyboardOptions(
-                            imeAction = if (showAdvancedBilling) ImeAction.Next else ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onNext = {
-                                if (showAdvancedBilling) {
-                                    focusRequesterGstin.requestFocus()
-                                }
-                            },
-                            onDone = {
-                                focusManager.clearFocus()
-                            }
-                        ),
+                        keyboardOptions =
+                            KeyboardOptions(
+                                imeAction = if (showAdvancedBilling) ImeAction.Next else ImeAction.Done,
+                            ),
+                        keyboardActions =
+                            KeyboardActions(
+                                onNext = {
+                                    if (showAdvancedBilling) {
+                                        focusRequesterGstin.requestFocus()
+                                    }
+                                },
+                                onDone = {
+                                    focusManager.clearFocus()
+                                },
+                            ),
                         supportingText = {
                             Text(
                                 text = if (customerNameError) "Customer name is required for Udhaar" else " ",
-                                color = if (customerNameError) Coral500 else androidx.compose.ui.graphics.Color.Transparent,
+                                color =
+                                    if (customerNameError) {
+                                        Coral500
+                                    } else {
+                                        androidx.compose.ui.graphics.Color.Transparent
+                                    },
                                 fontSize = 11.sp,
                             )
                         },
@@ -711,29 +755,36 @@ fun SalesScreen(
                             showCustomerSuggestions = false
                             customerNameError = false
                         },
-                        avatarColor = if (isUdhaarMode) Coral500.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary,
+                        avatarColor =
+                            if (isUdhaarMode) Coral500.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary,
                         avatarTextColor = if (isUdhaarMode) Coral500 else MaterialTheme.colorScheme.onPrimary,
                         additionalContent = { name ->
                             if (isUdhaarMode) {
                                 val bal = udhaarBalances.find { it.customerName == name }
                                 if (bal != null && bal.netBalance > 0) {
                                     Text(
-                                        text = stringResource(
-                                            id = R.string.sales_current_due,
-                                            bal.netBalance.toRupee(),
-                                        ),
+                                        text =
+                                            stringResource(
+                                                id = R.string.sales_current_due,
+                                                bal.netBalance.toRupee(),
+                                            ),
                                         fontSize = 10.sp,
                                         color = Coral500,
                                         fontWeight = FontWeight.Bold,
                                     )
                                 }
                             }
-                        }
+                        },
                     )
                 }
 
                 Text(
-                    text = if (showAdvancedBilling) "Hide Additional Billing Details" else "Add GSTIN & Address (Optional)",
+                    text =
+                        if (showAdvancedBilling) {
+                            "Hide Additional Billing Details"
+                        } else {
+                            "Add GSTIN & Address (Optional)"
+                        },
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp,
@@ -751,16 +802,26 @@ fun SalesScreen(
                         OutlinedTextField(
                             value = viewModel.cartCustomerGstin,
                             onValueChange = { viewModel.cartCustomerGstin = it },
-                            label = { Text("Customer GSTIN (Optional)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Next
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onNext = { focusRequesterAddress.requestFocus() }
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .focusRequester(focusRequesterGstin),
+                            label = {
+                                Text(
+                                    "Customer GSTIN (Optional)",
+                                    modifier =
+                                        androidx.compose.ui.Modifier
+                                            .autoMarquee(),
+                                )
+                            },
+                            keyboardOptions =
+                                KeyboardOptions(
+                                    imeAction = ImeAction.Next,
+                                ),
+                            keyboardActions =
+                                KeyboardActions(
+                                    onNext = { focusRequesterAddress.requestFocus() },
+                                ),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequesterGstin),
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp),
                         )
@@ -769,16 +830,26 @@ fun SalesScreen(
                         OutlinedTextField(
                             value = viewModel.cartCustomerAddress,
                             onValueChange = { viewModel.cartCustomerAddress = it },
-                            label = { Text("Customer Address (Optional)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Done
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = { focusManager.clearFocus() }
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .focusRequester(focusRequesterAddress),
+                            label = {
+                                Text(
+                                    "Customer Address (Optional)",
+                                    modifier =
+                                        androidx.compose.ui.Modifier
+                                            .autoMarquee(),
+                                )
+                            },
+                            keyboardOptions =
+                                KeyboardOptions(
+                                    imeAction = ImeAction.Done,
+                                ),
+                            keyboardActions =
+                                KeyboardActions(
+                                    onDone = { focusManager.clearFocus() },
+                                ),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequesterAddress),
                             minLines = 2,
                             maxLines = 3,
                             shape = RoundedCornerShape(12.dp),
@@ -805,7 +876,12 @@ fun SalesScreen(
                                 generatedSaleType = "SALE"
                                 showSuccessScreen = true
                             } else {
-                                android.widget.Toast.makeText(context, "Checkout failed — check stock and retry", android.widget.Toast.LENGTH_LONG).show()
+                                android.widget.Toast
+                                    .makeText(
+                                        context,
+                                        "Checkout failed — check stock and retry",
+                                        android.widget.Toast.LENGTH_LONG,
+                                    ).show()
                             }
                         }
                     },
@@ -823,12 +899,18 @@ fun SalesScreen(
                         ),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        val icon = when (viewModel.cartPaymentMode) {
-                            "Udhaar" -> androidx.compose.material.icons.Icons.Outlined.MenuBook
-                            "UPI" -> androidx.compose.material.icons.Icons.Outlined.QrCodeScanner
-                            else -> androidx.compose.material.icons.Icons.Outlined.Payments
-                        }
-                        Icon(icon, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(18.dp))
+                        val icon =
+                            when (viewModel.cartPaymentMode) {
+                                "Udhaar" -> androidx.compose.material.icons.Icons.Outlined.MenuBook
+                                "UPI" -> androidx.compose.material.icons.Icons.Outlined.QrCodeScanner
+                                else -> androidx.compose.material.icons.Icons.Outlined.Payments
+                            }
+                        Icon(
+                            icon, contentDescription = stringResource(R.string.ui_element_desc),
+                            modifier =
+                                Modifier
+                                    .size(18.dp),
+                        )
                         Spacer(Modifier.width(8.dp))
                         Text(
                             text =
@@ -852,14 +934,22 @@ fun SalesScreen(
                             lastPaymentMode = viewModel.cartPaymentMode
                             lastCartSnap = viewModel.cartItems.toList()
                             showCheckoutSheet = false
-                            viewModel.checkout(paymentMode = viewModel.cartPaymentMode, type = "ESTIMATE") { saleId, total ->
+                            viewModel.checkout(paymentMode = viewModel.cartPaymentMode, type = "ESTIMATE") {
+                                saleId,
+                                total,
+                                ->
                                 if (saleId > 0) {
                                     generatedSaleId = saleId
                                     generatedTotalAmount = total
                                     generatedSaleType = "ESTIMATE"
                                     showSuccessScreen = true
                                 } else {
-                                    android.widget.Toast.makeText(context, "Checkout failed — check stock and retry", android.widget.Toast.LENGTH_LONG).show()
+                                    android.widget.Toast
+                                        .makeText(
+                                            context,
+                                            "Checkout failed — check stock and retry",
+                                            android.widget.Toast.LENGTH_LONG,
+                                        ).show()
                                 }
                             }
                         },
@@ -867,7 +957,13 @@ fun SalesScreen(
                         shape = RoundedCornerShape(16.dp),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(androidx.compose.material.icons.Icons.Outlined.Description, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(18.dp))
+                            Icon(
+                                androidx.compose.material.icons.Icons.Outlined.Description,
+                                contentDescription = stringResource(R.string.ui_element_desc),
+                                modifier =
+                                    Modifier
+                                        .size(18.dp),
+                            )
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 text = "Save as Estimate",
@@ -919,11 +1015,12 @@ fun SalesScreen(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                     Text(
-                        text = if (viewModel.cartItems.isNotEmpty()) {
-                            "${viewModel.cartItems.size} items · ${grandTotal.toRupee()}"
-                        } else {
-                            "Add items to create a new sale"
-                        },
+                        text =
+                            if (viewModel.cartItems.isNotEmpty()) {
+                                "${viewModel.cartItems.size} items · ${grandTotal.toRupee()}"
+                            } else {
+                                "Add items to create a new sale"
+                            },
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                         fontWeight = FontWeight.Medium,
@@ -936,9 +1033,10 @@ fun SalesScreen(
                             viewModel.clearCart()
                             customerNameError = false
                         },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
+                        colors =
+                            ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
                     ) {
                         Text("Clear", fontWeight = FontWeight.Bold)
                     }
@@ -960,9 +1058,10 @@ fun SalesScreen(
                     exit = shrinkVertically() + fadeOut(),
                 ) {
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
                         colors =
                             CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -1022,15 +1121,17 @@ fun SalesScreen(
                     val boxWidth = maxWidth
                     OutlinedTextField(
                         value = searchQ,
-                        onValueChange = { 
-                            searchQ = it 
+                        onValueChange = {
+                            searchQ = it
                             showItemSuggestions = true
                         },
-                        placeholder = { 
+                        placeholder = {
                             Text(
                                 text = stringResource(id = R.string.sales_add_cart_hint),
-                                modifier = androidx.compose.ui.Modifier.autoMarquee()
-                            ) 
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
                         },
                         modifier =
                             Modifier
@@ -1041,41 +1142,62 @@ fun SalesScreen(
                                         showItemSuggestions = true
                                     }
                                 },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.ui_element_desc)) },
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.ui_element_desc))
+                        },
                         trailingIcon = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 if (searchQ.isNotEmpty()) {
                                     IconButton(onClick = { searchQ = "" }) {
-                                        Icon(Icons.Rounded.Cancel, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Icon(
+                                            Icons.Rounded.Cancel,
+                                            contentDescription = "Clear",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
                                     }
                                 }
                                 IconButton(onClick = {
-                                    scanner.startScan()
-                                    .addOnSuccessListener { barcode: com.google.mlkit.vision.barcode.common.Barcode ->
-                                        val code = barcode.rawValue
-                                        if (!code.isNullOrBlank()) {
-                                            val matched = allItems.find { it.hsnCode == code }
-                                            if (matched != null) {
-                                                if (stepForUnit(matched.unit) == 1.0) {
-                                                    viewModel.addToCart(matched, 1.0)
-                                                    android.widget.Toast.makeText(context, "Added: ${matched.name}", android.widget.Toast.LENGTH_SHORT).show()
+                                    scanner
+                                        .startScan()
+                                        .addOnSuccessListener { barcode ->
+                                            val code = barcode.rawValue
+                                            if (!code.isNullOrBlank()) {
+                                                val matched = allItems.find { it.hsnCode == code }
+                                                if (matched != null) {
+                                                    if (stepForUnit(matched.unit) == 1.0) {
+                                                        viewModel.addToCart(matched, 1.0)
+                                                        android.widget.Toast
+                                                            .makeText(
+                                                                context,
+                                                                "Added: ${matched.name}",
+                                                                android.widget.Toast.LENGTH_SHORT,
+                                                            ).show()
+                                                    } else {
+                                                        val step = stepForUnit(matched.unit)
+                                                        val s = formatQty(step)
+                                                        editingQtyText = TextFieldValue(s, TextRange(s.length))
+                                                        editingQtyItem = matched
+                                                    }
                                                 } else {
-                                                    val step = stepForUnit(matched.unit)
-                                                    val s = formatQty(step)
-                                                    editingQtyText = TextFieldValue(s, TextRange(s.length))
-                                                    editingQtyItem = matched
+                                                    android.widget.Toast
+                                                        .makeText(
+                                                            context,
+                                                            "No item found with barcode/HSN: $code",
+                                                            android.widget.Toast.LENGTH_LONG,
+                                                        ).show()
                                                 }
-                                            } else {
-                                                android.widget.Toast.makeText(context, "No item found with barcode/HSN: $code", android.widget.Toast.LENGTH_LONG).show()
                                             }
+                                        }.addOnFailureListener { e: Exception ->
+                                            android.widget.Toast
+                                                .makeText(
+                                                    context,
+                                                    "Scan failed: ${e.message}",
+                                                    android.widget.Toast.LENGTH_SHORT,
+                                                ).show()
                                         }
-                                    }
-                                    .addOnFailureListener { e: Exception ->
-                                        android.widget.Toast.makeText(context, "Scan failed: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                            }) {
-                                Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan Barcode")
-                            }
+                                }) {
+                                    Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan Barcode")
+                                }
                             }
                         },
                         singleLine = true,
@@ -1097,7 +1219,9 @@ fun SalesScreen(
                                 } else {
                                     viewModel.updateCartQty(item, cartMap[item.id]!!.quantity + 1.0)
                                 }
-                                android.widget.Toast.makeText(context, "Added: ${item.name}", android.widget.Toast.LENGTH_SHORT).show()
+                                android.widget.Toast
+                                    .makeText(context, "Added: ${item.name}", android.widget.Toast.LENGTH_SHORT)
+                                    .show()
                             } else {
                                 val s = formatQty(step)
                                 editingQtyText = TextFieldValue(s, TextRange(s.length))
@@ -1113,9 +1237,9 @@ fun SalesScreen(
                             Text(
                                 text = "Stock: ${formatQty(item.quantity)} ${item.unit} · ${item.sellPrice.toRupee()}",
                                 fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                        }
+                        },
                     )
                 }
 
@@ -1212,7 +1336,14 @@ fun SalesScreen(
                                             contentAlignment = Alignment.Center,
                                         ) {
                                             if (!isPcs) {
-                                                Icon(unitIcon(item.unit), contentDescription = stringResource(R.string.ui_element_desc), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                                Icon(
+                                                    unitIcon(item.unit),
+                                                    contentDescription = stringResource(R.string.ui_element_desc),
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier =
+                                                        Modifier
+                                                            .size(20.dp),
+                                                )
                                             } else {
                                                 Text(
                                                     text = item.name.take(2).uppercase(),
@@ -1265,7 +1396,8 @@ fun SalesScreen(
                                                         .width(36.dp)
                                                         .clickable(onClickLabel = "Action") {
                                                             if (viewModel.isHapticFeedbackEnabled) {
-                                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                haptic
+                                                                    .performHapticFeedback(HapticFeedbackType.LongPress)
                                                             }
                                                             viewModel.changeCartQtyRelative(item, -step)
                                                         },
@@ -1310,7 +1442,8 @@ fun SalesScreen(
                                                         .width(36.dp)
                                                         .clickable(onClickLabel = "Action") {
                                                             if (viewModel.isHapticFeedbackEnabled) {
-                                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                haptic
+                                                                    .performHapticFeedback(HapticFeedbackType.LongPress)
                                                             }
                                                             viewModel.changeCartQtyRelative(item, step)
                                                         },
@@ -1335,8 +1468,7 @@ fun SalesScreen(
                                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                         }
                                                         viewModel.addToCart(item, step)
-                                                    }
-                                                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                                                    }.padding(horizontal = 14.dp, vertical = 8.dp),
                                         ) {
                                             Text(
                                                 text =
@@ -1373,8 +1505,9 @@ fun SalesScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 ) {
                     Column(
-                        modifier = Modifier
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         // Total + Quick Checkout row
@@ -1421,28 +1554,36 @@ fun SalesScreen(
                                     customerNameError = false
                                     showCustomerSuggestions = true
                                 },
-                                placeholder = { 
+                                placeholder = {
                                     Text(
-                                        text = "Customer Name (Optional)", 
-                                        fontSize = 13.sp, 
-                                        modifier = androidx.compose.ui.Modifier.autoMarquee()
-                                    ) 
+                                        text = "Customer Name (Optional)",
+                                        fontSize = 13.sp,
+                                        modifier =
+                                            androidx.compose.ui.Modifier
+                                                .autoMarquee(),
+                                    )
                                 },
                                 leadingIcon = {
                                     Icon(
                                         Icons.Default.Person,
                                         contentDescription = stringResource(R.string.ui_element_desc),
-                                        tint = if (customerNameError) Coral500 else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint =
+                                            if (customerNameError) {
+                                                Coral500
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
                                         modifier = Modifier.size(18.dp),
                                     )
                                 },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .onFocusChanged { state ->
-                                        if (state.isFocused) {
-                                            showCustomerSuggestions = true
-                                        }
-                                    },
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .onFocusChanged { state ->
+                                            if (state.isFocused) {
+                                                showCustomerSuggestions = true
+                                            }
+                                        },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                                 isError = customerNameError,
@@ -1453,10 +1594,11 @@ fun SalesScreen(
                                 expanded = showCustomerSuggestions && customerSuggestions.isNotEmpty(),
                                 onDismissRequest = { showCustomerSuggestions = false },
                                 properties = PopupProperties(focusable = false),
-                                modifier = Modifier
-                                    .fillMaxWidth(0.9f)
-                                    .heightIn(max = 240.dp)
-                                    .background(MaterialTheme.colorScheme.surface),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth(0.9f)
+                                        .heightIn(max = 240.dp)
+                                        .background(MaterialTheme.colorScheme.surface),
                             ) {
                                 customerSuggestions.forEachIndexed { index, name ->
                                     androidx.compose.material3.DropdownMenuItem(
@@ -1467,10 +1609,11 @@ fun SalesScreen(
                                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                             ) {
                                                 Box(
-                                                    modifier = Modifier
-                                                        .size(30.dp)
-                                                        .clip(CircleShape)
-                                                        .background(MaterialTheme.primaryGradient),
+                                                    modifier =
+                                                        Modifier
+                                                            .size(30.dp)
+                                                            .clip(CircleShape)
+                                                            .background(MaterialTheme.primaryGradient),
                                                     contentAlignment = Alignment.Center,
                                                 ) {
                                                     Text(
@@ -1490,10 +1633,11 @@ fun SalesScreen(
                                                     val bal = udhaarBalances.find { it.customerName == name }
                                                     if (bal != null && bal.netBalance > 0) {
                                                         Text(
-                                                            text = stringResource(
-                                                                id = R.string.sales_current_due,
-                                                                bal.netBalance.toRupee(),
-                                                            ),
+                                                            text =
+                                                                stringResource(
+                                                                    id = R.string.sales_current_due,
+                                                                    bal.netBalance.toRupee(),
+                                                                ),
                                                             fontSize = 10.sp,
                                                             color = Coral500,
                                                             fontWeight = FontWeight.Bold,
@@ -1518,47 +1662,60 @@ fun SalesScreen(
                         // Payment Modes
                         Row(
                             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             paymentModes.forEach { mode ->
                                 val isSelected = viewModel.cartPaymentMode == mode
                                 Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(
-                                            when {
-                                                isSelected && mode == "Udhaar" -> Coral500
-                                                isSelected && mode == "Estimate" -> androidx.compose.ui.graphics.Color(0xFF607D8B)
-                                                isSelected -> MaterialTheme.colorScheme.primary
-                                                else -> MaterialTheme.colorScheme.surfaceVariant
-                                            }
-                                        )
-                                        .clickable(onClickLabel = "Action") {
-                                            viewModel.cartPaymentMode = mode
-                                            if (mode == "Udhaar") {
-                                                showCheckoutSheet = true
-                                            }
-                                        }
-                                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                                    modifier =
+                                        Modifier
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(
+                                                when {
+                                                    isSelected && mode == "Udhaar" -> Coral500
+                                                    isSelected && mode == "Estimate" ->
+                                                        androidx.compose.ui.graphics
+                                                            .Color(0xFF607D8B)
+                                                    isSelected -> MaterialTheme.colorScheme.primary
+                                                    else -> MaterialTheme.colorScheme.surfaceVariant
+                                                },
+                                            ).clickable(onClickLabel = "Action") {
+                                                viewModel.cartPaymentMode = mode
+                                                if (mode == "Udhaar") {
+                                                    showCheckoutSheet = true
+                                                }
+                                            }.padding(horizontal = 16.dp, vertical = 10.dp),
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        val icon = when(mode) {
-                                            "Udhaar" -> androidx.compose.material.icons.Icons.Outlined.MenuBook
-                                            "Cash" -> androidx.compose.material.icons.Icons.Outlined.Payments
-                                            "UPI" -> androidx.compose.material.icons.Icons.Outlined.QrCodeScanner
-                                            "Estimate" -> androidx.compose.material.icons.Icons.Outlined.Description
-                                            else -> null
-                                        }
-                                        val textColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        val icon =
+                                            when (mode) {
+                                                "Udhaar" -> androidx.compose.material.icons.Icons.Outlined.MenuBook
+                                                "Cash" -> androidx.compose.material.icons.Icons.Outlined.Payments
+                                                "UPI" -> androidx.compose.material.icons.Icons.Outlined.QrCodeScanner
+                                                "Estimate" -> androidx.compose.material.icons.Icons.Outlined.Description
+                                                else -> null
+                                            }
+                                        val textColor =
+                                            if (isSelected) {
+                                                MaterialTheme.colorScheme.onPrimary
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            }
                                         if (icon != null) {
-                                            Icon(icon, contentDescription = stringResource(R.string.ui_element_desc), modifier = Modifier.size(16.dp), tint = textColor)
+                                            Icon(
+                                                icon, contentDescription = stringResource(R.string.ui_element_desc),
+                                                modifier =
+                                                    Modifier
+                                                        .size(16.dp),
+                                                tint = textColor,
+                                            )
                                             Spacer(Modifier.width(4.dp))
                                         }
                                         Text(
                                             text = mode,
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = textColor
+                                            color = textColor,
                                         )
                                     }
                                 }
@@ -1568,38 +1725,66 @@ fun SalesScreen(
                         // Quick Charge Button
                         androidx.compose.material3.Button(
                             onClick = {
-                                if (viewModel.cartPaymentMode == "Udhaar" && viewModel.cartCustomerName.trim().isBlank()) {
+                                if (viewModel.cartPaymentMode == "Udhaar" &&
+                                    viewModel.cartCustomerName.trim().isBlank()
+                                ) {
                                     showCheckoutSheet = true
                                 } else {
                                     lastPaymentMode = viewModel.cartPaymentMode
                                     lastCartSnap = viewModel.cartItems.toList()
                                     val type = if (viewModel.cartPaymentMode == "Estimate") "ESTIMATE" else "SALE"
-                                    viewModel.checkout(paymentMode = if(type == "ESTIMATE") "Cash" else viewModel.cartPaymentMode, type = type) { saleId, total ->
+                                    viewModel.checkout(
+                                        paymentMode =
+                                            if (type ==
+                                                "ESTIMATE"
+                                            ) {
+                                                "Cash"
+                                            } else {
+                                                viewModel.cartPaymentMode
+                                            },
+                                        type = type,
+                                    ) { saleId, total ->
                                         if (saleId > 0) {
                                             generatedSaleId = saleId
                                             generatedTotalAmount = total
                                             generatedSaleType = type
                                             showSuccessScreen = true
                                         } else {
-                                            android.widget.Toast.makeText(context, "Checkout failed — check stock and retry", android.widget.Toast.LENGTH_LONG).show()
+                                            android.widget.Toast
+                                                .makeText(
+                                                    context,
+                                                    "Checkout failed — check stock and retry",
+                                                    android.widget.Toast.LENGTH_LONG,
+                                                ).show()
                                         }
                                     }
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = when (viewModel.cartPaymentMode) {
-                                    "Udhaar" -> Coral500
-                                    "Estimate" -> androidx.compose.ui.graphics.Color(0xFF607D8B)
-                                    else -> MaterialTheme.colorScheme.primary
-                                }
-                            )
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor =
+                                        when (viewModel.cartPaymentMode) {
+                                            "Udhaar" -> Coral500
+                                            "Estimate" ->
+                                                androidx.compose.ui.graphics
+                                                    .Color(0xFF607D8B)
+                                            else -> MaterialTheme.colorScheme.primary
+                                        },
+                                ),
                         ) {
                             Text(
-                                text = if (viewModel.cartPaymentMode == "Estimate") "Save Estimate" else "Charge ${grandTotal.toRupee()}",
+                                text =
+                                    if (viewModel.cartPaymentMode ==
+                                        "Estimate"
+                                    ) {
+                                        "Save Estimate"
+                                    } else {
+                                        "Charge ${grandTotal.toRupee()}"
+                                    },
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
+                                fontSize = 16.sp,
                             )
                         }
                     }
@@ -1684,7 +1869,14 @@ fun SalesSuccessScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = if (isEstimate) "Estimate Saved!" else if (isUdhaar) "Udhaar दर्ज हुई!" else stringResource(id = R.string.sales_success_title),
+            text =
+                if (isEstimate) {
+                    "Estimate Saved!"
+                } else if (isUdhaar) {
+                    "Udhaar दर्ज हुई!"
+                } else {
+                    stringResource(id = R.string.sales_success_title)
+                },
             style =
                 MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
@@ -1697,7 +1889,7 @@ fun SalesSuccessScreen(
         Text(
             text =
                 if (isEstimate) {
-                    "Quotation #${saleId} saved. Stock was not deducted."
+                    "Quotation #$saleId saved. Stock was not deducted."
                 } else if (isUdhaar) {
                     "${totalAmount.toRupee()} — उधार खाते में जोड़ दिया गया।"
                 } else {
@@ -1816,7 +2008,11 @@ fun SalesSuccessScreen(
             colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
             shape = RoundedCornerShape(16.dp),
         ) {
-            Text(stringResource(id = R.string.btn_share_whatsapp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+            Text(
+                stringResource(id = R.string.btn_share_whatsapp),
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
         }
 
         Spacer(modifier = Modifier.height(10.dp))

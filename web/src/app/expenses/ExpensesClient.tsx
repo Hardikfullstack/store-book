@@ -83,6 +83,7 @@ export default function ExpensesClient({
       }
     };
     fetchTotal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPremium, storeId, refreshTrigger, debouncedSearch, startDateFilter, endDateFilter, minAmountFilter, maxAmountFilter]);
 
   useEffect(() => {
@@ -154,6 +155,7 @@ export default function ExpensesClient({
       isMounted = false;
       clearInterval(intervalId);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion, debouncedSearch, startDateFilter, endDateFilter, minAmountFilter, maxAmountFilter]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

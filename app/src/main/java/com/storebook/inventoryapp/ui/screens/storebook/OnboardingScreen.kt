@@ -41,7 +41,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.storebook.inventoryapp.R
-import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 data class OnboardingStep(
     val titleRes: Int,

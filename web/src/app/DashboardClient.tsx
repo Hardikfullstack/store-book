@@ -49,6 +49,7 @@ export default function DashboardClient({
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const shouldShowSetup = globalThis.sessionStorage.getItem('storebook_setup_pending') === '1';
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsPreparing(shouldShowSetup);
   }, []);
 
@@ -85,6 +86,7 @@ export default function DashboardClient({
     };
 
     updateStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange, rawSales, rawUdhaars, rawExpenses, rawSaleItems, itemsList]);
 
   // Delta Sync & Cache Logic

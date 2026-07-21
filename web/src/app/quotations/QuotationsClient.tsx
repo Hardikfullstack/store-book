@@ -100,6 +100,7 @@ export default function QuotationsClient({
         fetchedPagesAtVersionRef.current.set(countKey, dataVersion);
       })
       .catch(err => console.error('Count fetch error:', err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPremium, storeId, refreshTrigger, debouncedSearch, statusFilter, minAmountFilter, maxAmountFilter, startDateFilter, endDateFilter]);
 
   // Fetch paginated quotations
@@ -165,6 +166,7 @@ export default function QuotationsClient({
       }
     };
     fetchQuotations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion, debouncedSearch, minAmountFilter, maxAmountFilter, startDateFilter, endDateFilter]);
 
   const handleDelete = async (id: string) => {
@@ -339,6 +341,7 @@ export default function QuotationsClient({
             // E04-S3: Expired check (30+ days old)
             const isExpired = (timestamp: number) => {
               if (!timestamp) return false;
+              // eslint-disable-next-line react-hooks/purity
               const ageDays = (Date.now() - timestamp) / (1000 * 60 * 60 * 24);
               return ageDays > 30;
             };

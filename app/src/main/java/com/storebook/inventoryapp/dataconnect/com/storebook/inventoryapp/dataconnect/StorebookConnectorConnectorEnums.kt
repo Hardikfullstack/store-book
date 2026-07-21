@@ -1,24 +1,21 @@
 
 @file:kotlin.Suppress(
-  "KotlinRedundantDiagnosticSuppress",
-  "LocalVariableName",
-  "MayBeConstant",
-  "RedundantVisibilityModifier",
-  "RemoveEmptyClassBody",
-  "SpellCheckingInspection",
-  "LocalVariableName",
-  "unused",
+    "KotlinRedundantDiagnosticSuppress",
+    "LocalVariableName",
+    "MayBeConstant",
+    "RedundantVisibilityModifier",
+    "RemoveEmptyClassBody",
+    "SpellCheckingInspection",
+    "LocalVariableName",
+    "unused",
 )
 
 package com.storebook.inventoryapp.dataconnect
 
-
-  public enum class OrderDirection {
-  ASC,
-  DESC,
-  
-  }
-
+public enum class OrderDirection {
+    ASC,
+    DESC,
+}
 
 // The lines below are used by the code generator to ensure that this file is deleted if it is no
 // longer needed. Any files in this directory that contain the lines below will be deleted by the

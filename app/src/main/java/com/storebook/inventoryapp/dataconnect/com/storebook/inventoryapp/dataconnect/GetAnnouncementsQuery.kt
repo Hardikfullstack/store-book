@@ -1,112 +1,73 @@
 
 @file:kotlin.Suppress(
-  "KotlinRedundantDiagnosticSuppress",
-  "LocalVariableName",
-  "MayBeConstant",
-  "RedundantVisibilityModifier",
-  "RemoveEmptyClassBody",
-  "SpellCheckingInspection",
-  "LocalVariableName",
-  "unused",
+    "KotlinRedundantDiagnosticSuppress",
+    "LocalVariableName",
+    "MayBeConstant",
+    "RedundantVisibilityModifier",
+    "RemoveEmptyClassBody",
+    "SpellCheckingInspection",
+    "LocalVariableName",
+    "unused",
 )
 
-
-
 package com.storebook.inventoryapp.dataconnect
-
 
 import kotlinx.coroutines.flow.filterNotNull as _flow_filterNotNull
 import kotlinx.coroutines.flow.map as _flow_map
 
-
 public interface GetAnnouncementsQuery :
     com.google.firebase.dataconnect.generated.GeneratedQuery<
-      StorebookConnectorConnector,
-      GetAnnouncementsQuery.Data,
-      Unit
-    >
-{
-  
-
-  
+        StorebookConnectorConnector,
+        GetAnnouncementsQuery.Data,
+        Unit,
+    > {
     @kotlinx.serialization.Serializable
-  public data class Data(
-  
-    val announcements:
-    List<AnnouncementsItem>
-  ) {
-    
-      
+    public data class Data(
+        val announcements: List<AnnouncementsItem>,
+    ) {
         @kotlinx.serialization.Serializable
-  public data class AnnouncementsItem(
-  
-    val id:
-    String,
-    val title:
-    String,
-    val message:
-    String,
-    val type:
-    String,
-    val isActive:
-    Boolean,
-    val createdAt:
-    Double
-  ) {
-    
-    
-  }
-      
-    
-    
-  }
-  
+        public data class AnnouncementsItem(
+            val id: String,
+            val title: String,
+            val message: String,
+            val type: String,
+            val isActive: Boolean,
+            val createdAt: Double,
+        )
+    }
 
-  public companion object {
-    public val operationName: String = "GetAnnouncements"
+    public companion object {
+        public val operationName: String = "GetAnnouncements"
 
-    public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
-      kotlinx.serialization.serializer()
+        public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
+            kotlinx.serialization.serializer()
 
-    public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Unit> =
-      kotlinx.serialization.serializer()
-  }
+        public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Unit> =
+            kotlinx.serialization.serializer()
+    }
 }
 
-public fun GetAnnouncementsQuery.ref(
-  
-): com.google.firebase.dataconnect.QueryRef<
+public fun GetAnnouncementsQuery.ref(): com.google.firebase.dataconnect.QueryRef<
     GetAnnouncementsQuery.Data,
-    Unit
-  > =
-  ref(
-    
-      Unit
-    
-  )
-
-public suspend fun GetAnnouncementsQuery.execute(
-  
-  ): com.google.firebase.dataconnect.QueryResult<
-    GetAnnouncementsQuery.Data,
-    Unit
-  > =
-  ref(
-    
-  ).execute()
-
-
-  public fun GetAnnouncementsQuery.flow(
-    
-    ): kotlinx.coroutines.flow.Flow<GetAnnouncementsQuery.Data> =
+    Unit,
+> =
     ref(
-        
-      ).subscribe()
-      .flow
-      ._flow_map { querySubscriptionResult -> querySubscriptionResult.result.getOrNull() }
-      ._flow_filterNotNull()
-      ._flow_map { it.data }
+        Unit,
+    )
 
+public suspend fun GetAnnouncementsQuery.execute(): com.google.firebase.dataconnect.QueryResult<
+    GetAnnouncementsQuery.Data,
+    Unit,
+> =
+    ref().execute()
+
+public fun GetAnnouncementsQuery.flow(): kotlinx.coroutines.flow.Flow<GetAnnouncementsQuery.Data> =
+    ref()
+        .subscribe()
+        .flow
+        ._flow_map { querySubscriptionResult -> querySubscriptionResult.result.getOrNull() }
+        ._flow_filterNotNull()
+        ._flow_map { it.data }
 
 // The lines below are used by the code generator to ensure that this file is deleted if it is no
 // longer needed. Any files in this directory that contain the lines below will be deleted by the

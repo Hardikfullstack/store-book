@@ -47,23 +47,24 @@ object ReviewUtils {
         }
     }
 
-    private fun getEncryptedPrefs(context: Context): android.content.SharedPreferences {
-        return try {
-            val masterKey = MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
+    private fun getEncryptedPrefs(context: Context): android.content.SharedPreferences =
+        try {
+            val masterKey =
+                MasterKey
+                    .Builder(context)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
             EncryptedSharedPreferences.create(
                 context,
                 PREFS_NAME,
                 masterKey,
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
             )
         } catch (e: Exception) {
             // Fallback to plain SharedPrefs if encryption unavailable
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         }
-    }
 
     /**
      * Mark review as shown so it won't prompt again during this app session.
@@ -72,7 +73,9 @@ object ReviewUtils {
     fun markReviewShown(context: Context) {
         try {
             getEncryptedPrefs(context).edit().putBoolean(KEY_REVIEW_SHOWN, true).apply()
-        } catch (_: Exception) { /* ignore */ }
+        } catch (_: Exception) {
+            // ignore
+        }
     }
 
     fun launchInAppReview(
@@ -80,11 +83,12 @@ object ReviewUtils {
         onComplete: () -> Unit = {},
     ) {
         // e10-s4 GATE: Don't prompt review unless gating criteria met
-        val canPrompt = try {
-            canPromptForReview(activity)
-        } catch (_: Exception) {
-            false
-        }
+        val canPrompt =
+            try {
+                canPromptForReview(activity)
+            } catch (_: Exception) {
+                false
+            }
 
         if (!canPrompt) {
             onComplete()

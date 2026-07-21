@@ -1,130 +1,84 @@
 
 @file:kotlin.Suppress(
-  "KotlinRedundantDiagnosticSuppress",
-  "LocalVariableName",
-  "MayBeConstant",
-  "RedundantVisibilityModifier",
-  "RemoveEmptyClassBody",
-  "SpellCheckingInspection",
-  "LocalVariableName",
-  "unused",
+    "KotlinRedundantDiagnosticSuppress",
+    "LocalVariableName",
+    "MayBeConstant",
+    "RedundantVisibilityModifier",
+    "RemoveEmptyClassBody",
+    "SpellCheckingInspection",
+    "LocalVariableName",
+    "unused",
 )
 
-
-
 package com.storebook.inventoryapp.dataconnect
-
 
 import kotlinx.coroutines.flow.filterNotNull as _flow_filterNotNull
 import kotlinx.coroutines.flow.map as _flow_map
 
-
 public interface GetUdhaarEntriesCountQuery :
     com.google.firebase.dataconnect.generated.GeneratedQuery<
-      StorebookConnectorConnector,
-      GetUdhaarEntriesCountQuery.Data,
-      GetUdhaarEntriesCountQuery.Variables
-    >
-{
-  
+        StorebookConnectorConnector,
+        GetUdhaarEntriesCountQuery.Data,
+        GetUdhaarEntriesCountQuery.Variables,
+    > {
     @kotlinx.serialization.Serializable
-  public data class Variables(
-  
-    val storeId:
-    String
-  ) {
-    
-    
-  }
-  
+    public data class Variables(
+        val storeId: String,
+    )
 
-  
     @kotlinx.serialization.Serializable
-  public data class Data(
-  
-    val udhaarEntries:
-    List<UdhaarEntriesItem>
-  ) {
-    
-      
+    public data class Data(
+        val udhaarEntries: List<UdhaarEntriesItem>,
+    ) {
         @kotlinx.serialization.Serializable
-  public data class UdhaarEntriesItem(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
-      
-    
-    
-  }
-  
+        public data class UdhaarEntriesItem(
+            val id: String,
+        )
+    }
 
-  public companion object {
-    public val operationName: String = "GetUdhaarEntriesCount"
+    public companion object {
+        public val operationName: String = "GetUdhaarEntriesCount"
 
-    public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
-      kotlinx.serialization.serializer()
+        public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
+            kotlinx.serialization.serializer()
 
-    public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables> =
-      kotlinx.serialization.serializer()
-  }
+        public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables> =
+            kotlinx.serialization.serializer()
+    }
 }
 
 public fun GetUdhaarEntriesCountQuery.ref(
-  
     storeId: String,
-  
-  
 ): com.google.firebase.dataconnect.QueryRef<
     GetUdhaarEntriesCountQuery.Data,
-    GetUdhaarEntriesCountQuery.Variables
-  > =
-  ref(
-    
-      GetUdhaarEntriesCountQuery.Variables(
-        storeId=storeId,
-  
-      )
-    
-  )
+    GetUdhaarEntriesCountQuery.Variables,
+> =
+    ref(
+        GetUdhaarEntriesCountQuery.Variables(
+            storeId = storeId,
+        ),
+    )
 
 public suspend fun GetUdhaarEntriesCountQuery.execute(
-  
     storeId: String,
-  
-  
-  ): com.google.firebase.dataconnect.QueryResult<
+): com.google.firebase.dataconnect.QueryResult<
     GetUdhaarEntriesCountQuery.Data,
-    GetUdhaarEntriesCountQuery.Variables
-  > =
-  ref(
-    
-      storeId=storeId,
-  
-    
-  ).execute()
-
-
-  public fun GetUdhaarEntriesCountQuery.flow(
-    
-      storeId: String,
-  
-    
-    ): kotlinx.coroutines.flow.Flow<GetUdhaarEntriesCountQuery.Data> =
+    GetUdhaarEntriesCountQuery.Variables,
+> =
     ref(
-        
-          storeId=storeId,
-  
-        
-      ).subscribe()
-      .flow
-      ._flow_map { querySubscriptionResult -> querySubscriptionResult.result.getOrNull() }
-      ._flow_filterNotNull()
-      ._flow_map { it.data }
+        storeId = storeId,
+    ).execute()
 
+public fun GetUdhaarEntriesCountQuery.flow(
+    storeId: String,
+): kotlinx.coroutines.flow.Flow<GetUdhaarEntriesCountQuery.Data> =
+    ref(
+        storeId = storeId,
+    ).subscribe()
+        .flow
+        ._flow_map { querySubscriptionResult -> querySubscriptionResult.result.getOrNull() }
+        ._flow_filterNotNull()
+        ._flow_map { it.data }
 
 // The lines below are used by the code generator to ensure that this file is deleted if it is no
 // longer needed. Any files in this directory that contain the lines below will be deleted by the

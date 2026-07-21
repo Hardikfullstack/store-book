@@ -1,10 +1,8 @@
 package com.storebook.inventoryapp.ui.screens
 
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -32,7 +30,6 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [33], application = android.app.Application::class)
 class InventoryScreenSnapshotTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -64,7 +61,7 @@ class InventoryScreenSnapshotTest {
             CompositionLocalProvider(LocalAppTheme provides themeManager) {
                 StoreBookTheme(darkTheme = false) {
                     InventoryScreen(
-                        viewModel = mockInventoryViewModel
+                        viewModel = mockInventoryViewModel,
                     )
                 }
             }
@@ -79,7 +76,7 @@ class InventoryScreenSnapshotTest {
             CompositionLocalProvider(LocalAppTheme provides themeManager) {
                 StoreBookTheme(darkTheme = true) {
                     InventoryScreen(
-                        viewModel = mockInventoryViewModel
+                        viewModel = mockInventoryViewModel,
                     )
                 }
             }

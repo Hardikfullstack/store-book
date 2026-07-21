@@ -1,5 +1,6 @@
 package com.storebook.inventoryapp.ui.screens.storebook
 
+import android.app.Activity
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,14 +41,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.DisposableEffect
-import android.app.Activity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -118,20 +118,19 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
     // ── Brand Colors ──────────────────────────────────────────────────────
     val bgColor = Color(0xFF191958)
     val indigoPurple = Color(0xFF6366F1)
-    val goldMain     = Color(0xFFF59E0B)
-    val goldLight    = Color(0xFFFBBF24)
+    val goldMain = Color(0xFFF59E0B)
+    val goldLight = Color(0xFFFBBF24)
 
     // ── Screen ────────────────────────────────────────────────────────────
     Box(
         modifier = Modifier.fillMaxSize().background(bgColor),
         contentAlignment = Alignment.Center,
     ) {
-
         // Background glow
         Canvas(Modifier.size(300.dp)) {
             drawCircle(
                 Brush.radialGradient(
-                    listOf(indigoPurple.copy(alpha = 0.22f * logoAlpha), Color.Transparent)
+                    listOf(indigoPurple.copy(alpha = 0.22f * logoAlpha), Color.Transparent),
                 ),
                 radius = size.minDimension / 1.5f,
             )
@@ -142,20 +141,20 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-
             // ── Logo ──────────────────────────────────────────────────────
             Box(
-                modifier = Modifier
-                    .size(150.dp)
-                    .scale(logoScale * pulse)
-                    .alpha(logoAlpha),
+                modifier =
+                    Modifier
+                        .size(150.dp)
+                        .scale(logoScale * pulse)
+                        .alpha(logoAlpha),
                 contentAlignment = Alignment.Center,
             ) {
                 // Gold glow ring behind logo
                 Canvas(Modifier.fillMaxSize()) {
                     drawCircle(
                         Brush.radialGradient(
-                            listOf(goldMain.copy(alpha = 0.22f), Color.Transparent)
+                            listOf(goldMain.copy(alpha = 0.22f), Color.Transparent),
                         ),
                         radius = size.minDimension / 1.7f,
                     )
@@ -165,9 +164,10 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
                     painter = painterResource(R.drawable.logo),
                     contentDescription = "StoreBook Logo",
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .size(130.dp)
-                        .clip(RoundedCornerShape(22.dp)),
+                    modifier =
+                        Modifier
+                            .size(130.dp)
+                            .clip(RoundedCornerShape(22.dp)),
                 )
             }
 
@@ -203,10 +203,11 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
 
             // ── Shimmer gold divider ──────────────────────────────────────
             Box(
-                modifier = Modifier
-                    .alpha(tagAlpha)
-                    .width(110.dp)
-                    .height(2.dp),
+                modifier =
+                    Modifier
+                        .alpha(tagAlpha)
+                        .width(110.dp)
+                        .height(2.dp),
             ) {
                 Canvas(Modifier.fillMaxSize()) {
                     drawRect(
@@ -236,11 +237,11 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
             color = Color(0xFF818CF8).copy(alpha = 0.8f),
             textAlign = TextAlign.Center,
             letterSpacing = 0.2.sp,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 44.dp)
-                .alpha(tagAlpha),
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 44.dp)
+                    .alpha(tagAlpha),
         )
     }
 }
-

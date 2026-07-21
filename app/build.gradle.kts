@@ -66,7 +66,6 @@ android {
     }
 }
 
-
 dependencies {
     implementation(project(":shared"))
     // 1. Platform & Core
@@ -159,10 +158,7 @@ ktlint {
         reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
     }
     filter {
-        exclude("**/generated/**")
-        include("**/java/**")
-        include("**/kotlin/**")
+        exclude { element -> element.file.path.contains("dataconnect") }
+        exclude { element -> element.file.path.contains("generated") }
     }
 }
-
-

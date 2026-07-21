@@ -9,8 +9,6 @@ import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
-import com.google.firebase.auth.FirebaseAuth
-import com.storebook.inventoryapp.dataconnect.StorebookConnectorConnector
 import com.storebook.inventoryapp.utils.SecurityUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +26,10 @@ class PlayBillingManager(
         BillingClient
             .newBuilder(appContext.applicationContext)
             .setListener { billingResult, purchaseList ->
-                if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.d(TAG, "PurchaseUpdated: code=${billingResult.responseCode} n=${purchaseList?.size}")
+                if (com.storebook.inventoryapp.BuildConfig.DEBUG) {
+                    Log
+                        .d(TAG, "PurchaseUpdated: code=${billingResult.responseCode} n=${purchaseList?.size}")
+                }
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     purchaseList
                         ?.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
@@ -45,7 +46,10 @@ class PlayBillingManager(
                             if (!ids.isEmpty()) {
                                 val prefs = SecurityUtils.getEncryptedPrefs(appContext)
                                 prefs.edit().putBoolean("is_premium", true).apply()
-                                if (com.storebook.inventoryapp.BuildConfig.DEBUG) Log.d(TAG, "SharedPrefs updated: is_premium=true")
+                                if (com.storebook.inventoryapp.BuildConfig.DEBUG) {
+                                    Log
+                                        .d(TAG, "SharedPrefs updated: is_premium=true")
+                                }
                             }
                         }
                 }
@@ -151,13 +155,18 @@ class PlayBillingManager(
         }
 
         if (inAppProducts.isNotEmpty()) {
-            val inAppParams = QueryProductDetailsParams.newBuilder()
-                .setProductList(inAppProducts.map {
-                    QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(it)
-                        .setProductType(BillingClient.ProductType.INAPP)
-                        .build()
-                }).build()
+            val inAppParams =
+                QueryProductDetailsParams
+                    .newBuilder()
+                    .setProductList(
+                        inAppProducts.map {
+                            QueryProductDetailsParams.Product
+                                .newBuilder()
+                                .setProductId(it)
+                                .setProductType(BillingClient.ProductType.INAPP)
+                                .build()
+                        },
+                    ).build()
             billingClient.queryProductDetailsAsync(inAppParams) { result, details ->
                 if (result.responseCode == BillingClient.BillingResponseCode.OK && details != null) {
                     combinedList.addAll(details)
@@ -172,13 +181,18 @@ class PlayBillingManager(
         }
 
         if (subsProducts.isNotEmpty()) {
-            val subsParams = QueryProductDetailsParams.newBuilder()
-                .setProductList(subsProducts.map {
-                    QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(it)
-                        .setProductType(BillingClient.ProductType.SUBS)
-                        .build()
-                }).build()
+            val subsParams =
+                QueryProductDetailsParams
+                    .newBuilder()
+                    .setProductList(
+                        subsProducts.map {
+                            QueryProductDetailsParams.Product
+                                .newBuilder()
+                                .setProductId(it)
+                                .setProductType(BillingClient.ProductType.SUBS)
+                                .build()
+                        },
+                    ).build()
             billingClient.queryProductDetailsAsync(subsParams) { result, details ->
                 if (result.responseCode == BillingClient.BillingResponseCode.OK && details != null) {
                     combinedList.addAll(details)
@@ -202,8 +216,10 @@ class PlayBillingManager(
     ) {
         _state.value = _state.value.copy(isLoading = true)
 
-        val productDetailsParamsBuilder = BillingFlowParams.ProductDetailsParams.newBuilder()
-            .setProductDetails(productDetails)
+        val productDetailsParamsBuilder =
+            BillingFlowParams.ProductDetailsParams
+                .newBuilder()
+                .setProductDetails(productDetails)
 
         if (offerToken != null) {
             productDetailsParamsBuilder.setOfferToken(offerToken)

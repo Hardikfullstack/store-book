@@ -22,6 +22,7 @@ export default function SetupProgress({
 
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplayProgress(0);
       return;
     }

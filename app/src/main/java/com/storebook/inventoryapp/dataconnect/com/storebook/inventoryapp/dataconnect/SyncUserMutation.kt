@@ -1,241 +1,244 @@
 
 @file:kotlin.Suppress(
-  "KotlinRedundantDiagnosticSuppress",
-  "LocalVariableName",
-  "MayBeConstant",
-  "RedundantVisibilityModifier",
-  "RemoveEmptyClassBody",
-  "SpellCheckingInspection",
-  "LocalVariableName",
-  "unused",
+    "KotlinRedundantDiagnosticSuppress",
+    "LocalVariableName",
+    "MayBeConstant",
+    "RedundantVisibilityModifier",
+    "RemoveEmptyClassBody",
+    "SpellCheckingInspection",
+    "LocalVariableName",
+    "unused",
 )
-
-
 
 package com.storebook.inventoryapp.dataconnect
 
-
-
 public interface SyncUserMutation :
     com.google.firebase.dataconnect.generated.GeneratedMutation<
-      StorebookConnectorConnector,
-      SyncUserMutation.Data,
-      SyncUserMutation.Variables
-    >
-{
-  
+        StorebookConnectorConnector,
+        SyncUserMutation.Data,
+        SyncUserMutation.Variables,
+    > {
     @kotlinx.serialization.Serializable
-  public data class Variables(
-  
-    val id:
-    String,
-    val phoneNumber:
-    com.google.firebase.dataconnect.OptionalVariable<String?>,
-    val username:
-    com.google.firebase.dataconnect.OptionalVariable<String?>,
-    val createdAt:
-    Double,
-    val role:
-    String,
-    val stores:
-    com.google.firebase.dataconnect.OptionalVariable<List<String>?>,
-    val storeId:
-    com.google.firebase.dataconnect.OptionalVariable<String?>,
-    val ownerId:
-    com.google.firebase.dataconnect.OptionalVariable<String?>,
-    val subscriptionStatus:
-    com.google.firebase.dataconnect.OptionalVariable<String?>,
-    val subscriptionPlan:
-    com.google.firebase.dataconnect.OptionalVariable<String?>,
-    val subscriptionExpiresAt:
-    com.google.firebase.dataconnect.OptionalVariable<Double?>,
-    val subscriptionPlatform:
-    com.google.firebase.dataconnect.OptionalVariable<String?>,
-    val subscriptionId:
-    com.google.firebase.dataconnect.OptionalVariable<String?>
-  ) {
-    
-    
-      
-      @kotlin.DslMarker public annotation class BuilderDsl
+    public data class Variables(
+        val id: String,
+        val phoneNumber: com.google.firebase.dataconnect.OptionalVariable<String?>,
+        val username: com.google.firebase.dataconnect.OptionalVariable<String?>,
+        val createdAt: Double,
+        val role: String,
+        val stores: com.google.firebase.dataconnect.OptionalVariable<List<String>?>,
+        val storeId: com.google.firebase.dataconnect.OptionalVariable<String?>,
+        val ownerId: com.google.firebase.dataconnect.OptionalVariable<String?>,
+        val subscriptionStatus: com.google.firebase.dataconnect.OptionalVariable<String?>,
+        val subscriptionPlan: com.google.firebase.dataconnect.OptionalVariable<String?>,
+        val subscriptionExpiresAt: com.google.firebase.dataconnect.OptionalVariable<Double?>,
+        val subscriptionPlatform: com.google.firebase.dataconnect.OptionalVariable<String?>,
+        val subscriptionId: com.google.firebase.dataconnect.OptionalVariable<String?>,
+    ) {
+        @kotlin.DslMarker public annotation class BuilderDsl
 
-      @BuilderDsl
-      public interface Builder {
-        public var id: String
-        public var phoneNumber: String?
-        public var username: String?
-        public var createdAt: Double
-        public var role: String
-        public var stores: List<String>?
-        public var storeId: String?
-        public var ownerId: String?
-        public var subscriptionStatus: String?
-        public var subscriptionPlan: String?
-        public var subscriptionExpiresAt: Double?
-        public var subscriptionPlatform: String?
-        public var subscriptionId: String?
-        
-      }
-
-      public companion object {
-        @Suppress("NAME_SHADOWING")
-        public fun build(
-          id: String,createdAt: Double,role: String,
-          block_: Builder.() -> Unit
-        ): Variables {
-          var id= id
-            var phoneNumber: com.google.firebase.dataconnect.OptionalVariable<String?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var username: com.google.firebase.dataconnect.OptionalVariable<String?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var createdAt= createdAt
-            var role= role
-            var stores: com.google.firebase.dataconnect.OptionalVariable<List<String>?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var storeId: com.google.firebase.dataconnect.OptionalVariable<String?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var ownerId: com.google.firebase.dataconnect.OptionalVariable<String?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var subscriptionStatus: com.google.firebase.dataconnect.OptionalVariable<String?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var subscriptionPlan: com.google.firebase.dataconnect.OptionalVariable<String?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var subscriptionExpiresAt: com.google.firebase.dataconnect.OptionalVariable<Double?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var subscriptionPlatform: com.google.firebase.dataconnect.OptionalVariable<String?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var subscriptionId: com.google.firebase.dataconnect.OptionalVariable<String?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            
-
-          return object : Builder {
-            override var id: String
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { id = value_ }
-              
-            override var phoneNumber: String?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { phoneNumber = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var username: String?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { username = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var createdAt: Double
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { createdAt = value_ }
-              
-            override var role: String
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { role = value_ }
-              
-            override var stores: List<String>?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { stores = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var storeId: String?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { storeId = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var ownerId: String?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { ownerId = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var subscriptionStatus: String?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { subscriptionStatus = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var subscriptionPlan: String?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { subscriptionPlan = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var subscriptionExpiresAt: Double?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { subscriptionExpiresAt = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var subscriptionPlatform: String?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { subscriptionPlatform = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var subscriptionId: String?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { subscriptionId = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            
-          }.apply(block_)
-          .let {
-            Variables(
-              id=id,phoneNumber=phoneNumber,username=username,createdAt=createdAt,role=role,stores=stores,storeId=storeId,ownerId=ownerId,subscriptionStatus=subscriptionStatus,subscriptionPlan=subscriptionPlan,subscriptionExpiresAt=subscriptionExpiresAt,subscriptionPlatform=subscriptionPlatform,subscriptionId=subscriptionId,
-            )
-          }
+        @BuilderDsl
+        public interface Builder {
+            public var id: String
+            public var phoneNumber: String?
+            public var username: String?
+            public var createdAt: Double
+            public var role: String
+            public var stores: List<String>?
+            public var storeId: String?
+            public var ownerId: String?
+            public var subscriptionStatus: String?
+            public var subscriptionPlan: String?
+            public var subscriptionExpiresAt: Double?
+            public var subscriptionPlatform: String?
+            public var subscriptionId: String?
         }
-      }
-    
-  }
-  
 
-  
+        public companion object {
+            @Suppress("NAME_SHADOWING")
+            public fun build(
+                id: String,
+                createdAt: Double,
+                role: String,
+                block_: Builder.() -> Unit,
+            ): Variables {
+                var id = id
+                var phoneNumber: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var username: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var createdAt = createdAt
+                var role = role
+                var stores: com.google.firebase.dataconnect.OptionalVariable<List<String>?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var storeId: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var ownerId: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var subscriptionStatus: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var subscriptionPlan: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var subscriptionExpiresAt: com.google.firebase.dataconnect.OptionalVariable<Double?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var subscriptionPlatform: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var subscriptionId: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+
+                return object : Builder {
+                    override var id: String
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            id = value_
+                        }
+
+                    override var phoneNumber: String?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            phoneNumber =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var username: String?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            username =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var createdAt: Double
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            createdAt = value_
+                        }
+
+                    override var role: String
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            role = value_
+                        }
+
+                    override var stores: List<String>?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            stores =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var storeId: String?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            storeId =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var ownerId: String?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            ownerId =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var subscriptionStatus: String?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            subscriptionStatus =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var subscriptionPlan: String?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            subscriptionPlan =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var subscriptionExpiresAt: Double?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            subscriptionExpiresAt =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var subscriptionPlatform: String?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            subscriptionPlatform =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var subscriptionId: String?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            subscriptionId =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+                }.apply(block_)
+                    .let {
+                        Variables(
+                            id = id, phoneNumber = phoneNumber, username = username, createdAt = createdAt, role = role, stores = stores, storeId = storeId, ownerId = ownerId, subscriptionStatus = subscriptionStatus, subscriptionPlan = subscriptionPlan, subscriptionExpiresAt = subscriptionExpiresAt, subscriptionPlatform = subscriptionPlatform, subscriptionId = subscriptionId,
+                        )
+                    }
+            }
+        }
+    }
+
     @kotlinx.serialization.Serializable
-  public data class Data(
-  @kotlinx.serialization.SerialName("user_upsert")
-    val key:
-    UserKey
-  ) {
-    
-    
-  }
-  
+    public data class Data(
+        @kotlinx.serialization.SerialName("user_upsert")
+        val key: UserKey,
+    )
 
-  public companion object {
-    public val operationName: String = "SyncUser"
+    public companion object {
+        public val operationName: String = "SyncUser"
 
-    public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
-      kotlinx.serialization.serializer()
+        public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
+            kotlinx.serialization.serializer()
 
-    public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables> =
-      kotlinx.serialization.serializer()
-  }
+        public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables> =
+            kotlinx.serialization.serializer()
+    }
 }
 
 public fun SyncUserMutation.ref(
-  
-    id: String,createdAt: Double,role: String,
-  
-    block_: SyncUserMutation.Variables.Builder.() -> Unit
-  
+    id: String,
+    createdAt: Double,
+    role: String,
+    block_: SyncUserMutation.Variables.Builder.() -> Unit,
 ): com.google.firebase.dataconnect.MutationRef<
     SyncUserMutation.Data,
-    SyncUserMutation.Variables
-  > =
-  ref(
-    
-      SyncUserMutation.Variables.build(
-        id=id,createdAt=createdAt,role=role,
-  
-    block_
-      )
-    
-  )
+    SyncUserMutation.Variables,
+> =
+    ref(
+        SyncUserMutation.Variables.build(
+            id = id, createdAt = createdAt, role = role,
+            block_,
+        ),
+    )
 
 public suspend fun SyncUserMutation.execute(
-  
-    id: String,createdAt: Double,role: String,
-  
-    block_: SyncUserMutation.Variables.Builder.() -> Unit
-  
-  ): com.google.firebase.dataconnect.MutationResult<
+    id: String,
+    createdAt: Double,
+    role: String,
+    block_: SyncUserMutation.Variables.Builder.() -> Unit,
+): com.google.firebase.dataconnect.MutationResult<
     SyncUserMutation.Data,
-    SyncUserMutation.Variables
-  > =
-  ref(
-    
-      id=id,createdAt=createdAt,role=role,
-  
-    block_
-    
-  ).execute()
-
-
+    SyncUserMutation.Variables,
+> =
+    ref(
+        id = id, createdAt = createdAt, role = role,
+        block_,
+    ).execute()
 
 // The lines below are used by the code generator to ensure that this file is deleted if it is no
 // longer needed. Any files in this directory that contain the lines below will be deleted by the

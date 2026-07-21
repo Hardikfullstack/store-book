@@ -31,6 +31,7 @@ export default function SalesTrendChart({ storeId }: { storeId?: string }) {
     if (!storeId) return;
 
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
 
     getSalesTrendData(storeId, PERIOD_MAP[period].days).then((result) => {

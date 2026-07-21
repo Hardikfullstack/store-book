@@ -25,14 +25,15 @@ fun <T> StoreBookAutocompleteDropdown(
     avatarColor: Color,
     avatarTextColor: Color,
     modifier: Modifier = Modifier,
-    additionalContent: @Composable ((T) -> Unit)? = null
+    additionalContent: @Composable ((T) -> Unit)? = null,
 ) {
     DropdownMenu(
         expanded = expanded && suggestions.isNotEmpty(),
         onDismissRequest = onDismissRequest,
         properties = PopupProperties(focusable = false),
-        modifier = modifier
-            .background(MaterialTheme.colorScheme.surface)
+        modifier =
+            modifier
+                .background(MaterialTheme.colorScheme.surface),
     ) {
         suggestions.take(5).forEach { item ->
             val text = itemText(item)
@@ -41,20 +42,21 @@ fun <T> StoreBookAutocompleteDropdown(
                 text = {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(avatarColor),
-                            contentAlignment = Alignment.Center
+                            modifier =
+                                Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(avatarColor),
+                            contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 text = initial,
                                 color = avatarTextColor,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
+                                fontSize = 14.sp,
                             )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
@@ -65,13 +67,13 @@ fun <T> StoreBookAutocompleteDropdown(
                                 color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 2,
-                                modifier = Modifier.autoMarquee()
+                                modifier = Modifier.autoMarquee(),
                             )
                             additionalContent?.invoke(item)
                         }
                     }
                 },
-                onClick = { onSuggestionSelected(item) }
+                onClick = { onSuggestionSelected(item) },
             )
         }
     }

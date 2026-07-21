@@ -1,100 +1,69 @@
 
 @file:kotlin.Suppress(
-  "KotlinRedundantDiagnosticSuppress",
-  "LocalVariableName",
-  "MayBeConstant",
-  "RedundantVisibilityModifier",
-  "RemoveEmptyClassBody",
-  "SpellCheckingInspection",
-  "LocalVariableName",
-  "unused",
+    "KotlinRedundantDiagnosticSuppress",
+    "LocalVariableName",
+    "MayBeConstant",
+    "RedundantVisibilityModifier",
+    "RemoveEmptyClassBody",
+    "SpellCheckingInspection",
+    "LocalVariableName",
+    "unused",
 )
-
-
 
 package com.storebook.inventoryapp.dataconnect
 
-
-
 public interface SoftDeleteUdhaarMutation :
     com.google.firebase.dataconnect.generated.GeneratedMutation<
-      StorebookConnectorConnector,
-      SoftDeleteUdhaarMutation.Data,
-      SoftDeleteUdhaarMutation.Variables
-    >
-{
-  
+        StorebookConnectorConnector,
+        SoftDeleteUdhaarMutation.Data,
+        SoftDeleteUdhaarMutation.Variables,
+    > {
     @kotlinx.serialization.Serializable
-  public data class Variables(
-  
-    val id:
-    String,
-    val updatedAt:
-    Double
-  ) {
-    
-    
-  }
-  
+    public data class Variables(
+        val id: String,
+        val updatedAt: Double,
+    )
 
-  
     @kotlinx.serialization.Serializable
-  public data class Data(
-  @kotlinx.serialization.SerialName("udhaarEntry_update")
-    val key:
-    UdhaarEntryKey?
-  ) {
-    
-    
-  }
-  
+    public data class Data(
+        @kotlinx.serialization.SerialName("udhaarEntry_update")
+        val key: UdhaarEntryKey?,
+    )
 
-  public companion object {
-    public val operationName: String = "SoftDeleteUdhaar"
+    public companion object {
+        public val operationName: String = "SoftDeleteUdhaar"
 
-    public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
-      kotlinx.serialization.serializer()
+        public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
+            kotlinx.serialization.serializer()
 
-    public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables> =
-      kotlinx.serialization.serializer()
-  }
+        public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables> =
+            kotlinx.serialization.serializer()
+    }
 }
 
 public fun SoftDeleteUdhaarMutation.ref(
-  
-    id: String,updatedAt: Double,
-  
-  
+    id: String,
+    updatedAt: Double,
 ): com.google.firebase.dataconnect.MutationRef<
     SoftDeleteUdhaarMutation.Data,
-    SoftDeleteUdhaarMutation.Variables
-  > =
-  ref(
-    
-      SoftDeleteUdhaarMutation.Variables(
-        id=id,updatedAt=updatedAt,
-  
-      )
-    
-  )
+    SoftDeleteUdhaarMutation.Variables,
+> =
+    ref(
+        SoftDeleteUdhaarMutation.Variables(
+            id = id, updatedAt = updatedAt,
+        ),
+    )
 
 public suspend fun SoftDeleteUdhaarMutation.execute(
-  
-    id: String,updatedAt: Double,
-  
-  
-  ): com.google.firebase.dataconnect.MutationResult<
+    id: String,
+    updatedAt: Double,
+): com.google.firebase.dataconnect.MutationResult<
     SoftDeleteUdhaarMutation.Data,
-    SoftDeleteUdhaarMutation.Variables
-  > =
-  ref(
-    
-      id=id,updatedAt=updatedAt,
-  
-    
-  ).execute()
-
-
+    SoftDeleteUdhaarMutation.Variables,
+> =
+    ref(
+        id = id, updatedAt = updatedAt,
+    ).execute()
 
 // The lines below are used by the code generator to ensure that this file is deleted if it is no
 // longer needed. Any files in this directory that contain the lines below will be deleted by the

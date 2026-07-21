@@ -2,16 +2,15 @@ package com.storebook.inventoryapp.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.storebook.inventoryapp.shared.domain.repository.ExpenseRepository
 import com.storebook.inventoryapp.shared.domain.models.ExpenseEntry
+import com.storebook.inventoryapp.shared.domain.repository.ExpenseRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class ExpenseViewModel(
-    private val repository: ExpenseRepository
+    private val repository: ExpenseRepository,
 ) : ViewModel() {
-
     private val _expensesList = MutableStateFlow<List<ExpenseEntry>>(emptyList())
     val expensesList: StateFlow<List<ExpenseEntry>> = _expensesList
 
@@ -29,14 +28,22 @@ class ExpenseViewModel(
         }
     }
 
-    fun addExpense(type: String, amount: Double, notes: String, supplierName: String? = null, supplierPhone: String? = null, onResult: () -> Unit = {}) {
+    fun addExpense(
+        type: String,
+        amount: Double,
+        notes: String,
+        supplierName: String? = null,
+        supplierPhone: String? = null,
+        onResult: () -> Unit = {
+        },
+    ) {
         viewModelScope.launch {
             repository.insertExpense(
                 type = type,
                 description = notes,
                 amount = amount,
                 supplierName = supplierName,
-                supplierPhone = supplierPhone
+                supplierPhone = supplierPhone,
             )
             loadData()
             onResult()

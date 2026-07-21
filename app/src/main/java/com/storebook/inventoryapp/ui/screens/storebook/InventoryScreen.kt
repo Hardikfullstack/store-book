@@ -1,8 +1,7 @@
 @file:android.annotation.SuppressLint("LocalContextGetResourceValueCall")
 
 package com.storebook.inventoryapp.ui.screens.storebook
-import com.storebook.inventoryapp.utils.autoMarquee
-
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -96,7 +95,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
-import android.widget.Toast
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -118,14 +116,15 @@ import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.theme.PrimaryButton
 import com.storebook.inventoryapp.ui.theme.primaryGradient
 import com.storebook.inventoryapp.ui.viewmodel.InventoryViewModel
+import com.storebook.inventoryapp.utils.autoMarquee
 import com.storebook.inventoryapp.utils.toRupee
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private const val PAGE_SIZE = 50
 
@@ -135,9 +134,12 @@ object FutureSelectableDates : SelectableDates {
         val todayStart = System.currentTimeMillis() - 24 * 60 * 60 * 1000
         return utcTimeMillis >= todayStart
     }
-    override fun isSelectableYear(year: Int): Boolean {
-        return year >= java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
-    }
+
+    override fun isSelectableYear(year: Int): Boolean =
+        year >=
+            java.util.Calendar
+                .getInstance()
+                .get(java.util.Calendar.YEAR)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
@@ -205,28 +207,28 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
     val focusManager = LocalFocusManager.current
 
     val categoriesList =
-            listOf("Groceries", "Dairy", "Beverages", "Stationery", "Household", "Others")
+        listOf("Groceries", "Dairy", "Beverages", "Stationery", "Household", "Others")
     val unitsList = listOf("pcs", "kg", "g", "litre", "ml", "dozen", "box", "packet")
 
     // ── Initial load ──────────────────────────────────────────────────────────
     LaunchedEffect(Unit) {
         viewModel.loadFilteredItems(
-                searchQ,
-                selectedCategory,
-                sortBy + if (sortDescending) "_DESC" else "_ASC"
+            searchQ,
+            selectedCategory,
+            sortBy + if (sortDescending) "_DESC" else "_ASC",
         )
     }
 
     // ── Debounce search + category/sort changes → trigger DB query ────────────
     LaunchedEffect(searchQ, selectedCategory, sortBy, sortDescending) {
         snapshotFlow { "$searchQ|$selectedCategory|$sortBy|$sortDescending" }
-                .debounce(300L)
-                .distinctUntilChanged()
-                .collect { _ ->
-                    hasMoreItems = true
-                    val actualSortBy = sortBy + if (sortDescending) "_DESC" else "_ASC"
-                    viewModel.loadFilteredItems(searchQ, selectedCategory, actualSortBy)
-                }
+            .debounce(300L)
+            .distinctUntilChanged()
+            .collect { _ ->
+                hasMoreItems = true
+                val actualSortBy = sortBy + if (sortDescending) "_DESC" else "_ASC"
+                viewModel.loadFilteredItems(searchQ, selectedCategory, actualSortBy)
+            }
     }
 
     // ── Update displayedItems based on filter mode ────────────────────────────────
@@ -239,7 +241,10 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
     // ── Infinite scroll trigger — load next page when near bottom ─────────────
     val nearBottom by remember {
         derivedStateOf {
-            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val lastVisible =
+                listState.layoutInfo.visibleItemsInfo
+                    .lastOrNull()
+                    ?.index ?: 0
             val total = listState.layoutInfo.totalItemsCount
             total > 0 && lastVisible >= total - 8
         }
@@ -249,11 +254,11 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         if (nearBottom && hasMoreItems && !isLoadingMore) {
             isLoadingMore = true
             viewModel.loadMoreItems(
-                    search = searchQ,
-                    category = selectedCategory,
-                    sortBy = sortBy + if (sortDescending) "_DESC" else "_ASC",
-                    currentSize = displayedItems.size,
-                    pageSize = PAGE_SIZE,
+                search = searchQ,
+                category = selectedCategory,
+                sortBy = sortBy + if (sortDescending) "_DESC" else "_ASC",
+                currentSize = displayedItems.size,
+                pageSize = PAGE_SIZE,
             ) { more ->
                 if (more.isEmpty()) {
                     hasMoreItems = false
@@ -313,27 +318,27 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
 
     fun performDelete(item: Item) {
         viewModel.deleteItem(item.id)
-        android.widget.Toast.makeText(
-                        context,
-                        context.getString(R.string.inv_delete_success),
-                        android.widget.Toast.LENGTH_SHORT,
-                )
-                .show()
+        android.widget.Toast
+            .makeText(
+                context,
+                context.getString(R.string.inv_delete_success),
+                android.widget.Toast.LENGTH_SHORT,
+            ).show()
         // Optimistic UI update — remove immediately from local list
         displayedItems = displayedItems.filterNot { it.id == item.id }
     }
 
     // ── Delete confirmation dialog ─────────────────────────────────────────────
     DeleteConfirmationDialog(
-            visible = pendingDeleteItem != null,
-            itemName = pendingDeleteItem?.name ?: "",
-            entityLabel = "item",
-            onConfirm = {
-                pendingDeleteItem?.let { performDelete(it) }
-                pendingDeleteItem = null
-            },
-            onDismiss = { pendingDeleteItem = null },
-            context = context,
+        visible = pendingDeleteItem != null,
+        itemName = pendingDeleteItem?.name ?: "",
+        entityLabel = "item",
+        onConfirm = {
+            pendingDeleteItem?.let { performDelete(it) }
+            pendingDeleteItem = null
+        },
+        onDismiss = { pendingDeleteItem = null },
+        context = context,
     )
 
     // ── Quick Refill Dialog ──────────────────────────────────────────────────
@@ -354,635 +359,729 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         // Expiry Date Picker for Refill
         if (showRefillDatePicker) {
             val datePickerState =
-                    rememberDatePickerState(
-                            initialSelectedDateMillis = refillExpiryDateMs
-                                            ?: System.currentTimeMillis(),
-                            selectableDates = FutureSelectableDates
-                    )
+                rememberDatePickerState(
+                    initialSelectedDateMillis =
+                        refillExpiryDateMs
+                            ?: System.currentTimeMillis(),
+                    selectableDates = FutureSelectableDates,
+                )
             DatePickerDialog(
-                    onDismissRequest = { showRefillDatePicker = false },
-                    confirmButton = {
-                        TextButton(
-                                onClick = {
-                                    val selected = datePickerState.selectedDateMillis
-                                    if (selected != null &&
-                                                    selected <
-                                                            System.currentTimeMillis() -
-                                                                    24 * 60 * 60 * 1000
-                                    ) {
-                                        android.widget.Toast.makeText(
-                                                        context,
-                                                        "Expiry date cannot be in the past",
-                                                        android.widget.Toast.LENGTH_SHORT
-                                                )
-                                                .show()
-                                    } else {
-                                        refillExpiryDateMs = selected
-                                        showRefillDatePicker = false
-                                    }
-                                }
-                        ) { Text("OK") }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showRefillDatePicker = false }) { Text("Cancel") }
-                    }
+                onDismissRequest = { showRefillDatePicker = false },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val selected = datePickerState.selectedDateMillis
+                            if (selected != null &&
+                                selected <
+                                System.currentTimeMillis() -
+                                24 * 60 * 60 * 1000
+                            ) {
+                                android.widget.Toast
+                                    .makeText(
+                                        context,
+                                        "Expiry date cannot be in the past",
+                                        android.widget.Toast.LENGTH_SHORT,
+                                    ).show()
+                            } else {
+                                refillExpiryDateMs = selected
+                                showRefillDatePicker = false
+                            }
+                        },
+                    ) { Text("OK") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showRefillDatePicker = false }) { Text("Cancel") }
+                },
             ) { DatePicker(state = datePickerState) }
         }
 
         val filteredSuppliers =
-                remember(suppliers, supplierSearchText) {
-                    if (supplierSearchText.isBlank()) {
-                        suppliers
-                    } else {
-                        suppliers.filter { it.name.contains(supplierSearchText, ignoreCase = true) }
-                    }
+            remember(suppliers, supplierSearchText) {
+                if (supplierSearchText.isBlank()) {
+                    suppliers
+                } else {
+                    suppliers.filter { it.name.contains(supplierSearchText, ignoreCase = true) }
                 }
+            }
 
         AlertDialog(
-                containerColor = MaterialTheme.colorScheme.surface,
-                onDismissRequest = { quickRefillItem = null },
-                title = {
+            containerColor = MaterialTheme.colorScheme.surface,
+            onDismissRequest = { quickRefillItem = null },
+            title = {
+                Text(
+                    text = "Refill Stock: ${refillItem.name}",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            },
+            text = {
+                Column(
+                    modifier =
+                        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
                     Text(
-                            text = "Refill Stock: ${refillItem.name}",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
+                        text =
+                            "Current Stock: ${formatQty(refillItem.quantity)} ${refillItem.unit}",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                },
-                text = {
-                    Column(
-                            modifier =
-                                    Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                                text =
-                                        "Current Stock: ${formatQty(refillItem.quantity)} ${refillItem.unit}",
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
 
-                        OutlinedTextField(
-                                value = addQtyInput,
-                                onValueChange = { addQtyInput = it },
-                                label = { Text("Add Quantity", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                keyboardOptions =
-                                        KeyboardOptions(
-                                                keyboardType = KeyboardType.Decimal,
-                                                imeAction = ImeAction.Next
-                                        ),
-                                keyboardActions =
-                                        KeyboardActions(
-                                                onNext = {
-                                                    if (viewModel.userRole != "staff")
-                                                            focusRequesterBuyPrice.requestFocus()
-                                                    else focusRequesterSupplier.requestFocus()
-                                                }
-                                        ),
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                shape = RoundedCornerShape(16.dp),
-                                colors =
-                                        OutlinedTextFieldDefaults.colors(
-                                                focusedBorderColor =
-                                                        MaterialTheme.colorScheme.primary,
-                                                unfocusedBorderColor =
-                                                        MaterialTheme.colorScheme.outline,
-                                                focusedLabelColor =
-                                                        MaterialTheme.colorScheme.primary
-                                        )
-                        )
-
-                        // Presets
-                        val presets =
-                                if (refillItem.unit in listOf("pcs", "dozen", "box", "packet")) {
-                                    listOf(5, 10, 50, 100)
-                                } else {
-                                    listOf(5, 10, 25, 50)
-                                }
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(presets, key = { it }) { preset ->
-                                FilterChip(
-                                        label = "+$preset",
-                                        isSelected = false,
-                                        onClick = {
-                                            val currentVal = addQtyInput.toDoubleOrNull() ?: 0.0
-                                            val formatted =
-                                                    if ((currentVal + preset) % 1.0 == 0.0) {
-                                                        (currentVal + preset).toInt().toString()
-                                                    } else {
-                                                        (currentVal + preset).toString()
-                                                    }
-                                            addQtyInput = formatted
-                                        },
-                                )
-                            }
-                        }
-
-                        if (viewModel.userRole != "staff") {
-                            OutlinedTextField(
-                                    value = buyPriceInput,
-                                    onValueChange = { buyPriceInput = it },
-                                    label = { Text("Buy Price (Per ${refillItem.unit})", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                    keyboardOptions =
-                                            KeyboardOptions(
-                                                    keyboardType = KeyboardType.Decimal,
-                                                    imeAction = ImeAction.Next
-                                            ),
-                                    keyboardActions =
-                                            KeyboardActions(
-                                                    onNext = {
-                                                        focusRequesterSupplier.requestFocus()
-                                                    }
-                                            ),
-                                    modifier =
-                                            Modifier.fillMaxWidth()
-                                                    .focusRequester(focusRequesterBuyPrice),
-                                    singleLine = true,
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors =
-                                            OutlinedTextFieldDefaults.colors(
-                                                    focusedBorderColor =
-                                                            MaterialTheme.colorScheme.primary,
-                                                    unfocusedBorderColor =
-                                                            MaterialTheme.colorScheme.outline,
-                                                    focusedLabelColor =
-                                                            MaterialTheme.colorScheme.primary
-                                            )
-                            )
-                        }
-
-                        // Supplier Selector
-                        Column(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = addQtyInput,
+                        onValueChange = { addQtyInput = it },
+                        label = {
                             Text(
-                                    text = "Supplier",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                "Add Quantity",
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Box(modifier = Modifier.fillMaxWidth()) {
-                                OutlinedTextField(
-                                        value =
-                                                if (selectedSupplier != null)
-                                                        selectedSupplier?.name ?: "N/A"
-                                                else supplierSearchText,
-                                        onValueChange = {
-                                            selectedSupplier = null
-                                            supplierSearchText = it
-                                            showSupplierDropdown = true
-                                        },
-                                        placeholder = { Text("Search or type new supplier...", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                        keyboardOptions =
-                                                KeyboardOptions(imeAction = ImeAction.Done),
-                                        keyboardActions =
-                                                KeyboardActions(
-                                                        onDone = { focusManager.clearFocus() }
-                                                ),
-                                        modifier =
-                                                Modifier.fillMaxWidth()
-                                                        .focusRequester(focusRequesterSupplier),
-                                        singleLine = true,
-                                        trailingIcon = {
-                                            TextButton(
-                                                    onClick = {
-                                                        showSupplierDropdown = !showSupplierDropdown
-                                                    }
-                                            ) { Text("Select") }
-                                        },
-                                        shape = RoundedCornerShape(16.dp),
-                                        colors =
-                                                OutlinedTextFieldDefaults.colors(
-                                                        focusedBorderColor =
-                                                                MaterialTheme.colorScheme.primary,
-                                                        unfocusedBorderColor =
-                                                                MaterialTheme.colorScheme.outline,
-                                                        focusedLabelColor =
-                                                                MaterialTheme.colorScheme.primary
-                                                )
-                                )
-
-                                DropdownMenu(
-                                        expanded =
-                                                showSupplierDropdown &&
-                                                        (filteredSuppliers.isNotEmpty() ||
-                                                                supplierSearchText.isNotBlank()),
-                                        onDismissRequest = { showSupplierDropdown = false },
-                                        properties = PopupProperties(focusable = false),
-                                        modifier =
-                                                Modifier.fillMaxWidth(0.8f).heightIn(max = 200.dp)
-                                ) {
-                                    DropdownMenuItem(
-                                            text = { Text("Cash Purchase / No Supplier") },
-                                            onClick = {
-                                                selectedSupplier = null
-                                                supplierSearchText = ""
-                                                showSupplierDropdown = false
-                                            }
-                                    )
-
-                                    filteredSuppliers.forEach { supplier ->
-                                        DropdownMenuItem(
-                                                text = { Text(supplier.name) },
-                                                onClick = {
-                                                    selectedSupplier = supplier
-                                                    supplierSearchText = supplier.name
-                                                    showSupplierDropdown = false
-                                                }
-                                        )
+                        },
+                        keyboardOptions =
+                            KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal,
+                                imeAction = ImeAction.Next,
+                            ),
+                        keyboardActions =
+                            KeyboardActions(
+                                onNext = {
+                                    if (viewModel.userRole != "staff") {
+                                        focusRequesterBuyPrice.requestFocus()
+                                    } else {
+                                        focusRequesterSupplier.requestFocus()
                                     }
+                                },
+                            ),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor =
+                                    MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor =
+                                    MaterialTheme.colorScheme.outline,
+                                focusedLabelColor =
+                                    MaterialTheme.colorScheme.primary,
+                            ),
+                    )
 
-                                    if (supplierSearchText.isNotBlank() &&
-                                                    filteredSuppliers.none {
-                                                        it.name.equals(
-                                                                supplierSearchText,
-                                                                ignoreCase = true
-                                                        )
-                                                    }
-                                    ) {
-                                        DropdownMenuItem(
-                                                text = {
-                                                    Text("Create supplier: \"$supplierSearchText\"")
-                                                },
-                                                onClick = {
-                                                    viewModel.addSupplier(
-                                                            name = supplierSearchText,
-                                                            phone = null,
-                                                            gstin = null,
-                                                            address = null
-                                                    ) { newId ->
-                                                        selectedSupplier =
-                                                                Supplier(
-                                                                        id = newId,
-                                                                        name = supplierSearchText
-                                                                )
-                                                    }
-                                                    showSupplierDropdown = false
-                                                }
-                                        )
-                                    }
-                                }
-                            }
+                    // Presets
+                    val presets =
+                        if (refillItem.unit in listOf("pcs", "dozen", "box", "packet")) {
+                            listOf(5, 10, 50, 100)
+                        } else {
+                            listOf(5, 10, 25, 50)
                         }
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(presets, key = { it }) { preset ->
+                            FilterChip(
+                                label = "+$preset",
+                                isSelected = false,
+                                onClick = {
+                                    val currentVal = addQtyInput.toDoubleOrNull() ?: 0.0
+                                    val formatted =
+                                        if ((currentVal + preset) % 1.0 == 0.0) {
+                                            (currentVal + preset).toInt().toString()
+                                        } else {
+                                            (currentVal + preset).toString()
+                                        }
+                                    addQtyInput = formatted
+                                },
+                            )
+                        }
+                    }
 
-                        Spacer(modifier = Modifier.height(4.dp))
-                        
-                        Text(
-                                text = "Batch & Expiry Tracking (Optional)",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-
+                    if (viewModel.userRole != "staff") {
                         OutlinedTextField(
-                                value = refillBatchNumber,
-                                onValueChange = { refillBatchNumber = it },
-                                label = { Text("Batch / Lot Number", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                placeholder = { Text("e.g. MFG-2024-B1", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                shape = RoundedCornerShape(16.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                                        focusedLabelColor = MaterialTheme.colorScheme.primary
+                            value = buyPriceInput,
+                            onValueChange = { buyPriceInput = it },
+                            label = {
+                                Text(
+                                    "Buy Price (Per ${refillItem.unit})",
+                                    modifier =
+                                        androidx.compose.ui.Modifier
+                                            .autoMarquee(),
                                 )
-                        )
-
-                        OutlinedTextField(
-                                value = refillExpiryDateMs?.let { java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date(it)) } ?: "",
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Expiry Date", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                placeholder = { Text("Tap calendar icon to set", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                modifier = Modifier.fillMaxWidth(),
-                                enabled = false,
-                                shape = RoundedCornerShape(16.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                            },
+                            keyboardOptions =
+                                KeyboardOptions(
+                                    keyboardType = KeyboardType.Decimal,
+                                    imeAction = ImeAction.Next,
                                 ),
-                                trailingIcon = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        if (refillExpiryDateMs != null) {
-                                            TextButton(onClick = { refillExpiryDateMs = null }) { Text("Clear", fontSize = 11.sp) }
-                                        }
-                                        IconButton(onClick = { showRefillDatePicker = true }) {
-                                            Icon(Icons.Default.CalendarToday, contentDescription = "Pick Expiry Date")
-                                        }
-                                    }
-                                }
+                            keyboardActions =
+                                KeyboardActions(
+                                    onNext = {
+                                        focusRequesterSupplier.requestFocus()
+                                    },
+                                ),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequesterBuyPrice),
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp),
+                            colors =
+                                OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor =
+                                        MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor =
+                                        MaterialTheme.colorScheme.outline,
+                                    focusedLabelColor =
+                                        MaterialTheme.colorScheme.primary,
+                                ),
                         )
                     }
-                },
-                confirmButton = {
-                    PrimaryButton(
-                            onClick = {
-                                val addedQty = addQtyInput.toDoubleOrNull()
-                                val finalBuyPrice =
-                                        if (viewModel.userRole == "staff") refillItem.buyPrice
-                                        else buyPriceInput.toDoubleOrNull()
 
-                                if (addedQty == null || addedQty.isNaN() || addedQty <= 0.0) {
-                                    android.widget.Toast.makeText(
-                                                    context,
-                                                    "Please enter a valid positive quantity",
-                                                    android.widget.Toast.LENGTH_SHORT
-                                            )
-                                            .show()
-                                    return@PrimaryButton
+                    // Supplier Selector
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Supplier",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value =
+                                    if (selectedSupplier != null) {
+                                        selectedSupplier?.name ?: "N/A"
+                                    } else {
+                                        supplierSearchText
+                                    },
+                                onValueChange = {
+                                    selectedSupplier = null
+                                    supplierSearchText = it
+                                    showSupplierDropdown = true
+                                },
+                                placeholder = {
+                                    Text(
+                                        "Search or type new supplier...",
+                                        modifier =
+                                            androidx.compose.ui.Modifier
+                                                .autoMarquee(),
+                                    )
+                                },
+                                keyboardOptions =
+                                    KeyboardOptions(imeAction = ImeAction.Done),
+                                keyboardActions =
+                                    KeyboardActions(
+                                        onDone = { focusManager.clearFocus() },
+                                    ),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .focusRequester(focusRequesterSupplier),
+                                singleLine = true,
+                                trailingIcon = {
+                                    TextButton(
+                                        onClick = {
+                                            showSupplierDropdown = !showSupplierDropdown
+                                        },
+                                    ) { Text("Select") }
+                                },
+                                shape = RoundedCornerShape(16.dp),
+                                colors =
+                                    OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor =
+                                            MaterialTheme.colorScheme.primary,
+                                        unfocusedBorderColor =
+                                            MaterialTheme.colorScheme.outline,
+                                        focusedLabelColor =
+                                            MaterialTheme.colorScheme.primary,
+                                    ),
+                            )
+
+                            DropdownMenu(
+                                expanded =
+                                    showSupplierDropdown &&
+                                        (
+                                            filteredSuppliers.isNotEmpty() ||
+                                                supplierSearchText.isNotBlank()
+                                        ),
+                                onDismissRequest = { showSupplierDropdown = false },
+                                properties = PopupProperties(focusable = false),
+                                modifier =
+                                    Modifier.fillMaxWidth(0.8f).heightIn(max = 200.dp),
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Cash Purchase / No Supplier") },
+                                    onClick = {
+                                        selectedSupplier = null
+                                        supplierSearchText = ""
+                                        showSupplierDropdown = false
+                                    },
+                                )
+
+                                filteredSuppliers.forEach { supplier ->
+                                    DropdownMenuItem(
+                                        text = { Text(supplier.name) },
+                                        onClick = {
+                                            selectedSupplier = supplier
+                                            supplierSearchText = supplier.name
+                                            showSupplierDropdown = false
+                                        },
+                                    )
                                 }
-                                if (finalBuyPrice == null || finalBuyPrice < 0.0) {
-                                    android.widget.Toast.makeText(
-                                                    context,
-                                                    "Please enter a valid buy price",
-                                                    android.widget.Toast.LENGTH_SHORT
-                                            )
-                                            .show()
-                                    return@PrimaryButton
-                                }
-                                if (addedQty > 0) {
-                                    val purchase =
-                                            Purchase(
-                                                    supplierId = selectedSupplier?.id ?: 0L,
-                                                    supplierName = selectedSupplier?.name
-                                                                    ?: "Cash / Anonymous",
-                                                    totalAmount = addedQty * finalBuyPrice,
-                                                    taxAmount =
-                                                            addedQty *
-                                                                    finalBuyPrice *
-                                                                    (refillItem.taxRate / 100.0),
-                                                    type = "BILL",
-                                                    timestamp = System.currentTimeMillis(),
-                                                    notes = "Refill stock for ${refillItem.name}",
-                                                    items =
-                                                            listOf(
-                                                                    PurchaseItemDetail(
-                                                                            purchaseId = 0L,
-                                                                            itemId = refillItem.id,
-                                                                            itemName =
-                                                                                    refillItem.name,
-                                                                            quantity = addedQty,
-                                                                            unit = refillItem.unit,
-                                                                            buyPrice = finalBuyPrice
-                                                                    )
-                                                            )
-                                            )
-                                    viewModel.addPurchase(purchase) {
-                                        // Log a batch record if batch number or expiry is provided
-                                        if (refillBatchNumber.isNotBlank() ||
-                                                        refillExpiryDateMs != null
-                                        ) {
-                                            viewModel.addItemBatch(
-                                                    ItemBatch(
-                                                            itemId = refillItem.id,
-                                                            batchNumber =
-                                                                    refillBatchNumber.trim()
-                                                                            .takeIf {
-                                                                                it.isNotBlank()
-                                                                            },
-                                                            expiryDate = refillExpiryDateMs,
-                                                            quantity = addedQty,
-                                                            costPrice = finalBuyPrice,
-                                                            timestamp = System.currentTimeMillis(),
-                                                            notes = "Refill for ${refillItem.name}"
+
+                                if (supplierSearchText.isNotBlank() &&
+                                    filteredSuppliers.none {
+                                        it.name.equals(
+                                            supplierSearchText,
+                                            ignoreCase = true,
+                                        )
+                                    }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text("Create supplier: \"$supplierSearchText\"")
+                                        },
+                                        onClick = {
+                                            viewModel.addSupplier(
+                                                name = supplierSearchText,
+                                                phone = null,
+                                                gstin = null,
+                                                address = null,
+                                            ) { newId ->
+                                                selectedSupplier =
+                                                    Supplier(
+                                                        id = newId,
+                                                        name = supplierSearchText,
                                                     )
-                                            )
-                                        }
-                                        android.widget.Toast.makeText(
-                                                        context,
-                                                        "Stock refilled & purchase logged!",
-                                                        android.widget.Toast.LENGTH_SHORT
-                                                )
-                                                .show()
+                                            }
+                                            showSupplierDropdown = false
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Batch & Expiry Tracking (Optional)",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    OutlinedTextField(
+                        value = refillBatchNumber,
+                        onValueChange = { refillBatchNumber = it },
+                        label = {
+                            Text(
+                                "Batch / Lot Number",
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
+                        },
+                        placeholder = {
+                            Text(
+                                "e.g. MFG-2024-B1",
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            ),
+                    )
+
+                    OutlinedTextField(
+                        value =
+                            refillExpiryDateMs?.let {
+                                java.text
+                                    .SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+                                    .format(java.util.Date(it))
+                            }
+                                ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = {
+                            Text(
+                                "Expiry Date",
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
+                        },
+                        placeholder = {
+                            Text(
+                                "Tap calendar icon to set",
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = false,
+                        shape = RoundedCornerShape(16.dp),
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                            ),
+                        trailingIcon = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (refillExpiryDateMs != null) {
+                                    TextButton(onClick = {
+                                        refillExpiryDateMs = null
+                                    }) {
+                                        Text(
+                                            "Clear",
+                                            fontSize =
+                                                11
+                                                    .sp,
+                                        )
                                     }
                                 }
-                                quickRefillItem = null
+                                IconButton(onClick = { showRefillDatePicker = true }) {
+                                    Icon(Icons.Default.CalendarToday, contentDescription = "Pick Expiry Date")
+                                }
                             }
-                    ) { Text("Add Stock") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { quickRefillItem = null }) { Text("Cancel") }
-                },
+                        },
+                    )
+                }
+            },
+            confirmButton = {
+                PrimaryButton(
+                    onClick = {
+                        val addedQty = addQtyInput.toDoubleOrNull()
+                        val finalBuyPrice =
+                            if (viewModel.userRole == "staff") {
+                                refillItem.buyPrice
+                            } else {
+                                buyPriceInput.toDoubleOrNull()
+                            }
+
+                        if (addedQty == null || addedQty.isNaN() || addedQty <= 0.0) {
+                            android.widget.Toast
+                                .makeText(
+                                    context,
+                                    "Please enter a valid positive quantity",
+                                    android.widget.Toast.LENGTH_SHORT,
+                                ).show()
+                            return@PrimaryButton
+                        }
+                        if (finalBuyPrice == null || finalBuyPrice < 0.0) {
+                            android.widget.Toast
+                                .makeText(
+                                    context,
+                                    "Please enter a valid buy price",
+                                    android.widget.Toast.LENGTH_SHORT,
+                                ).show()
+                            return@PrimaryButton
+                        }
+                        if (addedQty > 0) {
+                            val purchase =
+                                Purchase(
+                                    supplierId = selectedSupplier?.id ?: 0L,
+                                    supplierName =
+                                        selectedSupplier?.name
+                                            ?: "Cash / Anonymous",
+                                    totalAmount = addedQty * finalBuyPrice,
+                                    taxAmount =
+                                        addedQty *
+                                            finalBuyPrice *
+                                            (refillItem.taxRate / 100.0),
+                                    type = "BILL",
+                                    timestamp = System.currentTimeMillis(),
+                                    notes = "Refill stock for ${refillItem.name}",
+                                    items =
+                                        listOf(
+                                            PurchaseItemDetail(
+                                                purchaseId = 0L,
+                                                itemId = refillItem.id,
+                                                itemName =
+                                                    refillItem.name,
+                                                quantity = addedQty,
+                                                unit = refillItem.unit,
+                                                buyPrice = finalBuyPrice,
+                                            ),
+                                        ),
+                                )
+                            viewModel.addPurchase(purchase) {
+                                // Log a batch record if batch number or expiry is provided
+                                if (refillBatchNumber.isNotBlank() ||
+                                    refillExpiryDateMs != null
+                                ) {
+                                    viewModel.addItemBatch(
+                                        ItemBatch(
+                                            itemId = refillItem.id,
+                                            batchNumber =
+                                                refillBatchNumber
+                                                    .trim()
+                                                    .takeIf {
+                                                        it.isNotBlank()
+                                                    },
+                                            expiryDate = refillExpiryDateMs,
+                                            quantity = addedQty,
+                                            costPrice = finalBuyPrice,
+                                            timestamp = System.currentTimeMillis(),
+                                            notes = "Refill for ${refillItem.name}",
+                                        ),
+                                    )
+                                }
+                                android.widget.Toast
+                                    .makeText(
+                                        context,
+                                        "Stock refilled & purchase logged!",
+                                        android.widget.Toast.LENGTH_SHORT,
+                                    ).show()
+                            }
+                        }
+                        quickRefillItem = null
+                    },
+                ) { Text("Add Stock") }
+            },
+            dismissButton = {
+                TextButton(onClick = { quickRefillItem = null }) { Text("Cancel") }
+            },
         )
     }
 
     // ── Main UI ──────────────────────────────────────────────────────────────
     Scaffold(
-            topBar = {
-                Column(
-                        modifier =
-                                Modifier.fillMaxWidth()
-                                        .background(MaterialTheme.primaryGradient)
-                                        .statusBarsPadding()
-                                        .padding(horizontal = 16.dp, vertical = 10.dp),
+        topBar = {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.primaryGradient)
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column {
-                            Text(
-                                    text = stringResource(id = R.string.tab_inventory),
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                            Text(
-                                    text =
-                                            "${displayedItems.size}${if (hasMoreItems) "+" else ""} items",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                            )
-                        }
-
-                        // Sort toggle chip
-                        Row(
-                                modifier =
-                                        Modifier.clip(RoundedCornerShape(20.dp))
-                                                .background(MaterialTheme.colorScheme.onPrimary),
-                                verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                    modifier =
-                                            Modifier.clickable(onClickLabel = "Action") {
-                                                        sortBy =
-                                                                when (sortBy) {
-                                                                    "Name" -> "Qty"
-                                                                    "Qty" -> "Price"
-                                                                    else -> "Name"
-                                                                }
-                                                    }
-                                                    .padding(
-                                                            start = 12.dp,
-                                                            top = 6.dp,
-                                                            bottom = 6.dp,
-                                                            end = 6.dp
-                                                    )
-                            ) {
-                                Text(
-                                        text =
-                                                stringResource(
-                                                        id = R.string.inv_sort_dynamic,
-                                                        when (sortBy) {
-                                                            "Qty" -> "Stock"
-                                                            "Price" -> "Price"
-                                                            else -> "Name"
-                                                        }
-                                                ),
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-
-                            Box(
-                                    modifier =
-                                            Modifier.clickable(onClickLabel = "Action") {
-                                                        sortDescending = !sortDescending
-                                                    }
-                                                    .padding(
-                                                            start = 6.dp,
-                                                            top = 6.dp,
-                                                            bottom = 6.dp,
-                                                            end = 12.dp
-                                                    )
-                            ) {
-                                Icon(
-                                        imageVector =
-                                                if (sortDescending) Icons.Default.KeyboardArrowDown
-                                                else Icons.Default.KeyboardArrowUp,
-                                        contentDescription = "Sort Order",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
+                    Column {
+                        Text(
+                            text = stringResource(id = R.string.tab_inventory),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Text(
+                            text =
+                                "${displayedItems.size}${if (hasMoreItems) "+" else ""} items",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Search Bar — debounced via LaunchedEffect above
-                    OutlinedTextField(
-                            value = searchQ,
-                            onValueChange = { searchQ = it },
-                            placeholder = { Text(stringResource(id = R.string.inv_search_hint), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                            modifier = Modifier.fillMaxWidth(),
-                            leadingIcon = {
-                                Icon(
-                                        Icons.Default.Search,
-                                        contentDescription =
-                                                stringResource(R.string.ui_element_desc)
-                                )
-                            },
-                            trailingIcon = {
-                                Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(end = 8.dp)
-                                ) {
-                                    if (isLoadingItems) {
-                                        CircularProgressIndicator(
-                                                modifier = Modifier.size(18.dp),
-                                                strokeWidth = 2.dp,
-                                                color = MaterialTheme.colorScheme.onPrimary
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                    }
-                                    if (searchQ.isNotEmpty()) {
-                                        IconButton(onClick = { searchQ = "" }) {
-                                            Icon(
-                                                    Icons.Rounded.Cancel,
-                                                    contentDescription = "Clear",
-                                                    tint = MaterialTheme.colorScheme.onPrimary
-                                            )
-                                        }
-                                    }
-                                    Box(
-                                            modifier =
-                                                    Modifier.clip(CircleShape)
-                                                            .background(
-                                                                    if (selectedCategory != "All" ||
-                                                                                    filterMode !=
-                                                                                            "All"
-                                                                    )
-                                                                            MaterialTheme
-                                                                                    .colorScheme
-                                                                                    .onPrimary.copy(
-                                                                                    alpha = 0.2f
-                                                                            )
-                                                                    else Color.Transparent
-                                                            )
-                                                            .clickable(onClickLabel = "Action") {
-                                                                showFilterSheet = true
-                                                            }
-                                                            .padding(6.dp)
-                                    ) {
-                                        Icon(
-                                                Icons.Default.FilterList,
-                                                contentDescription = "Filters",
-                                                tint = MaterialTheme.colorScheme.onPrimary,
-                                                modifier = Modifier.size(24.dp)
-                                        )
-                                    }
-                                }
-                            },
-                            singleLine = true,
-                            shape = RoundedCornerShape(16.dp),
-                            colors =
-                                    OutlinedTextFieldDefaults.colors(
-                                            focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                            unfocusedTextColor =
-                                                    MaterialTheme.colorScheme.onPrimary,
-                                            focusedContainerColor = Color.Transparent,
-                                            unfocusedContainerColor = Color.Transparent,
-                                            focusedBorderColor =
-                                                    MaterialTheme.colorScheme.onPrimary.copy(
-                                                            alpha = 0.8f
-                                                    ),
-                                            unfocusedBorderColor =
-                                                    MaterialTheme.colorScheme.onPrimary.copy(
-                                                            alpha = 0.6f
-                                                    ),
-                                            focusedLeadingIconColor =
-                                                    MaterialTheme.colorScheme.onPrimary.copy(
-                                                            alpha = 0.9f
-                                                    ),
-                                            unfocusedLeadingIconColor =
-                                                    MaterialTheme.colorScheme.onPrimary.copy(
-                                                            alpha = 0.7f
-                                                    ),
-                                            focusedPlaceholderColor =
-                                                    MaterialTheme.colorScheme.onPrimary.copy(
-                                                            alpha = 0.8f
-                                                    ),
-                                            unfocusedPlaceholderColor =
-                                                    MaterialTheme.colorScheme.onPrimary.copy(
-                                                            alpha = 0.7f
-                                                    ),
-                                            cursorColor = MaterialTheme.colorScheme.onPrimary,
+                    // Sort toggle chip
+                    Row(
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(MaterialTheme.colorScheme.onPrimary),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .clickable(onClickLabel = "Action") {
+                                        sortBy =
+                                            when (sortBy) {
+                                                "Name" -> "Qty"
+                                                "Qty" -> "Price"
+                                                else -> "Name"
+                                            }
+                                    }.padding(
+                                        start = 12.dp,
+                                        top = 6.dp,
+                                        bottom = 6.dp,
+                                        end = 6.dp,
                                     ),
-                    )
+                        ) {
+                            Text(
+                                text =
+                                    stringResource(
+                                        id = R.string.inv_sort_dynamic,
+                                        when (sortBy) {
+                                            "Qty" -> "Stock"
+                                            "Price" -> "Price"
+                                            else -> "Name"
+                                        },
+                                    ),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+
+                        Box(
+                            modifier =
+                                Modifier
+                                    .clickable(onClickLabel = "Action") {
+                                        sortDescending = !sortDescending
+                                    }.padding(
+                                        start = 6.dp,
+                                        top = 6.dp,
+                                        bottom = 6.dp,
+                                        end = 12.dp,
+                                    ),
+                        ) {
+                            Icon(
+                                imageVector =
+                                    if (sortDescending) {
+                                        Icons.Default.KeyboardArrowDown
+                                    } else {
+                                        Icons.Default.KeyboardArrowUp
+                                    },
+                                contentDescription = "Sort Order",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
                 }
-            },
-            floatingActionButton = {
-                FloatingActionButton(
-                        onClick = { openAddSheet() },
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        shape = CircleShape,
-                ) {
-                    Icon(
-                            Icons.Default.Add,
-                            contentDescription = "Add Item",
-                            modifier = Modifier.size(26.dp)
-                    )
-                }
-            },
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Search Bar — debounced via LaunchedEffect above
+                OutlinedTextField(
+                    value = searchQ,
+                    onValueChange = { searchQ = it },
+                    placeholder = {
+                        Text(
+                            stringResource(id = R.string.inv_search_hint),
+                            modifier =
+                                androidx.compose.ui.Modifier
+                                    .autoMarquee(),
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription =
+                                stringResource(R.string.ui_element_desc),
+                        )
+                    },
+                    trailingIcon = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(end = 8.dp),
+                        ) {
+                            if (isLoadingItems) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            if (searchQ.isNotEmpty()) {
+                                IconButton(onClick = { searchQ = "" }) {
+                                    Icon(
+                                        Icons.Rounded.Cancel,
+                                        contentDescription = "Clear",
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                    )
+                                }
+                            }
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (selectedCategory != "All" ||
+                                                filterMode !=
+                                                "All"
+                                            ) {
+                                                MaterialTheme
+                                                    .colorScheme
+                                                    .onPrimary
+                                                    .copy(
+                                                        alpha = 0.2f,
+                                                    )
+                                            } else {
+                                                Color.Transparent
+                                            },
+                                        ).clickable(onClickLabel = "Action") {
+                                            showFilterSheet = true
+                                        }.padding(6.dp),
+                            ) {
+                                Icon(
+                                    Icons.Default.FilterList,
+                                    contentDescription = "Filters",
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(24.dp),
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                            unfocusedTextColor =
+                                MaterialTheme.colorScheme.onPrimary,
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedBorderColor =
+                                MaterialTheme.colorScheme.onPrimary.copy(
+                                    alpha = 0.8f,
+                                ),
+                            unfocusedBorderColor =
+                                MaterialTheme.colorScheme.onPrimary.copy(
+                                    alpha = 0.6f,
+                                ),
+                            focusedLeadingIconColor =
+                                MaterialTheme.colorScheme.onPrimary.copy(
+                                    alpha = 0.9f,
+                                ),
+                            unfocusedLeadingIconColor =
+                                MaterialTheme.colorScheme.onPrimary.copy(
+                                    alpha = 0.7f,
+                                ),
+                            focusedPlaceholderColor =
+                                MaterialTheme.colorScheme.onPrimary.copy(
+                                    alpha = 0.8f,
+                                ),
+                            unfocusedPlaceholderColor =
+                                MaterialTheme.colorScheme.onPrimary.copy(
+                                    alpha = 0.7f,
+                                ),
+                            cursorColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                )
+            }
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { openAddSheet() },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = CircleShape,
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Add Item",
+                    modifier = Modifier.size(26.dp),
+                )
+            }
+        },
     ) { paddingValues ->
         Box(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
+            modifier = Modifier.fillMaxSize().padding(paddingValues),
         ) {
             when {
                 isLoadingItems && displayedItems.isEmpty() -> {
@@ -991,8 +1090,8 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                             CircularProgressIndicator()
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                    stringResource(id = R.string.inv_loading),
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                stringResource(id = R.string.inv_loading),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                             )
                         }
                     }
@@ -1000,71 +1099,73 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                 displayedItems.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                                modifier = Modifier.padding(32.dp)
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(32.dp),
                         ) {
                             Box(
-                                    modifier =
-                                            Modifier.size(100.dp)
-                                                    .clip(CircleShape)
-                                                    .background(
-                                                            MaterialTheme.colorScheme
-                                                                    .primaryContainer.copy(
-                                                                    alpha = 0.3f
-                                                            )
-                                                    ),
-                                    contentAlignment = Alignment.Center
+                                modifier =
+                                    Modifier
+                                        .size(100.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            MaterialTheme.colorScheme
+                                                .primaryContainer
+                                                .copy(
+                                                    alpha = 0.3f,
+                                                ),
+                                        ),
+                                contentAlignment = Alignment.Center,
                             ) {
                                 androidx.compose.material3.Icon(
-                                        imageVector =
-                                                androidx.compose.material.icons.Icons.Outlined
-                                                        .Inventory,
-                                        contentDescription =
-                                                stringResource(R.string.ui_element_desc),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(50.dp)
+                                    imageVector =
+                                        androidx.compose.material.icons.Icons.Outlined
+                                            .Inventory,
+                                    contentDescription =
+                                        stringResource(R.string.ui_element_desc),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(50.dp),
                                 )
                             }
                             Spacer(modifier = Modifier.height(24.dp))
                             Text(
-                                    text =
-                                            if (searchQ.isBlank() &&
-                                                            selectedCategory == "All" &&
-                                                            filterMode == "All"
-                                            ) {
-                                                "No stock yet?\nYour first item is just a tap away!"
-                                            } else {
-                                                stringResource(id = R.string.search_no_results)
-                                            },
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                    textAlign = TextAlign.Center,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    lineHeight = 22.sp
+                                text =
+                                    if (searchQ.isBlank() &&
+                                        selectedCategory == "All" &&
+                                        filterMode == "All"
+                                    ) {
+                                        "No stock yet?\nYour first item is just a tap away!"
+                                    } else {
+                                        stringResource(id = R.string.search_no_results)
+                                    },
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                lineHeight = 22.sp,
                             )
                             if (searchQ.isBlank() &&
-                                            selectedCategory == "All" &&
-                                            filterMode == "All"
+                                selectedCategory == "All" &&
+                                filterMode == "All"
                             ) {
                                 Spacer(modifier = Modifier.height(24.dp))
                                 Row(
-                                        modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
-                                        horizontalArrangement = Arrangement.End,
-                                        verticalAlignment = Alignment.CenterVertically
+                                    modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Text(
-                                            text = "Add here ",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
+                                        text = "Add here ",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
                                     )
                                     Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                            contentDescription =
-                                                    stringResource(R.string.ui_element_desc),
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp).rotate(45f)
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription =
+                                            stringResource(R.string.ui_element_desc),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp).rotate(45f),
                                     )
                                 }
                             }
@@ -1073,17 +1174,17 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                 }
                 else -> {
                     LazyColumn(
-                            state = listState,
-                            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            contentPadding = PaddingValues(top = 8.dp, bottom = 90.dp),
+                        state = listState,
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(top = 8.dp, bottom = 90.dp),
                     ) {
                         items(
-                                items = displayedItems,
-                                key = { it.id },
-                                contentType = {
-                                    "inventory_item"
-                                }, // stable content type for Compose recycling
+                            items = displayedItems,
+                            key = { it.id },
+                            contentType = {
+                                "inventory_item"
+                            }, // stable content type for Compose recycling
                         ) { item ->
                             val isLowStock = item.quantity <= item.lowStockThreshold
 
@@ -1111,300 +1212,304 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                             }
 
                             SwipeToDismissBox(
-                                    state = dismissState,
-                                    enableDismissFromStartToEnd = true,
-                                    backgroundContent = {
-                                        val direction = dismissState.dismissDirection
-                                        if (direction == SwipeToDismissBoxValue.StartToEnd) {
-                                            // Swipe right = quick restock presets (green)
-                                            Box(
-                                                    modifier =
-                                                            Modifier.fillMaxSize()
-                                                                    .clip(RoundedCornerShape(20.dp))
-                                                                    .background(
-                                                                            MaterialTheme
-                                                                                    .colorScheme
-                                                                                    .error
-                                                                    ),
-                                                    contentAlignment = Alignment.CenterEnd,
+                                state = dismissState,
+                                enableDismissFromStartToEnd = true,
+                                backgroundContent = {
+                                    val direction = dismissState.dismissDirection
+                                    if (direction == SwipeToDismissBoxValue.StartToEnd) {
+                                        // Swipe right = quick restock presets (green)
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .fillMaxSize()
+                                                    .clip(RoundedCornerShape(20.dp))
+                                                    .background(
+                                                        MaterialTheme
+                                                            .colorScheme
+                                                            .error,
+                                                    ),
+                                            contentAlignment = Alignment.CenterEnd,
+                                        ) {
+                                            Row(
+                                                modifier =
+                                                    Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(
+                                                            horizontal = 16.dp,
+                                                        ),
+                                                verticalAlignment =
+                                                    Alignment.CenterVertically,
+                                                horizontalArrangement =
+                                                    Arrangement.SpaceBetween,
                                             ) {
                                                 Row(
-                                                        modifier =
-                                                                Modifier.fillMaxWidth()
-                                                                        .padding(
-                                                                                horizontal = 16.dp
-                                                                        ),
-                                                        verticalAlignment =
-                                                                Alignment.CenterVertically,
-                                                        horizontalArrangement =
-                                                                Arrangement.SpaceBetween,
-                                                ) {
-                                                    Row(
-                                                            verticalAlignment =
-                                                                    Alignment.CenterVertically
-                                                    ) {
-                                                        Icon(
-                                                                Icons.Default.Add,
-                                                                contentDescription = "Restock",
-                                                                tint =
-                                                                        MaterialTheme.colorScheme
-                                                                                .onPrimary
-                                                        )
-                                                        Spacer(modifier = Modifier.width(6.dp))
-                                                        Text(
-                                                                "Restock",
-                                                                color =
-                                                                        MaterialTheme.colorScheme
-                                                                                .onPrimary,
-                                                                fontWeight = FontWeight.Bold,
-                                                                fontSize = 13.sp
-                                                        )
-                                                    }
-
-                                                    // Presets
-                                                    Row(
-                                                            verticalAlignment =
-                                                                    Alignment.CenterVertically,
-                                                            horizontalArrangement =
-                                                                    Arrangement.spacedBy(8.dp),
-                                                    ) {
-                                                        val presets = listOf(5, 10, 50)
-                                                        presets.forEach { preset ->
-                                                            Box(
-                                                                    modifier =
-                                                                            Modifier.clip(
-                                                                                            RoundedCornerShape(
-                                                                                                    12.dp
-                                                                                            )
-                                                                                    )
-                                                                                    .background(
-                                                                                            MaterialTheme
-                                                                                                    .colorScheme
-                                                                                                    .onPrimary
-                                                                                                    .copy(
-                                                                                                            alpha =
-                                                                                                                    0.2f
-                                                                                                    )
-                                                                                    )
-                                                                                    .clickable(
-                                                                                            onClickLabel =
-                                                                                                    "Action"
-                                                                                    ) {
-                                                                                        scope
-                                                                                                .launch {
-                                                                                                    val purchase =
-                                                                                                            Purchase(
-                                                                                                                    supplierId =
-                                                                                                                            0L,
-                                                                                                                    supplierName =
-                                                                                                                            viewModel
-                                                                                                                                    .lastRestockSupplierName
-                                                                                                                                    .ifBlank {
-                                                                                                                                        "Cash / Anonymous"
-                                                                                                                                    },
-                                                                                                                    totalAmount =
-                                                                                                                            item.buyPrice *
-                                                                                                                                    preset,
-                                                                                                                    taxAmount =
-                                                                                                                            (item.buyPrice *
-                                                                                                                                    preset) *
-                                                                                                                                    (item.taxRate /
-                                                                                                                                            100.0),
-                                                                                                                    type =
-                                                                                                                            "BILL",
-                                                                                                                    timestamp =
-                                                                                                                            System.currentTimeMillis(),
-                                                                                                                    notes =
-                                                                                                                            "Quick +$preset restock",
-                                                                                                                    items =
-                                                                                                                            listOf(
-                                                                                                                                    PurchaseItemDetail(
-                                                                                                                                            purchaseId =
-                                                                                                                                                    0L,
-                                                                                                                                            itemId =
-                                                                                                                                                    item.id,
-                                                                                                                                            itemName =
-                                                                                                                                                    item.name,
-                                                                                                                                            quantity =
-                                                                                                                                                    preset.toDouble(),
-                                                                                                                                            unit =
-                                                                                                                                                    item.unit,
-                                                                                                                                            buyPrice =
-                                                                                                                                                    item.buyPrice
-                                                                                                                                    )
-                                                                                                                            )
-                                                                                                            )
-                                                                                                    viewModel
-                                                                                                            .addPurchase(
-                                                                                                                    purchase
-                                                                                                            ) {
-                                                                                                            }
-                                                                                                    android.widget
-                                                                                                            .Toast
-                                                                                                            .makeText(
-                                                                                                                    context,
-                                                                                                                    "+$preset ${item.name} restocked",
-                                                                                                                    android.widget
-                                                                                                                            .Toast
-                                                                                                                            .LENGTH_SHORT
-                                                                                                            )
-                                                                                                            .show()
-                                                                                                    dismissState
-                                                                                                            .snapTo(
-                                                                                                                    SwipeToDismissBoxValue
-                                                                                                                            .Settled
-                                                                                                            )
-                                                                                                }
-                                                                                    }
-                                                                                    .padding(
-                                                                                            horizontal =
-                                                                                                    10.dp,
-                                                                                            vertical =
-                                                                                                    6.dp
-                                                                                    ),
-                                                                    contentAlignment =
-                                                                            Alignment.Center,
-                                                            ) {
-                                                                Text(
-                                                                        "+$preset",
-                                                                        color =
-                                                                                MaterialTheme
-                                                                                        .colorScheme
-                                                                                        .onPrimary,
-                                                                        fontWeight =
-                                                                                FontWeight.Black,
-                                                                        fontSize = 12.sp
-                                                                )
-                                                            }
-                                                        }
-
-                                                        // Custom button
-                                                        Box(
-                                                                modifier =
-                                                                        Modifier.clip(
-                                                                                        RoundedCornerShape(
-                                                                                                12.dp
-                                                                                        )
-                                                                                )
-                                                                                .background(
-                                                                                        MaterialTheme
-                                                                                                .colorScheme
-                                                                                                .onPrimary
-                                                                                                .copy(
-                                                                                                        alpha =
-                                                                                                                0.2f
-                                                                                                )
-                                                                                )
-                                                                                .clickable(
-                                                                                        onClickLabel =
-                                                                                                "Action"
-                                                                                ) {
-                                                                                    quickRefillItem =
-                                                                                            item
-                                                                                    scope.launch {
-                                                                                        dismissState
-                                                                                                .snapTo(
-                                                                                                        SwipeToDismissBoxValue
-                                                                                                                .Settled
-                                                                                                )
-                                                                                    }
-                                                                                }
-                                                                                .padding(
-                                                                                        horizontal =
-                                                                                                10.dp,
-                                                                                        vertical =
-                                                                                                6.dp
-                                                                                ),
-                                                                contentAlignment = Alignment.Center,
-                                                        ) {
-                                                            Text(
-                                                                    "Custom",
-                                                                    color =
-                                                                            MaterialTheme
-                                                                                    .colorScheme
-                                                                                    .onPrimary,
-                                                                    fontWeight = FontWeight.Bold,
-                                                                    fontSize = 12.sp
-                                                            )
-                                                        }
-
-                                                        // Cancel button
-                                                        Box(
-                                                                modifier =
-                                                                        Modifier.clip(CircleShape)
-                                                                                .background(
-                                                                                        MaterialTheme
-                                                                                                .colorScheme
-                                                                                                .onPrimary
-                                                                                                .copy(
-                                                                                                        alpha =
-                                                                                                                0.15f
-                                                                                                )
-                                                                                )
-                                                                                .clickable(
-                                                                                        onClickLabel =
-                                                                                                "Action"
-                                                                                ) {
-                                                                                    scope.launch {
-                                                                                        dismissState
-                                                                                                .snapTo(
-                                                                                                        SwipeToDismissBoxValue
-                                                                                                                .Settled
-                                                                                                )
-                                                                                    }
-                                                                                }
-                                                                                .padding(6.dp),
-                                                                contentAlignment = Alignment.Center,
-                                                        ) {
-                                                            Icon(
-                                                                    Icons.Default.Close,
-                                                                    contentDescription = "Cancel",
-                                                                    tint =
-                                                                            MaterialTheme
-                                                                                    .colorScheme
-                                                                                    .onPrimary,
-                                                                    modifier = Modifier.size(16.dp)
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        } else {
-                                            // Swipe left = delete (red)
-                                            Box(
-                                                    modifier =
-                                                            Modifier.fillMaxSize()
-                                                                    .clip(RoundedCornerShape(20.dp))
-                                                                    .background(
-                                                                            MaterialTheme
-                                                                                    .colorScheme
-                                                                                    .error
-                                                                    ),
-                                                    contentAlignment = Alignment.CenterEnd,
-                                            ) {
-                                                Row(
-                                                        modifier = Modifier.padding(end = 20.dp),
-                                                        verticalAlignment =
-                                                                Alignment.CenterVertically,
+                                                    verticalAlignment =
+                                                        Alignment.CenterVertically,
                                                 ) {
                                                     Icon(
-                                                            Icons.Default.Delete,
-                                                            contentDescription = "Delete",
-                                                            tint =
-                                                                    MaterialTheme.colorScheme
-                                                                            .onError,
+                                                        Icons.Default.Add,
+                                                        contentDescription = "Restock",
+                                                        tint =
+                                                            MaterialTheme.colorScheme
+                                                                .onPrimary,
                                                     )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        "Restock",
+                                                        color =
+                                                            MaterialTheme.colorScheme
+                                                                .onPrimary,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 13.sp,
+                                                    )
+                                                }
+
+                                                // Presets
+                                                Row(
+                                                    verticalAlignment =
+                                                        Alignment.CenterVertically,
+                                                    horizontalArrangement =
+                                                        Arrangement.spacedBy(8.dp),
+                                                ) {
+                                                    val presets = listOf(5, 10, 50)
+                                                    presets.forEach { preset ->
+                                                        Box(
+                                                            modifier =
+                                                                Modifier
+                                                                    .clip(
+                                                                        RoundedCornerShape(
+                                                                            12.dp,
+                                                                        ),
+                                                                    ).background(
+                                                                        MaterialTheme
+                                                                            .colorScheme
+                                                                            .onPrimary
+                                                                            .copy(
+                                                                                alpha =
+                                                                                0.2f,
+                                                                            ),
+                                                                    ).clickable(
+                                                                        onClickLabel =
+                                                                            "Action",
+                                                                    ) {
+                                                                        scope
+                                                                            .launch {
+                                                                                val purchase =
+                                                                                    Purchase(
+                                                                                        supplierId =
+                                                                                        0L,
+                                                                                        supplierName =
+                                                                                            viewModel
+                                                                                                .lastRestockSupplierName
+                                                                                                .ifBlank {
+                                                                                                    "Cash / Anonymous"
+                                                                                                },
+                                                                                        totalAmount =
+                                                                                            item.buyPrice *
+                                                                                                preset,
+                                                                                        taxAmount =
+                                                                                            (
+                                                                                                item.buyPrice *
+                                                                                                    preset
+                                                                                            ) *
+                                                                                                (
+                                                                                                    item.taxRate /
+                                                                                                        100.0
+                                                                                                ),
+                                                                                        type =
+                                                                                            "BILL",
+                                                                                        timestamp =
+                                                                                            System
+                                                                                                .currentTimeMillis(),
+                                                                                        notes =
+                                                                                            "Quick +$preset restock",
+                                                                                        items =
+                                                                                            listOf(
+                                                                                                PurchaseItemDetail(
+                                                                                                    purchaseId =
+                                                                                                    0L,
+                                                                                                    itemId =
+                                                                                                        item.id,
+                                                                                                    itemName =
+                                                                                                        item.name,
+                                                                                                    quantity =
+                                                                                                        preset
+                                                                                                            .toDouble(),
+                                                                                                    unit =
+                                                                                                        item.unit,
+                                                                                                    buyPrice =
+                                                                                                        item.buyPrice,
+                                                                                                ),
+                                                                                            ),
+                                                                                    )
+                                                                                viewModel
+                                                                                    .addPurchase(
+                                                                                        purchase,
+                                                                                    ) {
+                                                                                    }
+                                                                                android.widget
+                                                                                    .Toast
+                                                                                    .makeText(
+                                                                                        context,
+                                                                                        "+$preset " +
+                                                                                            "${item.name} restocked",
+                                                                                        android.widget
+                                                                                            .Toast
+                                                                                            .LENGTH_SHORT,
+                                                                                    ).show()
+                                                                                dismissState
+                                                                                    .snapTo(
+                                                                                        SwipeToDismissBoxValue
+                                                                                            .Settled,
+                                                                                    )
+                                                                            }
+                                                                    }.padding(
+                                                                        horizontal =
+                                                                            10.dp,
+                                                                        vertical =
+                                                                            6.dp,
+                                                                    ),
+                                                            contentAlignment =
+                                                                Alignment.Center,
+                                                        ) {
+                                                            Text(
+                                                                "+$preset",
+                                                                color =
+                                                                    MaterialTheme
+                                                                        .colorScheme
+                                                                        .onPrimary,
+                                                                fontWeight =
+                                                                    FontWeight.Black,
+                                                                fontSize = 12.sp,
+                                                            )
+                                                        }
+                                                    }
+
+                                                    // Custom button
+                                                    Box(
+                                                        modifier =
+                                                            Modifier
+                                                                .clip(
+                                                                    RoundedCornerShape(
+                                                                        12.dp,
+                                                                    ),
+                                                                ).background(
+                                                                    MaterialTheme
+                                                                        .colorScheme
+                                                                        .onPrimary
+                                                                        .copy(
+                                                                            alpha =
+                                                                            0.2f,
+                                                                        ),
+                                                                ).clickable(
+                                                                    onClickLabel =
+                                                                        "Action",
+                                                                ) {
+                                                                    quickRefillItem =
+                                                                        item
+                                                                    scope.launch {
+                                                                        dismissState
+                                                                            .snapTo(
+                                                                                SwipeToDismissBoxValue
+                                                                                    .Settled,
+                                                                            )
+                                                                    }
+                                                                }.padding(
+                                                                    horizontal =
+                                                                        10.dp,
+                                                                    vertical =
+                                                                        6.dp,
+                                                                ),
+                                                        contentAlignment = Alignment.Center,
+                                                    ) {
+                                                        Text(
+                                                            "Custom",
+                                                            color =
+                                                                MaterialTheme
+                                                                    .colorScheme
+                                                                    .onPrimary,
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 12.sp,
+                                                        )
+                                                    }
+
+                                                    // Cancel button
+                                                    Box(
+                                                        modifier =
+                                                            Modifier
+                                                                .clip(CircleShape)
+                                                                .background(
+                                                                    MaterialTheme
+                                                                        .colorScheme
+                                                                        .onPrimary
+                                                                        .copy(
+                                                                            alpha =
+                                                                            0.15f,
+                                                                        ),
+                                                                ).clickable(
+                                                                    onClickLabel =
+                                                                        "Action",
+                                                                ) {
+                                                                    scope.launch {
+                                                                        dismissState
+                                                                            .snapTo(
+                                                                                SwipeToDismissBoxValue
+                                                                                    .Settled,
+                                                                            )
+                                                                    }
+                                                                }.padding(6.dp),
+                                                        contentAlignment = Alignment.Center,
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Default.Close,
+                                                            contentDescription = "Cancel",
+                                                            tint =
+                                                                MaterialTheme
+                                                                    .colorScheme
+                                                                    .onPrimary,
+                                                            modifier = Modifier.size(16.dp),
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
-                                    },
+                                    } else {
+                                        // Swipe left = delete (red)
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .fillMaxSize()
+                                                    .clip(RoundedCornerShape(20.dp))
+                                                    .background(
+                                                        MaterialTheme
+                                                            .colorScheme
+                                                            .error,
+                                                    ),
+                                            contentAlignment = Alignment.CenterEnd,
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(end = 20.dp),
+                                                verticalAlignment =
+                                                    Alignment.CenterVertically,
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Delete,
+                                                    contentDescription = "Delete",
+                                                    tint =
+                                                        MaterialTheme.colorScheme
+                                                            .onError,
+                                                )
+                                            }
+                                        }
+                                    }
+                                },
                             ) {
                                 InventoryItemCard(
-                                        item = item,
-                                        isLowStock = isLowStock,
-                                        userRole = viewModel.userRole,
-                                        onClick = { openEditSheet(item) },
-                                        onRefillClick = { quickRefillItem = item },
+                                    item = item,
+                                    isLowStock = isLowStock,
+                                    userRole = viewModel.userRole,
+                                    onClick = { openEditSheet(item) },
+                                    onRefillClick = { quickRefillItem = item },
                                 )
                             }
                         }
@@ -1413,22 +1518,22 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                         if (isLoadingMore) {
                             item(contentType = "loading_footer") {
                                 Row(
-                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                        horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     CircularProgressIndicator(
-                                            modifier = Modifier.size(20.dp),
-                                            strokeWidth = 2.dp
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
-                                            stringResource(id = R.string.inv_loading_more),
-                                            fontSize = 12.sp,
-                                            color =
-                                                    MaterialTheme.colorScheme.onSurface.copy(
-                                                            alpha = 0.5f
-                                                    ),
+                                        stringResource(id = R.string.inv_loading_more),
+                                        fontSize = 12.sp,
+                                        color =
+                                            MaterialTheme.colorScheme.onSurface.copy(
+                                                alpha = 0.5f,
+                                            ),
                                     )
                                 }
                             }
@@ -1438,18 +1543,18 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                         if (!hasMoreItems && displayedItems.size > PAGE_SIZE) {
                             item(contentType = "end_of_list") {
                                 Text(
-                                        text =
-                                                stringResource(
-                                                        id = R.string.inv_all_items_loaded,
-                                                        displayedItems.size
-                                                ),
-                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                        textAlign = TextAlign.Center,
-                                        fontSize = 11.sp,
-                                        color =
-                                                MaterialTheme.colorScheme.onSurface.copy(
-                                                        alpha = 0.35f
-                                                ),
+                                    text =
+                                        stringResource(
+                                            id = R.string.inv_all_items_loaded,
+                                            displayedItems.size,
+                                        ),
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 11.sp,
+                                    color =
+                                        MaterialTheme.colorScheme.onSurface.copy(
+                                            alpha = 0.35f,
+                                        ),
                                 )
                             }
                         }
@@ -1460,153 +1565,161 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
             // Premium Dynamic Fast Scroller Overlay
             if (displayedItems.isNotEmpty() && !isLoadingItems && filterMode != "NearExpiry") {
                 DynamicFastScroller(
-                        listState = listState,
-                        itemsCount = displayedItems.size,
-                        thumbLabel = { index ->
-                            val item = displayedItems.getOrNull(index)
-                            item?.let { "${it.category} • ${it.name.take(1).uppercase()}" } ?: ""
-                        },
-                        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp)
+                    listState = listState,
+                    itemsCount = displayedItems.size,
+                    thumbLabel = { index ->
+                        val item = displayedItems.getOrNull(index)
+                        item?.let { "${it.category} • ${it.name.take(1).uppercase()}" } ?: ""
+                    },
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp),
                 )
             }
 
             // ── Premium Filter Bottom Sheet ──────────────────────────────────────────
             if (showFilterSheet) {
                 ModalBottomSheet(
-                        onDismissRequest = { showFilterSheet = false },
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        dragHandle = { BottomSheetDefaults.DragHandle() }
+                    onDismissRequest = { showFilterSheet = false },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    dragHandle = { BottomSheetDefaults.DragHandle() },
                 ) {
                     Column(
-                            modifier =
-                                    Modifier.fillMaxWidth()
-                                            .padding(horizontal = 24.dp)
-                                            .padding(bottom = 32.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp)
+                                .padding(bottom = 32.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                    "Filters & Categories",
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                "Filters & Categories",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                             if (selectedCategory != "All" || filterMode != "All") {
                                 androidx.compose.material3.TextButton(
-                                        onClick = {
-                                            selectedCategory = "All"
-                                            filterMode = "All"
-                                        },
-                                        contentPadding =
-                                                PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                                        modifier = Modifier.height(32.dp)
+                                    onClick = {
+                                        selectedCategory = "All"
+                                        filterMode = "All"
+                                    },
+                                    contentPadding =
+                                        PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                    modifier = Modifier.height(32.dp),
                                 ) {
                                     Text(
-                                            "Reset",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
+                                        "Reset",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                             }
                         }
 
                         Text(
-                                "Quick Filters",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            "Quick Filters",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             FilterChip(
-                                    label = stringResource(id = R.string.inv_filter_all),
-                                    isSelected = selectedCategory == "All" && filterMode == "All",
-                                    onClick = {
-                                        selectedCategory = "All"
-                                        filterMode = "All"
-                                        showFilterSheet = false
-                                    }
+                                label = stringResource(id = R.string.inv_filter_all),
+                                isSelected = selectedCategory == "All" && filterMode == "All",
+                                onClick = {
+                                    selectedCategory = "All"
+                                    filterMode = "All"
+                                    showFilterSheet = false
+                                },
                             )
                             FilterChip(
-                                    label = stringResource(id = R.string.inv_filter_low_stock),
-                                    icon = Icons.Outlined.WarningAmber,
-                                    isSelected = selectedCategory == "Low Stock",
-                                    onClick = {
-                                        selectedCategory = "Low Stock"
-                                        showFilterSheet = false
-                                    }
+                                label = stringResource(id = R.string.inv_filter_low_stock),
+                                icon = Icons.Outlined.WarningAmber,
+                                isSelected = selectedCategory == "Low Stock",
+                                onClick = {
+                                    selectedCategory = "Low Stock"
+                                    showFilterSheet = false
+                                },
                             )
                             FilterChip(
-                                    label =
-                                            "Expiring ≤30d${if (nearExpiryItems.isNotEmpty()) " (${nearExpiryItems.size})" else ""}",
-                                    icon = Icons.Outlined.Schedule,
-                                    isSelected = filterMode == "NearExpiry",
-                                    onClick = {
-                                        filterMode =
-                                                if (filterMode == "NearExpiry") "All"
-                                                else "NearExpiry"
-                                        showFilterSheet = false
-                                    }
+                                label =
+                                    "Expiring ≤30d" +
+                                        "${if (nearExpiryItems.isNotEmpty()) " (${nearExpiryItems.size})" else ""}",
+                                icon = Icons.Outlined.Schedule,
+                                isSelected = filterMode == "NearExpiry",
+                                onClick = {
+                                    filterMode =
+                                        if (filterMode == "NearExpiry") {
+                                            "All"
+                                        } else {
+                                            "NearExpiry"
+                                        }
+                                    showFilterSheet = false
+                                },
                             )
                         }
 
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
                         Text(
-                                "Sort By",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            "Sort By",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             FilterChip(
-                                    label = "Name",
-                                    isSelected = sortBy == "Name",
-                                    onClick = { sortBy = "Name" }
+                                label = "Name",
+                                isSelected = sortBy == "Name",
+                                onClick = { sortBy = "Name" },
                             )
                             FilterChip(
-                                    label = "Stock",
-                                    isSelected = sortBy == "Qty",
-                                    onClick = { sortBy = "Qty" }
+                                label = "Stock",
+                                isSelected = sortBy == "Qty",
+                                onClick = { sortBy = "Qty" },
                             )
                             FilterChip(
-                                    label = "Price",
-                                    isSelected = sortBy == "Price",
-                                    onClick = { sortBy = "Price" }
+                                label = "Price",
+                                isSelected = sortBy == "Price",
+                                onClick = { sortBy = "Price" },
                             )
 
                             Spacer(modifier = Modifier.weight(1f))
 
                             // Asc/Desc toggle
                             IconButton(
-                                    onClick = { sortDescending = !sortDescending },
-                                    modifier =
-                                            Modifier.clip(CircleShape)
-                                                    .background(
-                                                            MaterialTheme.colorScheme
-                                                                    .primaryContainer
-                                                    )
-                                                    .size(36.dp)
+                                onClick = { sortDescending = !sortDescending },
+                                modifier =
+                                    Modifier
+                                        .clip(CircleShape)
+                                        .background(
+                                            MaterialTheme.colorScheme
+                                                .primaryContainer,
+                                        ).size(36.dp),
                             ) {
                                 Icon(
-                                        imageVector =
-                                                if (sortDescending) Icons.Default.KeyboardArrowDown
-                                                else Icons.Default.KeyboardArrowUp,
-                                        contentDescription =
-                                                if (sortDescending) "Descending" else "Ascending",
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.size(20.dp)
+                                    imageVector =
+                                        if (sortDescending) {
+                                            Icons.Default.KeyboardArrowDown
+                                        } else {
+                                            Icons.Default.KeyboardArrowUp
+                                        },
+                                    contentDescription =
+                                        if (sortDescending) "Descending" else "Ascending",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
                         }
@@ -1614,24 +1727,24 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
                         Text(
-                                "All Categories",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            "All Categories",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             categoriesList.forEach { cat ->
                                 FilterChip(
-                                        label = cat,
-                                        isSelected = selectedCategory == cat,
-                                        onClick = {
-                                            selectedCategory = cat
-                                            filterMode = "All"
-                                            showFilterSheet = false // Auto-close on selection
-                                        }
+                                    label = cat,
+                                    isSelected = selectedCategory == cat,
+                                    onClick = {
+                                        selectedCategory = cat
+                                        filterMode = "All"
+                                        showFilterSheet = false // Auto-close on selection
+                                    },
                                 )
                             }
                         }
@@ -1642,115 +1755,132 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
             // ── Add / Edit Bottom Sheet ──────────────────────────────────────────
             if (showSheet) {
                 ModalBottomSheet(
-                        onDismissRequest = { showSheet = false },
-                        sheetState = sheetState,
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        dragHandle = { BottomSheetDefaults.DragHandle() },
+                    onDismissRequest = { showSheet = false },
+                    sheetState = sheetState,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    dragHandle = { BottomSheetDefaults.DragHandle() },
                 ) {
                     Column(
-                            modifier =
-                                    Modifier.fillMaxWidth()
-                                            .verticalScroll(rememberScrollState())
-                                            .imePadding()
-                                            .padding(horizontal = 24.dp, vertical = 8.dp)
-                                            .padding(bottom = 32.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .imePadding()
+                                .padding(horizontal = 24.dp, vertical = 8.dp)
+                                .padding(bottom = 32.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         LaunchedEffect(Unit) { focusRequesterName.requestFocus() }
 
                         Text(
-                                text =
-                                        if (editingItem == null) {
-                                            stringResource(id = R.string.inv_add_title)
-                                        } else {
-                                            stringResource(id = R.string.inv_edit_title)
-                                        },
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
+                            text =
+                                if (editingItem == null) {
+                                    stringResource(id = R.string.inv_add_title)
+                                } else {
+                                    stringResource(id = R.string.inv_edit_title)
+                                },
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
                         )
 
                         OutlinedTextField(
-                                value = inputName,
-                                onValueChange = {
-                                    inputName = it
-                                    nameError = false
+                            value = inputName,
+                            onValueChange = {
+                                inputName = it
+                                nameError = false
+                            },
+                            label = {
+                                Text(
+                                    stringResource(id = R.string.inv_name_label),
+                                    modifier =
+                                        androidx.compose.ui.Modifier
+                                            .autoMarquee(),
+                                )
+                            },
+                            modifier =
+                                Modifier.fillMaxWidth().focusRequester(focusRequesterName),
+                            singleLine = true,
+                            isError = nameError,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                            keyboardActions =
+                                KeyboardActions(
+                                    onNext = { focusRequesterQty.requestFocus() },
+                                ),
+                            supportingText =
+                                if (nameError) {
+                                    {
+                                        Text(
+                                            stringResource(
+                                                id = R.string.inv_err_empty_name,
+                                            ),
+                                        )
+                                    }
+                                } else {
+                                    null
                                 },
-                                label = { Text(stringResource(id = R.string.inv_name_label), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                modifier =
-                                        Modifier.fillMaxWidth().focusRequester(focusRequesterName),
-                                singleLine = true,
-                                isError = nameError,
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                                keyboardActions =
-                                        KeyboardActions(
-                                                onNext = { focusRequesterQty.requestFocus() }
-                                        ),
-                                supportingText =
-                                        if (nameError) {
-                                            {
-                                                Text(
-                                                        stringResource(
-                                                                id = R.string.inv_err_empty_name
-                                                        )
-                                                )
-                                            }
-                                        } else {
-                                            null
-                                        },
                         )
 
                         Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             OutlinedTextField(
-                                    value = inputQty,
-                                    onValueChange = {
-                                        inputQty = it
-                                        qtyError = false
+                                value = inputQty,
+                                onValueChange = {
+                                    inputQty = it
+                                    qtyError = false
+                                },
+                                label = {
+                                    Text(
+                                        stringResource(id = R.string.inv_qty_label),
+                                        modifier =
+                                            androidx.compose.ui.Modifier
+                                                .autoMarquee(),
+                                    )
+                                },
+                                suffix = { Text(inputUnit) },
+                                keyboardOptions =
+                                    KeyboardOptions(
+                                        keyboardType = KeyboardType.Decimal,
+                                        imeAction = ImeAction.Next,
+                                    ),
+                                keyboardActions =
+                                    KeyboardActions(
+                                        onNext = {
+                                            if (viewModel.userRole != "staff") {
+                                                focusRequesterBuyPrice.requestFocus()
+                                            } else {
+                                                focusRequesterSellPrice.requestFocus()
+                                            }
+                                        },
+                                    ),
+                                modifier =
+                                    Modifier.weight(1f).focusRequester(focusRequesterQty),
+                                singleLine = true,
+                                isError = qtyError,
+                                supportingText =
+                                    if (qtyError) {
+                                        { Text(stringResource(id = R.string.inv_err_qty)) }
+                                    } else {
+                                        null
                                     },
-                                    label = { Text(stringResource(id = R.string.inv_qty_label), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                    suffix = { Text(inputUnit) },
-                                    keyboardOptions =
-                                            KeyboardOptions(
-                                                    keyboardType = KeyboardType.Decimal,
-                                                    imeAction = ImeAction.Next
-                                            ),
-                                    keyboardActions =
-                                            KeyboardActions(
-                                                    onNext = {
-                                                        if (viewModel.userRole != "staff") {
-                                                            focusRequesterBuyPrice.requestFocus()
-                                                        } else {
-                                                            focusRequesterSellPrice.requestFocus()
-                                                        }
-                                                    }
-                                            ),
-                                    modifier =
-                                            Modifier.weight(1f).focusRequester(focusRequesterQty),
-                                    singleLine = true,
-                                    isError = qtyError,
-                                    supportingText =
-                                            if (qtyError) {
-                                                { Text(stringResource(id = R.string.inv_err_qty)) }
-                                            } else null,
                             )
                         }
 
                         // Unit picker chips
                         Column {
                             Text(
-                                    stringResource(id = R.string.inv_unit_label),
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                stringResource(id = R.string.inv_unit_label),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 items(unitsList, key = { it }) { u ->
                                     FilterChip(
-                                            label = u,
-                                            isSelected = inputUnit == u,
-                                            onClick = { inputUnit = u }
+                                        label = u,
+                                        isSelected = inputUnit == u,
+                                        onClick = { inputUnit = u },
                                     )
                                 }
                             }
@@ -1758,170 +1888,206 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
 
                         // Buy + Sell price
                         Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             if (viewModel.userRole != "staff") {
                                 OutlinedTextField(
-                                        value = inputBuyPrice,
-                                        onValueChange = {
-                                            inputBuyPrice = it
-                                            buyPriceError = false
+                                    value = inputBuyPrice,
+                                    onValueChange = {
+                                        inputBuyPrice = it
+                                        buyPriceError = false
+                                    },
+                                    label = {
+                                        Text(
+                                            stringResource(id = R.string.inv_buy_price_label),
+                                            modifier =
+                                                androidx.compose.ui.Modifier
+                                                    .autoMarquee(),
+                                        )
+                                    },
+                                    prefix = { Text("₹ ") },
+                                    keyboardOptions =
+                                        KeyboardOptions(
+                                            keyboardType = KeyboardType.Decimal,
+                                            imeAction = ImeAction.Next,
+                                        ),
+                                    keyboardActions =
+                                        KeyboardActions(
+                                            onNext = {
+                                                focusRequesterSellPrice.requestFocus()
+                                            },
+                                        ),
+                                    modifier =
+                                        Modifier
+                                            .weight(1f)
+                                            .focusRequester(focusRequesterBuyPrice),
+                                    singleLine = true,
+                                    isError = buyPriceError,
+                                    supportingText =
+                                        if (buyPriceError) {
+                                            { Text("Enter valid buy price") }
+                                        } else {
+                                            null
                                         },
-                                        label = { Text(stringResource(id = R.string.inv_buy_price_label), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                        prefix = { Text("₹ ") },
-                                        keyboardOptions =
-                                                KeyboardOptions(
-                                                        keyboardType = KeyboardType.Decimal,
-                                                        imeAction = ImeAction.Next
-                                                ),
-                                        keyboardActions =
-                                                KeyboardActions(
-                                                        onNext = {
-                                                            focusRequesterSellPrice.requestFocus()
-                                                        }
-                                                ),
-                                        modifier =
-                                                Modifier.weight(1f)
-                                                        .focusRequester(focusRequesterBuyPrice),
-                                        singleLine = true,
-                                        isError = buyPriceError,
-                                        supportingText =
-                                                if (buyPriceError) {
-                                                    { Text("Enter valid buy price") }
-                                                } else null
                                 )
                             }
                             OutlinedTextField(
-                                    value = inputSellPrice,
-                                    onValueChange = {
-                                        inputSellPrice = it
-                                        sellPriceError = false
+                                value = inputSellPrice,
+                                onValueChange = {
+                                    inputSellPrice = it
+                                    sellPriceError = false
+                                },
+                                label = {
+                                    Text(
+                                        stringResource(id = R.string.inv_sell_price_label),
+                                        modifier =
+                                            androidx.compose.ui.Modifier
+                                                .autoMarquee(),
+                                    )
+                                },
+                                prefix = { Text("₹ ") },
+                                keyboardOptions =
+                                    KeyboardOptions(
+                                        keyboardType = KeyboardType.Decimal,
+                                        imeAction = ImeAction.Next,
+                                    ),
+                                keyboardActions =
+                                    KeyboardActions(
+                                        onNext = {
+                                            focusRequesterThreshold.requestFocus()
+                                        },
+                                    ),
+                                modifier =
+                                    Modifier
+                                        .weight(1f)
+                                        .focusRequester(focusRequesterSellPrice),
+                                singleLine = true,
+                                isError = sellPriceError,
+                                supportingText =
+                                    if (sellPriceError) {
+                                        { Text("Enter valid sell price") }
+                                    } else {
+                                        null
                                     },
-                                    label = { Text(stringResource(id = R.string.inv_sell_price_label), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                    prefix = { Text("₹ ") },
-                                    keyboardOptions =
-                                            KeyboardOptions(
-                                                    keyboardType = KeyboardType.Decimal,
-                                                    imeAction = ImeAction.Next
-                                            ),
-                                    keyboardActions =
-                                            KeyboardActions(
-                                                    onNext = {
-                                                        focusRequesterThreshold.requestFocus()
-                                                    }
-                                            ),
-                                    modifier =
-                                            Modifier.weight(1f)
-                                                    .focusRequester(focusRequesterSellPrice),
-                                    singleLine = true,
-                                    isError = sellPriceError,
-                                    supportingText =
-                                            if (sellPriceError) {
-                                                { Text("Enter valid sell price") }
-                                            } else null
                             )
                         }
 
                         OutlinedTextField(
-                                value = inputThreshold,
-                                onValueChange = { inputThreshold = it },
-                                label = { Text(stringResource(id = R.string.inv_threshold_label), modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                suffix = { Text(inputUnit) },
-                                keyboardOptions =
-                                        KeyboardOptions(
-                                                keyboardType = KeyboardType.Decimal,
-                                                imeAction = ImeAction.Next
-                                        ),
-                                keyboardActions =
-                                        KeyboardActions(
-                                                onNext = {
-                                                    if (showAdvancedOptions) {
-                                                        focusRequesterHsn.requestFocus()
-                                                    } else {
-                                                        focusManager.clearFocus()
-                                                    }
-                                                }
-                                        ),
-                                modifier =
-                                        Modifier.fillMaxWidth()
-                                                .focusRequester(focusRequesterThreshold),
-                                singleLine = true,
+                            value = inputThreshold,
+                            onValueChange = { inputThreshold = it },
+                            label = {
+                                Text(
+                                    stringResource(id = R.string.inv_threshold_label),
+                                    modifier =
+                                        androidx.compose.ui.Modifier
+                                            .autoMarquee(),
+                                )
+                            },
+                            suffix = { Text(inputUnit) },
+                            keyboardOptions =
+                                KeyboardOptions(
+                                    keyboardType = KeyboardType.Decimal,
+                                    imeAction = ImeAction.Next,
+                                ),
+                            keyboardActions =
+                                KeyboardActions(
+                                    onNext = {
+                                        if (showAdvancedOptions) {
+                                            focusRequesterHsn.requestFocus()
+                                        } else {
+                                            focusManager.clearFocus()
+                                        }
+                                    },
+                                ),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequesterThreshold),
+                            singleLine = true,
                         )
 
                         // Advanced Options Accordion Toggle
                         Row(
-                                modifier =
-                                        Modifier.fillMaxWidth()
-                                                .clickable(onClickLabel = "Action") {
-                                                    showAdvancedOptions = !showAdvancedOptions
-                                                }
-                                                .padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClickLabel = "Action") {
+                                        showAdvancedOptions = !showAdvancedOptions
+                                    }.padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
-                                    text =
-                                            if (showAdvancedOptions) "Hide Advanced Options"
-                                            else "Show Advanced Options (HSN, Tax, Batch)",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                text =
+                                    if (showAdvancedOptions) {
+                                        "Hide Advanced Options"
+                                    } else {
+                                        "Show Advanced Options (HSN, Tax, Batch)"
+                                    },
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
                             )
                             Icon(
-                                    imageVector =
-                                            if (showAdvancedOptions) Icons.Default.KeyboardArrowUp
-                                            else Icons.Default.KeyboardArrowDown,
-                                    contentDescription = stringResource(R.string.ui_element_desc),
-                                    tint = MaterialTheme.colorScheme.primary
+                                imageVector =
+                                    if (showAdvancedOptions) {
+                                        Icons.Default.KeyboardArrowUp
+                                    } else {
+                                        Icons.Default.KeyboardArrowDown
+                                    },
+                                contentDescription = stringResource(R.string.ui_element_desc),
+                                tint = MaterialTheme.colorScheme.primary,
                             )
                         }
 
-                        val sheetDateFormatter = remember {
-                            SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-                        }
+                        val sheetDateFormatter =
+                            remember {
+                                SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+                            }
 
                         // Expiry Date Picker for Add/Edit sheet
                         if (showExpiryDatePicker) {
                             val dpState =
-                                    rememberDatePickerState(
-                                            initialSelectedDateMillis = inputExpiryDateMs
-                                                            ?: System.currentTimeMillis(),
-                                            selectableDates = FutureSelectableDates
-                                    )
+                                rememberDatePickerState(
+                                    initialSelectedDateMillis =
+                                        inputExpiryDateMs
+                                            ?: System.currentTimeMillis(),
+                                    selectableDates = FutureSelectableDates,
+                                )
                             DatePickerDialog(
-                                    onDismissRequest = { showExpiryDatePicker = false },
-                                    confirmButton = {
-                                        TextButton(
-                                                onClick = {
-                                                    val selected = dpState.selectedDateMillis
-                                                    if (selected != null &&
-                                                                    selected <
-                                                                            System.currentTimeMillis() -
-                                                                                    24 *
-                                                                                            60 *
-                                                                                            60 *
-                                                                                            1000
-                                                    ) {
-                                                        android.widget.Toast.makeText(
-                                                                        context,
-                                                                        "Expiry date cannot be in the past",
-                                                                        android.widget.Toast
-                                                                                .LENGTH_SHORT
-                                                                )
-                                                                .show()
-                                                    } else {
-                                                        inputExpiryDateMs = selected
-                                                        showExpiryDatePicker = false
-                                                    }
-                                                }
-                                        ) { Text("OK") }
-                                    },
-                                    dismissButton = {
-                                        TextButton(onClick = { showExpiryDatePicker = false }) {
-                                            Text("Cancel")
-                                        }
+                                onDismissRequest = { showExpiryDatePicker = false },
+                                confirmButton = {
+                                    TextButton(
+                                        onClick = {
+                                            val selected = dpState.selectedDateMillis
+                                            if (selected != null &&
+                                                selected <
+                                                System.currentTimeMillis() -
+                                                24 *
+                                                60 *
+                                                60 *
+                                                1000
+                                            ) {
+                                                android.widget.Toast
+                                                    .makeText(
+                                                        context,
+                                                        "Expiry date cannot be in the past",
+                                                        android.widget.Toast
+                                                            .LENGTH_SHORT,
+                                                    ).show()
+                                            } else {
+                                                inputExpiryDateMs = selected
+                                                showExpiryDatePicker = false
+                                            }
+                                        },
+                                    ) { Text("OK") }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showExpiryDatePicker = false }) {
+                                        Text("Cancel")
                                     }
+                                },
                             ) { DatePicker(state = dpState) }
                         }
 
@@ -1929,230 +2095,312 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                                 // Taxes & HSN
                                 Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
                                     OutlinedTextField(
-                                            value = inputHsnCode,
-                                            onValueChange = { inputHsnCode = it },
-                                            label = { Text("HSN/SAC Code", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                            keyboardOptions =
-                                                    KeyboardOptions(imeAction = ImeAction.Next),
-                                            keyboardActions =
-                                                    KeyboardActions(
-                                                            onNext = {
-                                                                focusRequesterTax.requestFocus()
-                                                            }
-                                                    ),
-                                            modifier =
-                                                    Modifier.weight(1f)
-                                                            .focusRequester(focusRequesterHsn),
-                                            singleLine = true,
+                                        value = inputHsnCode,
+                                        onValueChange = { inputHsnCode = it },
+                                        label = {
+                                            Text(
+                                                "HSN/SAC Code",
+                                                modifier =
+                                                    androidx.compose.ui.Modifier
+                                                        .autoMarquee(),
+                                            )
+                                        },
+                                        keyboardOptions =
+                                            KeyboardOptions(imeAction = ImeAction.Next),
+                                        keyboardActions =
+                                            KeyboardActions(
+                                                onNext = {
+                                                    focusRequesterTax.requestFocus()
+                                                },
+                                            ),
+                                        modifier =
+                                            Modifier
+                                                .weight(1f)
+                                                .focusRequester(focusRequesterHsn),
+                                        singleLine = true,
                                     )
                                     OutlinedTextField(
-                                            value = inputTaxRate,
-                                            onValueChange = { inputTaxRate = it },
-                                            label = { Text("Tax Rate (%)", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                            suffix = { Text("%") },
-                                            keyboardOptions =
-                                                    KeyboardOptions(
-                                                            keyboardType = KeyboardType.Decimal,
-                                                            imeAction = ImeAction.Next
-                                                    ),
-                                            keyboardActions =
-                                                    KeyboardActions(
-                                                            onNext = {
-                                                                focusRequesterBatch.requestFocus()
-                                                            }
-                                                    ),
-                                            modifier =
-                                                    Modifier.weight(1f)
-                                                            .focusRequester(focusRequesterTax),
-                                            singleLine = true,
+                                        value = inputTaxRate,
+                                        onValueChange = { inputTaxRate = it },
+                                        label = {
+                                            Text(
+                                                "Tax Rate (%)",
+                                                modifier =
+                                                    androidx.compose.ui.Modifier
+                                                        .autoMarquee(),
+                                            )
+                                        },
+                                        suffix = { Text("%") },
+                                        keyboardOptions =
+                                            KeyboardOptions(
+                                                keyboardType = KeyboardType.Decimal,
+                                                imeAction = ImeAction.Next,
+                                            ),
+                                        keyboardActions =
+                                            KeyboardActions(
+                                                onNext = {
+                                                    focusRequesterBatch.requestFocus()
+                                                },
+                                            ),
+                                        modifier =
+                                            Modifier
+                                                .weight(1f)
+                                                .focusRequester(focusRequesterTax),
+                                        singleLine = true,
                                     )
                                 }
 
                                 Text(
-                                        text = "Batch & Expiry Tracking (Optional)",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    text = "Batch & Expiry Tracking (Optional)",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
 
                                 OutlinedTextField(
-                                        value = inputBatchNumber,
-                                        onValueChange = { inputBatchNumber = it },
-                                        label = { Text("Batch / Lot Number", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                        placeholder = { Text("e.g. MFG-2024-B1", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                        keyboardOptions =
-                                                KeyboardOptions(imeAction = ImeAction.Done),
-                                        keyboardActions =
-                                                KeyboardActions(
-                                                        onDone = { focusManager.clearFocus() }
-                                                ),
-                                        modifier =
-                                                Modifier.fillMaxWidth()
-                                                        .focusRequester(focusRequesterBatch),
-                                        singleLine = true,
+                                    value = inputBatchNumber,
+                                    onValueChange = { inputBatchNumber = it },
+                                    label = {
+                                        Text(
+                                            "Batch / Lot Number",
+                                            modifier =
+                                                androidx.compose.ui.Modifier
+                                                    .autoMarquee(),
+                                        )
+                                    },
+                                    placeholder = {
+                                        Text(
+                                            "e.g. MFG-2024-B1",
+                                            modifier =
+                                                androidx.compose.ui.Modifier
+                                                    .autoMarquee(),
+                                        )
+                                    },
+                                    keyboardOptions =
+                                        KeyboardOptions(imeAction = ImeAction.Done),
+                                    keyboardActions =
+                                        KeyboardActions(
+                                            onDone = { focusManager.clearFocus() },
+                                        ),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .focusRequester(focusRequesterBatch),
+                                    singleLine = true,
                                 )
 
                                 OutlinedTextField(
-                                        value =
-                                                inputExpiryDateMs?.let {
-                                                    sheetDateFormatter.format(Date(it))
-                                                }
-                                                        ?: "",
-                                        onValueChange = {},
-                                        readOnly = true,
-                                        label = { Text("Expiry Date", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                        placeholder = { Text("Tap calendar icon to set", modifier = androidx.compose.ui.Modifier.autoMarquee()) },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        enabled = false,
-                                        colors =
-                                                androidx.compose.material3.OutlinedTextFieldDefaults
-                                                        .colors(
-                                                                disabledTextColor =
-                                                                        MaterialTheme.colorScheme
-                                                                                .onSurface,
-                                                                disabledLabelColor =
-                                                                        MaterialTheme.colorScheme
-                                                                                .onSurfaceVariant,
-                                                                disabledBorderColor =
-                                                                        MaterialTheme.colorScheme
-                                                                                .outline,
-                                                        ),
-                                        trailingIcon = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                if (inputExpiryDateMs != null) {
-                                                    TextButton(
-                                                            onClick = { inputExpiryDateMs = null }
-                                                    ) { Text("Clear", fontSize = 11.sp) }
-                                                }
-                                                IconButton(
-                                                        onClick = { showExpiryDatePicker = true }
-                                                ) {
-                                                    Icon(
-                                                            Icons.Default.CalendarToday,
-                                                            contentDescription = "Pick Expiry Date"
-                                                    )
-                                                }
+                                    value =
+                                        inputExpiryDateMs?.let {
+                                            sheetDateFormatter.format(Date(it))
+                                        }
+                                            ?: "",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = {
+                                        Text(
+                                            "Expiry Date",
+                                            modifier =
+                                                androidx.compose.ui.Modifier
+                                                    .autoMarquee(),
+                                        )
+                                    },
+                                    placeholder = {
+                                        Text(
+                                            "Tap calendar icon to set",
+                                            modifier =
+                                                androidx.compose.ui.Modifier
+                                                    .autoMarquee(),
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    enabled = false,
+                                    colors =
+                                        androidx.compose.material3.OutlinedTextFieldDefaults
+                                            .colors(
+                                                disabledTextColor =
+                                                    MaterialTheme.colorScheme
+                                                        .onSurface,
+                                                disabledLabelColor =
+                                                    MaterialTheme.colorScheme
+                                                        .onSurfaceVariant,
+                                                disabledBorderColor =
+                                                    MaterialTheme.colorScheme
+                                                        .outline,
+                                            ),
+                                    trailingIcon = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            if (inputExpiryDateMs != null) {
+                                                TextButton(
+                                                    onClick = { inputExpiryDateMs = null },
+                                                ) { Text("Clear", fontSize = 11.sp) }
+                                            }
+                                            IconButton(
+                                                onClick = { showExpiryDatePicker = true },
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.CalendarToday,
+                                                    contentDescription = "Pick Expiry Date",
+                                                )
                                             }
                                         }
+                                    },
                                 )
                             }
                         }
 
                         PrimaryButton(
-                                onClick = {
-                                    val name = inputName.trim()
-                                    val qty = inputQty.toDoubleOrNull()
-                                    val buy =
-                                            if (viewModel.userRole == "staff")
-                                                    (inputSellPrice.toDoubleOrNull() ?: 0.0)
-                                            else inputBuyPrice.toDoubleOrNull()
-                                    val sell = inputSellPrice.toDoubleOrNull()
-                                    val threshold = inputThreshold.toDoubleOrNull() ?: 5.0
-                                    val hsn = inputHsnCode.trim().takeIf { it.isNotBlank() }
-                                    val tax = inputTaxRate.toDoubleOrNull() ?: 0.0
-                                    val batchNum =
-                                            inputBatchNumber.trim().takeIf { it.isNotBlank() }
-                                    val expiryMs = inputExpiryDateMs
-
-                                    nameError = name.isBlank()
-                                    buyPriceError =
-                                            viewModel.userRole != "staff" &&
-                                                    (buy == null || buy < 0.0)
-                                    sellPriceError = sell == null || sell <= 0.0
-                                    qtyError = qty == null || qty < 0.0
-
-                                    if (nameError || qtyError || buyPriceError || sellPriceError)
-                                            return@PrimaryButton
-                                    priceError =
-                                            buy == null || sell == null || buy < 0.0 || sell <= 0.0
-                                    if (nameError ||
-                                                    qtyError ||
-                                                    priceError ||
-                                                    buyPriceError ||
-                                                    sellPriceError
-                                    )
-                                            return@PrimaryButton
-
-                                    // BUG-04 FIX: Guard against null state on rotation / race condition
-                                    val safeQty = qty ?: run { Toast.makeText(context, "Quantity required", Toast.LENGTH_SHORT).show(); return@PrimaryButton }
-                                    val safeBuy = buy ?: run { Toast.makeText(context, "Buy price required", Toast.LENGTH_SHORT).show(); return@PrimaryButton }
-                                    val safeSell = sell ?: run { Toast.makeText(context, "Sell price required", Toast.LENGTH_SHORT).show(); return@PrimaryButton }
-
-                                    if (editingItem == null) {
-                                        viewModel.addItem(
-                                                name,
-                                                safeQty,
-                                                inputUnit,
-                                                safeBuy,
-                                                safeSell,
-                                                threshold,
-                                                inputCategory,
-                                                hsn,
-                                                tax,
-                                        ) { newItemId ->
-                                            // Log a batch record if batch or expiry info was
-                                            // provided
-                                            if (batchNum != null || expiryMs != null) {
-                                                viewModel.addItemBatch(
-                                                        ItemBatch(
-                                                                itemId = newItemId,
-                                                                batchNumber = batchNum,
-                                                                expiryDate = expiryMs,
-                                                                quantity = safeQty,
-                                                                costPrice = safeBuy,
-                                                                timestamp =
-                                                                        System.currentTimeMillis(),
-                                                                notes = "Initial stock batch"
-                                                        )
-                                                )
-                                            }
-                                        }
+                            onClick = {
+                                val name = inputName.trim()
+                                val qty = inputQty.toDoubleOrNull()
+                                val buy =
+                                    if (viewModel.userRole == "staff") {
+                                        (inputSellPrice.toDoubleOrNull() ?: 0.0)
                                     } else {
-                                        viewModel.updateItem(
-                                                editingItem?.id ?: run { Toast.makeText(context, "Invalid item", Toast.LENGTH_SHORT).show(); return@PrimaryButton },
-                                                name,
-                                                safeQty,
-                                                inputUnit,
-                                                safeBuy,
-                                                safeSell,
-                                                threshold,
-                                                inputCategory,
-                                                hsn,
-                                                tax,
-                                        )
-                                        // Also log a batch if expiry info was provided during edit
+                                        inputBuyPrice.toDoubleOrNull()
+                                    }
+                                val sell = inputSellPrice.toDoubleOrNull()
+                                val threshold = inputThreshold.toDoubleOrNull() ?: 5.0
+                                val hsn = inputHsnCode.trim().takeIf { it.isNotBlank() }
+                                val tax = inputTaxRate.toDoubleOrNull() ?: 0.0
+                                val batchNum =
+                                    inputBatchNumber.trim().takeIf { it.isNotBlank() }
+                                val expiryMs = inputExpiryDateMs
+
+                                nameError = name.isBlank()
+                                buyPriceError =
+                                    viewModel.userRole != "staff" &&
+                                    (buy == null || buy < 0.0)
+                                sellPriceError = sell == null || sell <= 0.0
+                                qtyError = qty == null || qty < 0.0
+
+                                if (nameError || qtyError || buyPriceError || sellPriceError) {
+                                    return@PrimaryButton
+                                }
+                                priceError =
+                                    buy == null ||
+                                    sell == null ||
+                                    buy < 0.0 ||
+                                    sell <= 0.0
+                                if (nameError ||
+                                    qtyError ||
+                                    priceError ||
+                                    buyPriceError ||
+                                    sellPriceError
+                                ) {
+                                    return@PrimaryButton
+                                }
+
+                                // BUG-04 FIX: Guard against null state on rotation / race condition
+                                val safeQty =
+                                    qty
+                                        ?: run {
+                                            Toast.makeText(context, "Quantity required", Toast.LENGTH_SHORT).show()
+                                            return@PrimaryButton
+                                        }
+                                val safeBuy =
+                                    buy
+                                        ?: run {
+                                            Toast.makeText(context, "Buy price required", Toast.LENGTH_SHORT).show()
+                                            return@PrimaryButton
+                                        }
+                                val safeSell =
+                                    sell
+                                        ?: run {
+                                            Toast
+                                                .makeText(context, "Sell price required", Toast.LENGTH_SHORT)
+                                                .show()
+                                            return@PrimaryButton
+                                        }
+
+                                if (editingItem == null) {
+                                    viewModel.addItem(
+                                        name,
+                                        safeQty,
+                                        inputUnit,
+                                        safeBuy,
+                                        safeSell,
+                                        threshold,
+                                        inputCategory,
+                                        hsn,
+                                        tax,
+                                    ) { newItemId ->
+                                        // Log a batch record if batch or expiry info was
+                                        // provided
                                         if (batchNum != null || expiryMs != null) {
                                             viewModel.addItemBatch(
-                                                    ItemBatch(
-                                                            itemId = editingItem?.id ?: run { Toast.makeText(context, "Invalid item", Toast.LENGTH_SHORT).show(); return@PrimaryButton },
-                                                            batchNumber = batchNum,
-                                                            expiryDate = expiryMs,
-                                                            quantity = qty,
-                                                            costPrice = safeBuy,
-                                                            timestamp = System.currentTimeMillis(),
-                                                            notes = "Batch logged on edit"
-                                                    )
+                                                ItemBatch(
+                                                    itemId = newItemId,
+                                                    batchNumber = batchNum,
+                                                    expiryDate = expiryMs,
+                                                    quantity = safeQty,
+                                                    costPrice = safeBuy,
+                                                    timestamp =
+                                                        System.currentTimeMillis(),
+                                                    notes = "Initial stock batch",
+                                                ),
                                             )
                                         }
                                     }
-                                    showSheet = false
-                                    android.widget.Toast.makeText(
-                                                    context,
-                                                    context.getString(R.string.inv_save_success),
-                                                    android.widget.Toast.LENGTH_SHORT,
-                                            )
-                                            .show()
-                                },
-                                modifier = Modifier.fillMaxWidth().height(52.dp),
-                                shape = RoundedCornerShape(14.dp),
+                                } else {
+                                    viewModel.updateItem(
+                                        editingItem?.id
+                                            ?: run {
+                                                Toast
+                                                    .makeText(context, "Invalid item", Toast.LENGTH_SHORT)
+                                                    .show()
+                                                return@PrimaryButton
+                                            },
+                                        name,
+                                        safeQty,
+                                        inputUnit,
+                                        safeBuy,
+                                        safeSell,
+                                        threshold,
+                                        inputCategory,
+                                        hsn,
+                                        tax,
+                                    )
+                                    // Also log a batch if expiry info was provided during edit
+                                    if (batchNum != null || expiryMs != null) {
+                                        viewModel.addItemBatch(
+                                            ItemBatch(
+                                                itemId =
+                                                    editingItem?.id
+                                                        ?: run {
+                                                            Toast
+                                                                .makeText(context, "Invalid item", Toast.LENGTH_SHORT)
+                                                                .show()
+                                                            return@PrimaryButton
+                                                        },
+                                                batchNumber = batchNum,
+                                                expiryDate = expiryMs,
+                                                quantity = qty,
+                                                costPrice = safeBuy,
+                                                timestamp = System.currentTimeMillis(),
+                                                notes = "Batch logged on edit",
+                                            ),
+                                        )
+                                    }
+                                }
+                                showSheet = false
+                                android.widget.Toast
+                                    .makeText(
+                                        context,
+                                        context.getString(R.string.inv_save_success),
+                                        android.widget.Toast.LENGTH_SHORT,
+                                    ).show()
+                            },
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            shape = RoundedCornerShape(14.dp),
                         ) {
                             Text(
-                                    stringResource(id = R.string.btn_save),
-                                    fontWeight = FontWeight.Bold
+                                stringResource(id = R.string.btn_save),
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                     }
@@ -2166,97 +2414,113 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
 
 @Composable
 fun InventoryItemCard(
-        item: Item,
-        isLowStock: Boolean,
-        userRole: String,
-        onClick: () -> Unit,
-        onRefillClick: () -> Unit,
+    item: Item,
+    isLowStock: Boolean,
+    userRole: String,
+    onClick: () -> Unit,
+    onRefillClick: () -> Unit,
 ) {
     val isDarkTheme = MaterialTheme.colorScheme.surface.luminance() < 0.05f
     // In dark mode dim the white text so it doesn't glare on the dark-red card
     val lowStockTextColor = if (isDarkTheme) Color.White.copy(alpha = 0.75f) else Color.White
     val lowStockLabelColor =
-            if (isDarkTheme) Color.White.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.85f)
+        if (isDarkTheme) Color.White.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.85f)
     val lowStockBadgeBg = if (isDarkTheme) Color.White.copy(alpha = 0.18f) else Color.White
     val lowStockBadgeText =
-            if (isDarkTheme) Color.White.copy(alpha = 0.85f) else MaterialTheme.colorScheme.error
+        if (isDarkTheme) Color.White.copy(alpha = 0.85f) else MaterialTheme.colorScheme.error
     val lowStockBtnBg = if (isDarkTheme) Color.White.copy(alpha = 0.15f) else Color.White
     val lowStockBtnText =
-            if (isDarkTheme) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.error
+        if (isDarkTheme) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.error
     Card(
-            modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Action") { onClick() },
-            shape = RoundedCornerShape(20.dp),
-            colors =
-                    CardDefaults.cardColors(
-                            containerColor =
-                                    if (isLowStock) {
-                                        if (isDarkTheme) Color(0xFF8F2A2A)
-                                        else MaterialTheme.colorScheme.error
-                                    } else MaterialTheme.colorScheme.surface,
-                    ),
-            border =
-                    if (isLowStock) null
-                    else
-                            BorderStroke(
-                                    width = 1.dp,
-                                    color =
-                                            MaterialTheme.colorScheme.outlineVariant.copy(
-                                                    alpha = 0.4f
-                                            )
-                            ),
-            elevation =
-                    CardDefaults.cardElevation(defaultElevation = if (isLowStock) 2.dp else 0.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Action") { onClick() },
+        shape = RoundedCornerShape(20.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (isLowStock) {
+                        if (isDarkTheme) {
+                            Color(0xFF8F2A2A)
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        }
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    },
+            ),
+        border =
+            if (isLowStock) {
+                null
+            } else {
+                BorderStroke(
+                    width = 1.dp,
+                    color =
+                        MaterialTheme.colorScheme.outlineVariant.copy(
+                            alpha = 0.4f,
+                        ),
+                )
+            },
+        elevation =
+            CardDefaults.cardElevation(defaultElevation = if (isLowStock) 2.dp else 0.dp),
     ) {
         Column(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
         ) {
             // Row 1: Name, Category badge, Quantity
             Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f),
                 ) {
                     Text(
-                            text = item.name,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = if (isLowStock) lowStockTextColor else Color.Unspecified,
-                            maxLines = 1,
-                            modifier = Modifier.weight(1f, fill = false).autoMarquee(),
+                        text = item.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = if (isLowStock) lowStockTextColor else Color.Unspecified,
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f, fill = false).autoMarquee(),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     // Category Badge
                     Box(
-                            modifier =
-                                    Modifier.clip(RoundedCornerShape(12.dp))
-                                            .background(
-                                                    if (isLowStock) lowStockBadgeBg
-                                                    else MaterialTheme.colorScheme.primaryContainer
-                                            )
-                                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (isLowStock) {
+                                        lowStockBadgeBg
+                                    } else {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    },
+                                ).padding(horizontal = 8.dp, vertical = 2.dp),
                     ) {
                         Text(
-                                text = item.category,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color =
-                                        if (isLowStock) lowStockBadgeText
-                                        else MaterialTheme.colorScheme.primary,
-                                maxLines = 1,
+                            text = item.category,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color =
+                                if (isLowStock) {
+                                    lowStockBadgeText
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
+                            maxLines = 1,
                         )
                     }
                 }
                 Text(
-                        text = "${formatQty(item.quantity)} ${item.unit}",
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 16.sp,
-                        color =
-                                if (isLowStock) lowStockTextColor
-                                else MaterialTheme.colorScheme.onSurface,
+                    text = "${formatQty(item.quantity)} ${item.unit}",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 16.sp,
+                    color =
+                        if (isLowStock) {
+                            lowStockTextColor
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
                 )
             }
 
@@ -2264,42 +2528,45 @@ fun InventoryItemCard(
 
             // Row 2: Buy Price and Sell Price
             Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 val labelColor =
-                        if (isLowStock) lowStockLabelColor
-                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    if (isLowStock) {
+                        lowStockLabelColor
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
                 val sellValueColor =
-                        if (isLowStock) lowStockTextColor else MaterialTheme.colorScheme.primary
+                    if (isLowStock) lowStockTextColor else MaterialTheme.colorScheme.primary
 
                 Column {
                     if (userRole != "staff") {
                         Text(text = "Buy Price", fontSize = 11.sp, color = labelColor)
                         Text(
-                                text =
-                                        stringResource(
-                                                id = R.string.inv_buy_prefix,
-                                                item.buyPrice.toRupee()
-                                        ),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (isLowStock) lowStockTextColor else Color.Unspecified
+                            text =
+                                stringResource(
+                                    id = R.string.inv_buy_prefix,
+                                    item.buyPrice.toRupee(),
+                                ),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isLowStock) lowStockTextColor else Color.Unspecified,
                         )
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(text = "Sell Price", fontSize = 11.sp, color = labelColor)
                     Text(
-                            text =
-                                    stringResource(
-                                            id = R.string.inv_sell_prefix,
-                                            item.sellPrice.toRupee()
-                                    ),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = sellValueColor
+                        text =
+                            stringResource(
+                                id = R.string.inv_sell_prefix,
+                                item.sellPrice.toRupee(),
+                            ),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = sellValueColor,
                     )
                 }
             }
@@ -2308,43 +2575,53 @@ fun InventoryItemCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 // Row 3: Profit / Margin
                 val margin =
-                        if (item.buyPrice > 0) {
-                            ((item.sellPrice - item.buyPrice) / item.buyPrice * 100).toInt()
-                        } else {
-                            0
-                        }
+                    if (item.buyPrice > 0) {
+                        ((item.sellPrice - item.buyPrice) / item.buyPrice * 100).toInt()
+                    } else {
+                        0
+                    }
                 val marginStr =
-                        if (margin > 0) {
-                            "+$margin%"
-                        } else if (margin < 0) {
-                            "$margin%"
-                        } else {
-                            "0%"
-                        }
+                    if (margin > 0) {
+                        "+$margin%"
+                    } else if (margin < 0) {
+                        "$margin%"
+                    } else {
+                        "0%"
+                    }
                 val profitAbs = (item.sellPrice - item.buyPrice)
                 val marginColor =
-                        if (isLowStock) lowStockTextColor
-                        else
-                                (if (margin >= 15) Emerald500
-                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    if (isLowStock) {
+                        lowStockTextColor
+                    } else {
+                        (
+                            if (margin >= 15) {
+                                Emerald500
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            }
+                        )
+                    }
 
                 Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                            text = "Profit/ Margin",
-                            fontSize = 11.sp,
-                            color =
-                                    if (isLowStock) lowStockLabelColor
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "Profit/ Margin",
+                        fontSize = 11.sp,
+                        color =
+                            if (isLowStock) {
+                                lowStockLabelColor
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                     )
                     Text(
-                            text = "$marginStr / ${profitAbs.toRupee()} Per ${item.unit}",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = marginColor
+                        text = "$marginStr / ${profitAbs.toRupee()} Per ${item.unit}",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = marginColor,
                     )
                 }
             }
@@ -2353,19 +2630,25 @@ fun InventoryItemCard(
 
             // Add Stock PrimaryButton(Full width)
             androidx.compose.material3.Button(
-                    onClick = onRefillClick,
-                    modifier = Modifier.fillMaxWidth().height(40.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors =
-                            androidx.compose.material3.ButtonDefaults.buttonColors(
-                                    containerColor =
-                                            if (isLowStock) lowStockBtnBg
-                                            else MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor =
-                                            if (isLowStock) lowStockBtnText
-                                            else MaterialTheme.colorScheme.primary
-                            ),
-                    contentPadding = PaddingValues(0.dp)
+                onClick = onRefillClick,
+                modifier = Modifier.fillMaxWidth().height(40.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors =
+                    androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor =
+                            if (isLowStock) {
+                                lowStockBtnBg
+                            } else {
+                                MaterialTheme.colorScheme.primaryContainer
+                            },
+                        contentColor =
+                            if (isLowStock) {
+                                lowStockBtnText
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                    ),
+                contentPadding = PaddingValues(0.dp),
             ) { Text(text = "Add Stock", fontWeight = FontWeight.Bold, fontSize = 13.sp) }
         }
     }
@@ -2375,69 +2658,81 @@ fun InventoryItemCard(
 
 @Composable
 fun FilterChip(
-        label: String,
-        isSelected: Boolean,
-        onClick: () -> Unit,
-        onPrimaryBg: Boolean = false,
-        icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onPrimaryBg: Boolean = false,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
 ) {
     val bgColor by
-            animateColorAsState(
-                    targetValue =
-                            if (isSelected) {
-                                if (onPrimaryBg) MaterialTheme.colorScheme.surface
-                                else MaterialTheme.colorScheme.primary
-                            } else {
-                                if (onPrimaryBg)
-                                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
-                                else MaterialTheme.colorScheme.surfaceVariant
-                            },
-                    animationSpec = tween(200),
-                    label = "chip_color",
-            )
+        animateColorAsState(
+            targetValue =
+                if (isSelected) {
+                    if (onPrimaryBg) {
+                        MaterialTheme.colorScheme.surface
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    }
+                } else {
+                    if (onPrimaryBg) {
+                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    }
+                },
+            animationSpec = tween(200),
+            label = "chip_color",
+        )
     val textColor by
-            animateColorAsState(
-                    targetValue =
-                            if (isSelected) {
-                                if (onPrimaryBg) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                if (onPrimaryBg) MaterialTheme.colorScheme.onPrimary
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                    animationSpec = tween(200),
-                    label = "chip_text",
-            )
+        animateColorAsState(
+            targetValue =
+                if (isSelected) {
+                    if (onPrimaryBg) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onPrimary
+                    }
+                } else {
+                    if (onPrimaryBg) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                },
+            animationSpec = tween(200),
+            label = "chip_text",
+        )
 
     val bgModifier =
-            if (isSelected && !onPrimaryBg) {
-                Modifier.background(MaterialTheme.primaryGradient)
-            } else {
-                Modifier.background(bgColor)
-            }
+        if (isSelected && !onPrimaryBg) {
+            Modifier.background(MaterialTheme.primaryGradient)
+        } else {
+            Modifier.background(bgColor)
+        }
 
     Box(
-            modifier =
-                    Modifier.clip(RoundedCornerShape(20.dp))
-                            .then(bgModifier)
-                            .clickable(onClickLabel = "Action") { onClick() }
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .then(bgModifier)
+                .clickable(onClickLabel = "Action") { onClick() }
+                .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (icon != null) {
                 Icon(
-                        icon,
-                        contentDescription = stringResource(R.string.ui_element_desc),
-                        tint = textColor,
-                        modifier = Modifier.size(14.dp)
+                    icon,
+                    contentDescription = stringResource(R.string.ui_element_desc),
+                    tint = textColor,
+                    modifier = Modifier.size(14.dp),
                 )
                 Spacer(Modifier.width(4.dp))
             }
             Text(
-                    text = label,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = textColor
+                text = label,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = textColor,
             )
         }
     }

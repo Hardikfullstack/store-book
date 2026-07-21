@@ -68,6 +68,12 @@ export default function SalesClient({
     }
   };
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
   // Fetch total count — skip when searching or filtering
   useEffect(() => {
     if (!isPremium || !storeId || debouncedSearch || minAmountFilter || maxAmountFilter || startDateFilter || endDateFilter) return;
@@ -85,13 +91,9 @@ export default function SalesClient({
       }
     };
     fetchTotal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPremium, storeId, refreshTrigger, debouncedSearch, minAmountFilter, maxAmountFilter, startDateFilter, endDateFilter]);
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
-  const [totalItems, setTotalItems] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
   // Fetch paginated sales
   useEffect(() => {
     if (!isPremium || !storeId) return;
@@ -161,6 +163,7 @@ export default function SalesClient({
       isMounted = false;
       clearInterval(intervalId);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion, debouncedSearch, minAmountFilter, maxAmountFilter, startDateFilter, endDateFilter]);
   const [showModal, setShowModal] = useState(false);
 

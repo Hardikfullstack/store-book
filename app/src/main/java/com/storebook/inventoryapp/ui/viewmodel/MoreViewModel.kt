@@ -29,11 +29,11 @@ import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 
 class MoreViewModel(
-        private val salesRepository: SalesRepository,
-        private val expenseRepository: ExpenseRepository,
-        private val inventoryRepository: InventoryRepository,
-        private val systemRepository: SystemRepository,
-        private val context: Context
+    private val salesRepository: SalesRepository,
+    private val expenseRepository: ExpenseRepository,
+    private val inventoryRepository: InventoryRepository,
+    private val systemRepository: SystemRepository,
+    private val context: Context,
 ) : ViewModel() {
     private val prefs = SecurityUtils.getEncryptedPrefs(context)
 
@@ -43,61 +43,62 @@ class MoreViewModel(
     var userRoleType: UserRole by mutableStateOf(UserRole.fromString(userRole))
     var isPremiumUser by mutableStateOf(false)
     var activeStoreId: String by
-            mutableStateOf(prefs.getString("active_store_id", "default") ?: "default")
+        mutableStateOf(prefs.getString("active_store_id", "default") ?: "default")
     private var _businessName by
-            mutableStateOf(
-                    prefs.getString(
-                            "business_name_$activeStoreId",
-                            prefs.getString("business_name", "")
-                    )
-                            ?: ""
+        mutableStateOf(
+            prefs.getString(
+                "business_name_$activeStoreId",
+                prefs.getString("business_name", ""),
             )
+                ?: "",
+        )
     var businessName: String
         get() = _businessName
         set(value) {
             _businessName = value
-            prefs.edit()
-                    .putString("business_name_$activeStoreId", value)
-                    .putString("business_name", value)
-                    .apply()
+            prefs
+                .edit()
+                .putString("business_name_$activeStoreId", value)
+                .putString("business_name", value)
+                .apply()
         }
     var userStores: List<String> by
-            mutableStateOf(
-                    prefs.getString("user_stores", "default")?.split(",")?.filter {
-                        it.isNotBlank()
-                    }
-                            ?: listOf("default")
-            )
+        mutableStateOf(
+            prefs.getString("user_stores", "default")?.split(",")?.filter {
+                it.isNotBlank()
+            }
+                ?: listOf("default"),
+        )
 
     var businessGstin by
-            mutableStateOf(
-                    prefs.getString(
-                            "business_gstin_${activeStoreId}",
-                            prefs.getString("business_gstin", "")
-                    )
-                            ?: ""
+        mutableStateOf(
+            prefs.getString(
+                "business_gstin_$activeStoreId",
+                prefs.getString("business_gstin", ""),
             )
+                ?: "",
+        )
     var businessAddress by
-            mutableStateOf(
-                    prefs.getString(
-                            "business_address_${activeStoreId}",
-                            prefs.getString("business_address", "")
-                    )
-                            ?: ""
+        mutableStateOf(
+            prefs.getString(
+                "business_address_$activeStoreId",
+                prefs.getString("business_address", ""),
             )
+                ?: "",
+        )
     var businessCurrency by
-            mutableStateOf(
-                    prefs.getString(
-                            "business_currency_${activeStoreId}",
-                            prefs.getString("business_currency", "INR")
-                    )
-                            ?: "INR"
+        mutableStateOf(
+            prefs.getString(
+                "business_currency_$activeStoreId",
+                prefs.getString("business_currency", "INR"),
             )
+                ?: "INR",
+        )
 
     // other settings
     var isHapticFeedbackEnabled by mutableStateOf(prefs.getBoolean("haptic_feedback", true))
     var lowStockThreshold by
-            mutableStateOf(prefs.getString("default_low_stock_threshold", "5") ?: "5")
+        mutableStateOf(prefs.getString("default_low_stock_threshold", "5") ?: "5")
 
     // E20-S1: Cloud Backup state
     var backupProgress by mutableStateOf(-1) // -1 = idle, 0-99 = uploading, 100 = done
@@ -115,9 +116,10 @@ class MoreViewModel(
                 manager.uploadToCloud().collect { progress ->
                     backupProgress = progress
                     if (progress == 100) {
-                        prefs.edit()
-                                .putLong("last_backup_timestamp", System.currentTimeMillis())
-                                .apply()
+                        prefs
+                            .edit()
+                            .putLong("last_backup_timestamp", System.currentTimeMillis())
+                            .apply()
                         // After successful backup, re-check cloud availability for restore info
                         checkForCloudBackup()
                     }
@@ -166,12 +168,12 @@ class MoreViewModel(
             try {
                 manager.restoreFromCloud().collect { state ->
                     restoreProgress =
-                            when (state.stage) {
-                                RestoreStage.DOWNLOADING -> state.progressPercent
-                                RestoreStage.VERIFYING, RestoreStage.APPLYING -> 99
-                                RestoreStage.DONE -> 100
-                                else -> 0
-                            }
+                        when (state.stage) {
+                            RestoreStage.DOWNLOADING -> state.progressPercent
+                            RestoreStage.VERIFYING, RestoreStage.APPLYING -> 99
+                            RestoreStage.DONE -> 100
+                            else -> 0
+                        }
                     restoreStageMsg = state.message
                     if (state.stage == RestoreStage.FAILED) {
                         restoreError = state.message
@@ -193,13 +195,16 @@ class MoreViewModel(
     private val _storeNames = MutableStateFlow<Map<String, String>>(emptyMap())
     val storeNames: StateFlow<Map<String, String>> = _storeNames
 
-    fun getStoreName(id: String): String {
-        return _storeNames.value[id]
-                ?: prefs.getString("business_name_$id", null)
-                        ?: prefs.getString("business_name", null) ?: "My Store"
-    }
+    fun getStoreName(id: String): String =
+        _storeNames.value[id]
+            ?: prefs.getString("business_name_$id", null)
+            ?: prefs.getString("business_name", null) ?: "My Store"
 
-    fun switchStore(newStoreId: String, onProgress: ((Int, String) -> Unit)? = null, onComplete: (() -> Unit)? = null) {
+    fun switchStore(
+        newStoreId: String,
+        onProgress: ((Int, String) -> Unit)? = null,
+        onComplete: (() -> Unit)? = null,
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             val newDbFile = context.getDatabasePath("storebook_$newStoreId.db")
             if (newDbFile.exists()) {
@@ -211,39 +216,40 @@ class MoreViewModel(
                 activeStoreId = newStoreId
                 prefs.edit().putString("active_store_id", newStoreId).apply()
                 businessName =
-                        prefs.getString(
-                                "business_name_$newStoreId",
-                                prefs.getString("business_name", "StoreBook Kirana") ?: "StoreBook Kirana"
-                        )
-                                ?: "StoreBook Kirana"
+                    prefs.getString(
+                        "business_name_$newStoreId",
+                        prefs.getString("business_name", "StoreBook Kirana") ?: "StoreBook Kirana",
+                    )
+                        ?: "StoreBook Kirana"
                 businessGstin =
-                        prefs.getString("business_gstin_$newStoreId", prefs.getString("business_gstin", ""))
-                                ?: ""
+                    prefs.getString("business_gstin_$newStoreId", prefs.getString("business_gstin", ""))
+                        ?: ""
                 businessAddress =
-                        prefs.getString(
-                                "business_address_$newStoreId",
-                                prefs.getString("business_address", "")
-                        )
-                                ?: ""
+                    prefs.getString(
+                        "business_address_$newStoreId",
+                        prefs.getString("business_address", ""),
+                    )
+                        ?: ""
                 businessCurrency =
-                        prefs.getString(
-                                "business_currency_$newStoreId",
-                                prefs.getString("business_currency", "INR")
-                        )
-                                ?: "INR"
+                    prefs.getString(
+                        "business_currency_$newStoreId",
+                        prefs.getString("business_currency", "INR"),
+                    )
+                        ?: "INR"
                 val stores =
-                        prefs.getString("user_stores", "default")
-                                ?.split(",")
-                                ?.filter { it.isNotBlank() }
-                                ?.toMutableList()
-                                ?: mutableListOf("default")
+                    prefs
+                        .getString("user_stores", "default")
+                        ?.split(",")
+                        ?.filter { it.isNotBlank() }
+                        ?.toMutableList()
+                        ?: mutableListOf("default")
                 if (!stores.contains(newStoreId)) {
                     stores.add(newStoreId)
                     prefs.edit().putString("user_stores", stores.joinToString(",")).apply()
                 }
                 userStores =
-                        prefs.getString("user_stores", "default")?.split(",")?.filter { it.isNotBlank() }
-                                ?: listOf("default")
+                    prefs.getString("user_stores", "default")?.split(",")?.filter { it.isNotBlank() }
+                        ?: listOf("default")
             }
 
             try {
@@ -263,8 +269,15 @@ class MoreViewModel(
         }
     }
 
-    fun createLocalStore(name: String, onProgress: ((Int, String) -> Unit)? = null, onComplete: (() -> Unit)? = null) {
-        val newStoreId = java.util.UUID.randomUUID().toString()
+    fun createLocalStore(
+        name: String,
+        onProgress: ((Int, String) -> Unit)? = null,
+        onComplete: (() -> Unit)? = null,
+    ) {
+        val newStoreId =
+            java.util.UUID
+                .randomUUID()
+                .toString()
         prefs.edit().putString("business_name_$newStoreId", name).apply()
         switchStore(newStoreId, onProgress, onComplete)
     }
@@ -272,41 +285,48 @@ class MoreViewModel(
     fun updateBusinessName(value: String) {
         businessName = value
     }
+
     fun updateBusinessGstin(value: String) {
         businessGstin = value
-        prefs.edit().putString("business_gstin_${activeStoreId}", value).apply()
+        prefs.edit().putString("business_gstin_$activeStoreId", value).apply()
     }
+
     fun updateBusinessAddress(value: String) {
         businessAddress = value
-        prefs.edit().putString("business_address_${activeStoreId}", value).apply()
+        prefs.edit().putString("business_address_$activeStoreId", value).apply()
     }
+
     fun updateBusinessCurrency(value: String) {
         businessCurrency = value
-        prefs.edit().putString("business_currency_${activeStoreId}", value).apply()
+        prefs.edit().putString("business_currency_$activeStoreId", value).apply()
     }
+
     fun updateHapticFeedbackEnabled(value: Boolean) {
         updateHapticFeedback(value)
     }
 
-    fun logOverheadExpense(desc: String, amount: Double) {
+    fun logOverheadExpense(
+        desc: String,
+        amount: Double,
+    ) {
         viewModelScope.launch {
             expenseRepository.insertExpense(
-                    type = "OVERHEAD",
-                    description = desc.trim(),
-                    amount = amount,
-                    supplierName = null,
-                    supplierPhone = null
+                type = "OVERHEAD",
+                description = desc.trim(),
+                amount = amount,
+                supplierName = null,
+                supplierPhone = null,
             )
             loadData()
         }
     }
 
     fun logRestockItem(
-            itemId: Long,
-            quantity: Double,
-            costPrice: Double,
-            supplier: String?,
-            phone: String?
+        itemId: Long,
+        quantity: Double,
+        costPrice: Double,
+        supplier: String?,
+        phone: String?,
     ) {
         viewModelScope.launch {
             inventoryRepository.updateItemStock(itemId, quantity)
@@ -347,8 +367,8 @@ class MoreViewModel(
                     val user = userRes.data.user
                     if (user != null) {
                         val dbPremium =
-                                user.subscriptionPlan == "pro" &&
-                                        user.subscriptionStatus == "active"
+                            user.subscriptionPlan == "pro" &&
+                                user.subscriptionStatus == "active"
                         if (dbPremium) {
                             prefs.edit().putBoolean("is_premium", true).apply()
                         } else if (!prefs.getBoolean("is_premium", false)) {
@@ -379,7 +399,7 @@ class MoreViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val connector =
-                        com.storebook.inventoryapp.dataconnect.StorebookConnectorConnector.instance
+                    com.storebook.inventoryapp.dataconnect.StorebookConnectorConnector.instance
                 val newNames = mutableMapOf<String, String>()
                 userStores.forEach { sId ->
                     try {
@@ -393,14 +413,14 @@ class MoreViewModel(
                             }
                         } else {
                             newNames[sId] =
-                                    prefs.getString("business_name_$sId", "Store (${sId.take(8)})")
-                                            ?: "Store (${sId.take(8)})"
+                                prefs.getString("business_name_$sId", "Store (${sId.take(8)})")
+                                    ?: "Store (${sId.take(8)})"
                         }
                     } catch (e: Exception) {
                         if (e is kotlinx.coroutines.CancellationException) throw e
                         newNames[sId] =
-                                prefs.getString("business_name_$sId", "Store (${sId.take(8)})")
-                                        ?: "Store (${sId.take(8)})"
+                            prefs.getString("business_name_$sId", "Store (${sId.take(8)})")
+                                ?: "Store (${sId.take(8)})"
                     }
                 }
                 _storeNames.value = newNames
@@ -413,36 +433,36 @@ class MoreViewModel(
     private fun loadData() {
         viewModelScope.launch {
             _salesList.value =
-                    salesRepository.getSalesByDateRange(0, Long.MAX_VALUE).map { s ->
-                        Sale(
-                                id = s.id,
-                                timestamp = s.timestamp,
-                                totalAmount = s.total_amount,
-                                discountAmount = s.discount_amount,
-                                customerName = s.customer_name,
-                                customerGstin = s.customer_gstin,
-                                businessGstin = s.business_gstin,
-                                customerAddress = s.customer_address,
-                                businessAddress = s.business_address,
-                                type = s.type,
-                                notes = s.notes,
-                                items = emptyList()
-                        )
-                    }
+                salesRepository.getSalesByDateRange(0, Long.MAX_VALUE).map { s ->
+                    Sale(
+                        id = s.id,
+                        timestamp = s.timestamp,
+                        totalAmount = s.total_amount,
+                        discountAmount = s.discount_amount,
+                        customerName = s.customer_name,
+                        customerGstin = s.customer_gstin,
+                        businessGstin = s.business_gstin,
+                        customerAddress = s.customer_address,
+                        businessAddress = s.business_address,
+                        type = s.type,
+                        notes = s.notes,
+                        items = emptyList(),
+                    )
+                }
             _expensesList.value = expenseRepository.getAllExpenses()
             _allItems.value =
-                    inventoryRepository.getActiveItems().map { i ->
-                        Item(
-                                id = i.id,
-                                name = i.name,
-                                quantity = i.quantity,
-                                unit = i.unit,
-                                buyPrice = i.buy_price,
-                                sellPrice = i.sell_price,
-                                lowStockThreshold = i.low_stock_threshold,
-                                category = i.category
-                        )
-                    }
+                inventoryRepository.getActiveItems().map { i ->
+                    Item(
+                        id = i.id,
+                        name = i.name,
+                        quantity = i.quantity,
+                        unit = i.unit,
+                        buyPrice = i.buy_price,
+                        sellPrice = i.sell_price,
+                        lowStockThreshold = i.low_stock_threshold,
+                        category = i.category,
+                    )
+                }
         }
     }
 
@@ -476,16 +496,16 @@ class MoreViewModel(
     }
 
     fun importInventoryFromCSV(
-            context: Context,
-            fileUri: Uri,
-            onSuccess: () -> Unit,
-            onError: (String) -> Unit,
+        context: Context,
+        fileUri: Uri,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val inputStream =
-                        context.contentResolver.openInputStream(fileUri)
-                                ?: throw Exception("Could not open CSV file")
+                    context.contentResolver.openInputStream(fileUri)
+                        ?: throw Exception("Could not open CSV file")
                 var importedCount = 0
 
                 inputStream.bufferedReader().use { reader ->
@@ -510,26 +530,30 @@ class MoreViewModel(
                             val threshold = tokens[6].toDoubleOrNull() ?: 0.0
                             val category = tokens[7].trim()
                             val hsnCode =
-                                    if (hasExtendedFields && tokens.size > 8)
-                                            tokens[8].trim().ifBlank { null }
-                                    else null
+                                if (hasExtendedFields && tokens.size > 8) {
+                                    tokens[8].trim().ifBlank { null }
+                                } else {
+                                    null
+                                }
                             val taxRate =
-                                    if (hasExtendedFields && tokens.size > 9)
-                                            tokens[9].toDoubleOrNull() ?: 0.0
-                                    else 0.0
+                                if (hasExtendedFields && tokens.size > 9) {
+                                    tokens[9].toDoubleOrNull() ?: 0.0
+                                } else {
+                                    0.0
+                                }
 
                             if (name.isNotBlank() && qty >= 0.0 && sellPrice > 0.0) {
                                 inventoryRepository.insertItem(
-                                        name = name,
-                                        quantity = qty,
-                                        unit = unit,
-                                        buyPrice = buyPrice,
-                                        sellPrice = sellPrice,
-                                        threshold = threshold,
-                                        category = category,
-                                        photoPath = null,
-                                        hsnCode = hsnCode,
-                                        taxRate = taxRate
+                                    name = name,
+                                    quantity = qty,
+                                    unit = unit,
+                                    buyPrice = buyPrice,
+                                    sellPrice = sellPrice,
+                                    threshold = threshold,
+                                    category = category,
+                                    photoPath = null,
+                                    hsnCode = hsnCode,
+                                    taxRate = taxRate,
                                 )
                                 importedCount++
                             }
@@ -553,28 +577,30 @@ class MoreViewModel(
     }
 
     fun exportInventoryToCSV(
-            context: Context,
-            fileUri: Uri,
-            onSuccess: () -> Unit,
-            onError: (String) -> Unit,
+        context: Context,
+        fileUri: Uri,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val items = inventoryRepository.getActiveItems()
                 val csvContent = StringBuilder()
                 csvContent.append(
-                        "ID,Item Name,Stock Quantity,Unit,Buy Price,Sell Price,Alert Threshold,Category,HSN Code,Tax Rate\n"
+                    "ID,Item Name,Stock Quantity,Unit,Buy Price,Sell Price,Alert Threshold,Category,HSN Code,Tax Rate\n",
                 )
                 for (item in items) {
                     csvContent.append(
-                            "${item.id},${csvEscape(item.name)},${item.quantity},${csvEscape(item.unit)},${item.buy_price},${item.sell_price},${item.low_stock_threshold},${csvEscape(item.category)},${csvEscape(item.hsn_code ?: "")},${item.tax_rate}\n",
+                        "${item.id},${csvEscape(item.name)},${item.quantity},${csvEscape(item.unit)}," +
+                            "${item.buy_price},${item.sell_price},${item.low_stock_threshold}," +
+                            "${csvEscape(item.category)},${csvEscape(item.hsn_code ?: "")},${item.tax_rate}\n",
                     )
                 }
 
                 context.contentResolver.openOutputStream(fileUri)?.use { out ->
                     out.write(csvContent.toString().toByteArray(Charsets.UTF_8))
                 }
-                        ?: throw Exception("Failed to open file for writing")
+                    ?: throw Exception("Failed to open file for writing")
 
                 withContext(Dispatchers.Main) { onSuccess() }
             } catch (e: Exception) {
@@ -585,13 +611,12 @@ class MoreViewModel(
     }
 
     /** RFC 4180 compliant: wraps in quotes if value contains comma, quote, or newline */
-    private fun csvEscape(value: String): String {
-        return if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+    private fun csvEscape(value: String): String =
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
             "\"${value.replace("\"", "\"\"")}\""
         } else {
             value
         }
-    }
 
     /** Parses a single CSV line respecting quoted fields that may contain commas */
     private fun parseCsvLine(line: String): List<String> {
@@ -623,33 +648,40 @@ class MoreViewModel(
         return result
     }
 
-    suspend fun createStaffAccount(username: String, pin: String): Boolean {
+    suspend fun createStaffAccount(
+        username: String,
+        pin: String,
+    ): Boolean {
         return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 val client = okhttp3.OkHttpClient()
                 val ownerId =
-                        com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                                ?: return@withContext false
+                    com.google.firebase.auth.FirebaseAuth
+                        .getInstance()
+                        .currentUser
+                        ?.uid
+                        ?: return@withContext false
                 val json =
-                        """
+                    """
                     {
                         "username": "$username",
                         "password": "$pin",
                         "storeId": "$activeStoreId",
                         "ownerId": "$ownerId"
                     }
-                """.trimIndent()
+                    """.trimIndent()
 
                 val body =
-                        okhttp3.RequestBody.create(
-                                "application/json; charset=utf-8".toMediaTypeOrNull(),
-                                json
-                        )
+                    okhttp3.RequestBody.create(
+                        "application/json; charset=utf-8".toMediaTypeOrNull(),
+                        json,
+                    )
                 val request =
-                        okhttp3.Request.Builder()
-                                .url("http://10.0.2.2:3000/api/staff/invite")
-                                .post(body)
-                                .build()
+                    okhttp3.Request
+                        .Builder()
+                        .url("http://10.0.2.2:3000/api/staff/invite")
+                        .post(body)
+                        .build()
 
                 val response = client.newCall(request).execute()
                 response.isSuccessful

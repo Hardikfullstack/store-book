@@ -1,12 +1,8 @@
 package com.storebook.inventoryapp.ui.screens.storebook
-import com.storebook.inventoryapp.utils.autoMarquee
-
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,21 +13,23 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Card
@@ -72,7 +70,9 @@ import androidx.navigation.NavController
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.shared.domain.models.Sale
 import com.storebook.inventoryapp.ui.theme.*
+import com.storebook.inventoryapp.ui.theme.primaryGradient
 import com.storebook.inventoryapp.ui.viewmodel.SalesViewModel
+import com.storebook.inventoryapp.utils.autoMarquee
 import com.storebook.inventoryapp.utils.toRupee
 import com.storebook.inventoryapp.utils.toRupeeWithDecimals
 import kotlinx.coroutines.Dispatchers
@@ -82,7 +82,6 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
-import com.storebook.inventoryapp.ui.theme.primaryGradient
 
 enum class GroupBy { DATE, PRODUCT, CUSTOMER }
 
@@ -113,7 +112,13 @@ fun SalesAnalyticsScreen(
 
     val context = LocalContext.current
     val defaultCustName = stringResource(id = R.string.customer_walk_in)
-    val storeId = remember { com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(context).getString("active_store_id", "default_store") ?: "default_store" }
+    val storeId =
+        remember {
+            com.storebook.inventoryapp.utils.SecurityUtils
+                .getEncryptedPrefs(context)
+                .getString("active_store_id", "default_store")
+                ?: "default_store"
+        }
 
     // Filters
     var groupBy by remember { mutableStateOf(GroupBy.PRODUCT) }
@@ -393,7 +398,12 @@ fun SalesAnalyticsScreen(
                             text = label,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             fontSize = 13.sp,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color =
+                                if (isSelected) {
+                                    MaterialTheme.colorScheme.onPrimary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                         )
                     }
                 }
@@ -427,7 +437,14 @@ fun SalesAnalyticsScreen(
                     FilterChip(
                         selected = quickDateFilter != "All Time",
                         onClick = { showDateRangePicker = true },
-                        label = { Text(dateLabel, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                        label = {
+                            Text(
+                                dateLabel,
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
+                        },
                         leadingIcon = { Icon(Icons.Default.CalendarToday, null, Modifier.size(16.dp)) },
                         trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) },
                     )
@@ -449,7 +466,14 @@ fun SalesAnalyticsScreen(
                             activeSheet = "CUSTOMER"
                             showSheet = true
                         },
-                        label = { Text(custLabel, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                        label = {
+                            Text(
+                                custLabel,
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
+                        },
                         trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) },
                     )
                 }
@@ -470,7 +494,14 @@ fun SalesAnalyticsScreen(
                             activeSheet = "PRODUCT"
                             showSheet = true
                         },
-                        label = { Text(prodLabel, modifier = androidx.compose.ui.Modifier.autoMarquee()) },
+                        label = {
+                            Text(
+                                prodLabel,
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
+                        },
                         trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) },
                     )
                 }
@@ -506,9 +537,14 @@ fun SalesAnalyticsScreen(
                                     }
                                 }
                             items(grouped) { (prodName, itemsList) ->
-                                ExpandableGroupCard(title = prodName, items = itemsList, groupBy = groupBy, onShareItem = { saleId ->
-                                    viewModel.shareInvoice(context, saleId)
-                                })
+                                ExpandableGroupCard(
+                                    title = prodName,
+                                    items = itemsList,
+                                    groupBy = groupBy,
+                                    onShareItem = { saleId ->
+                                        viewModel.shareInvoice(context, saleId)
+                                    },
+                                )
                             }
                         }
                         GroupBy.CUSTOMER -> {
@@ -519,9 +555,14 @@ fun SalesAnalyticsScreen(
                                     }
                                 }
                             items(grouped) { (custName, itemsList) ->
-                                ExpandableGroupCard(title = custName, items = itemsList, groupBy = groupBy, onShareItem = { saleId ->
-                                    viewModel.shareInvoice(context, saleId)
-                                })
+                                ExpandableGroupCard(
+                                    title = custName,
+                                    items = itemsList,
+                                    groupBy = groupBy,
+                                    onShareItem = { saleId ->
+                                        viewModel.shareInvoice(context, saleId)
+                                    },
+                                )
                             }
                         }
                     }
@@ -536,10 +577,11 @@ fun SalesAnalyticsScreen(
                 dragHandle = { BottomSheetDefaults.DragHandle() },
             ) {
                 Column(
-                    modifier = Modifier
-                        .imePadding()
-                        .padding(24.dp)
-                        .verticalScroll(rememberScrollState()),
+                    modifier =
+                        Modifier
+                            .imePadding()
+                            .padding(24.dp)
+                            .verticalScroll(rememberScrollState()),
                 ) {
                     when (activeSheet) {
                         "CUSTOMER" -> {

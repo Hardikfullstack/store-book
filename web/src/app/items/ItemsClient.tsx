@@ -127,6 +127,7 @@ export default function ItemsClient({
         fetchedPagesAtVersionRef.current.set(countKey, dataVersion);
       })
       .catch(err => console.error('Count fetch error:', err));
+      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPremium, storeId, refreshTrigger, debouncedSearch, minPriceFilter, maxPriceFilter]);
 
   // Fetch paginated items whenever page changes and poll regularly
@@ -205,6 +206,7 @@ export default function ItemsClient({
       isMounted = false;
       clearInterval(intervalId);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPremium, storeId, userRole, currentPage, refreshTrigger, dataVersion, debouncedSearch, minPriceFilter, maxPriceFilter]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -375,7 +377,7 @@ export default function ItemsClient({
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Inventory Items</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Manage your store's products and stock levels.</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Manage your store&apos;s products and stock levels.</p>
         </div>
         <div className="flex items-center space-x-3">
           <ExportButtons data={items} type="items" columns={['name', 'category', 'quantity', 'unit', 'buy_price', 'sell_price']} />

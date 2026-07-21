@@ -34,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -44,7 +43,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.ui.theme.Coral500
-import com.storebook.inventoryapp.ui.theme.PrimaryButton
 
 private const val PREF_FILE = "storebook_prefs"
 private const val PREF_SKIP_ITEM_DELETE = "skip_delete_item_confirm"
@@ -52,12 +50,14 @@ private const val PREF_SKIP_UDHAAR_DELETE = "skip_delete_udhaar_confirm"
 
 /** Returns true if the user has checked "Don't show again" for inventory deletes. */
 fun shouldSkipInventoryDeleteConfirm(context: Context): Boolean =
-    com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(context)
+    com.storebook.inventoryapp.utils.SecurityUtils
+        .getEncryptedPrefs(context)
         .getBoolean(PREF_SKIP_ITEM_DELETE, false)
 
 /** Returns true if the user has checked "Don't show again" for Udhaar entry deletes. */
 fun shouldSkipUdhaarDeleteConfirm(context: Context): Boolean =
-    com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(context)
+    com.storebook.inventoryapp.utils.SecurityUtils
+        .getEncryptedPrefs(context)
         .getBoolean(PREF_SKIP_UDHAAR_DELETE, false)
 
 private fun persistSkipPref(
@@ -65,7 +65,8 @@ private fun persistSkipPref(
     prefKey: String,
     skip: Boolean,
 ) {
-    com.storebook.inventoryapp.utils.SecurityUtils.getEncryptedPrefs(context)
+    com.storebook.inventoryapp.utils.SecurityUtils
+        .getEncryptedPrefs(context)
         .edit()
         .putBoolean(prefKey, skip)
         .apply()

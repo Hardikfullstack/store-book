@@ -2,24 +2,27 @@ package com.storebook.inventoryapp.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import android.util.Log
 
 object SecurityUtils {
     fun getEncryptedPrefs(context: Context): SharedPreferences {
         try {
-            val masterKey = MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
+            val masterKey =
+                MasterKey
+                    .Builder(context)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
 
-            val encryptedPrefs = EncryptedSharedPreferences.create(
-                context,
-                "storebook_secure_prefs",
-                masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            )
+            val encryptedPrefs =
+                EncryptedSharedPreferences.create(
+                    context,
+                    "storebook_secure_prefs",
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+                )
 
             // Data Migration: Move plaintext data to encrypted storage and wipe original
             val oldPrefs = context.getSharedPreferences("storebook_prefs", Context.MODE_PRIVATE)

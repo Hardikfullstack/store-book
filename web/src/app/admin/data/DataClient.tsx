@@ -94,7 +94,7 @@ export default function DataClient({ initialAuditLogs }: { initialAuditLogs: any
               </h2>
             </div>
             <div className="p-6">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Permanently delete a store and all associated data to comply with "Right to be Forgotten" requests. This action is irreversible.</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Permanently delete a store and all associated data to comply with &quot;Right to be Forgotten&quot; requests. This action is irreversible.</p>
               <div className="flex gap-2">
                 <input aria-label="text" type="text" value={purgeId} onChange={(e) => setPurgeId(sanitizeInput(e.target.value))} placeholder="Store ID to Purge" className="flex-1 p-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white" />
                 <button onClick={handlePurge} disabled={loading} className="px-4 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700">Purge</button>

@@ -71,6 +71,11 @@ export default function UdhaarClient({
     }
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
   // Fetch total count — skip when searching
   useEffect(() => {
     if (!isPremium || !storeId || debouncedSearch || startDateFilter || endDateFilter || minAmountFilter || maxAmountFilter) return;
@@ -87,12 +92,7 @@ export default function UdhaarClient({
       }
     };
     fetchTotal();
-  }, [isPremium, storeId, refreshTrigger, debouncedSearch, startDateFilter, endDateFilter, minAmountFilter, maxAmountFilter]);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
-  const [totalItems, setTotalItems] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  }, [isPremium, storeId, refreshTrigger, debouncedSearch, startDateFilter, endDateFilter, minAmountFilter, maxAmountFilter, dataVersion]);
 
   // Fetch paginated udhaar entries
   useEffect(() => {
@@ -162,6 +162,7 @@ export default function UdhaarClient({
       isMounted = false;
       clearInterval(intervalId);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion, debouncedSearch, startDateFilter, endDateFilter, minAmountFilter, maxAmountFilter]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

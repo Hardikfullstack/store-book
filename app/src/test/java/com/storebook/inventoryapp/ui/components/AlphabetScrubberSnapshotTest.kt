@@ -19,7 +19,6 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [33], qualifiers = RobolectricDeviceQualifiers.Pixel5, application = android.app.Application::class)
 class AlphabetScrubberSnapshotTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -28,10 +27,10 @@ class AlphabetScrubberSnapshotTest {
         composeTestRule.setContent {
             AlphabetScrubber(
                 onLetterSelect = {},
-                modifier = Modifier.height(400.dp).padding(16.dp)
+                modifier = Modifier.height(400.dp).padding(16.dp),
             )
         }
-        
+
         composeTestRule.onRoot().captureRoboImage("src/test/snapshots/AlphabetScrubber_default.png")
     }
 }

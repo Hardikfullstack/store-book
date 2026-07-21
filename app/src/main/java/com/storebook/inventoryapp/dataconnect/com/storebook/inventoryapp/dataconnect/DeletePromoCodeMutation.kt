@@ -1,98 +1,66 @@
 
 @file:kotlin.Suppress(
-  "KotlinRedundantDiagnosticSuppress",
-  "LocalVariableName",
-  "MayBeConstant",
-  "RedundantVisibilityModifier",
-  "RemoveEmptyClassBody",
-  "SpellCheckingInspection",
-  "LocalVariableName",
-  "unused",
+    "KotlinRedundantDiagnosticSuppress",
+    "LocalVariableName",
+    "MayBeConstant",
+    "RedundantVisibilityModifier",
+    "RemoveEmptyClassBody",
+    "SpellCheckingInspection",
+    "LocalVariableName",
+    "unused",
 )
-
-
 
 package com.storebook.inventoryapp.dataconnect
 
-
-
 public interface DeletePromoCodeMutation :
     com.google.firebase.dataconnect.generated.GeneratedMutation<
-      StorebookConnectorConnector,
-      DeletePromoCodeMutation.Data,
-      DeletePromoCodeMutation.Variables
-    >
-{
-  
+        StorebookConnectorConnector,
+        DeletePromoCodeMutation.Data,
+        DeletePromoCodeMutation.Variables,
+    > {
     @kotlinx.serialization.Serializable
-  public data class Variables(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
-  
+    public data class Variables(
+        val id: String,
+    )
 
-  
     @kotlinx.serialization.Serializable
-  public data class Data(
-  @kotlinx.serialization.SerialName("promoCode_delete")
-    val key:
-    PromoCodeKey?
-  ) {
-    
-    
-  }
-  
+    public data class Data(
+        @kotlinx.serialization.SerialName("promoCode_delete")
+        val key: PromoCodeKey?,
+    )
 
-  public companion object {
-    public val operationName: String = "DeletePromoCode"
+    public companion object {
+        public val operationName: String = "DeletePromoCode"
 
-    public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
-      kotlinx.serialization.serializer()
+        public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
+            kotlinx.serialization.serializer()
 
-    public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables> =
-      kotlinx.serialization.serializer()
-  }
+        public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables> =
+            kotlinx.serialization.serializer()
+    }
 }
 
 public fun DeletePromoCodeMutation.ref(
-  
     id: String,
-  
-  
 ): com.google.firebase.dataconnect.MutationRef<
     DeletePromoCodeMutation.Data,
-    DeletePromoCodeMutation.Variables
-  > =
-  ref(
-    
-      DeletePromoCodeMutation.Variables(
-        id=id,
-  
-      )
-    
-  )
+    DeletePromoCodeMutation.Variables,
+> =
+    ref(
+        DeletePromoCodeMutation.Variables(
+            id = id,
+        ),
+    )
 
 public suspend fun DeletePromoCodeMutation.execute(
-  
     id: String,
-  
-  
-  ): com.google.firebase.dataconnect.MutationResult<
+): com.google.firebase.dataconnect.MutationResult<
     DeletePromoCodeMutation.Data,
-    DeletePromoCodeMutation.Variables
-  > =
-  ref(
-    
-      id=id,
-  
-    
-  ).execute()
-
-
+    DeletePromoCodeMutation.Variables,
+> =
+    ref(
+        id = id,
+    ).execute()
 
 // The lines below are used by the code generator to ensure that this file is deleted if it is no
 // longer needed. Any files in this directory that contain the lines below will be deleted by the

@@ -1,136 +1,85 @@
 
 @file:kotlin.Suppress(
-  "KotlinRedundantDiagnosticSuppress",
-  "LocalVariableName",
-  "MayBeConstant",
-  "RedundantVisibilityModifier",
-  "RemoveEmptyClassBody",
-  "SpellCheckingInspection",
-  "LocalVariableName",
-  "unused",
+    "KotlinRedundantDiagnosticSuppress",
+    "LocalVariableName",
+    "MayBeConstant",
+    "RedundantVisibilityModifier",
+    "RemoveEmptyClassBody",
+    "SpellCheckingInspection",
+    "LocalVariableName",
+    "unused",
 )
 
-
-
 package com.storebook.inventoryapp.dataconnect
-
 
 import kotlinx.coroutines.flow.filterNotNull as _flow_filterNotNull
 import kotlinx.coroutines.flow.map as _flow_map
 
-
 public interface GetStoreQuery :
     com.google.firebase.dataconnect.generated.GeneratedQuery<
-      StorebookConnectorConnector,
-      GetStoreQuery.Data,
-      GetStoreQuery.Variables
-    >
-{
-  
+        StorebookConnectorConnector,
+        GetStoreQuery.Data,
+        GetStoreQuery.Variables,
+    > {
     @kotlinx.serialization.Serializable
-  public data class Variables(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
-  
+    public data class Variables(
+        val id: String,
+    )
 
-  
     @kotlinx.serialization.Serializable
-  public data class Data(
-  
-    val store:
-    Store?
-  ) {
-    
-      
+    public data class Data(
+        val store: Store?,
+    ) {
         @kotlinx.serialization.Serializable
-  public data class Store(
-  
-    val id:
-    String,
-    val name:
-    String?,
-    val isActive:
-    Boolean?,
-    val isPremium:
-    Boolean?
-  ) {
-    
-    
-  }
-      
-    
-    
-  }
-  
+        public data class Store(
+            val id: String,
+            val name: String?,
+            val isActive: Boolean?,
+            val isPremium: Boolean?,
+        )
+    }
 
-  public companion object {
-    public val operationName: String = "GetStore"
+    public companion object {
+        public val operationName: String = "GetStore"
 
-    public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
-      kotlinx.serialization.serializer()
+        public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
+            kotlinx.serialization.serializer()
 
-    public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables> =
-      kotlinx.serialization.serializer()
-  }
+        public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables> =
+            kotlinx.serialization.serializer()
+    }
 }
 
 public fun GetStoreQuery.ref(
-  
     id: String,
-  
-  
 ): com.google.firebase.dataconnect.QueryRef<
     GetStoreQuery.Data,
-    GetStoreQuery.Variables
-  > =
-  ref(
-    
-      GetStoreQuery.Variables(
-        id=id,
-  
-      )
-    
-  )
+    GetStoreQuery.Variables,
+> =
+    ref(
+        GetStoreQuery.Variables(
+            id = id,
+        ),
+    )
 
 public suspend fun GetStoreQuery.execute(
-  
     id: String,
-  
-  
-  ): com.google.firebase.dataconnect.QueryResult<
+): com.google.firebase.dataconnect.QueryResult<
     GetStoreQuery.Data,
-    GetStoreQuery.Variables
-  > =
-  ref(
-    
-      id=id,
-  
-    
-  ).execute()
-
-
-  public fun GetStoreQuery.flow(
-    
-      id: String,
-  
-    
-    ): kotlinx.coroutines.flow.Flow<GetStoreQuery.Data> =
+    GetStoreQuery.Variables,
+> =
     ref(
-        
-          id=id,
-  
-        
-      ).subscribe()
-      .flow
-      ._flow_map { querySubscriptionResult -> querySubscriptionResult.result.getOrNull() }
-      ._flow_filterNotNull()
-      ._flow_map { it.data }
+        id = id,
+    ).execute()
 
+public fun GetStoreQuery.flow(id: String): kotlinx.coroutines.flow.Flow<GetStoreQuery.Data> =
+    ref(
+        id = id,
+    ).subscribe()
+        .flow
+        ._flow_map { querySubscriptionResult -> querySubscriptionResult.result.getOrNull() }
+        ._flow_filterNotNull()
+        ._flow_map { it.data }
 
 // The lines below are used by the code generator to ensure that this file is deleted if it is no
 // longer needed. Any files in this directory that contain the lines below will be deleted by the

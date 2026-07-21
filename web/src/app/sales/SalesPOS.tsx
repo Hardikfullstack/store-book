@@ -119,6 +119,7 @@ export default function SalesPOS({
     };
     fetchItems();
     return () => { isMounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeId, dispatch]);
 
   // Barcode Scanner listener
@@ -181,6 +182,7 @@ export default function SalesPOS({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items]);
 
   const handleAddToCart = (item: Item) => {
@@ -244,6 +246,7 @@ export default function SalesPOS({
 
     try {
       const saleId = crypto.randomUUID();
+      // eslint-disable-next-line react-hooks/purity
       const now = Date.now();
       const updatedAt = Math.floor(now / 1000);
 

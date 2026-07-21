@@ -79,7 +79,7 @@ export default function SettingsClient({
               <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white">Enable AI Analytics Engine</h4>
-                  <p className="text-xs text-gray-500">Global flag to expose the 'StoreBook AI' sidebar to Premium users.</p>
+                  <p className="text-xs text-gray-500">Global flag to expose the &apos;StoreBook AI&apos; sidebar to Premium users.</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input aria-label="checkbox" type="checkbox" className="sr-only peer" defaultChecked />
@@ -121,7 +121,7 @@ export default function SettingsClient({
             {initialAnnouncements.length > 0 ? (
               <pre className="text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto text-xs">{JSON.stringify(initialAnnouncements, null, 2)}</pre>
             ) : (
-              <p>No active announcements. Broadcast messages will appear globally at the top of every store owner's dashboard.</p>
+              <p>No active announcements. Broadcast messages will appear globally at the top of every store owner&apos;s dashboard.</p>
             )}
           </div>
         </div>

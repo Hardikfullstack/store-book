@@ -25,10 +25,11 @@ object UdhaarPdfGenerator {
         val page = document.startPage(pageInfo)
         val canvas = page.canvas
 
-        val paint = Paint().apply {
-            color = Color.BLACK
-            textSize = 14f
-        }
+        val paint =
+            Paint().apply {
+                color = Color.BLACK
+                textSize = 14f
+            }
 
         var yPos = 50f
         val leftMargin = 50f
@@ -45,7 +46,16 @@ object UdhaarPdfGenerator {
 
         yPos += 20f
         paint.textSize = 14f
-        val balanceText = if (netBalance > 0) "You owe: ₹${netBalance}" else if (netBalance < 0) "Advance: ₹${-netBalance}" else "Settled"
+        val balanceText =
+            if (netBalance >
+                0
+            ) {
+                "You owe: ₹$netBalance"
+            } else if (netBalance < 0) {
+                "Advance: ₹${-netBalance}"
+            } else {
+                "Settled"
+            }
         paint.color = if (netBalance > 0) Color.RED else Color.rgb(13, 148, 136)
         canvas.drawText("Net Balance: $balanceText", leftMargin, yPos, paint)
         paint.color = Color.BLACK

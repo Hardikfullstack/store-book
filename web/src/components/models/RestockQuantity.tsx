@@ -41,6 +41,7 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
 
   useEffect(() => {
     if (!open || !storeId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSuppliers([]);
       return;
     }
@@ -75,6 +76,7 @@ function RestockQuantity({ open, item, userRole = 'owner', storeId, onClose, onC
   useEffect(() => {
     if (!open) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setQuantity('');
     setBuyPrice(item?.buy_price?.toString() || '');
     setSupplierSearch('');

@@ -1,244 +1,210 @@
 
 @file:kotlin.Suppress(
-  "KotlinRedundantDiagnosticSuppress",
-  "LocalVariableName",
-  "MayBeConstant",
-  "RedundantVisibilityModifier",
-  "RemoveEmptyClassBody",
-  "SpellCheckingInspection",
-  "LocalVariableName",
-  "unused",
+    "KotlinRedundantDiagnosticSuppress",
+    "LocalVariableName",
+    "MayBeConstant",
+    "RedundantVisibilityModifier",
+    "RemoveEmptyClassBody",
+    "SpellCheckingInspection",
+    "LocalVariableName",
+    "unused",
 )
 
-
-
 package com.storebook.inventoryapp.dataconnect
-
 
 import kotlinx.coroutines.flow.filterNotNull as _flow_filterNotNull
 import kotlinx.coroutines.flow.map as _flow_map
 
-
 public interface GetActiveUdhaarsQuery :
     com.google.firebase.dataconnect.generated.GeneratedQuery<
-      StorebookConnectorConnector,
-      GetActiveUdhaarsQuery.Data,
-      GetActiveUdhaarsQuery.Variables
-    >
-{
-  
+        StorebookConnectorConnector,
+        GetActiveUdhaarsQuery.Data,
+        GetActiveUdhaarsQuery.Variables,
+    > {
     @kotlinx.serialization.Serializable
-  public data class Variables(
-  
-    val storeId:
-    String,
-    val limit:
-    com.google.firebase.dataconnect.OptionalVariable<Int?>,
-    val offset:
-    com.google.firebase.dataconnect.OptionalVariable<Int?>,
-    val searchTerm:
-    com.google.firebase.dataconnect.OptionalVariable<String?>,
-    val orderByTimestamp:
-    com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>,
-    val orderByCustomerName:
-    com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>,
-    val orderByType:
-    com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>,
-    val orderByAmount:
-    com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>
-  ) {
-    
-    
-      
-      @kotlin.DslMarker public annotation class BuilderDsl
+    public data class Variables(
+        val storeId: String,
+        val limit: com.google.firebase.dataconnect.OptionalVariable<Int?>,
+        val offset: com.google.firebase.dataconnect.OptionalVariable<Int?>,
+        val searchTerm: com.google.firebase.dataconnect.OptionalVariable<String?>,
+        val orderByTimestamp: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>,
+        val orderByCustomerName: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>,
+        val orderByType: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>,
+        val orderByAmount: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?>,
+    ) {
+        @kotlin.DslMarker public annotation class BuilderDsl
 
-      @BuilderDsl
-      public interface Builder {
-        public var storeId: String
-        public var limit: Int?
-        public var offset: Int?
-        public var searchTerm: String?
-        public var orderByTimestamp: OrderDirection?
-        public var orderByCustomerName: OrderDirection?
-        public var orderByType: OrderDirection?
-        public var orderByAmount: OrderDirection?
-        
-      }
-
-      public companion object {
-        @Suppress("NAME_SHADOWING")
-        public fun build(
-          storeId: String,
-          block_: Builder.() -> Unit
-        ): Variables {
-          var storeId= storeId
-            var limit: com.google.firebase.dataconnect.OptionalVariable<Int?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var offset: com.google.firebase.dataconnect.OptionalVariable<Int?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var searchTerm: com.google.firebase.dataconnect.OptionalVariable<String?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var orderByTimestamp: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var orderByCustomerName: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var orderByType: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            var orderByAmount: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
-                com.google.firebase.dataconnect.OptionalVariable.Undefined
-            
-
-          return object : Builder {
-            override var storeId: String
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { storeId = value_ }
-              
-            override var limit: Int?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { limit = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var offset: Int?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { offset = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var searchTerm: String?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { searchTerm = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var orderByTimestamp: OrderDirection?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { orderByTimestamp = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var orderByCustomerName: OrderDirection?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { orderByCustomerName = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var orderByType: OrderDirection?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { orderByType = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            override var orderByAmount: OrderDirection?
-              get() = throw UnsupportedOperationException("getting builder values is not supported")
-              set(value_) { orderByAmount = com.google.firebase.dataconnect.OptionalVariable.Value(value_) }
-              
-            
-          }.apply(block_)
-          .let {
-            Variables(
-              storeId=storeId,limit=limit,offset=offset,searchTerm=searchTerm,orderByTimestamp=orderByTimestamp,orderByCustomerName=orderByCustomerName,orderByType=orderByType,orderByAmount=orderByAmount,
-            )
-          }
+        @BuilderDsl
+        public interface Builder {
+            public var storeId: String
+            public var limit: Int?
+            public var offset: Int?
+            public var searchTerm: String?
+            public var orderByTimestamp: OrderDirection?
+            public var orderByCustomerName: OrderDirection?
+            public var orderByType: OrderDirection?
+            public var orderByAmount: OrderDirection?
         }
-      }
-    
-  }
-  
 
-  
+        public companion object {
+            @Suppress("NAME_SHADOWING")
+            public fun build(
+                storeId: String,
+                block_: Builder.() -> Unit,
+            ): Variables {
+                var storeId = storeId
+                var limit: com.google.firebase.dataconnect.OptionalVariable<Int?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var offset: com.google.firebase.dataconnect.OptionalVariable<Int?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var searchTerm: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var orderByTimestamp: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var orderByCustomerName: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var orderByType: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var orderByAmount: com.google.firebase.dataconnect.OptionalVariable<OrderDirection?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+
+                return object : Builder {
+                    override var storeId: String
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            storeId = value_
+                        }
+
+                    override var limit: Int?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            limit =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var offset: Int?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            offset =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var searchTerm: String?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            searchTerm =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var orderByTimestamp: OrderDirection?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            orderByTimestamp =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var orderByCustomerName: OrderDirection?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            orderByCustomerName =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var orderByType: OrderDirection?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            orderByType =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var orderByAmount: OrderDirection?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            orderByAmount =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+                }.apply(block_)
+                    .let {
+                        Variables(
+                            storeId = storeId, limit = limit, offset = offset, searchTerm = searchTerm, orderByTimestamp = orderByTimestamp, orderByCustomerName = orderByCustomerName, orderByType = orderByType, orderByAmount = orderByAmount,
+                        )
+                    }
+            }
+        }
+    }
+
     @kotlinx.serialization.Serializable
-  public data class Data(
-  
-    val udhaarEntries:
-    List<UdhaarEntriesItem>
-  ) {
-    
-      
+    public data class Data(
+        val udhaarEntries: List<UdhaarEntriesItem>,
+    ) {
         @kotlinx.serialization.Serializable
-  public data class UdhaarEntriesItem(
-  
-    val id:
-    String,
-    val customerName:
-    String,
-    val amount:
-    Double,
-    val type:
-    String,
-    val timestamp:
-    Double,
-    val notes:
-    String?,
-    val updatedAt:
-    Double
-  ) {
-    
-    
-  }
-      
-    
-    
-  }
-  
+        public data class UdhaarEntriesItem(
+            val id: String,
+            val customerName: String,
+            val amount: Double,
+            val type: String,
+            val timestamp: Double,
+            val notes: String?,
+            val updatedAt: Double,
+        )
+    }
 
-  public companion object {
-    public val operationName: String = "GetActiveUdhaars"
+    public companion object {
+        public val operationName: String = "GetActiveUdhaars"
 
-    public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
-      kotlinx.serialization.serializer()
+        public val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data> =
+            kotlinx.serialization.serializer()
 
-    public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables> =
-      kotlinx.serialization.serializer()
-  }
+        public val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables> =
+            kotlinx.serialization.serializer()
+    }
 }
 
 public fun GetActiveUdhaarsQuery.ref(
-  
     storeId: String,
-  
-    block_: GetActiveUdhaarsQuery.Variables.Builder.() -> Unit
-  
+    block_: GetActiveUdhaarsQuery.Variables.Builder.() -> Unit,
 ): com.google.firebase.dataconnect.QueryRef<
     GetActiveUdhaarsQuery.Data,
-    GetActiveUdhaarsQuery.Variables
-  > =
-  ref(
-    
-      GetActiveUdhaarsQuery.Variables.build(
-        storeId=storeId,
-  
-    block_
-      )
-    
-  )
+    GetActiveUdhaarsQuery.Variables,
+> =
+    ref(
+        GetActiveUdhaarsQuery.Variables.build(
+            storeId = storeId,
+            block_,
+        ),
+    )
 
 public suspend fun GetActiveUdhaarsQuery.execute(
-  
     storeId: String,
-  
-    block_: GetActiveUdhaarsQuery.Variables.Builder.() -> Unit
-  
-  ): com.google.firebase.dataconnect.QueryResult<
+    block_: GetActiveUdhaarsQuery.Variables.Builder.() -> Unit,
+): com.google.firebase.dataconnect.QueryResult<
     GetActiveUdhaarsQuery.Data,
-    GetActiveUdhaarsQuery.Variables
-  > =
-  ref(
-    
-      storeId=storeId,
-  
-    block_
-    
-  ).execute()
-
-
-  public fun GetActiveUdhaarsQuery.flow(
-    
-      storeId: String,
-  
-    block_: GetActiveUdhaarsQuery.Variables.Builder.() -> Unit
-    
-    ): kotlinx.coroutines.flow.Flow<GetActiveUdhaarsQuery.Data> =
+    GetActiveUdhaarsQuery.Variables,
+> =
     ref(
-        
-          storeId=storeId,
-  
-    block_
-        
-      ).subscribe()
-      .flow
-      ._flow_map { querySubscriptionResult -> querySubscriptionResult.result.getOrNull() }
-      ._flow_filterNotNull()
-      ._flow_map { it.data }
+        storeId = storeId,
+        block_,
+    ).execute()
 
+public fun GetActiveUdhaarsQuery.flow(
+    storeId: String,
+    block_: GetActiveUdhaarsQuery.Variables.Builder.() -> Unit,
+): kotlinx.coroutines.flow.Flow<GetActiveUdhaarsQuery.Data> =
+    ref(
+        storeId = storeId,
+        block_,
+    ).subscribe()
+        .flow
+        ._flow_map { querySubscriptionResult -> querySubscriptionResult.result.getOrNull() }
+        ._flow_filterNotNull()
+        ._flow_map { it.data }
 
 // The lines below are used by the code generator to ensure that this file is deleted if it is no
 // longer needed. Any files in this directory that contain the lines below will be deleted by the

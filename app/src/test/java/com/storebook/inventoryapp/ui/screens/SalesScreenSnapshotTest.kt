@@ -1,10 +1,8 @@
 package com.storebook.inventoryapp.ui.screens
 
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.unit.Density
 import androidx.navigation.NavController
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
@@ -33,7 +31,6 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [33], application = android.app.Application::class)
 class SalesScreenSnapshotTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -52,7 +49,13 @@ class SalesScreenSnapshotTest {
 
         mockkStatic(com.google.mlkit.vision.codescanner.GmsBarcodeScanning::class)
         val mockScanner = mockk<com.google.mlkit.vision.codescanner.GmsBarcodeScanner>(relaxed = true)
-        every { com.google.mlkit.vision.codescanner.GmsBarcodeScanning.getClient(any<android.content.Context>(), any<com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions>()) } returns mockScanner
+        every {
+            com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+                .getClient(
+                    any<android.content.Context>(),
+                    any<com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions>(),
+                )
+        } returns mockScanner
 
         mockSalesViewModel = mockk(relaxed = true)
         navController = mockk(relaxed = true)
@@ -72,7 +75,7 @@ class SalesScreenSnapshotTest {
                 StoreBookTheme(darkTheme = false) {
                     SalesScreen(
                         navController = navController,
-                        viewModel = mockSalesViewModel
+                        viewModel = mockSalesViewModel,
                     )
                 }
             }
@@ -88,7 +91,7 @@ class SalesScreenSnapshotTest {
                 StoreBookTheme(darkTheme = true) {
                     SalesScreen(
                         navController = navController,
-                        viewModel = mockSalesViewModel
+                        viewModel = mockSalesViewModel,
                     )
                 }
             }
@@ -104,7 +107,7 @@ class SalesScreenSnapshotTest {
                 StoreBookTheme(darkTheme = false) {
                     SalesScreen(
                         navController = navController,
-                        viewModel = mockSalesViewModel
+                        viewModel = mockSalesViewModel,
                     )
                 }
             }

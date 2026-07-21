@@ -1,10 +1,8 @@
 package com.storebook.inventoryapp.ui.screens
 
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.unit.Density
 import androidx.navigation.NavController
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
@@ -33,7 +31,6 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [33], application = android.app.Application::class)
 class QuotationScreenSnapshotTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -65,7 +62,7 @@ class QuotationScreenSnapshotTest {
                 StoreBookTheme(darkTheme = false) {
                     QuotationScreen(
                         navController = navController,
-                        viewModel = mockSalesViewModel
+                        viewModel = mockSalesViewModel,
                     )
                 }
             }
@@ -81,7 +78,7 @@ class QuotationScreenSnapshotTest {
                 StoreBookTheme(darkTheme = true) {
                     QuotationScreen(
                         navController = navController,
-                        viewModel = mockSalesViewModel
+                        viewModel = mockSalesViewModel,
                     )
                 }
             }

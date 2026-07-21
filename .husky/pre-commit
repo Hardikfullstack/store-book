@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "⏳ Running pre-commit checks..."
+
+# Check web directory
+if [ -d "web" ]; then
+  echo "👉 Linting web frontend..."
+  cd web
+  if ! npm run lint; then
+    echo "❌ Web linting failed. Please fix before committing."
+    exit 1
+  fi
+  cd ..
+fi
+
+# Check Android/Kotlin code
+if [ -f "gradlew" ]; then
+  echo "👉 Running Android/Kotlin pre-commit checks (ktlint & detekt)..."
+  if ! ./gradlew ktlintCheck; then
+    echo "❌ Kotlin code style failed. Please fix before committing."
+    exit 1
+  fi
+fi
+
+echo "✅ Pre-commit checks passed!"

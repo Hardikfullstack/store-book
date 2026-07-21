@@ -1,170 +1,91 @@
 
 @file:kotlin.Suppress(
-  "KotlinRedundantDiagnosticSuppress",
-  "LocalVariableName",
-  "MayBeConstant",
-  "RedundantVisibilityModifier",
-  "RemoveEmptyClassBody",
-  "SpellCheckingInspection",
-  "LocalVariableName",
-  "unused",
+    "KotlinRedundantDiagnosticSuppress",
+    "LocalVariableName",
+    "MayBeConstant",
+    "RedundantVisibilityModifier",
+    "RemoveEmptyClassBody",
+    "SpellCheckingInspection",
+    "LocalVariableName",
+    "unused",
 )
-
-
 
 package com.storebook.inventoryapp.dataconnect
 
+@kotlinx.serialization.Serializable
+public data class AdminAuditLogKey(
+    val id: String,
+)
 
-  @kotlinx.serialization.Serializable
-  public data class AdminAuditLogKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
+@kotlinx.serialization.Serializable
+public data class AnnouncementKey(
+    val id: String,
+)
 
-  @kotlinx.serialization.Serializable
-  public data class AnnouncementKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
+@kotlinx.serialization.Serializable
+public data class ExpenseEntryKey(
+    val id: String,
+)
 
-  @kotlinx.serialization.Serializable
-  public data class ExpenseEntryKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
+@kotlinx.serialization.Serializable
+public data class GlobalSettingKey(
+    val id: String,
+)
 
-  @kotlinx.serialization.Serializable
-  public data class GlobalSettingKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
+@kotlinx.serialization.Serializable
+public data class ItemBatchKey(
+    val id: String,
+)
 
-  @kotlinx.serialization.Serializable
-  public data class ItemBatchKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
+@kotlinx.serialization.Serializable
+public data class ItemKey(
+    val id: String,
+)
 
-  @kotlinx.serialization.Serializable
-  public data class ItemKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
+@kotlinx.serialization.Serializable
+public data class PromoCodeKey(
+    val id: String,
+)
 
-  @kotlinx.serialization.Serializable
-  public data class PromoCodeKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
+@kotlinx.serialization.Serializable
+public data class PurchaseItemDetailKey(
+    val id: String,
+)
 
-  @kotlinx.serialization.Serializable
-  public data class PurchaseItemDetailKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
+@kotlinx.serialization.Serializable
+public data class PurchaseKey(
+    val id: String,
+)
 
-  @kotlinx.serialization.Serializable
-  public data class PurchaseKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
+@kotlinx.serialization.Serializable
+public data class SaleItemDetailKey(
+    val id: String,
+)
 
-  @kotlinx.serialization.Serializable
-  public data class SaleItemDetailKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
+@kotlinx.serialization.Serializable
+public data class SaleKey(
+    val id: String,
+)
 
-  @kotlinx.serialization.Serializable
-  public data class SaleKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
+@kotlinx.serialization.Serializable
+public data class StoreKey(
+    val id: String,
+)
 
-  @kotlinx.serialization.Serializable
-  public data class StoreKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
+@kotlinx.serialization.Serializable
+public data class SupplierKey(
+    val id: String,
+)
 
-  @kotlinx.serialization.Serializable
-  public data class SupplierKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
+@kotlinx.serialization.Serializable
+public data class UdhaarEntryKey(
+    val id: String,
+)
 
-  @kotlinx.serialization.Serializable
-  public data class UdhaarEntryKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
-
-  @kotlinx.serialization.Serializable
-  public data class UserKey(
-  
-    val id:
-    String
-  ) {
-    
-    
-  }
-
+@kotlinx.serialization.Serializable
+public data class UserKey(
+    val id: String,
+)
 
 // The lines below are used by the code generator to ensure that this file is deleted if it is no
 // longer needed. Any files in this directory that contain the lines below will be deleted by the
