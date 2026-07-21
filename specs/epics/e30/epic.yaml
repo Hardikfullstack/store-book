@@ -1,7 +1,7 @@
 epic_id: e30
 title: "Automated UI & Snapshot Testing (Paparazzi/Roborazzi)"
 priority: P0
-status: defined
+status: completed
 target_version: v1.3.2
 description: |
   Implement screenshot/snapshot testing to prevent UI layout regressions (e.g., squished text, overlapping FABs, clipped alphabets,

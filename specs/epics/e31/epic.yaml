@@ -1,7 +1,7 @@
 epic_id: e31
 title: "Business Logic & Local Database Testing"
 priority: P0
-status: defined
+status: done
 target_version: v1.3.2
 description: |
   Ensure the offline-first core (SQLDelight) and business logic (ViewModels/StateFlows) remain bulletproof.
