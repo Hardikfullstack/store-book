@@ -1,0 +1,37 @@
+written_at: "2026-07-16T00:00:00Z"
+written_by: run-planning
+feature_name: "Consolidated P&L view across all owned stores (e24-s3)"
+
+context_summary: >
+  E24-S3 adds a multi-store aggregated dashboard: Total Revenue, Total Expenses, Net P&L
+  across all user-owned stores. Users select "All Stores" in the store switcher. Date range
+  filters apply to all stores. Drill-down tables show per-store breakdown.
+
+key_findings_from_survey:
+  dashboard_client_lines: 363
+  data_connect_queriest:
+    existing_aggregate_queries: false
+    per_store_queries_exist: true
+    sales_query: "GetActiveSales(storeId, startDate, endDate)"
+    expenses_query: "GetActiveExpenses(storeId, startDate, endDate)"
+  multi_tenancy_model: >
+    User stores[] array contains all storeIds user owns. Server action `switchStore()` already validates ownership.
+    Sentinel value "all" can be used for consolidated view without schema changes.
+
+  existing_chart_library: recharts (already imported in DashboardCharts.tsx)
+  existing_reports_client: ReportsClient.tsx has date-range selector and CSV export patterns to reuse
+
+implementation_constraints:
+  - "All queries are server-side via Next.js Server Actions — keep aggregation there"
+  - "No DataConnect schema changes needed — all required data exists per-storeId"
+  - "storeId MUST never appear in UI — always show store name or 'My Store' fallback"
+  - "Pre-flight: npm run lint && npm run build must pass before any commit"
+  - "Depends on e24-s1 (store switcher with names) — assume it exists or coordinate ordering"
+
+artifacts_produced:
+  scope_doc: specs/epics/e24/E24-S3-SCOPE.yaml
+  task_slices: specs/epics/e24/E24-S3-TASKS.yaml
+  release_slot: "v1.7.0 — Multi-Store Dashboard & Cross-Store Analytics"
+
+estimated_effort_hours: 6-8
+slices_count: 4

@@ -1,0 +1,102 @@
+# Task Slices — E24-S3: Consolidated P&L View across all owned stores
+
+story_id: e24-s3
+target_version: v1.7.0
+estimated_total_hours: 6-8
+slices: 4 vertical slices, each independently verifiable
+
+---
+
+## SLICE 1: Server-side aggregation data pipeline (Data Layer)
+**Effort:** ~2h  
+**Files:** `web/src/app/actions.ts` (new function)
+
+Task description:
+Add a new server action `getConsolidatedPLData(storeIds: string[], startDate: number, endDate: number)` that:
+1. For each storeId in the user's owned stores array, fetches sales (GetActiveSales) and expenses (GetActiveExpenses) with date range filters
+2. Aggregates: `totalRevenue = sum(sales.totalAmount)`, `totalExpenses = sum(expenses.amount)`, `netPL = totalRevenue - totalExpenses`
+3. Also returns per-store breakdown: `[{ storeId, storeName, revenue, expenses }]` for drill-down display
+4. Returns structured object consumable by DashboardClient
+
+Acceptance (verifiable without UI):
+```typescript
+// Expected return shape:
+{
+  consolidated: { totalRevenue: number, totalExpenses: number, netPL: number },
+  perStore: [{ storeId: string, storeName: string, revenue: number, expenses: number, profit: number }],
+  storesCount: number
+}
+```
+
+---
+
+## SLICE 2: "All Stores" option in store switcher (Navigation Layer)
+**Effort:** ~1.5h  
+**Files:** `web/src/app/layout.tsx`, or wherever store switcher lives; plus DashboardClient trigger logic
+
+Dependencies: Requires e24-s1 (store switcher dropdown with store names) to be completed first, OR assume a basic switcher exists and adapt it.
+
+Task description:
+1. Add "All Stores" as the first/top option in the store switcher dropdown  
+2. When selected, set activeStoreId to "all" (sentinel value) instead of a specific UUID
+3. In DashboardClient, detect `activeStoreId === "all"` and call `getConsolidatedPLData` instead of per-store queries
+4. Switching back to a specific store restores normal single-store data loading
+
+Acceptance:
+- Dropdown includes "All Stores (Consolidated)" option at top
+- Selecting it triggers consolidated data load (verify via console.log or debug state)
+- Selecting individual store returns to single-store view
+
+---
+
+## SLICE 3: Consolidated P&L Dashboard View (Presentation Layer)
+**Effort:** ~2.5h  
+**Files:** New `web/src/app/ConsolidatedPLView.tsx` component; modifications to DashboardClient.tsx
+
+Task description:
+1. Build `ConsolidatedPLView` component with:
+   - Three summary cards: Total Revenue, Total Expenses, Net Profit/Loss (green if positive, red if negative)
+   - Date range selector (reuse existing pattern from DashboardClient or ReportsClient)
+   - Per-store breakdown table with columns: Store Name, Revenue, Expenses, Profit
+2. Wire component into DashboardClient — conditionally render `ConsolidatedPLView` when mode is "all stores"
+3. Make each summary card clickable → toggles expanded per-store detail inline
+
+Acceptance:
+- Cards display correct aggregated numbers for test data
+- Date range filtering affects all three cards consistently
+- Per-store table rows sum to match card totals (within ₹0.01)
+- Visual consistency with existing dashboard cards (use same glass-card/border classes)
+
+---
+
+## SLICE 4: Edge cases \u0026 Polish (Quality Layer)
+**Effort:** ~1h  
+**Files:** ConsolidatedPLView.tsx, actions.ts edge handling
+
+Task description:
+Handle edge cases:
+1. User with only 1 store → still show "All Stores" but it's just that one store's data
+2. No sales or no expenses in any store → show ₹0.00, not NaN or empty
+3. Date range with no data → show zeros gracefully, not errors  
+4. Large number of stores (e.g., 10+) → aggregate still renders correctly; consider loading state
+5. Store name fallback: if a store has null/empty name, display "My Store" per epic hard requirement
+
+Acceptance:
+- All edge cases render without crashes or NaN values
+- Loading indicator shown during data fetch (reuse Spinner/loader pattern from ReportsClient)
+- Pre-flight green: `cd web \u0026\u0026 npm run lint \u0026\u0026 npm run build`
+
+---
+
+## Execution Order
+
+1. Slice 1 (data pipeline) → testable immediately via Server Action call
+2. Slice 2 (switcher option) → requires s1 completion; wire to Slice 1 data  
+3. Slice 3 (UI presentation) → depends on 1 \u0026 2
+4. Slice 4 (edge cases + polish) → final pass before marking story done
+
+## Test Strategy
+
+- Manual QA: Create test user with 2 stores, insert known sales/expenses, verify aggregates match manual sums
+- Console verification: Log per-store breakdowns during data loading to spot-check calculations
+- Pre-flight: lint \u0026 build pass required before commit

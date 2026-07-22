@@ -1,0 +1,56 @@
+# Scope Definition — E24-S3: Consolidated P&L View across all owned stores
+
+story_id: e24-s3
+title: "Consolidated P&L view across all owned stores"
+created_at: "2026-07-16T00:00:00Z"
+
+---
+
+## IN SCOPE
+
+### Core Feature: "All Stores" aggregated dashboard
+1. **Store Switcher Extension** — Add "All Stores (Consolidated)" as a selectable option in the existing store switcher dropdown on the web dashboard header
+2. **Aggregated Revenue** — Sum of `totalAmount` from all Sale records across user's owned stores for selected period
+3. **Aggregated Expenses** — Sum of `amount` from all ExpenseEntry records across user's owned stores for selected period
+4. **Profit Calculation** — Net P&L = Total Revenue - Total Expenses, displayed as a standalone summary card
+5. **Date Range Filter** — Existing date range selector applies to consolidated view (same period for all stores)
+6. **Drill-Down Tables** — Clicking any aggregated metric opens a per-store breakdown table showing each store's contribution
+
+### Data Layer Support
+7. **Server Actions** — New server action(s) in `web/src/app/actions.ts` that load sales + expenses across multiple storeIds in parallel, compute aggregates
+8. **DashboardClient Integration** — Conditional data path: when storeId is "all", load consolidated view; otherwise use existing single-store flow
+
+### UI Components
+9. **ConsolidatedPLView Component** — New component showing:
+   - Header with "All Stores" label and date range picker
+   - Summary cards: Total Revenue, Total Expenses, Net Profit/Loss
+   - Per-store breakdown table (clickable drill-down from any card)
+
+---
+
+## OUT OF SCOPE
+
+1. **GSTR-2 Export** — Already in ReportsClient as "Coming Soon", separate effort
+2. **Real-time cross-store sync** — Sync is per-store; consolidated view reads cloud data, not requiring real-time sync changes
+3. **Multi-store comparison charts** — That's e24-s2 (Cross-store comparison chart)
+4. **Android store switching with separate DBs** — That's e24-s4
+5. **Store name display validation** — Already covered by epic hard requirement; not re-validated in this story
+6. **Role-based access control changes** — Existing role checks (owner can switch, staff cannot) remain
+7. **Data migration or schema changes** — All required data already exists; no new columns needed
+8. **Dark mode specific adaptations** — Dashboard already uses theme-aware classes
+
+---
+
+## ASSUMPTIONS
+
+- User's `stores` array from session contains all storeIds they own/access
+- Server-side aggregation is the right place (not client-side), since DataConnect queries are per-storeId and we don't want to expose individual store data to unprivileged clients
+- Date range filtering uses existing timestamp-based filtering (Float timestamps, same as current queries)
+- All stores have `Sale` and `ExpenseEntry` records with consistent schema
+
+---
+
+## DEPENDENCIES
+
+- **e24-s1** (Store switcher dropdown with store names) — must exist so dropdown component is in place; this story adds the "All Stores" option to it
+- **DataConnect queries already filter by storeId** — no changes needed to existing queries, we just call them per-store and aggregate server-side

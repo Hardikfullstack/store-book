@@ -1,64 +1,55 @@
-# Planning Status — StoreBook
+# Planning Status — Run: e24s03 Discover Phase
 
-last_updated: "2026-07-13"
+last_updated: "2026-07-16T01:00:00Z"
+active_story: e24-s3
+story_title: "Consolidated P&L view across all owned stores"
 
-phases:
-  - phase: Discover (Phase 1)
-    steps:
-      - name: Seed project structure & state.yaml
-        status: done
-      - name: Create AGENTS.md with conventions
-        status: done
-      - name: Generate tech-stack.md via map-codebase
-        status: done
-        artifact: specs/tech-architecture/tech-stack.md
-        lines: 447
-    overall: complete
+context_capsule:
+  written_at: "2026-07-16T01:00:00Z"
+  written_by: plan-work
+  feature_name: "Consolidated P&L view across all owned stores (e24-s3)"
+  scope_artifact: specs/epics/e24/E24-S3-SCOPE.yaml
+  tasks_artifact: specs/epics/e24/E24-S3-TASKS.yaml
+  story_spec: specs/epics/e24/e24s03-consolidated-pl-view.md
+  task_checklist: specs/epics/e24/e24s03-tasks.yaml
+  release_slot: v1.7.0
+  cycles_completed: 2
+  next_step: kickoff-branch (implementation execution)
 
-  - phase: Elaborate (Phase 2)
-    steps:
-      - name: Write VISION_LATEST.yaml
-        status: done
-      - name: Write SCOPE_LATEST.yaml
-        status: done
-      - name: Write GLOSSARY_LATEST.yaml
-        status: done
-      - name: Create epics & story shards
-        status: done
-        artifact: specs/epics/
-        count: "32 epics, numerous stories"
-      - name: Draft release-plan.yaml
-        status: done
-    overall: complete
+workflows:
+  survey-context:
+    required: true
+    status: done
+  scope-work:
+    required: true
+    status: done
+  research-first:
+    required: false
+    status: skipped
+    note: "No external dependencies — all data exists in DataConnect, no new libraries needed"
+  elaborate-spec:
+    required: false
+    status: skipped
+    note: "Scope doc E24-S3-SCOPE.yaml is sufficient; no further elaboration needed for this story size"
+  plan-release:
+    required: true
+    status: done
+    artifact: specs/release-plan.yaml#v1.7.0
+  slice-tasks:
+    required: true
+    status: done
+    artifact: specs/epics/e24/E24-S3-TASKS.yaml
+  plan-work:
+    required: true
+    status: done
+    artifact_story_spec: specs/epics/e24/e24s03-consolidated-pl-view.md
+    artifact_task_checklist: specs/epics/e24/e24s03-tasks.yaml
+    impact_assessment: "DashboardClient (mode switch), Sidebar (dropdown option), page.tsx (consolidated data fetch), actions.ts (new server action)"
+    zoom_out_modules:
+      - "DashboardClient.tsx (~363 lines) — renders per-store dashboard with delta-sync. Callers: page.tsx. Contracts: accepts {initialStats, userRole, storeId, isPremium}"
+      - "Sidebar.tsx (165 lines) — navigation + store switcher. Callers: layout. Contracts: session props, permission-filtered nav"
+      - "actions.ts (498 lines) — server actions with auth. Contracts: getDataConnect + executeGraphql pattern"
+      - "page.tsx (~30 lines) — root page rendering DashboardClient. Contracts: server component, gets session, passes props"
+    slopcheck_result: "No new external packages. recharts [OK] (already in use). Firebase Admin DataConnect SDK [OK] (project standard)."
 
-  - phase: Plan (Phase 3)
-    steps:
-      - name: DESIGN_PLAN_LATEST.md
-        status: done
-        artifact: specs/tech-architecture/DESIGN_PLAN_LATEST.md
-        bytes: 6963
-      - name: TEST_PLAN_LATEST.md
-        status: done
-        artifact: specs/tech-architecture/TEST_PLAN_LATEST.md
-        bytes: 8274
-      - name: SECURITY_PLAN_LATEST.md
-        status: done
-        artifact: specs/tech-architecture/SECURITY_PLAN_LATEST.md
-        bytes: 7646
-      - name: IMPACT_LATEST.md
-        status: done
-        artifact: specs/tech-architecture/IMPACT_LATEST.md
-        bytes: 9555
-      - name: REFACTOR_LATEST.md
-        status: done
-        artifact: specs/tech-architecture/REFACTOR_LATEST.md
-        bytes: 8656
-    overall: complete
-
-  - phase: Build (Phase 4)
-    steps:
-      - name: Execute epic story shards
-        status: pending
-    overall: not_started
-
-next_action: Begin RP-A2 (parameterized query audit) + RP-A3 (transaction extract) as pre-flight for e01/e02 stories
+legacy_phases_preserved_in_history: true

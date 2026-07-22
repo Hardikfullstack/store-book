@@ -117,6 +117,32 @@ estimated_effort_m: ~4-6
 
 ---
 
+### v1.7.0 — Multi-Store Dashboard & Cross-Store Analytics (Target: after v1.6.0)
+
+epics: [e24]
+focus: >
+  Enable multi-store owners to switch between stores, compare performance,
+  and see a consolidated P&L view without logging in/out.
+  StoreId is internal-only; all UI shows store NAMES.
+
+stories_included:
+  - "e24-s1: Store switcher dropdown showing store names (never IDs)"
+  - "e24-s3: Consolidated P&L view across all owned stores" [IN PROGRESS]
+  - "e24-s2: Cross-store comparison chart (optional, add if time permits)"
+  - "e24-s4: Android store switching (optional, separate platform concern)"
+
+gate_criteria:
+  - "Store switcher dropdown loads without errors for user with 1+ stores"
+  - "All Stores view shows correct aggregated totals (manually verified against per-store data)"
+  - "Drill-down tables show per-store breakdown matching aggregate totals"
+  - "Switching back to individual store returns correct single-store dashboard"
+gate_data_validation: >
+  Test with a user owning 2 stores with known sales/expense totals.
+  Verify: AllStores revenue = StoreA.revenue + StoreB.revenue (within ₹0.01)
+
+estimated_effort_m: ~8-10
+---
+
 ## Cadence & Process
 
 release_cadence: every_2_weeks (target, blocked by quality gates)

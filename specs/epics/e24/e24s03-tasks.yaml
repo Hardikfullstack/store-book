@@ -1,0 +1,69 @@
+---
+story_id: e24s03
+title: "Consolidated P&L View Across All Owned Stores"
+status: failing
+bcps: 3
+epic_ref: e24
+type: feat
+context: domain
+
+tasks:
+  - id: 1
+    description: "Add server action `getConsolidatedPLData(storeIds, startDate, endDate)` in actions.ts that loops over owned storeIds, fetches sales + expenses per store via dc.executeGraphql(), and returns aggregated { consolidated: { totalRevenue, totalExpenses, netPL }, perStore: [{ storeId, revenue, expenses, profit }], storesCount }"
+    verify: "grep -n 'getConsolidatedPLData' web/src/app/actions.ts | head -5 && grep -c 'executeGraphql.*sales\\|fetchSalesByStore\\|totalRevenue' web/src/app/actions.ts"
+    risk: P1
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "Multi-Store"
+        - "Financial Aggregation"
+        - "Server Actions"
+
+  - id: 2
+    description: 'Add "All Stores (Consolidated)" option to Sidebar store switcher dropdown for owners (value="all"), and update page.tsx to detect activeStoreId==="all" and fetch consolidated data from the new server action before passing to DashboardClient'
+    verify: "grep -n 'All Stores\\|value.*all' web/src/app/Sidebar.tsx 2>/dev/null || grep -n 'All Stores\\|value.*all' web/src/components/Sidebar.tsx"
+    risk: P2
+    status: failing
+    allure:
+      severity: normal
+      categories:
+        - "Multi-Store"
+        - "Navigation"
+        - "UI Enhancement"
+
+  - id: 3
+    description: "Modify DashboardClient to accept optional `isConsolidatedMode` prop + consolidated data payload. When mode=consolidated, render three P&L summary cards (Total Revenue, Total Expenses, Net Profit/Loss with green/red coloring) instead of per-store stat cards. Date filter selector remains shared."
+    verify: "grep -n 'isConsolidatedMode\\|ConsolidatedPLView\\|netPL' web/src/app/DashboardClient.tsx | head -10"
+    risk: P1
+    status: failing
+    allure:
+      severity: high
+      categories:
+        - "Multi-Store"
+        - "Dashboard Rendering"
+        - "P&L View"
+
+  - id: 4
+    description: "Create ConsolidatedPLView.tsx component with: (a) per-store breakdown table showing store name, revenue, expenses, profit; (b) click-to-toggle drill-down from summary cards; (c) loading state during data fetch. Wire it into DashboardClient consolidated mode rendering path."
+    verify: "test -f web/src/app/ConsolidatedPLView.tsx && grep -c 'perStore\\|breakdown\\|drillDown' web/src/app/ConsolidatedPLView.tsx"
+    risk: P2
+    status: failing
+    allure:
+      severity: normal
+      categories:
+        - "Multi-Store"
+        - "UI Component"
+        - "Drill-down Table"
+
+  - id: 5
+    description: "Handle edge cases: (1) single-store owner still sees 'All Stores' with that store's data; (2) zero sales/expenses renders ₹0.00 not NaN; (3) empty date range shows zeros not errors; (4) 10+ stores aggregates without crash, shows loading indicator. Run pre-flight: npm run lint && npm run build."
+    verify: "grep -n 'NaN\\|isNaN\\|loading\\|isLoading' web/src/app/ConsolidatedPLView.tsx && cd web && npm run lint 2>&1 | tail -5 && npm run build 2>&1 | tail -3"
+    risk: P2
+    status: failing
+    allure:
+      severity: normal
+      categories:
+        - "Quality"
+        - "Edge Cases"
+        - "Pre-flight Validation"
