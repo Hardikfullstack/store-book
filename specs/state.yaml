@@ -1,11 +1,11 @@
 workflow_mode: solo-git
 
 session:
-  active_flow: planning            # Phase: Implementation Planning for e24-s3
+  active_flow: build              # Phase: TDD Implementation — e24-s3
   active_epic_id: e24
   active_story_id: e24-s3          # Consolidated P&L view across all owned stores
   handoff:
-    next_skill: kickoff-branch     # Next: branch creation & implementation start
+    next_skill: develop-tdd        # Next: implement tasks via red-green-refactor
   map_codebase:
     status: complete
     completed_at: "2026-07-13"

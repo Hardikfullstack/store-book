@@ -1,0 +1,5 @@
+locks:
+- files_touched: []
+  locked_at: '2026-07-22T12:30:20Z'
+  locked_by: 'agent: build-epic'
+  story_id: e24-s3

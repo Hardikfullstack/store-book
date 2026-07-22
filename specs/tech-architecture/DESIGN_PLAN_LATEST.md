@@ -1,9 +1,9 @@
 # Design Plan — StoreBook Epic Rollout
 
 plan_doc: DP1.0
-last_updated: "2026-07-13"
+last_updated: "2026-07-22"
 epics_planned_for: [e01, e02, e03]
-status: draft
+status: complete
 
 ---
 

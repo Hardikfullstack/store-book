@@ -1,8 +1,8 @@
 # SCOPE — StoreBook Inventory Management Platform
 
 scope_doc: S1.0
-last_updated: "2026-07-13"
-derived_from: VISION_LATEST.yaml, tech-stack.md (existing codebase)
+last_updated: "2026-07-22"
+derived_from: VISION_LATEST.yaml, tech-stack.md (codebase metrics verified)
 
 ---
 
@@ -58,9 +58,9 @@ features_in_scope:
 
   - module: Sync Engine
     description: >
-      SyncWorker pushes unsynced local changes to Firebase Data Connect and pulls
-      remote updates. Parameterized queries filtered by storeId for multi-tenancy.
-      Retry logic with exponential backoff for network calls.
+      SyncWorker orchestrates pushing unsynced local changes to Firebase Data Connect
+      (PostgreSQL) and pulls remote updates. Parameterized SQLDelight queries filtered
+      by storeId for multi-tenancy. Retry logic with exponential backoff and ConflictResolver.
     status: implemented
     priority: P0
 
@@ -68,7 +68,7 @@ features_in_scope:
     description: >
       Next.js 14 app with Server Actions + Firebase Data Connect SDK for real-time
       analytics, inventory management from web, and admin panel (staff, users, stores).
-      Redux Toolkit for client-side state caching.
+      Redux Toolkit for client-side state caching. Now includes audit/drift panels.
     status: implemented
     priority: P1
 
@@ -128,7 +128,7 @@ boundaries:
 
   multi_tenancy:
     rule: "Every DB query/mutation MUST filter or scope by storeId"
-    enforcement: "@auth(level: USER)" in Data Connect queries, StoreBookDbHelper stores on Android
+    enforcement: "@auth(level: USER)" in Data Connect queries, StoreBookDbHelper/StoreBook.sq on Android
 
   offline_tolerance:
     rule: ">
