@@ -247,14 +247,10 @@ export default function ItemsClient({
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [isCreatingSupplier, setIsCreatingSupplier] = useState(false);
 
+  // Reset supplier state when modal opens or conditions change
   useEffect(() => {
-    if (!showModal || editingId || !storeId) {
-      setSuppliers([]);
-      setSelectedSupplier(null);
-      setSupplierSearch('');
-      setShowSupplierDropdown(false);
-      return;
-    }
+    if (!showModal || editingId || !storeId) return;
+
     let isMounted = true;
     const fetchSuppliers = async () => {
       try {
