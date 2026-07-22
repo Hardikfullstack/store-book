@@ -171,6 +171,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
     // ── Delete confirmation dialog state ─────────────────────────────────────
     var pendingDeleteItem by remember { mutableStateOf<Item?>(null) }
     var quickRefillItem by remember { mutableStateOf<Item?>(null) }
+    var isQuickRefillSubmitting by remember { mutableStateOf(false) }
     // ── Add/Edit Bottom Sheet ─────────────────────────────────────────────────
     var showSheet by remember { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<Item?>(null) }
@@ -758,7 +759,9 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
             },
             confirmButton = {
                 PrimaryButton(
+                    enabled = !isQuickRefillSubmitting,
                     onClick = {
+                        if (isQuickRefillSubmitting) return@PrimaryButton
                         val addedQty = addQtyInput.toDoubleOrNull()
                         val finalBuyPrice =
                             if (viewModel.userRole == "staff") {
@@ -813,6 +816,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                             ),
                                         ),
                                 )
+                            isQuickRefillSubmitting = true
                             viewModel.addPurchase(purchase) {
                                 // Log a batch record if batch number or expiry is provided
                                 if (refillBatchNumber.isNotBlank() ||
@@ -841,14 +845,19 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                         "Stock refilled & purchase logged!",
                                         android.widget.Toast.LENGTH_SHORT,
                                     ).show()
+                                quickRefillItem = null
                             }
+                        } else {
+                            quickRefillItem = null
                         }
-                        quickRefillItem = null
                     },
-                ) { Text("Add Stock") }
+                ) { Text(if (isQuickRefillSubmitting) "Adding..." else "Add Stock") }
             },
             dismissButton = {
-                TextButton(onClick = { quickRefillItem = null }) { Text("Cancel") }
+                TextButton(
+                    enabled = !isQuickRefillSubmitting,
+                    onClick = { quickRefillItem = null },
+                ) { Text("Cancel") }
             },
         )
     }
@@ -2265,11 +2274,30 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                     }
                                 val sell = inputSellPrice.toDoubleOrNull()
                                 val threshold = inputThreshold.toDoubleOrNull() ?: 5.0
-                                val hsn = inputHsnCode.trim().takeIf { it.isNotBlank() }
-                                val tax = inputTaxRate.toDoubleOrNull() ?: 0.0
+                                val hsn =
+                                    if (showAdvancedOptions) {
+                                        inputHsnCode.trim().takeIf { it.isNotBlank() }
+                                    } else {
+                                        editingItem?.hsnCode
+                                    }
+                                val tax =
+                                    if (showAdvancedOptions) {
+                                        inputTaxRate.toDoubleOrNull() ?: 0.0
+                                    } else {
+                                        editingItem?.taxRate ?: 0.0
+                                    }
                                 val batchNum =
-                                    inputBatchNumber.trim().takeIf { it.isNotBlank() }
-                                val expiryMs = inputExpiryDateMs
+                                    if (showAdvancedOptions) {
+                                        inputBatchNumber.trim().takeIf { it.isNotBlank() }
+                                    } else {
+                                        null
+                                    }
+                                val expiryMs =
+                                    if (showAdvancedOptions) {
+                                        inputExpiryDateMs
+                                    } else {
+                                        null
+                                    }
 
                                 nameError = name.isBlank()
                                 buyPriceError =

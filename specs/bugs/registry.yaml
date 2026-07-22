@@ -82,20 +82,20 @@ bugs:
   - id: BUG-11
     file: bug-restock-quantity-incorrect.yaml
     severity: P1
-    status: defined
+    status: resolved
     summary: "Inventory restock quantity increases incorrectly — non-atomic/stale state addition"
     fix: "Ensure atomic quantity addition via SQLDelight update query + guard against duplicate button click triggers in Compose UI"
 
   - id: BUG-12
     file: bug-tax-rate-not-saved.yaml
     severity: P1
-    status: defined
+    status: resolved
     summary: "Entered Tax Rate is not persisted to database when creating or updating items"
     fix: "Include taxRate in item form state, ViewModel/repository payload, and database update mutations"
 
 total: 13
-open: 2
-resolved: 9
+open: 0
+resolved: 11
 partial: 1
 deferred: 1
 by_severity:

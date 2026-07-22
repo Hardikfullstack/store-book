@@ -306,16 +306,11 @@ export default function ItemsClient({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const payload = !showAdvanced ? {
-        hsnCode: '',
-        taxRate: 0,
-        batchLotNumber: '',
-        expiryDate: ''
-      } : {
-        hsnCode: formData.hsnCode,
-        taxRate: formData.taxRate,
-        batchLotNumber: formData.batchLotNumber,
-        expiryDate: formData.expiryDate
+      const payload = {
+        hsnCode: formData.hsnCode || '',
+        taxRate: formData.taxRate || 0,
+        batchLotNumber: showAdvanced ? formData.batchLotNumber : (originalItem?.batchLotNumber || ''),
+        expiryDate: showAdvanced ? formData.expiryDate : (originalItem?.expiryDate || '')
       };
       const isNewItem = !editingId;
       const id = editingId || crypto.randomUUID();
