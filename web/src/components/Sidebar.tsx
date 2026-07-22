@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Users, Receipt, LogOut, Database, Store, Settings, BadgeCheck, LockKeyhole, History } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, Receipt, LogOut, Database, Store, Settings, BadgeCheck, LockKeyhole, History, ShoppingBag } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useState } from 'react';
 import CreateStoreModal from '@/components/CreateStoreModal';
@@ -10,6 +10,7 @@ import { resolvePermissions, PermissionSet, ROLE_LABELS } from '@/lib/roleMatrix
 // Route → Permission mapping used to build nav items dynamically
 const ROUTE_PERMISSIONS = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard, permKey: 'canViewDashboard' },
+  { name: 'Purchase History', path: '/purchases', icon: ShoppingBag, permKey: 'canViewItems' },
   { name: 'Sales', path: '/sales', icon: ShoppingCart, permKey: 'canViewSales' },
   { name: 'Items', path: '/items', icon: Package, permKey: 'canViewItems' },
   { name: 'Quotations', path: '/quotations', icon: Receipt, permKey: 'canViewItems' }, // Quotations share Items permission
@@ -115,11 +116,10 @@ export default function Sidebar({ session }: { session?: any }) {
           <Link
             key={item.name}
             href={item.path}
-            className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-              pathname === item.path || item.path !== '/' && pathname.startsWith(item.path)
+            className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${pathname === item.path || item.path !== '/' && pathname.startsWith(item.path)
                 ? 'bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400 font-medium'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
-            }`}
+              }`}
           >
             <item.icon size={20} className={
               pathname === item.path || item.path !== '/' && pathname.startsWith(item.path)

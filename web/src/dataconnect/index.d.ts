@@ -284,6 +284,35 @@ export interface GetPromoCodesData {
   } & PromoCode_Key)[];
 }
 
+export interface GetPurchaseDetailsData {
+  purchaseItemDetails: ({
+    id: string;
+    storeId: string;
+    purchaseId: string;
+    itemId: string;
+    itemName: string;
+    quantity: number;
+    unit: string;
+    buyPrice: number;
+    isDeleted: boolean;
+    updatedAt: number;
+  } & PurchaseItemDetail_Key)[];
+}
+
+export interface GetPurchaseDetailsVariables {
+  purchaseId: string;
+}
+
+export interface GetPurchasesCountData {
+  purchases: ({
+    id: string;
+  } & Purchase_Key)[];
+}
+
+export interface GetPurchasesCountVariables {
+  storeId: string;
+}
+
 export interface GetSalesCountData {
   sales: ({
     id: string;
@@ -404,6 +433,39 @@ export interface ItemBatch_Key {
 export interface Item_Key {
   id: string;
   __typename?: 'Item_Key';
+}
+
+export interface ListPurchasesData {
+  purchases: ({
+    id: string;
+    storeId: string;
+    supplierId: string;
+    supplierName: string;
+    totalAmount: number;
+    taxAmount: number;
+    type: string;
+    timestamp: number;
+    notes?: string | null;
+    isDeleted: boolean;
+    updatedAt: number;
+    purchaseItemDetails_on_purchase: ({
+      id: string;
+      itemId: string;
+      itemName: string;
+      quantity: number;
+      unit: string;
+      buyPrice: number;
+    } & PurchaseItemDetail_Key)[];
+  } & Purchase_Key)[];
+}
+
+export interface ListPurchasesVariables {
+  storeId: string;
+  limit?: number | null;
+  offset?: number | null;
+  orderByTimestamp?: OrderDirection | null;
+  orderBySupplierName?: OrderDirection | null;
+  orderByTotalAmount?: OrderDirection | null;
 }
 
 export interface PromoCode_Key {
@@ -1618,8 +1680,8 @@ interface GetStoreRef {
 }
 export const getStoreRef: GetStoreRef;
 
-export function getStore(vars: GetStoreVariables): QueryPromise<GetStoreData, GetStoreVariables>;
-export function getStore(dc: DataConnect, vars: GetStoreVariables): QueryPromise<GetStoreData, GetStoreVariables>;
+export function getStore(vars: GetStoreVariables, options?: ExecuteQueryOptions): QueryPromise<GetStoreData, GetStoreVariables>;
+export function getStore(dc: DataConnect, vars: GetStoreVariables, options?: ExecuteQueryOptions): QueryPromise<GetStoreData, GetStoreVariables>;
 
 interface GetStockAdjustmentsRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -1645,5 +1707,39 @@ export const getStockAdjustmentsCountRef: GetStockAdjustmentsCountRef;
 export function getStockAdjustmentsCount(vars: GetStockAdjustmentsCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetStockAdjustmentsCountData, GetStockAdjustmentsCountVariables>;
 export function getStockAdjustmentsCount(dc: DataConnect, vars: GetStockAdjustmentsCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetStockAdjustmentsCountData, GetStockAdjustmentsCountVariables>;
 
+interface ListPurchasesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ListPurchasesVariables): QueryRef<ListPurchasesData, ListPurchasesVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ListPurchasesVariables): QueryRef<ListPurchasesData, ListPurchasesVariables>;
+  operationName: string;
+}
+export const listPurchasesRef: ListPurchasesRef;
 
+export function listPurchases(vars: ListPurchasesVariables, options?: ExecuteQueryOptions): QueryPromise<ListPurchasesData, ListPurchasesVariables>;
+export function listPurchases(dc: DataConnect, vars: ListPurchasesVariables, options?: ExecuteQueryOptions): QueryPromise<ListPurchasesData, ListPurchasesVariables>;
+
+interface GetPurchasesCountRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetPurchasesCountVariables): QueryRef<GetPurchasesCountData, GetPurchasesCountVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetPurchasesCountVariables): QueryRef<GetPurchasesCountData, GetPurchasesCountVariables>;
+  operationName: string;
+}
+export const getPurchasesCountRef: GetPurchasesCountRef;
+
+export function getPurchasesCount(vars: GetPurchasesCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetPurchasesCountData, GetPurchasesCountVariables>;
+export function getPurchasesCount(dc: DataConnect, vars: GetPurchasesCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetPurchasesCountData, GetPurchasesCountVariables>;
+
+interface GetPurchaseDetailsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetPurchaseDetailsVariables): QueryRef<GetPurchaseDetailsData, GetPurchaseDetailsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetPurchaseDetailsVariables): QueryRef<GetPurchaseDetailsData, GetPurchaseDetailsVariables>;
+  operationName: string;
+}
+export const getPurchaseDetailsRef: GetPurchaseDetailsRef;
+
+export function getPurchaseDetails(vars: GetPurchaseDetailsVariables, options?: ExecuteQueryOptions): QueryPromise<GetPurchaseDetailsData, GetPurchaseDetailsVariables>;
+export function getPurchaseDetails(dc: DataConnect, vars: GetPurchaseDetailsVariables, options?: ExecuteQueryOptions): QueryPromise<GetPurchaseDetailsData, GetPurchaseDetailsVariables>;
 
