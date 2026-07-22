@@ -7,7 +7,7 @@ import ExportButtons from '@/app/ExportButtons';
 import { sanitizeInput } from '@/lib/sanitize';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
-import { getActiveItemsRef, syncItem, softDeleteItem, getItemsCountRef, OrderDirection, syncStockAdjustment, syncPurchase, syncPurchaseItem, syncItemBatch } from '@/dataconnect';
+import { getActiveItemsRef, syncItem, softDeleteItem, getItemsCountRef, OrderDirection, syncStockAdjustment, syncPurchase, syncPurchaseItem, syncItemBatch, getActiveSuppliers, syncSupplier } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import RestockQuantity from '@/components/models/RestockQuantity';
 import { useDispatch, useSelector } from 'react-redux';
@@ -67,6 +67,7 @@ export default function ItemsClient({
   const cachedItems = useSelector((state: RootState) => state.inventory.items);
   const lastSynced = useSelector((state: RootState) => state.inventory.lastSynced);
 
+  const CASH_SUPPLIER_ID = '068cdba2-f58e-4ab8-a596-13806e4cb18e';
   const [items, setItems] = useState<any[]>(cachedItems.length > 0 ? cachedItems : initialItems);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
@@ -127,7 +128,7 @@ export default function ItemsClient({
         fetchedPagesAtVersionRef.current.set(countKey, dataVersion);
       })
       .catch(err => console.error('Count fetch error:', err));
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPremium, storeId, refreshTrigger, debouncedSearch, minPriceFilter, maxPriceFilter]);
 
   // Fetch paginated items whenever page changes and poll regularly
@@ -240,6 +241,71 @@ export default function ItemsClient({
   const [formData, setFormData] = useState<ItemFormData>(() => emptyFormData());
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [reStockQuantity, setReStockQuantity] = useState<any | null>(null);
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
+  const [selectedSupplier, setSelectedSupplier] = useState<{ id: string; name: string } | null>(null);
+  const [supplierSearch, setSupplierSearch] = useState('');
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
+  const [isCreatingSupplier, setIsCreatingSupplier] = useState(false);
+
+  useEffect(() => {
+    if (!showModal || editingId || !storeId) {
+      setSuppliers([]);
+      setSelectedSupplier(null);
+      setSupplierSearch('');
+      setShowSupplierDropdown(false);
+      return;
+    }
+    let isMounted = true;
+    const fetchSuppliers = async () => {
+      try {
+        const res = await getActiveSuppliers(dataConnect, { storeId });
+        if (!isMounted) return;
+        const nextSuppliers = res.data.suppliers
+          .map((doc: any) => ({
+            id: doc.id,
+            name: typeof doc.name === 'string' ? doc.name.trim() : '',
+          }))
+          .filter((supplier: { id: string; name: string }) => supplier.name.length > 0);
+        setSuppliers(nextSuppliers.sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name)));
+      } catch (err) {
+        console.error('Failed to fetch suppliers:', err);
+      }
+    };
+    fetchSuppliers();
+    return () => { isMounted = false; };
+  }, [showModal, editingId, storeId]);
+
+  const filteredSuppliers = suppliers.filter((s) =>
+    s.name.toLowerCase().includes(supplierSearch.trim().toLowerCase())
+  );
+
+  const handleQuickCreateSupplier = async () => {
+    const nameToCreate = supplierSearch.trim();
+    if (!nameToCreate || !storeId) return;
+    setIsCreatingSupplier(true);
+    try {
+      const newId = crypto.randomUUID();
+      await syncSupplier(dataConnect, {
+        id: newId,
+        storeId: storeId as string,
+        name: nameToCreate,
+        phone: '',
+        gstin: '',
+        address: '',
+        isDeleted: false,
+        updatedAt: Math.floor(Date.now() / 1000)
+      });
+      const createdOption = { id: newId, name: nameToCreate };
+      setSuppliers((prev) => [...prev, createdOption].sort((a, b) => a.name.localeCompare(b.name)));
+      setSelectedSupplier(createdOption);
+      setSupplierSearch(nameToCreate);
+      setShowSupplierDropdown(false);
+    } catch (err) {
+      console.error('Create supplier failed:', err);
+    } finally {
+      setIsCreatingSupplier(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -255,6 +321,7 @@ export default function ItemsClient({
         batchLotNumber: formData.batchLotNumber,
         expiryDate: formData.expiryDate
       };
+      const isNewItem = !editingId;
       const id = editingId || crypto.randomUUID();
       await syncItem(dataConnect, {
         id,
@@ -270,6 +337,57 @@ export default function ItemsClient({
         updatedAt: Math.floor(Date.now() / 1000),
         ...payload,
       });
+
+      if (isNewItem && formData.quantity > 0) {
+        const purchaseId = crypto.randomUUID();
+        const totalAmount = formData.quantity * (formData.buy_price || 0);
+        const targetSupplierId = selectedSupplier?.id || CASH_SUPPLIER_ID;
+        const targetSupplierName = selectedSupplier?.name || 'Cash / Anonymous';
+        const taxAmount = totalAmount * ((payload.taxRate || 0) / 100);
+
+        await syncPurchase(dataConnect, {
+          id: purchaseId,
+          storeId: storeId as string,
+          supplierId: targetSupplierId,
+          supplierName: targetSupplierName,
+          totalAmount,
+          taxAmount,
+          type: 'BILL',
+          timestamp: Date.now(),
+          notes: `Initial stock for ${formData.name}`,
+          isDeleted: false,
+          updatedAt: Math.floor(Date.now() / 1000)
+        });
+
+        await syncPurchaseItem(dataConnect, {
+          id: crypto.randomUUID(),
+          storeId: storeId as string,
+          purchaseId: purchaseId,
+          itemId: id,
+          itemName: formData.name,
+          quantity: formData.quantity,
+          unit: formData.unit || 'pcs',
+          buyPrice: formData.buy_price || 0,
+          isDeleted: false,
+          updatedAt: Math.floor(Date.now() / 1000)
+        });
+
+        if (payload.batchLotNumber || payload.expiryDate) {
+          await syncItemBatch(dataConnect, {
+            id: crypto.randomUUID(),
+            storeId: storeId as string,
+            itemId: id,
+            batchNumber: payload.batchLotNumber || null,
+            expiryDate: payload.expiryDate ? new Date(payload.expiryDate).getTime() : null,
+            quantity: formData.quantity,
+            costPrice: formData.buy_price || 0,
+            timestamp: Date.now(),
+            notes: 'Initial item batch',
+            isDeleted: false,
+            updatedAt: Math.floor(Date.now() / 1000)
+          });
+        }
+      }
 
       if (editingId && originalItem && formData.quantity !== originalItem.quantity) {
         const delta = formData.quantity - originalItem.quantity;
@@ -590,6 +708,75 @@ export default function ItemsClient({
                 </div>
               </div>
 
+              {!editingId && (
+                <div className="relative">
+                  <label htmlFor="add-item-supplier" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Supplier
+                  </label>
+                  <button
+                    id="add-item-supplier"
+                    type="button"
+                    onClick={() => setShowSupplierDropdown((value) => !value)}
+                    className="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  >
+                    <span>{selectedSupplier ? selectedSupplier.name : 'Select supplier'}</span>
+                    <span className="text-gray-500 dark:text-gray-400">▼</span>
+                  </button>
+
+                  {showSupplierDropdown && (
+                    <div className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 max-h-48 overflow-y-auto">
+                      <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-700">
+                        <input aria-label="text"
+                          type="text"
+                          value={supplierSearch}
+                          onChange={(event) => setSupplierSearch(sanitizeInput(event.target.value))}
+                          placeholder="Search supplier..."
+                          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-sm text-gray-900 outline-none focus:border-teal-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSupplier(null);
+                          setSupplierSearch('');
+                          setShowSupplierDropdown(false);
+                        }}
+                        className="flex w-full items-center px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                      >
+                        Cash Purchase / No Supplier
+                      </button>
+
+                      {filteredSuppliers.map((supplier) => (
+                        <button
+                          key={supplier.id || supplier.name}
+                          type="button"
+                          onClick={() => {
+                            setSelectedSupplier(supplier);
+                            setSupplierSearch(supplier.name);
+                            setShowSupplierDropdown(false);
+                          }}
+                          className="flex w-full items-center px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                        >
+                          {supplier.name}
+                        </button>
+                      ))}
+
+                      {supplierSearch.trim() && !filteredSuppliers.some((supplier) => supplier.name.toLowerCase() === supplierSearch.trim().toLowerCase()) && (
+                        <button
+                          type="button"
+                          onClick={handleQuickCreateSupplier}
+                          disabled={isCreatingSupplier}
+                          className="flex w-full items-center px-3 py-2 text-left text-sm font-medium text-teal-600 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-70 dark:text-teal-300 dark:hover:bg-teal-900/30"
+                        >
+                          {isCreatingSupplier ? 'Creating...' : `Create supplier: "${supplierSearch.trim()}"`}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {editingId && originalItem && formData.quantity !== originalItem.quantity && (
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Reason for Stock Adjustment</label>
@@ -733,7 +920,6 @@ export default function ItemsClient({
           // Optimistic update
           setItems((prev) => prev.map((item: any) => item.id === reStockQuantity.id ? updatedItem : item));
           dispatch(updateInventoryItem(updatedItem));
-
           await syncItem(dataConnect, {
             id: reStockQuantity.id,
             storeId: storeId as string,
@@ -770,8 +956,8 @@ export default function ItemsClient({
           await syncPurchase(dataConnect, {
             id: purchaseId,
             storeId: storeId as string,
-            supplierId: payload.supplierId || '',
-            supplierName: payload.supplierName || 'Cash / Anonymous',
+            supplierId: payload.supplierId,
+            supplierName: payload.supplierName,
             totalAmount,
             taxAmount,
             type: 'BILL',
