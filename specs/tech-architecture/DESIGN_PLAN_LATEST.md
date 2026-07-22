@@ -115,14 +115,6 @@ WHERE quantity < low_stock_threshold
 
 For each result: send Android Notification via `NotificationCompat.Builder`, update flag `low_stock_alert_sent = true`. Reset flag when item is re-stocked above threshold.
 
-**3. Photo Path Validation**
-
-New utility `ItemPhotoValidator`:
-- Before save: `File(photoPath).exists() && file.length() < 5 * 1024 * 1024`
-- Before display: try/catch `BitmapFactory.decodeFile()` → on failure, return default drawable `R.drawable.ic_item_placeholder`
-
----
-
 ## C. Financial Accuracy Layer (e03)
 
 ### Current Architecture
@@ -191,7 +183,6 @@ fun convertQuotationToSale(qId: Long): Result<Long> {
 |----------|--------|-----------|
 | Conflict strategy | Last-write-wins (updatedAt) | Simplest for single-user-per-store scenario. No operational transform needed yet. |
 | Retry persistence | Local SQLite queue table | Offline resilience — survives app kill, device restart |
-| Photo storage | File path string in DB + filesystem | Already established pattern. Cloud photo upload deferred to later epic. |
 | Udhaar balance | Computed on demand | No denormalization risk. Query cost is negligible for <10k udhaar records per store. |
 | Aggregate caching | Vercel ISR (5min) | Sufficient freshness for dashboard, avoids real-time WebSocket complexity. |
 | **Local DB driver (HARD REQ)** | **CashApp SQLDelight** | **All local SQLite access MUST use SQLDelight `.sq` files — no raw `SQLiteOpenHelper`, no Room DAO strings, no hand-written SQL. Generates compile-validated Kotlin types. Deploys via RP-A0 before any epic implementation.** |

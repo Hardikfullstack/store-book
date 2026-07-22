@@ -22,7 +22,6 @@ stories_included:
   - "e01-s4: Sync progress indicator in Android UI"
   - "e02-s1: Wrap Item CRUD in SQLite transactions"
   - "e02-s2: Low-stock threshold alert in ExpiryCheckWorker"
-  - "e02-s3: Validate item photo paths"
 
 gate_criteria:
   - "Pre-flight: web lint + build passes (npm run lint && npm run build)"
