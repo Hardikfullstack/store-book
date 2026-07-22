@@ -540,3 +540,59 @@ query GetStockAdjustmentsCount($storeId: String!) @auth(level: USER) {
   }
 }
 
+# -----------------------------------------
+# PURCHASE HISTORY QUERIES
+# -----------------------------------------
+
+query ListPurchases(
+  $storeId: String!
+  $limit: Int
+  $offset: Int
+  $orderByTimestamp: OrderDirection
+  $orderBySupplierName: OrderDirection
+  $orderByTotalAmount: OrderDirection
+) @auth(level: USER) {
+  purchases(
+    where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }
+    limit: $limit
+    offset: $offset
+    orderBy: [
+      { timestamp: $orderByTimestamp }
+      { supplierName: $orderBySupplierName }
+      { totalAmount: $orderByTotalAmount }
+    ]
+  ) {
+    id
+    storeId
+    supplierId
+    supplierName
+    totalAmount
+    taxAmount
+    type
+    timestamp
+    notes
+    isDeleted
+    updatedAt
+  }
+}
+
+query GetPurchasesCount($storeId: String!) @auth(level: USER) {
+  purchases(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    id
+  }
+}
+
+query GetPurchaseDetails($purchaseId: String!) @auth(level: USER) {
+  purchaseItemDetails(where: { purchaseId: { eq: $purchaseId }, isDeleted: { eq: false } }) {
+    id
+    storeId
+    purchaseId
+    itemId
+    itemName
+    quantity
+    unit
+    buyPrice
+    isDeleted
+    updatedAt
+  }
+}

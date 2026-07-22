@@ -1,0 +1,15 @@
+epic_id: e35
+title: "Purchase History Module"
+priority: P1
+status: defined
+target_version: v1.9.0
+description: |
+  Create a new module to display Purchase History. 
+  Whenever an item is added or restocked, it acts as a "purchase". This module will show all such purchases.
+scope:
+  in:
+    - Create backend APIs (DataConnect/Next.js actions) to fetch purchase history.
+    - Create a Frontend module/page to display purchase history (Item, Supplier, Quantity, Price).
+  out:
+    - Editing purchase prices and retroactive cost calculation.
+    - Supplier payments and full accounting modules.
