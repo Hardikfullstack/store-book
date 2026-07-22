@@ -6,7 +6,7 @@ scope_feature: ["Sales & Billing (P0)", "Udhaar Credit Ledger (P1)", "Expense Tr
 depends_on_epics: [e02]
 target_version: v1.4.0
 priority: P1
-status: in-progress
+status: complete
 
 rationale: >
   Financial transactions must be accurate and auditable. Currently, sale totals are computed client-side,
