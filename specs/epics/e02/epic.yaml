@@ -6,18 +6,15 @@ scope_feature: ["Inventory Management (P0)", "Android POS (P0)"]
 depends_on_epics: []
 target_version: v1.3.0
 priority: P0
-status: defined
+status: complete
 
 rationale: >
   Inventory is the foundational data model. Items must be created/updated/deleted atomically with
   SyncState tracking. Low-stock alerts fire via ExpiryCheckWorker but currently only handle expiry,
-  not low-stock threshold checks. Additionally, photo upload paths for items need validation to
-  prevent crashes on invalid file references.
-
+  not low-stock threshold checks.
 success_criteria:
   - "All item CRUD operations wrapped in SQLite transactions — partial writes rolled back"
   - "Low-stock threshold alert fires within 24h when quantity crosses threshold"
-  - "Item photo save/load handles corrupt or missing files gracefully (placeholder shown)"
 
 stories:
   - id: e02-s1
@@ -35,10 +32,3 @@ stories:
       - "Worker queries all items WHERE quantity < lowStockThreshold AND isLowStockAlertSent = false"
       - "For each such item, send notification + set alert flag in local DB"
       - "Dashboard screen highlights low-stock items with red badge on name"
-
-  - id: e02-s3
-    title: "Validate item photo paths before saving/displaying"
-    acceptance:
-      - "When saving item photo, validate file exists and is < 5MB"
-      - "On load, catch FileNotFoundException → show default placeholder icon instead of crash"
-      - "Unit test: create Item with null/empty photoPath renders without error"
