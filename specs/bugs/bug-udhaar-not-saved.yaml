@@ -1,0 +1,20 @@
+# Bug — Udhaar Entry Not Saved
+
+id: bug-udhaar-not-saved
+title: "Udhaar created from sale is not added to Udhaar list"
+severity: P2
+status: defined
+reported: "2026-07-22"
+component: [SaleScreen, UdhaarViewModel, UdhaarRepository]
+
+issue: |
+  When a user creates an Udhaar (credit) entry from the sale flow, the entry is not being added to the Udhaar List in the app.
+
+expected_behavior: >
+  When an Udhaar is successfully created from a sale, it should be saved to the database and immediately appear in the Udhaar List.
+
+actual_behavior: >
+  The Udhaar entry is not added to the Udhaar List, suggesting it might not be saving correctly to the local database or the list is not refreshing to show the new entry.
+
+root_cause: >
+  Pending investigation. Possible causes include a missing database insert call when saving an Udhaar transaction instead of a regular paid sale, or the Udhaar list UI not correctly observing updates from the database.

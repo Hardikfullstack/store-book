@@ -93,11 +93,33 @@ bugs:
     summary: "Entered Tax Rate is not persisted to database when creating or updating items"
     fix: "Include taxRate in item form state, ViewModel/repository payload, and database update mutations"
 
-total: 13
-open: 0
+  - id: BUG-13
+    file: bug-sale-increases-stock.yaml
+    severity: P1
+    status: defined
+    summary: "Inventory stock increases instead of decreasing when a sale is created"
+    fix: "Ensure atomic quantity subtraction via SQLDelight update query during sale"
+
+  - id: BUG-14
+    file: bug-estimate-not-saved.yaml
+    severity: P2
+    status: defined
+    summary: "Estimate created from sale is not added to Quotation & Estimation list"
+    fix: "Implement database insert logic for Estimates and ensure UI observes database changes"
+
+  - id: BUG-15
+    file: bug-udhaar-not-saved.yaml
+    severity: P2
+    status: defined
+    summary: "Udhaar created from sale is not added to Udhaar list"
+    fix: "Implement database insert logic for Udhaar and ensure UI observes database changes"
+
+total: 16
+open: 3
 resolved: 11
 partial: 1
 deferred: 1
 by_severity:
   P0: "6 resolved, 4 previously resolved"
-  P1: "9 resolved + 2 open + 1 partial + 1 deferred"
+  P1: "11 resolved + 1 open + 1 partial + 1 deferred"
+  P2: "2 open"

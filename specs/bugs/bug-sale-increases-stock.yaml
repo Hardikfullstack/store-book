@@ -1,0 +1,20 @@
+# Bug — Sale Increases Stock Incorrectly
+
+id: bug-sale-increases-stock
+title: "Inventory stock increases instead of decreasing when a sale is created"
+severity: P1
+status: defined
+reported: "2026-07-22"
+component: [SaleScreen, InventoryViewModel, InventoryRepository]
+
+issue: |
+  When a user creates a sale for an item, the inventory stock for that item suddenly increases instead of decreasing by the sold amount.
+
+expected_behavior: >
+  When a sale is created, the inventory stock for the sold items should decrease by the exact quantity sold.
+
+actual_behavior: >
+  The inventory stock increases instead of decreasing when a sale is created.
+
+root_cause: >
+  Pending investigation. Likely an incorrect sign (+ instead of -) in the SQL update query for the stock adjustment during a sale, or calling an incorrect repository method that adds instead of subtracts stock.

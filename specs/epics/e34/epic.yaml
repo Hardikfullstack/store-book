@@ -1,0 +1,16 @@
+epic_id: e34
+title: "App: Stock Audit Module and Adjustments"
+priority: P0
+status: defined
+target_version: v1.3.2
+description: |
+  Implement the Stock Audit module in the app to match the web application. 
+  Additionally, ensure that whenever inventory quantity is updated or restocked, an entry is added to the stock adjustment log.
+scope:
+  in:
+    - Create a Stock Audit UI in the app similar to the web version.
+    - Implement logic to record stock adjustments when an item is updated with an quantity.
+    - Implement logic to record stock adjustments when an item is restocked.
+    - Ensure stock adjustment entries are synchronized with the backend.
+  out:
+    - Modifying the existing Web implementation.
