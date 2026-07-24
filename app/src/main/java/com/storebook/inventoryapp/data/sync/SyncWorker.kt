@@ -160,6 +160,7 @@ class SyncWorker(
                         photoPath = it.photo_path
                         ; barcode = it.barcode
                         ; hsnCode = it.hsn_code
+                        ; taxRate = it.tax_rate
                     }
             r.markItemSynced(it.id, res.data.key.id)
         }
@@ -231,6 +232,7 @@ class SyncWorker(
                                 photoPath = it.photo_path
                                 ; barcode = it.barcode
                                 ; hsnCode = it.hsn_code
+                                ; taxRate = it.tax_rate
                             }
                     r.markItemSynced(it.id, res.data.key.id)
                     count++
@@ -593,7 +595,7 @@ class SyncWorker(
                                 name = i.name, quantity = i.quantity, unit = i.unit,
                                 buyPrice = i.buyPrice, sellPrice = i.sellPrice, lowStockThreshold = i.lowStockThreshold,
                                 category = i.category, photoPath = i.photoPath ?: "", barcode = i.barcode ?: "",
-                                hsnCode = i.hsnCode ?: "", taxRate = 0.0,
+                                hsnCode = i.hsnCode ?: "", taxRate = i.taxRate ?: 0.0,
                                 isDeleted = if (i.isDeleted) 1L else 0L, cloudId = i.id,
                                 updatedAt = i.updatedAt.toLong(),
                             )

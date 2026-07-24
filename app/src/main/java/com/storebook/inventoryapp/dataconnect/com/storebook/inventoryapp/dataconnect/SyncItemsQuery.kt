@@ -44,6 +44,7 @@ public interface SyncItemsQuery :
             val photoPath: String?,
             val barcode: String?,
             val hsnCode: String?,
+            val taxRate: Double?,
             val isDeleted: Boolean,
             val updatedAt: Double,
         )
