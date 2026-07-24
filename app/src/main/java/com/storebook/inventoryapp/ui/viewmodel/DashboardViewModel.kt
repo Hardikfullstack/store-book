@@ -149,6 +149,8 @@ class DashboardViewModel(
                         sellPrice = i.sell_price,
                         lowStockThreshold = i.low_stock_threshold,
                         category = i.category,
+                        hsnCode = i.hsn_code,
+                        taxRate = i.tax_rate,
                     )
                 }
             val items = _allItems.value
@@ -246,11 +248,14 @@ class DashboardViewModel(
         }
     }
 
+    private val activeStoreId: String
+        get() = prefs.getString("active_store_id", "default_store") ?: "default_store"
+
     val businessName: String
-        get() = prefs.getString("business_name", "Store") ?: "Store"
+        get() = prefs.getString("business_name_$activeStoreId", prefs.getString("business_name", "Store")) ?: "Store"
 
     val businessGstin: String
-        get() = prefs.getString("business_gstin", "") ?: ""
+        get() = prefs.getString("business_gstin_$activeStoreId", prefs.getString("business_gstin", "")) ?: ""
 
     fun exportGSTR1Excel(
         context: Context,
@@ -301,6 +306,8 @@ class DashboardViewModel(
                             sellPrice = it.sell_price,
                             lowStockThreshold = it.low_stock_threshold,
                             category = it.category,
+                            hsnCode = it.hsn_code,
+                            taxRate = it.tax_rate,
                         )
                 }
             com.storebook.inventoryapp.utils.Gstr1CsvExporter.exportGstr1Csv(
@@ -432,8 +439,18 @@ class DashboardViewModel(
                             sellPrice = it.sell_price,
                             lowStockThreshold = it.low_stock_threshold,
                             category = it.category,
+                            hsnCode = it.hsn_code,
+                            taxRate = it.tax_rate,
                         )
                 }
+            val prefs =
+                com.storebook.inventoryapp.utils.SecurityUtils
+                    .getEncryptedPrefs(context)
+            val activeStoreId = prefs.getString("active_store_id", "default_store") ?: "default_store"
+            val businessName =
+                prefs.getString("business_name_$activeStoreId", prefs.getString("business_name", "Store")) ?: "Store"
+            val businessGstin =
+                prefs.getString("business_gstin_$activeStoreId", prefs.getString("business_gstin", "")) ?: ""
             com.storebook.inventoryapp.utils.ExcelExporter.exportGstr3B(
                 context = context,
                 fileName = fileName,
@@ -581,6 +598,8 @@ class DashboardViewModel(
                     sellPrice = it.sell_price,
                     lowStockThreshold = it.low_stock_threshold,
                     category = it.category,
+                    hsnCode = it.hsn_code,
+                    taxRate = it.tax_rate,
                 )
         }
 }

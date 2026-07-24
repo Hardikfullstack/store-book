@@ -176,6 +176,10 @@ class SalesRepository(
         totalAmount: Double,
         discountAmount: Double,
         customerName: String,
+        customerGstin: String?,
+        businessGstin: String?,
+        customerAddress: String?,
+        businessAddress: String?,
         type: String
     ): Long = withContext(Dispatchers.IO) {
         val shouldDeductStock = type != "ESTIMATE"
@@ -185,7 +189,7 @@ class SalesRepository(
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
             queries.insertSale(
                 timestamp, totalAmount, discountAmount, customerName,
-                null, null, null, null, type, null, timestamp
+                customerGstin, businessGstin, customerAddress, businessAddress, type, null, timestamp
             )
             newSaleId = queries.getLastInsertRowId().executeAsOne()
 

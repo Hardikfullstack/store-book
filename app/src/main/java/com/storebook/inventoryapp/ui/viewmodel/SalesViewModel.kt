@@ -100,6 +100,8 @@ class SalesViewModel(
                         sellPrice = i.sell_price,
                         lowStockThreshold = i.low_stock_threshold,
                         category = i.category,
+                        hsnCode = i.hsn_code,
+                        taxRate = i.tax_rate,
                     )
                 }
             val balances = udhaarRepository.getUdhaarBalances()
@@ -186,12 +188,25 @@ class SalesViewModel(
                 }
             try {
                 // BUG-01: All-or-nothing atomic insert + deduce inside a single database.transaction{}
+                val prefs =
+                    com.storebook.inventoryapp.utils.SecurityUtils
+                        .getEncryptedPrefs(context)
+                val activeStoreId = prefs.getString("active_store_id", "default_store") ?: "default_store"
+                val bizGstin = prefs.getString("business_gstin_$activeStoreId", prefs.getString("business_gstin", ""))
+                val bizAddress =
+                    prefs
+                        .getString("business_address_$activeStoreId", prefs.getString("business_address", ""))
+
                 val saleId =
                     salesRepository.atomicCheckout(
                         cartItemsData = cartItemsData,
                         totalAmount = total,
                         discountAmount = cartDiscount,
                         customerName = cartCustomerName.ifBlank { "Cash / Anonymous" },
+                        customerGstin = cartCustomerGstin.trim().takeIf { it.isNotBlank() },
+                        businessGstin = bizGstin?.takeIf { it.isNotBlank() },
+                        customerAddress = cartCustomerAddress.trim().takeIf { it.isNotBlank() },
+                        businessAddress = bizAddress?.takeIf { it.isNotBlank() },
                         type = type,
                     )
 
@@ -416,21 +431,16 @@ class SalesViewModel(
         context: android.content.Context,
         saleId: Long,
     ) {
+        val prefs =
+            com.storebook.inventoryapp.utils.SecurityUtils
+                .getEncryptedPrefs(context)
+        val activeStoreId = prefs.getString("active_store_id", "default_store") ?: "default_store"
         val businessName =
-            com.storebook.inventoryapp.utils.SecurityUtils
-                .getEncryptedPrefs(context)
-                .getString("business_name", "Store")
-                ?: "Store"
+            prefs.getString("business_name_$activeStoreId", prefs.getString("business_name", "Store")) ?: "Store"
         val businessAddress =
-            com.storebook.inventoryapp.utils.SecurityUtils
-                .getEncryptedPrefs(context)
-                .getString("business_address", "")
-                ?: ""
+            prefs.getString("business_address_$activeStoreId", prefs.getString("business_address", "")) ?: ""
         val businessGstin =
-            com.storebook.inventoryapp.utils.SecurityUtils
-                .getEncryptedPrefs(context)
-                .getString("business_gstin", "")
-                ?: ""
+            prefs.getString("business_gstin_$activeStoreId", prefs.getString("business_gstin", "")) ?: ""
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val saleObj = salesRepository.getSaleById(saleId)
             if (saleObj != null) {
@@ -480,6 +490,8 @@ class SalesViewModel(
                                     sellPrice = it.sell_price,
                                     lowStockThreshold = it.low_stock_threshold,
                                     category = it.category,
+                                    hsnCode = it.hsn_code,
+                                    taxRate = it.tax_rate,
                                 )
                             }
                                 ?: Item(
@@ -491,6 +503,8 @@ class SalesViewModel(
                                     sellPrice = saleItem.sellPrice,
                                     lowStockThreshold = 0.0,
                                     category = "",
+                                    hsnCode = "",
+                                    taxRate = 0.0,
                                 )
                         CartItem(item = actualItem, quantity = saleItem.quantity)
                     }
