@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Minus, Trash2, X, ShoppingCart, Loader2 } from 'lucide-react';
 import { dataConnect } from '@/lib/firebase';
-import { getActiveItems, syncSale, syncSaleItem, syncItem } from '@/dataconnect';
+import { getActiveItems, syncSale, syncSaleItem, syncItem, syncUdhaar } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
@@ -302,6 +302,22 @@ export default function SalesPOS({
         }
       }
 
+      // Create Udhaar ledger entry for credit sales
+      if (paymentMode === 'Udhaar' && saleType === 'SALE') {
+        const udhaarId = crypto.randomUUID();
+        await syncUdhaar(dataConnect, {
+          id: udhaarId,
+          storeId,
+          customerName: customerName.trim(),
+          amount: total,
+          type: 'given',
+          timestamp: now,
+          notes: `Credit Sale #${saleId}`,
+          isDeleted: false,
+          updatedAt
+        });
+      }
+
       // Generate PDF Invoice
       try {
         InvoicePdfGenerator.generateInvoicePdf(
@@ -336,6 +352,10 @@ export default function SalesPOS({
       }
 
       dispatch(clearCart());
+      // BUG-09 FIX: Invalidate dashboard ISR cache after client-side DataConnect mutation
+      try {
+        await import('@/app/actions').then(m => m.revalidateDashboard() as any);
+      } catch (_) { /* best-effort, don't block success path */ }
       onSuccess();
     } catch (error) {
       console.error("Checkout failed:", error);

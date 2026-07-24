@@ -1,51 +1,55 @@
 <!-- BEGIN bigpowers:project -->
 # StoreBook — AI Agents
 
-Read **CONVENTIONS.md** before any GitHub or git operation.
-
 ## Project
-Multi-tenant retail inventory management platform for Indian small businesses. Offline-first Android POS with cloud sync to a Next.js web dashboard.
-Stack: Kotlin + Jetpack Compose + SQLite (Android) / TypeScript + Next.js 14 + Redux Toolkit (Web) / Firebase Data Connect → Cloud SQL PostgreSQL / KMP shared module / Firebase Auth (Phone OTP + Email/Password)
+Offline-first Android POS + cloud-sync Next.js web dashboard for Indian small businesses. Kotlin/Compose + SQLDelight (Android) / TypeScript + Next.js 16 + Redux Toolkit (Web) / Firebase Data Connect → Cloud SQL PostgreSQL / KMP shared module (`:shared`). Multi-tenant via `storeId` on every table.
 
 ## Commands
-| Action       | Command                                      |
-|--------------|----------------------------------------------|
-| Android Run  | `./gradlew :app:installDebug`                 |
-| Android Build| `./gradlew :app:assembleDebug`                |
-| Android Test | *(none yet)*                                 |
-| Android Lint | *(none yet — no ktlint configured)*           |
-| Web Run      | `cd web && npm run dev`                       |
-| Web Build    | `cd web && npm run build`                     |
-| Web Test     | *(none yet)*                                 |
-| Web Lint     | `cd web && npm run lint`                      |
-| Preflight    | `echo "no tests yet" && cd web && npm run lint && cd web && npm run build` |
-| CI           | `gh pr checks` (when a PR is open)            |
+| Action            | Command                                                   |
+|-------------------|-----------------------------------------------------------|
+| Android Build     | `./gradlew :app:assembleDebug`                            |
+| Android Install   | `./gradlew :app:installDebug`                             |
+| Android Lint      | `./gradlew lintKtLintCheck` (ktlint 1.5.0 in `:app`)     |
+| Android Unit Test | `./gradlew :shared:jvmTest`                               |
+| Android Snapshot  | `./gradlew verifyRoborazziDebug`                          |
+| Android Record    | `./gradlew recordRoborazziDebug` (updates golden images)  |
+| Web Dev           | `cd web && npm run dev`                                   |
+| Web Build          | `cd web && npm run build`                                 |
+| Web Lint           | `cd web && npm run lint`                                  |
+| Web Type Check     | `cd web && npm run type-check`                            |
+
+No CI configured — all gates are local.
+
+## Pre-Commit Checks
+After completing any code changes, run the following checks before considering work done. If any check fails, fix the errors and re-run until all pass:
+1. `./gradlew :app:ktlintCheck` — Android Kotlin linting
+2. `./gradlew :shared:jvmTest` — KMP shared module unit tests
+3. `cd web && npm run lint` — Web ESLint
+4. `cd web && npm run type-check` — Web TypeScript type checking
 
 ## Architecture
-Android app handles local CRUD on SQLite; `SyncWorker` pushes/pulls via Firebase Data Connect → Cloud SQL PostgreSQL. Web dashboard uses Next.js Server Actions + Data Connect SDK with Redux-persist caching. KMP shared module (`shared/`) provides domain models to both platforms. Multi-tenancy enforced via `storeId` on every table.
+- **Android** (`:app`) — Jetpack Compose UI, ViewModels in `ui/`, SQLite via SQLDelight (schema auto-generated from `:shared`). `SyncWorker` pushes/pulls through Firebase Data Connect.
+- **Shared** (`:shared`) — KMP module. Domain models + SQLDelight schema. Targets android, jvm, ios. JVM target used for unit tests against in-memory SQLite.
+- **Web** (`web/`) — Next.js 16 App Router, turbopack enabled, `next-pwa` (disabled in dev). Server Actions under `web/src/app/api/`. Redux + redux-persist client cache.
+- **Data** — Firebase Data Connect schemas live in `dataconnect/schema/`, generated TS SDK at `web/src/dataconnect/`. No raw SQL interpolation anywhere.
+
+## Environment
+- Web requires `web/.env.local` (Firebase config, Razorpay keys). File is gitignored; ask the user if missing.
+- Android Java home: `/opt/android-studio/jbr` (set in `.vscode/settings.json`).
 
 ## Conventions
-- Kotlin packages: `com.storebook.inventoryapp.{data,ui,services,workers}` — follow existing structure
-- Web app: Next.js App Router colocation under `web/src/app/{route}/`
-- All planning and specifications MUST be written to `specs/` before code is generated
-- SQL queries use parameterized strings; no raw interpolation
-- Defensive categories in scope: **Retry** (SyncWorker network calls), **Circuit breaker** (Firebase auth failures), **Timeout** (Data Connect queries)
+- Kotlin package: `com.storebook.inventoryapp.{data,ui,services,workers}`
+- Web routes: `web/src/app/{route}/page.tsx` + `{route}/{Route}Client.tsx` pattern
+- Specs live in `specs/`; write to `specs/` before generating code. YAML is source of truth over markdown there.
+- SQLDelight database class: `StoreBookDatabase` (configured in `shared/build.gradle.kts`). Any schema change requires a `.sq` file edit + Gradle regeneration — no manual migration method.
+- Roborazzi snapshots go under `app/src/test/snapshots/`; golden images are committed to repo. 0.5% pixel-diff threshold.
+- Defensive patterns in scope: **Retry** (SyncWorker), **Circuit breaker** (Firebase auth), **Timeout** (Data Connect queries).
 
 ## Never
-- Never dismiss reproducible gate failures as pre-existing or out of scope
-- Never proceed on red Preflight or red CI — invoke quick-fix or fix-bug first
-- Never commit Firebase credentials, service-account.json, or local.properties to git
-- Never directly modify SQLite schema tables without updating `StoreBookDbHelper.onUpgrade()` migration
-- Never bypass `storeId` multi-tenancy guards in any query or mutation
-- Never write code that hard-codes absolute paths outside the app/web modules
-
-## Agent Rules
-- **Workflow Mandate:** You MUST use the bigpowers skills (e.g. `plan-work`, `develop-tdd`, `orchestrate-project`) to perform tasks. DO NOT write code directly in response to a user prompt like "build this feature".
-- **Always Green:** Preflight and CI must be green before forward work. Reproducible gate failures require **fix-or-log** (quick-fix → fix-bug) per CONVENTIONS § Discovered Defects.
-- Read `specs/` before writing code.
-- Write the minimum code that solves the stated problem. Nothing extra.
-- Run tests after every change (when available). Show evidence before declaring done.
-- One clarifying question beats a wrong assumption baked into 200 lines.
+- Never commit Firebase credentials, `service-account.json`, or `local.properties`.
+- Never bypass `storeId` multi-tenancy guards in any query or mutation.
+- Never hard-code absolute paths outside `app/` or `web/`.
+- Never modify `backend/` (legacy Express.js dev remnant) unless explicitly asked.
 
 <!-- END bigpowers:project -->
 
@@ -54,25 +58,15 @@ Android app handles local CRUD on SQLite; `SyncWorker` pushes/pulls via Firebase
 
 | Glob Pattern | Sub-doc |
 |---|---|
-| `app/**` | Android Kotlin source — Jetpack Compose screens, ViewModels, Repository |
+| `app/**` | Android Kotlin — Compose screens, ViewModels, tests, Roborazzi snapshots |
+| `shared/` | KMP module — domain models, SQLDelight schema (.sq), JVM unit tests |
 | `web/src/app/**` | Next.js App Router pages + Server Actions |
 | `web/src/components/**` | Shared React components |
-| `web/src/lib/**` | Firebase init, session, billing engine |
+| `web/src/lib/**` | Firebase init, session, billing engine, utils |
 | `web/src/store/**` | Redux Toolkit slices (cart, inventory, udhaar) |
-| `dataconnect/**` | Firebase Data Connect schema + queries + mutations (GQL) |
-| `shared/**` | KMP shared module — domain models |
-| `backend/**` | Legacy Express.js (dev remnant — do not modify unless refactoring) |
-| `docs/**` | Project specification documents (read-only reference) |
+| `dataconnect/schema/` | Firebase Data Connect schema + queries + mutations (GQL) |
+| `web/src/dataconnect/` | Auto-generated TS SDK — do not edit directly |
+| `backend/` | Legacy Express.js — read-only unless refactoring |
+| `specs/` | Planning docs, epics, bug registry, test plan (YAML > MD) |
 
 <!-- END bigpowers:context-routing -->
-
-<!-- BEGIN bigpowers:learned-preferences -->
-## Learned User Preferences
-
-*(To be populated by session-state skill as patterns emerge.)*
-
-## Workspace Facts
-
-*(To be populated by session-state skill.)*
-
-<!-- END bigpowers:learned-preferences -->

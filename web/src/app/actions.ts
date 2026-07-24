@@ -496,3 +496,7 @@ export async function convertQuotationToSale(estimateId: string): Promise<{ succ
     return { success: false, error: err.message };
   }
 }
+
+export async function revalidateDashboard() {
+  revalidatePath('/');
+}

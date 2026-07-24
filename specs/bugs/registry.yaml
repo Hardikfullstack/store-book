@@ -62,9 +62,9 @@ bugs:
   - id: BUG-09
     file: bug-web-stale-dashboard.yaml
     severity: P1
-    status: partial
+    status: resolved
     summary: "Dashboard not invalidated after mutations — stale revenue shown"
-    fix_partial: "Added revalidatePath('/') to convertQuotationToSale. Full fix requires adding revalidateTag('dashboard') across all mutation server actions."
+    fix: "Added revalidateDashboard() server action called from SalesPOS.tsx and ExpensesClient.tsx after client-side DataConnect mutations."
 
   - id: BUG-10
     file: bug-udhaar-balance-client-only.yaml
@@ -96,28 +96,28 @@ bugs:
   - id: BUG-13
     file: bug-sale-increases-stock.yaml
     severity: P1
-    status: defined
+    status: resolved
     summary: "Inventory stock increases instead of decreasing when a sale is created"
-    fix: "Ensure atomic quantity subtraction via SQLDelight update query during sale"
+    fix: "SalesRepository.kt:215 passes signed delta (-quantity) to updateItemStock() instead of absolute newQty"
 
   - id: BUG-14
     file: bug-estimate-not-saved.yaml
     severity: P2
-    status: defined
+    status: resolved
     summary: "Estimate created from sale is not added to Quotation & Estimation list"
-    fix: "Implement database insert logic for Estimates and ensure UI observes database changes"
+    fix: "SalesViewModel.kt:209-229 reloads StateFlow via loadAllData(true) and explicitly sets _salesHistoryList after checkout"
 
   - id: BUG-15
     file: bug-udhaar-not-saved.yaml
     severity: P2
-    status: defined
+    status: resolved
     summary: "Udhaar created from sale is not added to Udhaar list"
-    fix: "Implement database insert logic for Udhaar and ensure UI observes database changes"
+    fix: "Android: SalesViewModel.kt:200-207 inserts Udhaar on checkout when paymentMode==Udhaar. Web: SalesPOS.tsx now calls syncUdhaar DataConnect mutation for credit sales. StateFlow/refetch reloads ledger UI."
 
 total: 16
-open: 3
-resolved: 11
-partial: 1
+open: 0
+resolved: 14
+partial: 0
 deferred: 1
 by_severity:
   P0: "6 resolved, 4 previously resolved"

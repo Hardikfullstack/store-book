@@ -86,7 +86,7 @@ class SalesRepository(
         queries.generatePriceDriftReport().executeAsList()
     }
 
-    // E03-S4: Convert quotation to sale — atomically copies all line items
+    // E03-S4: Convert quotation to sale — atomically copies all line items + deducts stock
     suspend fun convertQuotationToSale(quotationId: Long): Long = withContext(Dispatchers.IO) {
         val quotation = queries.getSaleById(quotationId).executeAsOneOrNull()
         if (quotation == null || quotation.type != "ESTIMATE" || quotation.is_converted == 1L) {
@@ -95,6 +95,23 @@ class SalesRepository(
 
         var newSaleId = -1L
         database.transaction {
+            // Step 0: Check stock availability before committing to conversion (BUG-STOCK-INT guard)
+            val quoteItems = queries.getSaleItemsBySaleId(quotationId).executeAsList()
+            for (qi in quoteItems) {
+                val currentItem = queries.getItemById(qi.item_id).executeAsOneOrNull()
+                if (currentItem != null) {
+                    val newQty = currentItem.quantity - qi.quantity
+                    if (newQty < 0) {
+                        throw com.storebook.inventoryapp.shared.domain.repository.InventoryRepository.InsufficientStockException(
+                            itemId = qi.item_id,
+                            itemName = currentItem.name,
+                            currentQuantity = currentItem.quantity,
+                            requestedChange = -qi.quantity
+                        )
+                    }
+                }
+            }
+
             // Step 1: Mark quotation as converted
             val updatedTs = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
             queries.setQuotationConverted(updatedTs, quotationId)
@@ -117,7 +134,6 @@ class SalesRepository(
             newSaleId = queries.getLastInsertRowId().executeAsOne()
 
             // Step 3: Copy all sale_items from quotation to new sale (positional params per .sq)
-            val quoteItems = queries.getSaleItemsBySaleId(quotationId).executeAsList()
             for (qi in quoteItems) {
                 queries.insertSaleItem(
                     newSaleId,
@@ -129,6 +145,14 @@ class SalesRepository(
                     qi.buy_price,
                     nowMs
                 )
+
+                // BUG-STOCK-INT: Deduct stock when converting ESTIMATE to actual SALE
+                val currentItem = queries.getItemById(qi.item_id).executeAsOneOrNull()
+                if (currentItem != null) {
+                    val delta = -qi.quantity
+                    val curTime = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                    queries.updateItemStock(delta, curTime, qi.item_id)
+                }
             }
         }
         newSaleId
@@ -144,6 +168,7 @@ class SalesRepository(
     /**
      * Atomically inserts the sale header, all line items, and deducts inventory.
      * Returns -1 if stock is insufficient for any item (BUG-07 enforcement).
+     * ESTIMATE type: does NOT deduct stock — only actual SALE deducts.
      * All or nothing: on ANY failure the entire block rolls back via SQLDelight transaction.
      */
     suspend fun atomicCheckout(
@@ -153,6 +178,7 @@ class SalesRepository(
         customerName: String,
         type: String
     ): Long = withContext(Dispatchers.IO) {
+        val shouldDeductStock = type != "ESTIMATE"
         var newSaleId = -1L
         database.transaction {
             // Step 1: Insert sale header
@@ -163,7 +189,7 @@ class SalesRepository(
             )
             newSaleId = queries.getLastInsertRowId().executeAsOne()
 
-            // Step 2: Insert all sale items + deduct stock atomically
+            // Step 2: Insert all sale items + deduct stock (only for SALE, not ESTIMATE)
             for (ci in cartItemsData) {
                 val itemId = ci["itemId"] as Long
                 val itemName = ci["itemName"] as String
@@ -172,23 +198,26 @@ class SalesRepository(
                 val buyPrice = ci["buyPrice"] as Double
                 val sellPrice = ci["sellPrice"] as Double
 
-                // Check current stock BEFORE deducting (BUG-07 guard)
-                val currentItem = queries.getItemById(itemId).executeAsOneOrNull()
-                if (currentItem != null) {
-                    val newQty = currentItem.quantity - quantity
-                    if (newQty < 0) {
-                        throw com.storebook.inventoryapp.shared.domain.repository.InventoryRepository.InsufficientStockException(
-                            itemId = itemId,
-                            itemName = currentItem.name,
-                            currentQuantity = currentItem.quantity,
-                            requestedChange = -quantity
-                        )
+                // BUG-STOCK-INT: Only deduct stock for actual sales, never for estimates/quotations
+                if (shouldDeductStock) {
+                    val currentItem = queries.getItemById(itemId).executeAsOneOrNull()
+                    if (currentItem != null) {
+                        val newQty = currentItem.quantity - quantity
+                        if (newQty < 0) {
+                            throw com.storebook.inventoryapp.shared.domain.repository.InventoryRepository.InsufficientStockException(
+                                itemId = itemId,
+                                itemName = currentItem.name,
+                                currentQuantity = currentItem.quantity,
+                                requestedChange = -quantity
+                            )
+                        }
+                        // BUG-13 FIX: updateItemStock expects a signed delta; pass negative quantity to subtract
+                        val curTime = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                        queries.updateItemStock(-quantity, curTime, itemId)
                     }
-                    val curTime = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-                    queries.updateItemStock(newQty, curTime, itemId)
                 }
 
-                // Insert sale item
+                // Insert sale item (always inserted regardless of type)
                 queries.insertSaleItem(
                     newSaleId, itemId, itemName, unit, quantity, sellPrice, buyPrice, timestamp
                 )

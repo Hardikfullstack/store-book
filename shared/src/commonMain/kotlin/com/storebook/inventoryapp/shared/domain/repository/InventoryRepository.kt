@@ -65,7 +65,6 @@ class InventoryRepository(
             val currentItem = queries.getItemById(id).executeAsOneOrNull()
             if (currentItem != null) {
                 val newQty = currentItem.quantity + addedQuantity
-                // BUG-07 FIX: Guard against negative stock — reject and throw
                 if (newQty < 0) {
                     throw InsufficientStockException(
                         itemId = id,
@@ -74,7 +73,7 @@ class InventoryRepository(
                         requestedChange = addedQuantity
                     )
                 }
-                queries.updateItemStock(newQty, currentTime, id)
+                queries.updateItemStock(newQty - currentItem.quantity, currentTime, id)
             }
         }
     }

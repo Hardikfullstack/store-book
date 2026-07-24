@@ -204,6 +204,7 @@ export default function ExpensesClient({
       invalidateAllPages();
       setCurrentPage(1);
       setRefreshTrigger(prev => prev + 1);
+      try { await import('@/app/actions').then(m => m.revalidateDashboard() as any); } catch (_) { /* best-effort */ }
     } catch (err) {
       console.error("Failed to save expense:", err);
     }
@@ -216,6 +217,7 @@ export default function ExpensesClient({
         invalidateAllPages();
         setCurrentPage(1);
         setRefreshTrigger(prev => prev + 1);
+        try { await import('@/app/actions').then(m => m.revalidateDashboard() as any); } catch (_) { /* best-effort */ }
       } catch (err) {
         console.error("Failed to delete expense:", err);
       }

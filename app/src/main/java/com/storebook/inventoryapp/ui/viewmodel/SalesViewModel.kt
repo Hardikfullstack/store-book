@@ -207,6 +207,26 @@ class SalesViewModel(
                     }
 
                     clearCart()
+                    // BUG-14/BUG-15 FIX: Reload stateflows so QuotationScreen and UdhaarScreen see new entries
+                    loadAllData(true)
+                    val nowMs = System.currentTimeMillis()
+                    _salesHistoryList.value =
+                        salesRepository.getSalesByDateRange(nowMs - 365L * 24 * 3600 * 1000, nowMs).map { s ->
+                            Sale(
+                                id = s.id,
+                                timestamp = s.timestamp,
+                                totalAmount = s.total_amount,
+                                discountAmount = s.discount_amount,
+                                customerName = s.customer_name,
+                                customerGstin = s.customer_gstin,
+                                businessGstin = s.business_gstin,
+                                customerAddress = s.customer_address,
+                                businessAddress = s.business_address,
+                                type = s.type,
+                                notes = s.notes,
+                                items = emptyList(),
+                            )
+                        }
                     triggerSync()
                     isCheckoutProcessing = false
                     onResult(saleId, total)
