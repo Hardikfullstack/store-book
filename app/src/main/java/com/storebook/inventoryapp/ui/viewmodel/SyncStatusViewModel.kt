@@ -30,7 +30,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -73,10 +72,11 @@ class SyncStatusViewModel(
 ) : ViewModel() {
     private val rawDbSyncStatus = MutableStateFlow<UiSyncStatus>(UiSyncStatus.initial)
 
+    private val networkIsOnlineFlow = NetworkMonitor(context.applicationContext).isOnline
+
     /** Unified StateFlow — combines network status + DB-level sync progress. */
     val syncState: StateFlow<UiSyncStatus> =
-        NetworkMonitor(context.applicationContext)
-            .isOnline
+        networkIsOnlineFlow
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
@@ -101,8 +101,7 @@ class SyncStatusViewModel(
 
     // Convenience accessors for screens that prefer named StateFlows over a single data class
     val isOnline: StateFlow<Boolean> =
-        syncState
-            .map { it.isOnline }
+        networkIsOnlineFlow
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),

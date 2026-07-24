@@ -127,10 +127,20 @@ object InvoicePdfGenerator {
         canvas.drawLine(leftMargin, yPos, rightMargin, yPos, paint)
         yPos += 12f
 
+        val hasGstin = actualShopGstin.isNotBlank()
+        val taxSummary =
+            BillingEngine.calculateInvoiceTaxes(
+                cartItems = cartItems,
+                totalDiscount = sale.discountAmount,
+                businessGstin = actualShopGstin,
+                customerGstin = sale.customerGstin,
+            )
+
         // Table Items
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         var subtotal = 0.0
-        for (item in cartItems) {
+        for ((index, item) in cartItems.withIndex()) {
+            val itemTaxInfo = taxSummary.itemDetails[index]
             val lineTotal = item.item.sellPrice * item.quantity
             subtotal += lineTotal
 
@@ -145,7 +155,33 @@ object InvoicePdfGenerator {
             paint.textAlign = Paint.Align.RIGHT
             canvas.drawText(String.format("%.2f", lineTotal), rightMargin, yPos, paint)
             paint.textAlign = Paint.Align.LEFT
-            yPos += 15f
+            yPos += 12f
+
+            if (hasGstin && item.item.taxRate > 0) {
+                val halfRate = String.format(Locale.US, "%.1f", item.item.taxRate / 2).replace(".0", "")
+                val fullRate = String.format(Locale.US, "%.1f", item.item.taxRate).replace(".0", "")
+                val taxText =
+                    if (itemTaxInfo.igstAmount > 0) {
+                        "Taxable: %.2f | IGST@%s%%: %.2f"
+                            .format(itemTaxInfo.netAmountBeforeTax, fullRate, itemTaxInfo.igstAmount)
+                    } else {
+                        "Taxable: %.2f | CGST@%s%%: %.2f | SGST@%s%%: %.2f".format(
+                            itemTaxInfo.netAmountBeforeTax,
+                            halfRate,
+                            itemTaxInfo.cgstAmount,
+                            halfRate,
+                            itemTaxInfo.sgstAmount,
+                        )
+                    }
+                paint.textSize = 6f
+                paint.color = Color.DKGRAY
+                canvas.drawText(taxText, leftMargin, yPos, paint)
+                paint.textSize = 8f
+                paint.color = Color.BLACK
+                yPos += 12f
+            } else {
+                yPos += 3f
+            }
         }
 
         // Divider
@@ -161,14 +197,6 @@ object InvoicePdfGenerator {
             canvas.drawText("Discount: -${String.format("%.2f", sale.discountAmount)}", rightMargin, yPos, paint)
             yPos += 10f
         }
-
-        val taxSummary =
-            BillingEngine.calculateInvoiceTaxes(
-                cartItems = cartItems,
-                totalDiscount = sale.discountAmount,
-                businessGstin = actualShopGstin,
-                customerGstin = sale.customerGstin,
-            )
 
         val totalTax = taxSummary.totalCgst + taxSummary.totalSgst + taxSummary.totalIgst
         if (totalTax > 0) {
@@ -345,12 +373,23 @@ object InvoicePdfGenerator {
             yPos += 20f
         }
 
+        val actualShopGstin = sale.businessGstin ?: shopGstin
+        val hasGstin = actualShopGstin.isNotBlank()
+        val taxSummary =
+            BillingEngine.calculateInvoiceTaxes(
+                cartItems = cartItems,
+                totalDiscount = sale.discountAmount,
+                businessGstin = actualShopGstin,
+                customerGstin = sale.customerGstin,
+            )
+
         drawHeader()
 
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         var subtotal = 0.0
 
-        for (item in cartItems) {
+        for ((index, item) in cartItems.withIndex()) {
+            val itemTaxInfo = taxSummary.itemDetails[index]
             val lineTotal = item.item.sellPrice * item.quantity
             subtotal += lineTotal
 
@@ -404,6 +443,30 @@ object InvoicePdfGenerator {
                 paint.textAlign = Paint.Align.LEFT
                 yPos += 20f
             }
+
+            if (hasGstin && item.item.taxRate > 0) {
+                val halfRate = String.format(Locale.US, "%.1f", item.item.taxRate / 2).replace(".0", "")
+                val fullRate = String.format(Locale.US, "%.1f", item.item.taxRate).replace(".0", "")
+                val taxText =
+                    if (itemTaxInfo.igstAmount > 0) {
+                        "Taxable: Rs %.2f | IGST@%s%%: Rs %.2f"
+                            .format(itemTaxInfo.netAmountBeforeTax, fullRate, itemTaxInfo.igstAmount)
+                    } else {
+                        "Taxable: Rs %.2f | CGST@%s%%: Rs %.2f | SGST@%s%%: Rs %.2f".format(
+                            itemTaxInfo.netAmountBeforeTax,
+                            halfRate,
+                            itemTaxInfo.cgstAmount,
+                            halfRate,
+                            itemTaxInfo.sgstAmount,
+                        )
+                    }
+                paint.textSize = 10f
+                paint.color = Color.DKGRAY
+                canvas.drawText(taxText, leftMargin, yPos - 5f, paint)
+                paint.textSize = 12f
+                paint.color = Color.BLACK
+                yPos += 15f
+            }
         }
 
         // Draw summary section (checks if it fits on page, else spawns new page)
@@ -427,15 +490,6 @@ object InvoicePdfGenerator {
             canvas.drawText("Discount: -${String.format("Rs %.2f", sale.discountAmount)}", rightMargin, yPos, paint)
             yPos += 20f
         }
-
-        val actualShopGstin = sale.businessGstin ?: shopGstin
-        val taxSummary =
-            BillingEngine.calculateInvoiceTaxes(
-                cartItems = cartItems,
-                totalDiscount = sale.discountAmount,
-                businessGstin = actualShopGstin,
-                customerGstin = sale.customerGstin,
-            )
 
         val totalTax = taxSummary.totalCgst + taxSummary.totalSgst + taxSummary.totalIgst
         if (totalTax > 0) {

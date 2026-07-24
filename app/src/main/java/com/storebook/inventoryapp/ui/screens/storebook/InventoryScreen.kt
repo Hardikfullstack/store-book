@@ -2185,7 +2185,18 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                 ) {
                                     OutlinedTextField(
                                         value = inputHsnCode,
-                                        onValueChange = { inputHsnCode = it },
+                                        onValueChange = { newValue ->
+                                            inputHsnCode = newValue
+                                            val rate =
+                                                com.storebook.inventoryapp.utils.HsnTaxLookup
+                                                    .getTaxRate(newValue)
+                                            if (rate != null) {
+                                                inputTaxRate =
+                                                    if (rate % 1.0 == 0.0) rate.toInt().toString() else rate.toString()
+                                            } else if (newValue.isBlank()) {
+                                                inputTaxRate = "0"
+                                            }
+                                        },
                                         label = {
                                             Text(
                                                 "HSN/SAC Code",

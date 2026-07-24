@@ -260,22 +260,35 @@ class DashboardViewModel(
     ) {
         viewModelScope.launch {
             val sales =
-                salesRepository.getSalesByDateRange(startTs, endTs).map { s ->
-                    Sale(
-                        id = s.id,
-                        timestamp = s.timestamp,
-                        totalAmount = s.total_amount,
-                        discountAmount = s.discount_amount,
-                        customerName = s.customer_name,
-                        customerGstin = s.customer_gstin,
-                        businessGstin = s.business_gstin,
-                        customerAddress = s.customer_address,
-                        businessAddress = s.business_address,
-                        type = s.type,
-                        notes = s.notes,
-                        items = emptyList(),
-                    )
-                }
+                salesRepository
+                    .getSalesByDateRange(startTs, endTs)
+                    .filter { it.type != "ESTIMATE" }
+                    .map { s ->
+                        Sale(
+                            id = s.id,
+                            timestamp = s.timestamp,
+                            totalAmount = s.total_amount,
+                            discountAmount = s.discount_amount,
+                            customerName = s.customer_name,
+                            customerGstin = s.customer_gstin,
+                            businessGstin = s.business_gstin,
+                            customerAddress = s.customer_address,
+                            businessAddress = s.business_address,
+                            type = s.type,
+                            notes = s.notes,
+                            items =
+                                salesRepository.getSaleItems(s.id).map { saleItem ->
+                                    com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
+                                        itemId = saleItem.item_id,
+                                        itemName = saleItem.item_name,
+                                        quantity = saleItem.quantity,
+                                        unit = saleItem.unit,
+                                        buyPrice = saleItem.buy_price,
+                                        sellPrice = saleItem.sell_price,
+                                    )
+                                },
+                        )
+                    }
             val allItemsMap =
                 inventoryRepository.getActiveItems().associate {
                     it.id to
@@ -290,11 +303,10 @@ class DashboardViewModel(
                             category = it.category,
                         )
                 }
-            com.storebook.inventoryapp.utils.ExcelExporter.exportGstr1(
+            com.storebook.inventoryapp.utils.Gstr1CsvExporter.exportGstr1Csv(
                 context = context,
                 fileName = fileName,
                 sales = sales,
-                businessName = businessName,
                 businessGstin = businessGstin,
                 allItemsMap = allItemsMap,
             )

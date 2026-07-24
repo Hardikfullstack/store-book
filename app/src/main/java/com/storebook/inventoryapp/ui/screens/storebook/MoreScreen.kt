@@ -124,6 +124,8 @@ import com.storebook.inventoryapp.ui.theme.Gold400
 import com.storebook.inventoryapp.ui.theme.PrimaryButton
 import com.storebook.inventoryapp.ui.viewmodels.AppPermission
 import com.storebook.inventoryapp.ui.viewmodels.hasPermission
+import com.storebook.inventoryapp.utils.GstinValidator
+import com.storebook.inventoryapp.utils.GstinValidator.ValidationResult
 import com.storebook.inventoryapp.utils.LanguageManager
 import com.storebook.inventoryapp.utils.autoMarquee
 import com.storebook.inventoryapp.utils.toRupee
@@ -1388,6 +1390,14 @@ fun MoreScreen(
                         var gstinInput by remember {
                             mutableStateOf(viewModel.businessGstin)
                         }
+                        var gstinError by remember {
+                            mutableStateOf<String?>(null)
+                        }
+                        var addressInput by remember {
+                            mutableStateOf(
+                                viewModel.businessAddress,
+                            )
+                        }
                         val focusRequesterGstin = remember { FocusRequester() }
                         val focusRequesterAddress = remember { FocusRequester() }
                         val focusManager = LocalFocusManager.current
@@ -1432,7 +1442,39 @@ fun MoreScreen(
                             )
                             OutlinedTextField(
                                 value = gstinInput,
-                                onValueChange = { gstinInput = it },
+                                onValueChange = {
+                                    gstinInput = it
+                                    if (it.trim().length == 15) {
+                                        when (
+                                            val res = GstinValidator.validate(it)
+                                        ) {
+                                            is ValidationResult.Valid -> {
+                                                gstinError = null
+                                                res.stateName?.let { state ->
+                                                    val hasState = addressInput.contains(state, ignoreCase = true)
+                                                    if (!hasState) {
+                                                        if (addressInput.isBlank()) {
+                                                            addressInput = state
+                                                        } else {
+                                                            addressInput = "$addressInput, $state"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            is ValidationResult.Invalid -> {
+                                                gstinError = res.reason
+                                            }
+                                        }
+                                    } else {
+                                        gstinError = null
+                                    }
+                                },
+                                isError = gstinError != null,
+                                supportingText = {
+                                    if (gstinError != null) {
+                                        Text(gstinError!!, color = MaterialTheme.colorScheme.error)
+                                    }
+                                },
                                 label = {
                                     Text(
                                         "Store Owner's GSTIN",
@@ -1454,11 +1496,6 @@ fun MoreScreen(
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                             )
-                            var addressInput by remember {
-                                mutableStateOf(
-                                    viewModel.businessAddress,
-                                )
-                            }
                             OutlinedTextField(
                                 value = addressInput,
                                 onValueChange = {
@@ -1623,15 +1660,13 @@ fun MoreScreen(
                             PrimaryButton(
                                 onClick = {
                                     val trimmedGstin = gstinInput.trim().uppercase()
-                                    if (trimmedGstin.isNotEmpty() &&
-                                        !trimmedGstin
-                                            .matches(Regex("\\d{2}[A-Z]{5}\\d{4}[A-Z]{1}[A-Z\\d]{1}[Z]{1}[A-Z\\d]{1}"))
-                                    ) {
+                                    val validation = GstinValidator.validate(trimmedGstin)
+                                    if (validation is ValidationResult.Invalid) {
+                                        gstinError = validation.reason
                                         android.widget.Toast
                                             .makeText(
                                                 context,
-                                                context
-                                                    .getString(R.string.toast_invalid_gstin),
+                                                "Invalid GSTIN: ${validation.reason}",
                                                 android.widget.Toast.LENGTH_SHORT,
                                             ).show()
                                         return@PrimaryButton
