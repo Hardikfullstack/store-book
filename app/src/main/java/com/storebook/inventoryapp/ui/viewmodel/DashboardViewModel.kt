@@ -239,7 +239,8 @@ class DashboardViewModel(
                 id = item.id, name = item.name, quantity = item.quantity, unit = item.unit,
                 buyPrice = item.buyPrice, sellPrice = item.sellPrice,
                 threshold = item.lowStockThreshold, category = item.category,
-                photoPath = item.photoPath, hsnCode = item.hsnCode, taxRate = item.taxRate,
+                photoPath = item.photoPath, barcode = item.barcode,
+                hsnCode = item.hsnCode, taxRate = item.taxRate,
             )
             loadAllData()
         }

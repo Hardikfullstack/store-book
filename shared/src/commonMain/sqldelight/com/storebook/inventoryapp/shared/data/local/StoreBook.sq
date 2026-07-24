@@ -8,6 +8,7 @@ CREATE TABLE items (
   low_stock_threshold REAL NOT NULL DEFAULT 0.0,
   category TEXT NOT NULL,
   photo_path TEXT,
+  barcode TEXT,
   hsn_code TEXT,
   tax_rate REAL NOT NULL DEFAULT 0.0,
   is_deleted INTEGER NOT NULL DEFAULT 0,
@@ -33,6 +34,7 @@ SELECT * FROM items
 WHERE is_deleted = 0
   AND (
     name LIKE '%' || :searchQuery || '%'
+    OR barcode LIKE '%' || :searchQuery || '%'
     OR hsn_code LIKE '%' || :searchQuery || '%'
     OR cloud_id LIKE '%' || :searchQuery || '%'
     OR :searchQuery = ''
@@ -59,11 +61,11 @@ getDeletedItems:
 SELECT * FROM items WHERE is_deleted = 1;
 
 insertItem:
-INSERT INTO items(name, quantity, unit, buy_price, sell_price, low_stock_threshold, category, photo_path, hsn_code, tax_rate, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO items(name, quantity, unit, buy_price, sell_price, low_stock_threshold, category, photo_path, barcode, hsn_code, tax_rate, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateItem:
-UPDATE items SET name = ?, quantity = ?, unit = ?, buy_price = ?, sell_price = ?, low_stock_threshold = ?, category = ?, photo_path = ?, hsn_code = ?, tax_rate = ?, is_synced = 0, updated_at = ? WHERE id = ?;
+UPDATE items SET name = ?, quantity = ?, unit = ?, buy_price = ?, sell_price = ?, low_stock_threshold = ?, category = ?, photo_path = ?, barcode = ?, hsn_code = ?, tax_rate = ?, is_synced = 0, updated_at = ? WHERE id = ?;
 
 updateItemStock:
 UPDATE items SET quantity = quantity + ?, is_synced = 0, updated_at = ? WHERE id = ?;
@@ -369,10 +371,10 @@ SELECT id, updated_at FROM suppliers WHERE cloud_id = :cloudId LIMIT 1;
 -- ============================================================================
 insertOrUpdateItem:
 INSERT OR REPLACE INTO items(id, name, quantity, unit, buy_price, sell_price,
-    low_stock_threshold, category, photo_path, hsn_code, tax_rate,
+    low_stock_threshold, category, photo_path, barcode, hsn_code, tax_rate,
     is_deleted, cloud_id, is_synced, updated_at)
 VALUES(:id, :name, :quantity, :unit, :buyPrice, :sellPrice,
-    :lowStockThreshold, :category, :photoPath, :hsnCode, :taxRate,
+    :lowStockThreshold, :category, :photoPath, :barcode, :hsnCode, :taxRate,
     :isDeleted, :cloudId, 1, :updatedAt);
 
 insertOrUpdateSale:
@@ -754,10 +756,10 @@ SELECT COALESCE((SELECT id FROM purchase_items WHERE cloud_id = :cloudId LIMIT 1
 -- ============================================================================
 upsertItemRemote:
 INSERT OR REPLACE INTO items(id, name, quantity, unit, buy_price, sell_price,
-    low_stock_threshold, category, photo_path, hsn_code, tax_rate,
+    low_stock_threshold, category, photo_path, barcode, hsn_code, tax_rate,
     is_deleted, cloud_id, is_synced, updated_at)
 VALUES(COALESCE((SELECT id FROM items WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM items), 1), :name, :quantity, :unit, :buyPrice, :sellPrice,
-    :lowStockThreshold, :category, :photoPath, :hsnCode, :taxRate,
+    :lowStockThreshold, :category, :photoPath, :barcode, :hsnCode, :taxRate,
     :isDeleted, :cloudId, 1, :updatedAt);
 
 upsertSaleRemote:

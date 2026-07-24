@@ -14,7 +14,9 @@ query SyncItems($storeId: String!, $lastSync: Float!) @auth(level: USER) {
     lowStockThreshold
     category
     photoPath
+    barcode
     hsnCode
+    taxRate
     isDeleted
     updatedAt
   }
@@ -110,7 +112,9 @@ query GetActiveItems(
     lowStockThreshold
     category
     photoPath
+    barcode
     hsnCode
+    taxRate
     isDeleted
     updatedAt
   }

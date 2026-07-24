@@ -25,6 +25,7 @@ interface Item {
   is_deleted?: number;
   photoPath?: string;
   hsnCode?: string;
+  barcode?: string;
   taxRate?: number;
 }
 
@@ -143,7 +144,7 @@ export default function SalesPOS({
       if (e.key === 'Enter' && barcode.length > 2) {
         // Find item by ID or Name or HSN (since we don't have a specific barcode column)
         const scannedItem = items.find(
-          item => item.id === barcode || item.name.toLowerCase() === barcode.toLowerCase()
+          item => item.barcode === barcode || item.hsnCode === barcode || item.id === barcode || item.name.toLowerCase() === barcode.toLowerCase()
         );
 
         if (scannedItem) {

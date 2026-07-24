@@ -643,6 +643,7 @@ export interface SyncItemVariables {
   lowStockThreshold: number;
   category: string;
   photoPath?: string | null;
+  barcode?: string | null;
   hsnCode?: string | null;
   taxRate?: number | null;
   batchLotNumber?: string | null;

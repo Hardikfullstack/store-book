@@ -33,7 +33,7 @@ class ConcurrencyAndSyncQueueTest {
         val jobs = List(concurrency) { index ->
             launch {
                 val name = "ConcurrentItem-$index"
-                database.storeBookQueries.insertItem(name, (index + 1).toDouble(), "Unit", 10.0, 20.0, 1.0, "Test", null, null, 5.0, 1721000000000L)
+                database.storeBookQueries.insertItem(name, (index + 1).toDouble(), "Unit", 10.0, 20.0, 1.0, "Test", null, null, null, 5.0, 1721000000000L)
                 itemCounts.add(database.storeBookQueries.getItemById(name.hashCode().toLong()).executeAsOneOrNull()?.id ?: 0)
             }
         }

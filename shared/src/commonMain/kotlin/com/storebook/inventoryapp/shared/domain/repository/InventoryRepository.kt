@@ -33,13 +33,13 @@ class InventoryRepository(
     suspend fun insertItem(
         name: String, quantity: Double, unit: String, buyPrice: Double,
         sellPrice: Double, threshold: Double, category: String,
-        photoPath: String?, hsnCode: String?, taxRate: Double
+        photoPath: String?, barcode: String?, hsnCode: String?, taxRate: Double
     ): Long? = withContext(Dispatchers.IO) {
         database.transaction {
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
             queries.insertItem(
                 name, quantity, unit, buyPrice, sellPrice, threshold,
-                category, photoPath, hsnCode, taxRate, timestamp
+                category, photoPath, barcode, hsnCode, taxRate, timestamp
             )
         }
         queries.getLastInsertRowId().executeAsOneOrNull()
@@ -48,13 +48,13 @@ class InventoryRepository(
     suspend fun updateItem(
         id: Long, name: String, quantity: Double, unit: String, buyPrice: Double,
         sellPrice: Double, threshold: Double, category: String,
-        photoPath: String?, hsnCode: String?, taxRate: Double
+        photoPath: String?, barcode: String?, hsnCode: String?, taxRate: Double
     ) = withContext(Dispatchers.IO) {
         database.transaction {
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
             queries.updateItem(
                 name, quantity, unit, buyPrice, sellPrice, threshold,
-                category, photoPath, hsnCode, taxRate, timestamp, id
+                category, photoPath, barcode, hsnCode, taxRate, timestamp, id
             )
         }
     }

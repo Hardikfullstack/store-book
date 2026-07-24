@@ -9,6 +9,7 @@ type Item @table {
   lowStockThreshold: Float!
   category: String!
   photoPath: String
+  barcode: String
   hsnCode: String
   taxRate: Float
   batchLotNumber: String

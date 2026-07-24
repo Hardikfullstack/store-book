@@ -109,12 +109,12 @@ class SyncRepository(
     suspend fun upsertItem(
         id: Long, name: String, quantity: Double, unit: String, buyPrice: Double,
         sellPrice: Double, lowStockThreshold: Double, category: String,
-        photoPath: String?, hsnCode: String?, taxRate: Double,
+        photoPath: String?, barcode: String?, hsnCode: String?, taxRate: Double,
         isDeleted: Long, cloudId: String?, updatedAt: Long,
     ) = queries.insertOrUpdateItem(
         id = id, name = name, quantity = quantity, unit = unit, buyPrice = buyPrice,
         sellPrice = sellPrice, lowStockThreshold = lowStockThreshold, category = category,
-        photoPath = photoPath, hsnCode = hsnCode, taxRate = taxRate,
+        photoPath = photoPath, barcode = barcode, hsnCode = hsnCode, taxRate = taxRate,
         isDeleted = isDeleted, cloudId = cloudId, updatedAt = updatedAt,
     )
 
@@ -207,13 +207,13 @@ class SyncRepository(
     suspend fun upsertItemWithCloudId(
         name: String, quantity: Double, unit: String, buyPrice: Double,
         sellPrice: Double, lowStockThreshold: Double, category: String,
-        photoPath: String?, hsnCode: String?, taxRate: Double,
+        photoPath: String?, barcode: String?, hsnCode: String?, taxRate: Double,
         isDeleted: Long, cloudId: String, updatedAt: Long,
     ) {
         database.transaction { queries.upsertItemRemote(
             name = name, quantity = quantity, unit = unit, buyPrice = buyPrice,
             sellPrice = sellPrice, lowStockThreshold = lowStockThreshold, category = category,
-            photoPath = photoPath, hsnCode = hsnCode, taxRate = taxRate,
+            photoPath = photoPath, barcode = barcode, hsnCode = hsnCode, taxRate = taxRate,
             isDeleted = isDeleted, cloudId = cloudId, updatedAt = updatedAt,
         ) }
     }

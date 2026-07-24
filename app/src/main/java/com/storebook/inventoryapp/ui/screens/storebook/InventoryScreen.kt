@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Inventory
 import androidx.compose.material.icons.outlined.Schedule
@@ -187,6 +188,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
     var inputCategory by remember { mutableStateOf("Groceries") }
     var inputHsnCode by remember { mutableStateOf("") }
     var inputTaxRate by remember { mutableStateOf("") }
+    var inputBarcode by remember { mutableStateOf("") }
     var inputBatchNumber by remember { mutableStateOf("") }
     var inputExpiryDateMs by remember { mutableStateOf<Long?>(null) }
     var showExpiryDatePicker by remember { mutableStateOf(false) }
@@ -198,6 +200,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
     var sellPriceError by remember { mutableStateOf(false) }
 
     val focusRequesterName = remember { FocusRequester() }
+    val focusRequesterBarcode = remember { FocusRequester() }
     val focusRequesterQty = remember { FocusRequester() }
     val focusRequesterBuyPrice = remember { FocusRequester() }
     val focusRequesterSellPrice = remember { FocusRequester() }
@@ -206,6 +209,18 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
     val focusRequesterTax = remember { FocusRequester() }
     val focusRequesterBatch = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+
+    val barcodeScanner =
+        remember {
+            val options =
+                com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+                    .Builder()
+                    .setBarcodeFormats(com.google.mlkit.vision.barcode.common.Barcode.FORMAT_ALL_FORMATS)
+                    .enableAutoZoom()
+                    .build()
+            com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+                .getClient(context, options)
+        }
 
     val categoriesList =
         listOf("Groceries", "Dairy", "Beverages", "Stationery", "Household", "Others")
@@ -282,6 +297,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         inputSellPrice = ""
         inputThreshold = "5"
         inputCategory = "Groceries"
+        inputBarcode = ""
         inputHsnCode = ""
         inputTaxRate = ""
         inputBatchNumber = ""
@@ -304,6 +320,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         inputSellPrice = formatQty(item.sellPrice)
         inputThreshold = formatQty(item.lowStockThreshold)
         inputCategory = item.category
+        inputBarcode = item.barcode ?: ""
         inputHsnCode = item.hsnCode ?: ""
         inputTaxRate = if (item.taxRate > 0) item.taxRate.toString() else ""
         inputBatchNumber = ""
@@ -1829,6 +1846,65 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                 },
                         )
 
+                        // Barcode field with scan button
+                        OutlinedTextField(
+                            value = inputBarcode,
+                            onValueChange = { inputBarcode = it },
+                            label = {
+                                Text(
+                                    "Barcode (Optional)",
+                                    modifier =
+                                        androidx.compose.ui.Modifier
+                                            .autoMarquee(),
+                                )
+                            },
+                            placeholder = {
+                                Text(
+                                    "e.g. 890123456789",
+                                    modifier =
+                                        androidx.compose.ui.Modifier
+                                            .autoMarquee(),
+                                )
+                            },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                            keyboardActions =
+                                KeyboardActions(
+                                    onNext = { focusRequesterQty.requestFocus() },
+                                ),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequesterBarcode),
+                            singleLine = true,
+                            trailingIcon = {
+                                IconButton(onClick = {
+                                    barcodeScanner
+                                        .startScan()
+                                        .addOnSuccessListener { barcode ->
+                                            val code = barcode.rawValue
+                                            if (!code.isNullOrBlank()) {
+                                                inputBarcode = code
+                                                Toast
+                                                    .makeText(
+                                                        context,
+                                                        "Scanned: $code",
+                                                        Toast.LENGTH_SHORT,
+                                                    ).show()
+                                            }
+                                        }.addOnFailureListener { e: Exception ->
+                                            Toast
+                                                .makeText(
+                                                    context,
+                                                    "Scan failed: ${e.message}",
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                        }
+                                }) {
+                                    Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan Barcode")
+                                }
+                            },
+                        )
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -2286,6 +2362,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                     } else {
                                         editingItem?.taxRate ?: 0.0
                                     }
+                                val barcode = inputBarcode.trim().takeIf { it.isNotBlank() }
                                 val batchNum =
                                     if (showAdvancedOptions) {
                                         inputBatchNumber.trim().takeIf { it.isNotBlank() }
@@ -2354,8 +2431,9 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                         safeSell,
                                         threshold,
                                         inputCategory,
-                                        hsn,
-                                        tax,
+                                        barcode = barcode,
+                                        hsnCode = hsn,
+                                        taxRate = tax,
                                     ) { newItemId ->
                                         // Log a batch record if batch or expiry info was
                                         // provided
@@ -2390,8 +2468,9 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                         safeSell,
                                         threshold,
                                         inputCategory,
-                                        hsn,
-                                        tax,
+                                        barcode = barcode,
+                                        hsnCode = hsn,
+                                        taxRate = tax,
                                     )
                                     // Also log a batch if expiry info was provided during edit
                                     if (batchNum != null || expiryMs != null) {

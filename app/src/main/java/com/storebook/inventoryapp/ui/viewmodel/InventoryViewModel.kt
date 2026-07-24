@@ -216,6 +216,8 @@ class InventoryViewModel(
         sellPrice: Double,
         threshold: Double,
         category: String,
+        photoPath: String? = null,
+        barcode: String? = null,
         hsnCode: String? = null,
         taxRate: Double = 0.0,
         onResult: (Long) -> Unit = {},
@@ -231,7 +233,8 @@ class InventoryViewModel(
                     sellPrice = sellPrice,
                     lowStockThreshold = threshold,
                     category = category,
-                    photoPath = null,
+                    photoPath = photoPath,
+                    barcode = barcode,
                     hsnCode = hsnCode,
                     taxRate = taxRate,
                 )
@@ -240,7 +243,7 @@ class InventoryViewModel(
                     name = item.name, quantity = item.quantity, unit = item.unit,
                     buyPrice = item.buyPrice, sellPrice = item.sellPrice,
                     threshold = item.lowStockThreshold, category = item.category,
-                    photoPath = item.photoPath, hsnCode = item.hsnCode, taxRate = item.taxRate,
+                    photoPath = item.photoPath, barcode = item.barcode, hsnCode = item.hsnCode, taxRate = item.taxRate,
                 ) ?: return@launch
             triggerSync()
             // e11-s2: Reactively refresh filtered items so new item appears immediately
@@ -272,9 +275,10 @@ class InventoryViewModel(
         sellPrice: Double,
         threshold: Double,
         category: String,
+        photoPath: String? = null,
+        barcode: String? = null,
         hsnCode: String? = null,
         taxRate: Double = 0.0,
-        photoPath: String? = null,
     ) {
         viewModelScope.launch {
             val item =
@@ -288,6 +292,7 @@ class InventoryViewModel(
                     lowStockThreshold = threshold,
                     category = category,
                     photoPath = photoPath,
+                    barcode = barcode,
                     hsnCode = hsnCode,
                     taxRate = taxRate,
                 )
@@ -295,7 +300,7 @@ class InventoryViewModel(
                 id = item.id, name = item.name, quantity = item.quantity, unit = item.unit,
                 buyPrice = item.buyPrice, sellPrice = item.sellPrice,
                 threshold = item.lowStockThreshold, category = item.category,
-                photoPath = item.photoPath, hsnCode = item.hsnCode, taxRate = item.taxRate,
+                photoPath = item.photoPath, barcode = item.barcode, hsnCode = item.hsnCode, taxRate = item.taxRate,
             )
             loadFilteredItems()
             triggerSync()

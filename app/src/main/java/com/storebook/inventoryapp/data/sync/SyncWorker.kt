@@ -157,8 +157,8 @@ class SyncWorker(
                         it.id.toString(), s, sanitize(it.name), it.quantity, it.unit, it.buy_price, it.sell_price,
                         it.low_stock_threshold ?: 0.0, it.category ?: "", it.is_deleted == 1L, it.updated_at.toDouble(),
                     ) {
-                        photoPath =
-                            it.photo_path
+                        photoPath = it.photo_path
+                        ; barcode = it.barcode
                         ; hsnCode = it.hsn_code
                     }
             r.markItemSynced(it.id, res.data.key.id)
@@ -228,8 +228,8 @@ class SyncWorker(
                                 it.updated_at
                                     .toDouble(),
                             ) {
-                                photoPath =
-                                    it.photo_path
+                                photoPath = it.photo_path
+                                ; barcode = it.barcode
                                 ; hsnCode = it.hsn_code
                             }
                     r.markItemSynced(it.id, res.data.key.id)
@@ -590,10 +590,12 @@ class SyncWorker(
                     if (r.shouldAcceptRemote(i.updatedAt.toLong(), i.id)) {
                         r
                             .upsertItemWithCloudId(
-                                i.name, i.quantity, i.unit, i.buyPrice, i.sellPrice, i.lowStockThreshold, i.category,
-                                i.photoPath ?: "", i.hsnCode ?: "", 0.0, if (i.isDeleted) 1L else 0L, i.id,
-                                i.updatedAt
-                                    .toLong(),
+                                name = i.name, quantity = i.quantity, unit = i.unit,
+                                buyPrice = i.buyPrice, sellPrice = i.sellPrice, threshold = i.lowStockThreshold,
+                                category = i.category, photoPath = i.photoPath ?: "", barcode = i.barcode ?: "",
+                                hsnCode = i.hsnCode ?: "", taxRate = 0.0,
+                                isDeleted = if (i.isDeleted) 1L else 0L, cloudId = i.id,
+                                updatedAtCloud = i.updatedAt.toLong(),
                             )
                     }
                 }

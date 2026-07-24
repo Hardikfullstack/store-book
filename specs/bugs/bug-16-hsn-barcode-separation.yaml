@@ -1,0 +1,27 @@
+# BUG-16: HSN Code Misused as Barcode — Scanner Matches Tax Classification Instead of Product ID
+
+## Problem
+HSN (Harmonized System of Nomenclature) code is a **GST tax classification** used for invoicing and filing returns. It should NOT be used as the product identifier for barcode scanning. Currently, the Android scanner (`SalesScreen.kt:1165`) matches scanned input against `item.hsnCode`, and the web POS fallback search also includes HSN. This is incorrect because:
+- HSN codes are shared across many products (e.g., "1001" for rice applies to brands)
+- Barcodes are unique per SKU/product
+
+## Fix Plan
+Introduce a new `barcode` field (`TEXT`, nullable, `UNIQUE` constraint for store scoping) in the items table. Route:
+- **Barcode scanner input** → match against `barcode` field
+- **HSN code** → billing invoice generation and GST reporting only
+
+## Affected Files
+| Layer | File | Change |
+|---|---|---|
+| SQLDelight (shared) | `StoreBook.sq` | Add `barcode TEXT UNIQUE`, update insert/update/search queries |
+| KMP Model (shared) | `Models.kt` | Add `val barcode: String? = null` to Item data class |
+| Data Connect schema | `schema.gql` | Add `barcode: String @col(name: "barcode")` to Item type |
+| Data Connect mutations | `mutations.gql` | Add `$barcode` variable to syncItem/upsertItem |
+| Data Connect queries | `queries.gql` | Include `barcode` in item selections, add barcode search filter |
+| Android ViewModel | `InventoryViewModel.kt` | Pass barcode param through insert/update |
+| Android Screen | `SalesScreen.kt` | Match scanned code against `item.barcode` |
+| Android Screen | `InventoryScreen.kt` | Add barcode input field in advanced options |
+| Android SyncWorker | `SyncWorker.kt` | Sync barcode field in push/pull |
+| Web ItemsClient | `ItemsClient.tsx` | Add barcode input to form state and formData |
+| Web SalesPOS | `SalesPOS.tsx` | Match barcode scan against `item.barcode` |
+| Web InvoicePdf | `InvoicePdfGenerator.ts` | No change (HSN remains for invoice) |

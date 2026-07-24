@@ -13,6 +13,7 @@ data class Item(
         val lowStockThreshold: Double,
         val category: String,
         val photoPath: String? = null,
+        val barcode: String? = null,
         val hsnCode: String? = null,
         val taxRate: Double = 0.0,
         val isDeleted: Int = 0,
