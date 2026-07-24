@@ -160,6 +160,22 @@ class SalesViewModel(
 
     fun selectCustomer(name: String) {
         cartCustomerName = name
+        viewModelScope.launch {
+            try {
+                val pastSales = salesRepository.getSalesSearch(name, 0, System.currentTimeMillis(), 20, 0)
+                val match =
+                    pastSales.firstOrNull {
+                        it.customer_name.equals(name, ignoreCase = true) &&
+                            (!it.customer_gstin.isNullOrBlank() || !it.customer_address.isNullOrBlank())
+                    }
+                if (match != null) {
+                    if (!match.customer_gstin.isNullOrBlank()) cartCustomerGstin = match.customer_gstin ?: ""
+                    if (!match.customer_address.isNullOrBlank()) cartCustomerAddress = match.customer_address ?: ""
+                }
+            } catch (e: Exception) {
+                // Ignore error, auto-populate is optional
+            }
+        }
     }
 
     private var isCheckoutProcessing = false
