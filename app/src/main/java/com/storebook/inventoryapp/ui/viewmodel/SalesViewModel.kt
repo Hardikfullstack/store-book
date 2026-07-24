@@ -173,7 +173,6 @@ class SalesViewModel(
         if (isCheckoutProcessing || cartItems.isEmpty()) return
         isCheckoutProcessing = true
         viewModelScope.launch {
-            val total = cartItems.sumOf { it.item.sellPrice * it.quantity } - cartDiscount
             // Prepare data for atomic call
             val cartItemsData =
                 cartItems.map { ci ->
@@ -196,6 +195,15 @@ class SalesViewModel(
                 val bizAddress =
                     prefs
                         .getString("business_address_$activeStoreId", prefs.getString("business_address", ""))
+
+                val taxSummary =
+                    com.storebook.inventoryapp.data.billing.BillingEngine.calculateInvoiceTaxes(
+                        cartItems = cartItems,
+                        totalDiscount = cartDiscount,
+                        businessGstin = bizGstin ?: "",
+                        customerGstin = cartCustomerGstin,
+                    )
+                val total = taxSummary.grandTotal
 
                 val saleId =
                     salesRepository.atomicCheckout(
