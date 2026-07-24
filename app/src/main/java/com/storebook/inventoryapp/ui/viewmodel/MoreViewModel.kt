@@ -552,6 +552,7 @@ class MoreViewModel(
                                     threshold = threshold,
                                     category = category,
                                     photoPath = null,
+                                    barcode = null,
                                     hsnCode = hsnCode,
                                     taxRate = taxRate,
                                 )

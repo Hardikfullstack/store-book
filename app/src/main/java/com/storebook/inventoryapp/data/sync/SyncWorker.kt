@@ -591,11 +591,11 @@ class SyncWorker(
                         r
                             .upsertItemWithCloudId(
                                 name = i.name, quantity = i.quantity, unit = i.unit,
-                                buyPrice = i.buyPrice, sellPrice = i.sellPrice, threshold = i.lowStockThreshold,
+                                buyPrice = i.buyPrice, sellPrice = i.sellPrice, lowStockThreshold = i.lowStockThreshold,
                                 category = i.category, photoPath = i.photoPath ?: "", barcode = i.barcode ?: "",
                                 hsnCode = i.hsnCode ?: "", taxRate = 0.0,
                                 isDeleted = if (i.isDeleted) 1L else 0L, cloudId = i.id,
-                                updatedAtCloud = i.updatedAt.toLong(),
+                                updatedAt = i.updatedAt.toLong(),
                             )
                     }
                 }

@@ -30,6 +30,7 @@ public interface SyncItemMutation :
         val lowStockThreshold: Double,
         val category: String,
         val photoPath: com.google.firebase.dataconnect.OptionalVariable<String?>,
+        val barcode: com.google.firebase.dataconnect.OptionalVariable<String?>,
         val hsnCode: com.google.firebase.dataconnect.OptionalVariable<String?>,
         val taxRate: com.google.firebase.dataconnect.OptionalVariable<Double?>,
         val batchLotNumber: com.google.firebase.dataconnect.OptionalVariable<String?>,
@@ -51,6 +52,7 @@ public interface SyncItemMutation :
             public var lowStockThreshold: Double
             public var category: String
             public var photoPath: String?
+            public var barcode: String?
             public var hsnCode: String?
             public var taxRate: Double?
             public var batchLotNumber: String?
@@ -85,6 +87,8 @@ public interface SyncItemMutation :
                 var lowStockThreshold = lowStockThreshold
                 var category = category
                 var photoPath: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var barcode: com.google.firebase.dataconnect.OptionalVariable<String?> =
                     com.google.firebase.dataconnect.OptionalVariable.Undefined
                 var hsnCode: com.google.firebase.dataconnect.OptionalVariable<String?> =
                     com.google.firebase.dataconnect.OptionalVariable.Undefined
@@ -160,6 +164,14 @@ public interface SyncItemMutation :
                                     .Value(value_)
                         }
 
+                    override var barcode: String?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            barcode =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
                     override var hsnCode: String?
                         get() = throw UnsupportedOperationException("getting builder values is not supported")
                         set(value_) {
@@ -206,7 +218,7 @@ public interface SyncItemMutation :
                 }.apply(block_)
                     .let {
                         Variables(
-                            id = id, storeId = storeId, name = name, quantity = quantity, unit = unit, buyPrice = buyPrice, sellPrice = sellPrice, lowStockThreshold = lowStockThreshold, category = category, photoPath = photoPath, hsnCode = hsnCode, taxRate = taxRate, batchLotNumber = batchLotNumber, expiryDate = expiryDate, isDeleted = isDeleted, updatedAt = updatedAt,
+                            id = id, storeId = storeId, name = name, quantity = quantity, unit = unit, buyPrice = buyPrice, sellPrice = sellPrice, lowStockThreshold = lowStockThreshold, category = category, photoPath = photoPath, barcode = barcode, hsnCode = hsnCode, taxRate = taxRate, batchLotNumber = batchLotNumber, expiryDate = expiryDate, isDeleted = isDeleted, updatedAt = updatedAt,
                         )
                     }
             }

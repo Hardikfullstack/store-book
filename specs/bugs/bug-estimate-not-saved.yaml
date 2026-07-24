@@ -3,7 +3,7 @@
 id: bug-estimate-not-saved
 title: "Estimate created from sale is not added to Quotation & Estimation list"
 severity: P2
-status: defined
+status: fixed
 reported: "2026-07-22"
 component: [SaleScreen, EstimateViewModel, EstimateRepository]
 

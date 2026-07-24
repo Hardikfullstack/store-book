@@ -17,6 +17,7 @@ import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -52,14 +53,16 @@ fun QuotationScreen(
     navController: NavController,
     viewModel: SalesViewModel,
 ) {
-    val salesHistoryList by viewModel.salesHistoryList.collectAsStateWithLifecycle()
-    // E03-S4: Filter to show unconverted ESTIMATE-type quotations, also track converted ones
-    val quotations = salesHistoryList.filter { it.type == "ESTIMATE" }
+    val quotations by viewModel.quotations.collectAsStateWithLifecycle()
     val allItems by viewModel.allItems.collectAsStateWithLifecycle()
 
     val displayFmt = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadQuotations()
+    }
 
     Scaffold(
         topBar = {
@@ -129,12 +132,7 @@ fun QuotationScreen(
                                 // E03-S4: Atomic conversion - preserves all line items + prices exactly
                                 viewModel.convertQuotation(quote.id) { newSaleId ->
                                     if (newSaleId > 0) {
-                                        // Reload to show updated state
-                                        viewModel.loadSalesHistory(
-                                            (System.currentTimeMillis() / 1000).toLong() * 1000 -
-                                                365L * 24 * 3600 * 1000,
-                                            System.currentTimeMillis(),
-                                        )
+                                        viewModel.loadQuotations()
                                     }
                                 }
                             },

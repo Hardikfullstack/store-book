@@ -42,6 +42,7 @@ public interface SyncItemsQuery :
             val lowStockThreshold: Double,
             val category: String,
             val photoPath: String?,
+            val barcode: String?,
             val hsnCode: String?,
             val isDeleted: Boolean,
             val updatedAt: Double,

@@ -55,6 +55,9 @@ class SalesViewModel(
     private val _salesHistoryList = MutableStateFlow<List<Sale>>(emptyList())
     val salesHistoryList: StateFlow<List<Sale>> = _salesHistoryList
 
+    private val _quotations = MutableStateFlow<List<Sale>>(emptyList())
+    val quotations: StateFlow<List<Sale>> = _quotations
+
     // Cart state
     var cartItems by mutableStateOf<List<CartItem>>(emptyList())
     var cartDiscount by mutableStateOf(0.0)
@@ -227,6 +230,9 @@ class SalesViewModel(
                                 items = emptyList(),
                             )
                         }
+                    if (type == "ESTIMATE") {
+                        loadQuotations()
+                    }
                     triggerSync()
                     isCheckoutProcessing = false
                     onResult(saleId, total)
@@ -270,6 +276,42 @@ class SalesViewModel(
                 triggerSync()
             }
             onComplete()
+        }
+    }
+
+    fun loadQuotations() {
+        viewModelScope.launch {
+            val rawQuotations = salesRepository.getQuotations()
+            _quotations.value =
+                rawQuotations.map { s ->
+                    val items =
+                        salesRepository.getSaleItems(s.id).map { saleItem ->
+                            com.storebook.inventoryapp.shared.domain.models
+                                .SaleItemDetail(
+                                    itemId = saleItem.item_id,
+                                    itemName = saleItem.item_name,
+                                    quantity = saleItem.quantity,
+                                    unit = saleItem.unit,
+                                    buyPrice = saleItem.buy_price,
+                                    sellPrice = saleItem.sell_price,
+                                )
+                        }
+                    Sale(
+                        id = s.id,
+                        timestamp = s.timestamp,
+                        totalAmount = s.total_amount,
+                        discountAmount = s.discount_amount,
+                        customerName = s.customer_name,
+                        customerGstin = s.customer_gstin,
+                        businessGstin = s.business_gstin,
+                        customerAddress = s.customer_address,
+                        businessAddress = s.business_address,
+                        type = s.type,
+                        notes = s.notes,
+                        isConverted = (s.is_converted == 1L),
+                        items = items,
+                    )
+                }
         }
     }
 
@@ -346,8 +388,25 @@ class SalesViewModel(
             val newSaleId = salesRepository.convertQuotationToSale(saleId)
             if (newSaleId > 0) {
                 triggerSync()
-                // Reload data to reflect the new sale + converted status
                 _salesHistoryList.value = getSalesWithItems(100, 0)
+                _quotations.value =
+                    salesRepository.getQuotations().map { s ->
+                        Sale(
+                            id = s.id,
+                            timestamp = s.timestamp,
+                            totalAmount = s.total_amount,
+                            discountAmount = s.discount_amount,
+                            customerName = s.customer_name,
+                            customerGstin = s.customer_gstin ?: "",
+                            businessGstin = s.business_gstin,
+                            customerAddress = s.customer_address,
+                            businessAddress = s.business_address,
+                            type = s.type,
+                            notes = s.notes,
+                            isConverted = (s.is_converted == 1L),
+                            items = emptyList(),
+                        )
+                    }
             }
             onComplete(newSaleId)
         }
