@@ -5,6 +5,7 @@ import { Plus, Search, Trash2, Edit2, Loader2, ArrowDownCircle } from 'lucide-re
 import { fetchMoreData } from '@/app/actions';
 import ExportButtons from '@/app/ExportButtons';
 import { sanitizeInput } from '@/lib/sanitize';
+import { lookupHSNGSTRate, VALID_GST_RATES } from '@/lib/hsnGstLookup';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
 import { getActiveItemsRef, syncItem, softDeleteItem, getItemsCountRef, OrderDirection, syncStockAdjustment, syncPurchase, syncPurchaseItem, syncItemBatch, getActiveSuppliers, syncSupplier } from '@/dataconnect';
@@ -242,6 +243,8 @@ export default function ItemsClient({
   };
   const [formData, setFormData] = useState<ItemFormData>(() => emptyFormData());
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [hsnSuggestedRate, setHsnSuggestedRate] = useState<number | null>(null);
+  const [hsnToLookup, setHsnToLookup] = useState<string>('');
   const [reStockQuantity, setReStockQuantity] = useState<any | null>(null);
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState<{ id: string; name: string } | null>(null);
@@ -483,7 +486,21 @@ export default function ItemsClient({
     setOriginalItem(null);
     setFormData(emptyFormData());
     setShowAdvanced(false);
+    setHsnSuggestedRate(null);
+    setHsnToLookup('');
     setShowModal(true);
+  };
+
+  const handleHSNInputChange = (value: string) => {
+    const sanitized = sanitizeInput(value);
+    setFormData({ ...formData, hsnCode: sanitized });
+    setHsnToLookup(sanitized);
+
+    const suggestedRate = lookupHSNGSTRate(sanitized);
+    if (suggestedRate !== null && formData.taxRate === 0) {
+      setFormData({ ...formData, taxRate: suggestedRate });
+    }
+    setHsnSuggestedRate(suggestedRate);
   };
 
   return (
@@ -847,9 +864,12 @@ export default function ItemsClient({
                       <input aria-label="text"
                         type="text"
                         value={formData.hsnCode}
-                        onChange={(e) => setFormData({ ...formData, hsnCode: sanitizeInput(e.target.value) })}
+                        onChange={(e) => handleHSNInputChange(e.target.value)}
                         className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
                       />
+                      {hsnSuggestedRate !== null && (
+                        <div className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">Auto-suggested GST rate: {hsnSuggestedRate}%</div>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium dark:text-gray-300">Tax Rate (%)</label>
@@ -860,6 +880,9 @@ export default function ItemsClient({
                         onChange={(e) => setFormData({ ...formData, taxRate: parseFloat(e.target.value) || 0 })}
                         className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
                       />
+                      {VALID_GST_RATES.length > 0 && (
+                        <div className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Standard: {VALID_GST_RATES.join('% | ')}%</div>
+                      )}
                     </div>
                   </div>
 

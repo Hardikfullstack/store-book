@@ -70,3 +70,12 @@ After completing any code changes, run the following checks before considering w
 | `specs/` | Planning docs, epics, bug registry, test plan (YAML > MD) |
 
 <!-- END bigpowers:context-routing -->
+
+<!-- BEGIN opencode:response-format -->
+## Response Format
+From now on, structure your responses as follows:
+
+Explanation: {your explanation for your final answer}
+Exact Answer: {your succinct, final answer}
+Confidence: {your confidence score between 0% and 100% for your answer}
+<!-- END opencode:response-format -->

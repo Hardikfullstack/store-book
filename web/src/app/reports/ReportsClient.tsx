@@ -4,68 +4,98 @@ import { useState, useEffect } from 'react';
 import { Download, FileText, Calendar, Filter, Loader2 } from 'lucide-react';
 import { sanitizeInput } from '@/lib/sanitize';
 import { dataConnect } from '@/lib/firebase';
-import { getActiveSales } from '@/dataconnect';
+import { getActiveSaleItems, syncSales } from '@/dataconnect';
+import { BillingEngine } from '@/lib/BillingEngine';
+import { getGSTStateName } from '@/lib/gstinUtils';
 
 export default function ReportsClient({ storeId }: { storeId: string }) {
-  const [sales, setSales] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchSales = async () => {
-      try {
-        const res = await getActiveSales(dataConnect, { storeId });
-        if (isMounted) setSales(res.data.sales);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-    fetchSales();
-    return () => { isMounted = false; };
-  }, [storeId]);
+  const [loading, setLoading] = useState(false);
 
   const [dateRange, setDateRange] = useState<'all' | 'month' | 'quarter' | 'year'>('month');
 
-  const generateGSTR1 = () => {
-    // Generate CSV
-    const headers = ['Invoice ID', 'Date', 'Customer Name', 'Total Amount', 'Taxable Amount', 'Tax Rate', 'Tax Amount'];
+  const generateGSTR1 = async () => {
+    setLoading(true);
+    try {
+      const [saleItemsRes, salesRes] = await Promise.all([
+        getActiveSaleItems(dataConnect, { storeId }),
+        syncSales(dataConnect, { storeId, lastSync: 0 }),
+      ]);
 
-    const now = Date.now();
-    let cutoff = 0;
-    if (dateRange === 'month') cutoff = now - 30 * 24 * 60 * 60 * 1000;
-    if (dateRange === 'quarter') cutoff = now - 90 * 24 * 60 * 60 * 1000;
-    if (dateRange === 'year') cutoff = now - 365 * 24 * 60 * 60 * 1000;
+      const saleItems = saleItemsRes.data.saleItemDetails;
+      const sales = salesRes.data.sales;
 
-    const filteredSales = sales.filter(sale => ((sale.timestamp || sale.updatedAt) * 1000) >= cutoff);
+      const now = Date.now();
+      let cutoff = 0;
+      if (dateRange === 'month') cutoff = now - 30 * 24 * 60 * 60 * 1000;
+      if (dateRange === 'quarter') cutoff = now - 90 * 24 * 60 * 60 * 1000;
+      if (dateRange === 'year') cutoff = now - 365 * 24 * 60 * 60 * 1000;
 
-    const rows = filteredSales.map(sale => {
-      // In a real app, we'd use actual tax rates. We'll simulate 18% GST for the demo.
-      const total = sale.totalAmount || 0;
-      const taxable = total / 1.18;
-      const tax = total - taxable;
-      const date = new Date(sale.timestamp || (sale.updatedAt * 1000)).toLocaleDateString('en-IN');
+      const salesMap = new Map(sales.map(s => [s.id, s]));
+      const groupedItems = new Map<string, typeof saleItems>();
+      for (const item of saleItems) {
+        if (!groupedItems.has(item.saleId)) groupedItems.set(item.saleId, []);
+        groupedItems.get(item.saleId)!.push(item);
+      }
 
-      return [
-        sale.id.substring(0, 8),
-        date,
-        sale.customerName || 'Walk-in',
-        total.toFixed(2),
-        taxable.toFixed(2),
-        '18%',
-        tax.toFixed(2)
-      ].join(',');
-    });
+      const headers = ['Invoice ID', 'Date', 'CustomerGSTIN', 'ItemType', 'SupplyType', 'BuyerName', 'PlaceOfSupply', 'TaxableValue', 'CGST', 'SGST', 'IGST', 'TotalAmount'];
+      const rows: string[] = [];
 
-    const csvContent = "data:text/csv;charset=utf-8," + headers.join(',') + "\n" + rows.join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `GSTR1_Report_${dateRange}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      for (const [saleId, items] of groupedItems) {
+        const sale = salesMap.get(saleId);
+        if (!sale || (sale.timestamp * 1000) < cutoff) continue;
+
+        const customerGstin = sale.customerGstin || null;
+        const businessGstin = sale.businessGstin || null;
+
+        const invoiceItems = items.map(item => ({
+          id: item.id,
+          sell_price: item.sellPrice,
+          quantity: item.quantity,
+          taxRate: 18,
+        }));
+
+        const summary = BillingEngine.calculateInvoiceTaxes(
+          invoiceItems,
+          sale.discountAmount || 0,
+          businessGstin,
+          customerGstin
+        );
+
+        const itemCategory = 'GR';
+        const supplyType = customerGstin ? 'B2B' : 'B2C';
+        const buyerName = sale.customerName || 'Walk-in';
+        const custStateCode = BillingEngine.getStateCodeFromGSTIN(customerGstin);
+        const placeOfSupply = custStateCode ? getGSTStateName(custStateCode) || 'Unknown' : (businessGstin ? getGSTStateName(BillingEngine.getStateCodeFromGSTIN(businessGstin)!) || 'Unknown' : 'India');
+
+        rows.push([
+          saleId.substring(0, 12),
+          new Date(sale.timestamp * 1000).toLocaleDateString('en-IN'),
+          customerGstin || '',
+          itemCategory,
+          supplyType,
+          `"${buyerName}"`,
+          placeOfSupply,
+          summary.netTaxableAmount.toFixed(2),
+          summary.totalCgst.toFixed(2),
+          summary.totalSgst.toFixed(2),
+          summary.totalIgst.toFixed(2),
+          summary.grandTotal.toFixed(2),
+        ].join(','));
+      }
+
+      const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `GSTR1_Report_${dateRange}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Failed to generate GSTR-1 report:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
