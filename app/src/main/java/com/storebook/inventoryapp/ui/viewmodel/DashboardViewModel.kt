@@ -198,6 +198,16 @@ class DashboardViewModel(
             _expensesList.value = expenseRepository.getAllExpenses()
             _purchases.value =
                 purchaseRepository.getAllPurchases().map { p ->
+                    val pItems =
+                        purchaseRepository.getPurchaseItems(p.id).map { pi ->
+                            com.storebook.inventoryapp.shared.domain.models.PurchaseItemDetail(
+                                itemId = pi.item_id,
+                                itemName = pi.item_name,
+                                quantity = pi.quantity,
+                                unit = pi.unit,
+                                buyPrice = pi.buy_price,
+                            )
+                        }
                     Purchase(
                         id = p.id,
                         supplierId = p.supplier_id,
@@ -207,7 +217,7 @@ class DashboardViewModel(
                         type = p.type,
                         timestamp = p.timestamp,
                         notes = p.notes,
-                        items = emptyList(),
+                        items = pItems,
                     )
                 }
         }
@@ -338,7 +348,16 @@ class DashboardViewModel(
                         type = p.type,
                         timestamp = p.timestamp,
                         notes = p.notes,
-                        items = emptyList(),
+                        items =
+                            purchaseRepository.getPurchaseItems(p.id).map { pi ->
+                                com.storebook.inventoryapp.shared.domain.models.PurchaseItemDetail(
+                                    itemId = pi.item_id,
+                                    itemName = pi.item_name,
+                                    quantity = pi.quantity,
+                                    unit = pi.unit,
+                                    buyPrice = pi.buy_price,
+                                )
+                            },
                     )
                 }
             val suppliersMap =
@@ -399,7 +418,17 @@ class DashboardViewModel(
                         businessAddress = s.business_address,
                         type = s.type,
                         notes = s.notes,
-                        items = emptyList(),
+                        items =
+                            salesRepository.getSaleItems(s.id).map { saleItem ->
+                                com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
+                                    itemId = saleItem.item_id,
+                                    itemName = saleItem.item_name,
+                                    quantity = saleItem.quantity,
+                                    unit = saleItem.unit,
+                                    buyPrice = saleItem.buy_price,
+                                    sellPrice = saleItem.sell_price,
+                                )
+                            },
                     )
                 }
             val purchases =
@@ -413,7 +442,16 @@ class DashboardViewModel(
                         type = p.type,
                         timestamp = p.timestamp,
                         notes = p.notes,
-                        items = emptyList(),
+                        items =
+                            purchaseRepository.getPurchaseItems(p.id).map { pi ->
+                                com.storebook.inventoryapp.shared.domain.models.PurchaseItemDetail(
+                                    itemId = pi.item_id,
+                                    itemName = pi.item_name,
+                                    quantity = pi.quantity,
+                                    unit = pi.unit,
+                                    buyPrice = pi.buy_price,
+                                )
+                            },
                     )
                 }
             val suppliersMap =
@@ -485,7 +523,17 @@ class DashboardViewModel(
                         businessAddress = s.business_address,
                         type = s.type,
                         notes = s.notes,
-                        items = emptyList(),
+                        items =
+                            salesRepository.getSaleItems(s.id).map { saleItem ->
+                                com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
+                                    itemId = saleItem.item_id,
+                                    itemName = saleItem.item_name,
+                                    quantity = saleItem.quantity,
+                                    unit = saleItem.unit,
+                                    buyPrice = saleItem.buy_price,
+                                    sellPrice = saleItem.sell_price,
+                                )
+                            },
                     )
                 }
             val purchases =
@@ -499,7 +547,16 @@ class DashboardViewModel(
                         type = p.type,
                         timestamp = p.timestamp,
                         notes = p.notes,
-                        items = emptyList(),
+                        items =
+                            purchaseRepository.getPurchaseItems(p.id).map { pi ->
+                                com.storebook.inventoryapp.shared.domain.models.PurchaseItemDetail(
+                                    itemId = pi.item_id,
+                                    itemName = pi.item_name,
+                                    quantity = pi.quantity,
+                                    unit = pi.unit,
+                                    buyPrice = pi.buy_price,
+                                )
+                            },
                     )
                 }
             val suppliersMap =
@@ -557,7 +614,17 @@ class DashboardViewModel(
                 businessAddress = s.business_address,
                 type = s.type,
                 notes = s.notes,
-                items = emptyList(),
+                items =
+                    salesRepository.getSaleItems(s.id).map { saleItem ->
+                        com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
+                            itemId = saleItem.item_id,
+                            itemName = saleItem.item_name,
+                            quantity = saleItem.quantity,
+                            unit = saleItem.unit,
+                            buyPrice = saleItem.buy_price,
+                            sellPrice = saleItem.sell_price,
+                        )
+                    },
             )
         }
 
@@ -575,7 +642,16 @@ class DashboardViewModel(
                 type = p.type,
                 timestamp = p.timestamp,
                 notes = p.notes,
-                items = emptyList(),
+                items =
+                    purchaseRepository.getPurchaseItems(p.id).map { pi ->
+                        com.storebook.inventoryapp.shared.domain.models.PurchaseItemDetail(
+                            itemId = pi.item_id,
+                            itemName = pi.item_name,
+                            quantity = pi.quantity,
+                            unit = pi.unit,
+                            buyPrice = pi.buy_price,
+                        )
+                    },
             )
         }
 

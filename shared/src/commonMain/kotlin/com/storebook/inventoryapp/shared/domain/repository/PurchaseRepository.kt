@@ -55,4 +55,8 @@ class PurchaseRepository(
     suspend fun markPurchaseItemSynced(id: Long, cloudId: String) = withContext(Dispatchers.IO) {
         queries.markPurchaseItemSynced(cloudId, id)
     }
+
+    suspend fun getPurchaseItems(purchaseId: Long): List<Purchase_items> = withContext(Dispatchers.IO) {
+        queries.getPurchaseItemsByPurchaseId(purchaseId).executeAsList()
+    }
 }

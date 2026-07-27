@@ -48,7 +48,16 @@ class SupplierViewModel(
                         type = p.type,
                         timestamp = p.timestamp,
                         notes = p.notes,
-                        items = emptyList(),
+                        items =
+                            purchaseRepository.getPurchaseItems(p.id).map { pi ->
+                                com.storebook.inventoryapp.shared.domain.models.PurchaseItemDetail(
+                                    itemId = pi.item_id,
+                                    itemName = pi.item_name,
+                                    quantity = pi.quantity,
+                                    unit = pi.unit,
+                                    buyPrice = pi.buy_price,
+                                )
+                            },
                     )
                 }
         }

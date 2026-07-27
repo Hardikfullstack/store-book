@@ -446,7 +446,17 @@ class MoreViewModel(
                         businessAddress = s.business_address,
                         type = s.type,
                         notes = s.notes,
-                        items = emptyList(),
+                        items =
+                            salesRepository.getSaleItems(s.id).map { saleItem ->
+                                com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
+                                    itemId = saleItem.item_id,
+                                    itemName = saleItem.item_name,
+                                    quantity = saleItem.quantity,
+                                    unit = saleItem.unit,
+                                    buyPrice = saleItem.buy_price,
+                                    sellPrice = saleItem.sell_price,
+                                )
+                            },
                     )
                 }
             _expensesList.value = expenseRepository.getAllExpenses()

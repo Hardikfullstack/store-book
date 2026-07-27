@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Calendar, Trash2, Edit2, Loader2, ArrowDownCircle, Download } from 'lucide-react';
+import { Plus, Search, Calendar, Trash2, Edit2, Loader2, ArrowDownCircle, Download, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { fetchMoreData } from '@/app/actions';
 import Pagination from '@/app/components/Pagination';
 import jsPDF from 'jspdf';
@@ -10,7 +10,7 @@ import ExportButtons from '@/app/ExportButtons';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getActiveSalesRef, syncSale, softDeleteSale, getSalesCountRef, OrderDirection } from '@/dataconnect';
+import { getActiveSalesRef, syncSale, softDeleteSale, getSalesCountRef, getActiveSaleItemsRef, OrderDirection } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import SalesPOS from './SalesPOS';
 import DynamicTable, { TableColumn, TableRowAction } from '@/components/DynamicTable';
@@ -32,6 +32,7 @@ export default function SalesClient({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [dataVersion, setDataVersion] = useState(0);
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
+  const [showModal, setShowModal] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -165,7 +166,30 @@ export default function SalesClient({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPremium, storeId, currentPage, refreshTrigger, dataVersion, debouncedSearch, minAmountFilter, maxAmountFilter, startDateFilter, endDateFilter]);
-  const [showModal, setShowModal] = useState(false);
+  const [expandedSaleId, setExpandedSaleId] = useState<string | null>(null);
+  const [saleItemsMap, setSaleItemsMap] = useState<Record<string, any[]>>({});
+
+  const fetchSaleItems = async (saleId: string) => {
+    if (saleItemsMap[saleId] !== undefined) return;
+    try {
+      if (!storeId) return;
+      const resp = await executeQuery(getActiveSaleItemsRef(dataConnect, { storeId: storeId }));
+      const allItems: any[] = (resp.data?.saleItemDetails) || [];
+      const saleItems = allItems.filter(i => i.saleId === saleId);
+      setSaleItemsMap(prev => ({ ...prev, [saleId]: saleItems }));
+    } catch (e) {
+      console.error('Failed to fetch sale items:', e);
+    }
+  };
+
+  const toggleRowExpand = async (sale: any) => {
+    if (expandedSaleId === sale.id) {
+      setExpandedSaleId(null);
+    } else {
+      await fetchSaleItems(sale.id);
+      setExpandedSaleId(sale.id);
+    }
+  };
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
@@ -207,7 +231,10 @@ export default function SalesClient({
     });
   };
 
-  const generateInvoice = (sale: any) => {
+  const generateInvoice = async (sale: any) => {
+    await fetchSaleItems(sale.id);
+    const items = saleItemsMap[sale.id] || [];
+
     const doc = new jsPDF();
 
     // Header
@@ -223,24 +250,36 @@ export default function SalesClient({
     // Format amount for invoice with 2 decimals
     const displayAmount = Number(sale.total_amount || 0).toFixed(2);
 
-    // Table
-    autoTable(doc, {
-      startY: 50,
-      head: [['Description', 'Amount']],
-      body: [
-        [sale.notes || 'Purchases', `Rs. ${displayAmount}`],
-      ],
-      theme: 'striped',
-      headStyles: { fillColor: [13, 148, 136] } // Teal-600
-    });
+    if (items.length > 0) {
+      autoTable(doc, {
+        startY: 50,
+        head: [['Item', 'Qty', 'Price', 'Total']],
+        body: items.map(item => [
+          item.itemName?.substring(0, 30),
+          item.quantity || 0,
+          `Rs. ${(Number(item.sellPrice) || 0).toFixed(2)}`,
+          `Rs. ${(Number(item.quantity) * (Number(item.sellPrice) || 0)).toFixed(2)}`
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [13, 148, 136] }
+      });
+    } else {
+      autoTable(doc, {
+        startY: 50,
+        head: [['Description', 'Amount']],
+        body: [
+          [sale.notes || 'Purchases', `Rs. ${displayAmount}`],
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: [13, 148, 136] }
+      });
+    }
 
-    // Total
     const finalY = (doc as any).lastAutoTable.finalY || 50;
     doc.setFontSize(12);
     doc.setTextColor(0);
     doc.text(`Total Amount: Rs. ${displayAmount}`, 14, finalY + 10);
 
-    // Footer
     doc.setFontSize(10);
     doc.setTextColor(150);
     doc.text('Thank you for your business!', 14, finalY + 30);

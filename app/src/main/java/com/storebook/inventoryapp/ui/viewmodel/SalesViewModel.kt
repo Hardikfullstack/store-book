@@ -252,23 +252,7 @@ class SalesViewModel(
                     // BUG-14/BUG-15 FIX: Reload stateflows so QuotationScreen and UdhaarScreen see new entries
                     loadAllData(true)
                     val nowMs = System.currentTimeMillis()
-                    _salesHistoryList.value =
-                        salesRepository.getSalesByDateRange(nowMs - 365L * 24 * 3600 * 1000, nowMs).map { s ->
-                            Sale(
-                                id = s.id,
-                                timestamp = s.timestamp,
-                                totalAmount = s.total_amount,
-                                discountAmount = s.discount_amount,
-                                customerName = s.customer_name,
-                                customerGstin = s.customer_gstin,
-                                businessGstin = s.business_gstin,
-                                customerAddress = s.customer_address,
-                                businessAddress = s.business_address,
-                                type = s.type,
-                                notes = s.notes,
-                                items = emptyList(),
-                            )
-                        }
+                    _salesHistoryList.value = getSalesWithItems(100, 0)
                     if (type == "ESTIMATE") {
                         loadQuotations()
                     }
@@ -359,23 +343,7 @@ class SalesViewModel(
         endTs: Long,
     ) {
         viewModelScope.launch {
-            _salesHistoryList.value =
-                salesRepository.getSalesByDateRange(startTs, endTs).map { s ->
-                    Sale(
-                        id = s.id,
-                        timestamp = s.timestamp,
-                        totalAmount = s.total_amount,
-                        discountAmount = s.discount_amount,
-                        customerName = s.customer_name,
-                        customerGstin = s.customer_gstin,
-                        businessGstin = s.business_gstin,
-                        customerAddress = s.customer_address,
-                        businessAddress = s.business_address,
-                        type = s.type,
-                        notes = s.notes,
-                        items = emptyList(),
-                    )
-                }
+            _salesHistoryList.value = getSalesWithItems(Long.MAX_VALUE, 0)
         }
     }
 
@@ -428,24 +396,9 @@ class SalesViewModel(
             if (newSaleId > 0) {
                 triggerSync()
                 _salesHistoryList.value = getSalesWithItems(100, 0)
-                _quotations.value =
-                    salesRepository.getQuotations().map { s ->
-                        Sale(
-                            id = s.id,
-                            timestamp = s.timestamp,
-                            totalAmount = s.total_amount,
-                            discountAmount = s.discount_amount,
-                            customerName = s.customer_name,
-                            customerGstin = s.customer_gstin ?: "",
-                            businessGstin = s.business_gstin,
-                            customerAddress = s.customer_address,
-                            businessAddress = s.business_address,
-                            type = s.type,
-                            notes = s.notes,
-                            isConverted = (s.is_converted == 1L),
-                            items = emptyList(),
-                        )
-                    }
+                loadQuotations()
+            } else {
+                onComplete(-1)
             }
             onComplete(newSaleId)
         }

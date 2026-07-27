@@ -211,6 +211,18 @@ query GetActiveSaleItems($storeId: String!) @auth(level: USER) {
   }
 }
 
+query GetSaleItemsBySaleId($saleId: String!) @auth(level: USER) {
+  saleItemDetails(where: { saleId: { eq: $saleId }, isDeleted: { eq: false } }) {
+    id
+    saleId
+    itemId
+    itemName
+    quantity
+    sellPrice
+    buyPrice
+  }
+}
+
 query GetActiveUdhaars(
   $storeId: String!
   $limit: Int

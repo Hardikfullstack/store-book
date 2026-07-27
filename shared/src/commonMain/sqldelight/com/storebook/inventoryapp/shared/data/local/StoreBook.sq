@@ -378,68 +378,11 @@ getLocalSupplierByCloudId:
 SELECT id, updated_at FROM suppliers WHERE cloud_id = :cloudId LIMIT 1;
 
 -- ============================================================================
--- UPSERT QUERIES — Pull phase (cloud → local) replacements for raw ContentValues
+-- UPSERT REMOTE — Pull phase (cloud → local) upsert by cloud_id
 -- Uses INSERT OR REPLACE for atomic upsert semantics in SQLite
+-- Local ID is derived from cloud_id lookup or auto-increment, solving the bug
+-- where non-numeric Firestore IDs ("abc123") all converted to 0L
 -- ============================================================================
-insertOrUpdateItem:
-INSERT OR REPLACE INTO items(id, name, quantity, unit, buy_price, sell_price,
-    low_stock_threshold, category, photo_path, barcode, hsn_code, tax_rate,
-    is_deleted, cloud_id, is_synced, updated_at)
-VALUES(:id, :name, :quantity, :unit, :buyPrice, :sellPrice,
-    :lowStockThreshold, :category, :photoPath, :barcode, :hsnCode, :taxRate,
-    :isDeleted, :cloudId, 1, :updatedAt);
-
-insertOrUpdateSale:
-INSERT OR REPLACE INTO sales(id, timestamp, total_amount, discount_amount,
-    customer_name, customer_gstin, business_gstin, customer_address,
-    business_address, type, notes, is_deleted, cloud_id, is_synced, updated_at)
-VALUES(:id, :timestamp, :totalAmount, :discountAmount,
-    :customerName, :customerGstin, :businessGstin, :customerAddress,
-    :businessAddress, :type, :notes, :isDeleted, :cloudId, 1, :updatedAt);
-
-insertOrUpdateSaleItem:
-INSERT OR REPLACE INTO sale_items(id, sale_id, item_id, item_name, unit,
-    quantity, sell_price, buy_price, is_deleted, cloud_id, is_synced, updated_at)
-VALUES(:id, :saleId, :itemId, :itemName, :unit, :quantity, :sellPrice, :buyPrice,
-    :isDeleted, :cloudId, 1, :updatedAt);
-
-insertOrUpdateUdhaar:
-INSERT OR REPLACE INTO udhaar(id, customer_name, amount, type, timestamp, notes,
-    is_deleted, cloud_id, is_synced, updated_at)
-VALUES(:id, :customerName, :amount, :type, :timestamp, :notes,
-    :isDeleted, :cloudId, 1, :updatedAt);
-
-insertOrUpdateExpense:
-INSERT OR REPLACE INTO expenses(id, type, description, amount, timestamp,
-    supplier_name, supplier_phone, is_deleted, cloud_id, is_synced, updated_at)
-VALUES(:id, :type, :description, :amount, :timestamp,
-    :supplierName, :supplierPhone, :isDeleted, :cloudId, 1, :updatedAt);
-
-insertOrUpdateSupplier:
-INSERT OR REPLACE INTO suppliers(id, name, phone, gstin, address,
-    is_deleted, cloud_id, is_synced, updated_at)
-VALUES(:id, :name, :phone, :gstin, :address,
-    :isDeleted, :cloudId, 1, :updatedAt);
-
-insertOrUpdatePurchase:
-INSERT OR REPLACE INTO purchases(id, supplier_id, supplier_name, total_amount,
-    tax_amount, type, timestamp, notes, is_deleted, cloud_id, is_synced, updated_at)
-VALUES(:id, :supplierId, :supplierName, :totalAmount, :taxAmount,
-    :type, :timestamp, :notes, :isDeleted, :cloudId, 1, :updatedAt);
-
-insertOrUpdatePurchaseItem:
-INSERT OR REPLACE INTO purchase_items(id, purchase_id, item_id, item_name,
-    quantity, unit, buy_price, is_deleted, cloud_id, is_synced, updated_at)
-VALUES(:id, :purchaseId, :itemId, :itemName, :quantity, :unit, :buyPrice,
-    :isDeleted, :cloudId, 1, :updatedAt);
-
-insertOrUpdateItemBatch:
-INSERT OR REPLACE INTO item_batches(id, item_id, batch_number, expiry_date,
-    quantity, cost_price, timestamp, notes, is_deleted, cloud_id, is_synced, updated_at)
-VALUES(:id, :itemId, :batchNumber, :expiryDate, :quantity, :costPrice,
-    :timestamp, :notes, :isDeleted, :cloudId, 1, :updatedAt);
-
--- Maintenance Queries
 clearItems:
 DELETE FROM items;
 

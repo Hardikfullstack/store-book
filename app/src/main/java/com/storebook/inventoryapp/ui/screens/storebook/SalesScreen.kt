@@ -146,6 +146,17 @@ fun SalesScreen(
 
     // Customer name error state (mandatory for Udhaar)
     var customerNameError by remember { mutableStateOf(false) }
+    var gstinValidationError by remember { mutableStateOf(true) }
+
+    val validateGstin = { input: String ->
+        if (input.isBlank()) {
+            true
+        } else {
+            input.matches(
+                Regex("^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]$"),
+            )
+        }
+    }
 
     // Autocomplete — show dropdown when typing customer name
     var showCustomerSuggestions by remember { mutableStateOf(false) }
@@ -801,7 +812,11 @@ fun SalesScreen(
                         // ── Customer GSTIN ──────────────────────────────────────────
                         OutlinedTextField(
                             value = viewModel.cartCustomerGstin,
-                            onValueChange = { viewModel.cartCustomerGstin = it },
+                            onValueChange = {
+                                val trimmed = it.uppercase().take(15)
+                                viewModel.cartCustomerGstin = trimmed
+                                gstinValidationError = validateGstin(trimmed)
+                            },
                             label = {
                                 Text(
                                     "Customer GSTIN (Optional)",
@@ -812,6 +827,7 @@ fun SalesScreen(
                             },
                             keyboardOptions =
                                 KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
                                     imeAction = ImeAction.Next,
                                 ),
                             keyboardActions =
@@ -824,6 +840,23 @@ fun SalesScreen(
                                     .focusRequester(focusRequesterGstin),
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp),
+                            supportingText = {
+                                val isValidFormat =
+                                    gstinValidationError ||
+                                        viewModel.cartCustomerGstin.isBlank()
+                                Text(
+                                    text = if (isValidFormat) "Format: 26AAAAA0000A1Z5" else "Valid GSTIN",
+                                    fontSize = 11.sp,
+                                    color =
+                                        if (!gstinValidationError &&
+                                            viewModel.cartCustomerGstin.isNotBlank()
+                                        ) {
+                                            Coral500
+                                        } else {
+                                            Color.Gray
+                                        },
+                                )
+                            },
                         )
 
                         // ── Customer Address ────────────────────────────────────────

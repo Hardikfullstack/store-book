@@ -5,7 +5,7 @@ import { LayoutDashboard, Package, ShoppingCart, Users, Receipt, LogOut, Databas
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useState } from 'react';
 import CreateStoreModal from '@/components/CreateStoreModal';
-import { resolvePermissions, PermissionSet, ROLE_LABELS } from '@/lib/roleMatrix';
+import { resolvePermissions, ROLE_LABELS, hasRolePermission, PermissionSet } from '@/lib/roleMatrix';
 
 // Route → Permission mapping used to build nav items dynamically
 const ROUTE_PERMISSIONS = [
@@ -38,14 +38,10 @@ export default function Sidebar({ session }: { session?: any }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const pathname = usePathname();
 
-  // Resolve permissions from role
-  const perms: PermissionSet = resolvePermissions(role);
-
   // Build nav items based on permission set
   const isPlatformAdmin = role === 'admin' || role === 'super_admin';
-  const filteredNavItems = isPlatformAdmin
-    ? ADMIN_ROUTE_PERMISSIONS.filter((r) => (perms as any)[r.permKey])
-    : ROUTE_PERMISSIONS.filter((r) => (perms as any)[r.permKey]);
+  const hasPerm = hasRolePermission(role);
+  const filteredNavItems = isPlatformAdmin ? ADMIN_ROUTE_PERMISSIONS.filter((r) => hasPerm(r.permKey as keyof PermissionSet)) : ROUTE_PERMISSIONS.filter((r) => hasPerm(r.permKey as keyof PermissionSet));
 
 
   if (pathname === '/login' || pathname === '/signup') {
@@ -132,7 +128,7 @@ export default function Sidebar({ session }: { session?: any }) {
       </nav>
 
       {/* Staff management link — only owners and managers (read-only for staff list) */}
-      {!isPlatformAdmin && perms.canManageStaff && (
+      {!isPlatformAdmin && hasPerm('canManageStaff') && (
         <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-800">
           <Link
             href="/settings?tab=staff"

@@ -111,6 +111,10 @@ fun SupplierLedgerScreen(
     var supplierGstin by remember { mutableStateOf("") }
     var supplierAddress by remember { mutableStateOf("") }
     var formError by remember { mutableStateOf(false) }
+    var gstinValid by remember { mutableStateOf(true) }
+    val validateGstin = { input: String ->
+        if (input.isBlank()) true else input.matches(Regex("^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]$"))
+    }
 
     // Payment fields
     var paymentAmount by remember { mutableStateOf("") }
@@ -890,7 +894,7 @@ fun SupplierLedgerScreen(
 
                         OutlinedTextField(
                             value = supplierPhone,
-                            onValueChange = { supplierPhone = it },
+                            onValueChange = { supplierPhone = it.take(10) },
                             label = {
                                 Text(
                                     "Phone Number",
@@ -917,7 +921,11 @@ fun SupplierLedgerScreen(
 
                         OutlinedTextField(
                             value = supplierGstin,
-                            onValueChange = { supplierGstin = it },
+                            onValueChange = {
+                                val trimmed = it.uppercase().take(15)
+                                supplierGstin = trimmed
+                                gstinValid = validateGstin(trimmed)
+                            },
                             label = {
                                 Text(
                                     "GSTIN",
@@ -939,6 +947,20 @@ fun SupplierLedgerScreen(
                             modifier =
                                 Modifier.fillMaxWidth().focusRequester(focusRequesterGstin),
                             singleLine = true,
+                            supportingText = {
+                                Text(
+                                    text =
+                                        if (gstinValid ||
+                                            supplierGstin.isBlank()
+                                        ) {
+                                            "Format: 26AAAAA0000A1Z5"
+                                        } else {
+                                            "Invalid GSTIN format"
+                                        },
+                                    fontSize = 11.sp,
+                                    color = if (!gstinValid && supplierGstin.isNotBlank()) Coral500 else Color.Gray,
+                                )
+                            },
                         )
 
                         OutlinedTextField(
