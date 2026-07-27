@@ -52,8 +52,8 @@ class ExpenseViewModel(
 
     fun deleteExpense(id: Long) {
         viewModelScope.launch {
-            // legacyRepository.deleteExpense(id)
-            // loadData()
+            repository.softDeleteExpense(id)
+            loadData()
         }
     }
 }

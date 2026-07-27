@@ -1,0 +1,60 @@
+# Epic e36 — Data Assertion & Invoice Corner Cases Verification
+
+id: e36
+title: "Verify Discount Clamping, Zero-Quantity Items, Multi-Tax-Rate Invoices & Financial Precision"
+scope_feature: ["Billing Engine (P0)", "Invoice PDF (P1)", "GSTR-1 CSV Export (P2)"]
+depends_on_epics: [e03, e06, e23]
+target_version: v1.4.0
+priority: P0
+status: defined
+type: verification
+
+rationale: >
+  Financial calculations involving discounts, taxes at multiple rates, and edge-case quantities have
+  compounding error potential. A discount that exceeds subtotal could produce negative taxable base.
+  Zero-quantity items in cart may bypass tax entirely or cause division-by-zero in proration ratios.
+  Mixed HSN / mixed-tax-rate invoices must show per-line CGST/SGST/IGST that sum exactly to grand total.
+  Any rounding drift > ₹0.01 between BillingEngine sum and PDF footer = compliance risk under GST rules.
+
+success_criteria:
+  - "Discount clamped to subtotal — netTaxableAmount never goes negative"
+  - "Zero-quantity items excluded from tax calculation without crash (no division-by-zero on itemGross/subTotal)"
+  - "Per-line CGST + SGST or IGST sums to grand total within ₹0.01 rounding tolerance"
+  - "Multi-tax-rate invoice splits per-item at correct rates; foot totals aggregate across all rates"
+  - "Discount proration proportional to (itemGross / subTotal) — no item receives more discount than its gross"
+
+stories:
+  - id: e36-s1
+    title: "Verify discount clamping prevents negative taxable base"
+    acceptance:
+      - "BillingEngine.calculateInvoiceTaxes with discount > subtotal → actualDiscount capped at subtotal, netTaxableAmount = 0 (BillingEngine.ts:59)"
+      - "Negative discount (-₹50) clamped to 0 or blocked — netTaxableAmount never negative"
+      - "Discount equals subtotal exactly: all tax amounts equal 0, grandTotal equals 0"
+      - "Per-item proration: no individual line gets discounted below zero (Math.max(0, itemGross - itemDiscount) at :84)"
+      - "Corner Case: discount = subTotal * 1.5 with 2 items of unequal price — higher-priced item absorbs proportionally larger discount share but neither goes negative"
+
+  - id: e36-s2
+    title: "Verify zero and negative quantity edge cases in billing pipeline"
+    acceptance:
+      - "qty=0 item produces all-zero line in itemDetails, does not affect subTotal or crash division (BillingEngine.ts:56)"
+      - "All items qty=0 → early return at :62 with empty summary — no arithmetic exception"
+      - "Cart with mixed 0-qty & positive-qty items: only positive items taxed, discount proration uses correct itemGross/subTotal ratio for non-zero items"
+      - "Corner Case: Negative qty reaches atomicCheckout (SalesRepository.kt). sale_items.quantity is REAL NOT NULL but has no CHECK constraint >= 0 — assert Android cart prevents this path or document as data-integrity gap"
+      - "Cross-layer: SalesViewModel on Android rejects add-to-cart with quantity <= 0, blocking negative-qty from reaching repository"
+
+  - id: e36-s3
+    title: "Verify multi-tax-rate invoice per-line correctness and foot total aggregation"
+    acceptance:
+      - "Single 3-item cart with taxRates [5, 12, 18], INTRASTATE supply: each line splits correctly at half rate to cgst/sgst; igst stays 0 (BillingEngine.ts:91-94)"
+      - "Same 3-item cart as INTERSTATE between different-state GSTINs: full taxRate goes to igst only, cgst/sgst = 0"
+      - "Zero-rated items (taxRate=0) produce no tax on their line; other lines taxed at normal rates. grandTotal equals Σ itemDetails[i].totalAmountWithTax ± ₹0.01"
+      - "Duplicate cartItemId keys: per-line taxes not overwritten — array length of itemDetails must equal original cartItems length (regression guard from e23 InvoicePdfGenerator refactor)"
+      - "GSTR-1 CSV groups by saleId, preserves per-item HSN and tax_rate; items with different rates must appear on separate rows (ReportsClient.tsx getActiveSaleItems path)"
+
+  - id: e36-s4
+    title: "Verify rounding consistency from BillingEngine grand total through PDF footer to persisted sale total"
+    acceptance:
+      - "Repeating-decimal scenario (qty=3, sell_price=33.33, 18% tax): grandTotal rounds via Number(...toFixed(2)) giving exactly ₹117.99 across engine and generated PDF"
+      - "50-item invoice with varying decimal prices: Σ itemDetails[].totalAmountWithTax equals BillingEngine.grandTotal ± ₹0.01"
+      - "Discount proration splits fractional cents — per-line netAmountBeforeTax summed back equals total netTaxableAmount ± ₹0.01 (toFixed(2) introduces off-by-penny drift per line that must stay bounded)"
+      - "Android sale header's total_amount column matches whatever the ViewModel computed — no hidden tax, surcharge, or rounding difference injected between Sale UI and SalesRepository.atomicCheckout"

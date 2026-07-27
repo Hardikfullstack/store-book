@@ -36,6 +36,11 @@ class ExpenseRepository(
         supplierPhone = supplier_phone
     )
 
+    suspend fun softDeleteExpense(id: Long) = withContext(Dispatchers.IO) {
+        val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+        queries.softDeleteExpense(timestamp, id)
+    }
+
     // RP-A0: Push-sync methods
     suspend fun getUnsyncedExpenses(): List<Expenses> = withContext(Dispatchers.IO) {
         queries.getUnsyncedExpenses().executeAsList()

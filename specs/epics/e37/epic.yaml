@@ -1,0 +1,68 @@
+# Epic e37 — Sync Boundary Collisions & Offline→Online Merge Ordering Verification
+
+id: e37
+title: "Verify Sync Conflict Resolution, Upsert ID Collision Safety & Delta Sync Boundary Coverage"
+scope_feature: ["Offline-First Sync (P0)", "SQLDelight Upsert (P0)", "FailedSyncQueue (P1)"]
+depends_on_epics: [e01, e13, e31]
+target_version: v1.5.0
+priority: P0
+status: defined
+type: verification
+
+rationale: >
+  The offline-first delta sync architecture introduces four high-risk areas: (1) Last-Write-Wins conflict
+  resolution must correctly compare timestamps and reject stale remote data; (2) INSERT OR REPLACE upserts
+  can silently overwrite unrelated entities if their local auto-increment IDs collide; (3) Items created
+  offline between sync cycles must be caught by is_synced=0 filter, not missed by high-water-mark gaps;
+  (4) Quotation→Sale conversion during a live pull-sync can produce stock count drift. These data flows
+  are the most expensive to debug post-deploy — silent data corruption with no UI error signal.
+
+success_criteria:
+  - "LWW correctly accepts remote when updatedAt >= local, rejects when remote is stale"
+  - "Two entities with same auto-id but different cloud_ids do NOT overwrite each other via INSERT OR REPLACE"
+  - "Delta sync pulls all unsynced=0 entities regardless of timestamp boundary — nothing falls through the gap"
+  - "convertQuotationToSale stock deduction is atomic; concurrent pull-sync overwrites are LWW-safe"
+  - "FailedSyncQueue successful dequeue, exponential backoff timing, and max_retries→PERMANENT_FAILURE lifecycle complete"
+
+stories:
+  - id: e37-s1
+    title: "Verify LWW conflict resolution accepts newer remote and rejects stale remote"
+    acceptance:
+      - "shouldAcceptRemote(remoteTs=2000, cloudId) with local.updated_at=1500 → returns true (SyncRepository.kt:419-424)"
+      - "shouldAcceptRemote(remoteTs=1000, cloudId) with local.updated_at=1500 → returns false — stale remote rejected"
+      - "Corner Case: identical timestamps (remoteTs == localUpdatedAt) → accepts remote (>= comparison at :423)"
+      - "Corner Case: no local record for cloudId → returns true immediately, always accept new entities"
+      - "Sale append-only: saleExistsLocally(cloudId) returns true when already pulled — duplicate sale rejected (SyncRepository.kt:427-429)"
+
+  - id: e37-s2
+    title: "Verify INSERT OR REPLACE upsert does not overwrite unrelated entities on ID collision"
+    acceptance:
+      - "Two remote items with cloud_id='A' (id=1) and cloud_id='B' (id=1 pulled separately). Verify second upsert creates separate row or updates existing cloud_id='A' entry only, does not erase 'A'"
+      - "upsertItemRemote uses COALESCE(subquery on cloud_id, MAX(id)+1, 1) to generate unique local IDs — assert non-collision (StoreBook.sq:757-763)"
+      - "Corner Case: pull sync drops with entity at id=0. INSERT OR REPLACE at id=0 must not match existing rows or produce foreign-key orphan in sale_items referencing non-existent parent"
+      - "Cross-table: upsertSaleItemRemote resolves sale_id and item_id via cloud_id lookup. If parent sale doesn't exist yet, assert upsert defers or queues (data integrity guard)"
+
+  - id: e37-s3
+    title: "Verify delta sync high-water-mark boundary does not miss locally-created entities"
+    acceptance:
+      - "Item created offline at t=500ms after lastFullSyncAt=t=100. getUnsyncedItems returns it (is_synced=0 filter, StoreBook.sq:460). sync_state timestamp boundary irrelevant for push"
+      - "Corner Case: item updated locally between two consecutive sync runs. First sync succeeds (marks is_synced=1). Local update at :68 resets is_synced=0. Second sync re-picks it up"
+      - "Corner Case: partial push failure — 7 of 12 items sync successfully, 5 fail. Failed 5 enqueued in failed_sync_queue. Next retry picks exactly those 5, not all 12"
+      - "Pull-phase: remote entity with updatedAt older than local → LWW rejection means no write, is_synced stays as-is (no false-positive sync marking)"
+
+  - id: e37-s4
+    title: "Verify convertQuotationToSale atomicity under concurrent pull-sync conflict"
+    acceptance:
+      - "convertQuotationToSale wrapped in database.transaction{} — stock deduction and sale header are atomic (SalesRepository.kt:97-157)"
+      - "Corner Case: concurrent pull-sync updates same item's quantity. Quotation converts inside transaction, reads local quantity at :103. LWW may overwrite later — assert no double-deduction"
+      - "Corner Case: InsufficientStockException at :104-111 throws → full rollback. No sale header created, no stock changed, quotation remains unconverted"
+      - "Cross-layer: web server's DataConnect ESTIMATE→SALE path also deducts inventory. If both Android local and web attempt conversion for same quotation, only one creates valid SALE entity"
+
+  - id: e37-s5
+    title: "Verify FailedSyncQueue successful retry dequeue and exponential backoff timing"
+    acceptance:
+      - "Enqueue with nextRetryAt=T+30000. Retry at T+30000 succeeds → dequeueFailedSyncById removes entry, verify count decreases (SyncRepository.kt:368-371)"
+      - "Corner Case: retry #1 fails → updateRetryState increments retry_count to 1, next_retry_at = T+60000. Backoff calculation: 2^attempt × 30s"
+      - "Corner Case: max_retries=3 exceeded at attempt 4 → markPermanentFailure status='PERMANENT_FAILURE'. Entry no longer in getOverdueForRetry results"
+      - "incrementFailedMutationCount called on permanent failure — sync_state.total_failed_mutations increments by 1 (StoreBook.sq:637-638)"
+      - "Race condition: two retry workers processing same queue entry concurrently. First succeeds and dequeues; second finds nothing or catches SQLITE error gracefully"

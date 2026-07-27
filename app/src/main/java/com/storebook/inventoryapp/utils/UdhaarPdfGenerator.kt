@@ -21,7 +21,8 @@ object UdhaarPdfGenerator {
         shopName: String,
     ): File? {
         val document = PdfDocument()
-        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // A4
+        val pageInfo =
+            PdfDocument.PageInfo.Builder(595, 842, 1).create()
         val page = document.startPage(pageInfo)
         val canvas = page.canvas
 
@@ -34,10 +35,14 @@ object UdhaarPdfGenerator {
         var yPos = 50f
         val leftMargin = 50f
 
-        // Header
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         paint.textSize = 24f
-        canvas.drawText(if (shopName.isNotBlank()) shopName else "StoreBook", leftMargin, yPos, paint)
+        canvas.drawText(
+            if (shopName.isNotBlank()) shopName else "StoreBook",
+            leftMargin,
+            yPos,
+            paint,
+        )
 
         yPos += 30f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
@@ -47,9 +52,7 @@ object UdhaarPdfGenerator {
         yPos += 20f
         paint.textSize = 14f
         val balanceText =
-            if (netBalance >
-                0
-            ) {
+            if (netBalance > 0) {
                 "You owe: ₹$netBalance"
             } else if (netBalance < 0) {
                 "Advance: ₹${-netBalance}"
@@ -63,26 +66,43 @@ object UdhaarPdfGenerator {
         yPos += 40f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         canvas.drawText("Date", leftMargin, yPos, paint)
-        canvas.drawText("Type", leftMargin + 150f, yPos, paint)
-        canvas.drawText("Amount", leftMargin + 300f, yPos, paint)
-        canvas.drawText("Notes", leftMargin + 400f, yPos, paint)
+        canvas.drawText("Type", leftMargin + 120f, yPos, paint)
+        canvas.drawText("Amount", leftMargin + 230f, yPos, paint)
+        canvas.drawText("Balance", leftMargin + 340f, yPos, paint)
+        canvas.drawText("Notes", leftMargin + 440f, yPos, paint)
 
         yPos += 20f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         val dateFmt = SimpleDateFormat("dd MMM yy", Locale.getDefault())
+        var runningBal = 0.0
 
         for (entry in ledgerEntries) {
-            canvas.drawText(dateFmt.format(Date(entry.timestamp)), leftMargin, yPos, paint)
             val isCredit = entry.type == "CREDIT"
+            runningBal += if (isCredit) entry.amount else -entry.amount
+
+            canvas.drawText(dateFmt.format(Date(entry.timestamp)), leftMargin, yPos, paint)
             paint.color = if (isCredit) Color.RED else Color.rgb(13, 148, 136)
-            canvas.drawText(if (isCredit) "Given" else "Received", leftMargin + 150f, yPos, paint)
-            canvas.drawText("₹${entry.amount}", leftMargin + 300f, yPos, paint)
+            canvas.drawText(if (isCredit) "Given" else "Received", leftMargin + 120f, yPos, paint)
+            canvas.drawText("₹${entry.amount}", leftMargin + 230f, yPos, paint)
+            val balanceColor =
+                when {
+                    runningBal > 0 -> Color.RED
+                    runningBal < 0 -> Color.rgb(13, 148, 136)
+                    else -> Color.BLACK
+                }
+            paint.color = balanceColor
+            canvas.drawText("₹$runningBal", leftMargin + 340f, yPos, paint)
             paint.color = Color.BLACK
             val notes = entry.notes ?: "-"
-            canvas.drawText(if (notes.length > 20) notes.take(17) + "..." else notes, leftMargin + 400f, yPos, paint)
+            canvas.drawText(
+                if (notes.length > 20) notes.take(17) + "..." else notes,
+                leftMargin + 440f,
+                yPos,
+                paint,
+            )
             yPos += 20f
 
-            if (yPos > 800f) break // Simple pagination prevention for demo
+            if (yPos > 800f) break
         }
 
         document.finishPage(page)

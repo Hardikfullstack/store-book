@@ -497,6 +497,73 @@ export async function convertQuotationToSale(estimateId: string): Promise<{ succ
   }
 }
 
+/**
+ * BUG-10 fix: Server-authoritative udhaar balance per customer.
+ * Aggregates CREDIT vs PAYMENT entries server-side so all devices converge on identical balances.
+ */
+export async function getUdhaarCustomerBalances(
+  storeId: string,
+): Promise<{ success: boolean; data?: { customerName: string; netBalance: number; lastTransactionTime: number }[]; error?: string }> {
+  const session = await getSession();
+  if (!session) return { success: false, error: 'Unauthorized' };
+
+  const allowedStores: string[] = Array.isArray(session.stores) ? session.stores : [];
+  if (session.role !== 'super_admin' && !allowedStores.includes(storeId as string)) {
+    return { success: false, error: 'You do not have access to this store' };
+  }
+
+  try {
+    const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
+    const response = await dc.executeGraphql(
+      `query GetUdhaarForBalance($storeId: String!) {
+        udhaarEntries(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+          edges {
+            node {
+              customerName
+              amount
+              type
+              timestamp
+            }
+          }
+        }
+      }`,
+      { variables: { storeId } },
+    );
+
+    const entries = ((response.data as any)?.udhaarEntries?.edges || []).map(
+      (e: any) => e.node,
+    );
+
+    // Aggregate per-customer balances server-side
+    const customerMap = new Map<string, { creditSum: number; paymentSum: number; lastTime: number }>();
+
+    for (const entry of entries) {
+      const key = entry.customerName;
+      const existing = customerMap.get(key);
+      if (existing) {
+        if (entry.type === 'CREDIT') existing.creditSum += entry.amount;
+        else existing.paymentSum += entry.amount;
+        if (entry.timestamp > existing.lastTime) existing.lastTime = entry.timestamp;
+      } else {
+        const creditSum = entry.type === 'CREDIT' ? entry.amount : 0;
+        const paymentSum = entry.type !== 'CREDIT' ? entry.amount : 0;
+        customerMap.set(key, { creditSum, paymentSum: paymentSum, lastTime: entry.timestamp ?? 0 });
+      }
+    }
+
+    const data = Array.from(customerMap.entries()).map(([customerName, vals]) => ({
+      customerName,
+      netBalance: Math.round((vals.creditSum - vals.paymentSum + Number.EPSILON) * 100) / 100,
+      lastTransactionTime: vals.lastTime ?? 0,
+    }));
+
+    return { success: true, data };
+  } catch (err: any) {
+    console.error('getUdhaarCustomerBalances failed:', err);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function revalidateDashboard() {
   revalidatePath('/');
 }

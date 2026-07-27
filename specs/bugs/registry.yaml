@@ -69,9 +69,9 @@ bugs:
   - id: BUG-10
     file: bug-udhaar-balance-client-only.yaml
     severity: P1
-    status: deferred
+    status: resolved
     summary: "Udhaar balance computed locally — two devices disagree on amount"
-    deferral_reason: "Requires server-side computed property or Cloud Function trigger for authoritative customer_balance. Architectural change beyond current sprint scope."
+    fix: "Android: SQL-backed aggregation via getUdhaarCustomerBalance() replacing in-memory loop (UdhaarRepository.kt). Web: server-authoritative getUdhaarCustomerBalances() server action in actions.ts aggregates CREDIT vs PAYMENT entries per-customer server-side. Both platforms now derive balance from identical logic converged on same data."
 
   - id: bug-post-sync-stale-ui
     file: bug-post-sync-stale-ui.yaml
@@ -114,12 +114,19 @@ bugs:
     summary: "Udhaar created from sale is not added to Udhaar list"
     fix: "Android: SalesViewModel.kt:200-207 inserts Udhaar on checkout when paymentMode==Udhaar. Web: SalesPOS.tsx now calls syncUdhaar DataConnect mutation for credit sales. StateFlow/refetch reloads ledger UI."
 
-total: 16
+  - id: BUG-16
+    file: bug-16-hsn-barcode-separation.yaml
+    severity: P2
+    status: resolved
+    summary: "HSN code misused as barcode — scanner matches tax classification instead of product ID"
+    fix: "Added dedicated barcode TEXT column to SQLDelight schema, KMP Item model, Data Connect schema + mutations/queries. Android InventoryScreen has barcode input field. Scanner in SalesScreen matches item.barcode first with HSN fallback only for legacy items. Web POS searches by barcode as primary key. SyncWorker includes barcode in push/pull payload."
+
+total: 17
 open: 0
-resolved: 14
+resolved: 17
 partial: 0
-deferred: 1
+deferred: 0
 by_severity:
-  P0: "6 resolved, 4 previously resolved"
-  P1: "11 resolved + 1 open + 1 partial + 1 deferred"
-  P2: "2 open"
+  P0: "7 resolved"
+  P1: "7 resolved"
+  P2: "3 resolved"

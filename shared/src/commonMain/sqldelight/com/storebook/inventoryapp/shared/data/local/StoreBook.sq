@@ -203,6 +203,15 @@ SELECT * FROM udhaar WHERE customer_name = ? AND is_deleted = 0 ORDER BY timesta
 getAllUdhaar:
 SELECT * FROM udhaar WHERE is_deleted = 0;
 
+getUdhaarCustomerBalance:
+SELECT customer_name,
+       COALESCE(SUM(CASE WHEN type = 'CREDIT' THEN amount ELSE 0 END), 0.0) AS totalOutstanding,
+       COALESCE(SUM(CASE WHEN type = 'PAYMENT' THEN amount ELSE 0 END), 0.0) AS totalPaid,
+       MAX(timestamp) AS lastTransactionTime
+FROM udhaar
+WHERE is_deleted = 0
+GROUP BY customer_name;
+
 CREATE TABLE expenses (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   type TEXT NOT NULL,
@@ -225,6 +234,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?);
 
 getAllExpenses:
 SELECT * FROM expenses WHERE is_deleted = 0 ORDER BY timestamp DESC;
+
+softDeleteExpense:
+UPDATE expenses SET is_deleted = 1, is_synced = 0, updated_at = ? WHERE id = ?;
 
 CREATE TABLE suppliers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

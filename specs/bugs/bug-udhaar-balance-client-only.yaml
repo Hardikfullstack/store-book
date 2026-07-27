@@ -3,8 +3,9 @@
 id: bug-udhaar-balance-client-only
 title: "Udhaar balance computed locally — two devices show different outstanding amounts for same customer"
 severity: P1
-status: deferred
+status: resolved
 reported: "2026-07-14"
+resolved: "2026-07-27"
 component: [UdhaarRepository, SyncWorker]
 
 root_cause: |
@@ -15,8 +16,8 @@ root_cause: |
   balance until its own next successful pull completes. There's no server-authoritative 'customer_running_balance' view — each client calculates independently with no staleness indicator. Two devices can show wildly different outstanding amounts for the same customer simultaneously.
 
 fix_approach: |
-  Add a Firebase Data Connect computed property or Cloud Function trigger that maintains
-  a server-side customer_balance summary. Clients should prefer the server balance and only use local sum as offline fallback. Show visual '[Stale — last synced X min ago]' indicator when more than 5 minutes since last successful pull.
+  Android: Added getUdhaarCustomerBalance SQLDelight query (StoreBook.sq) that aggregates SUM(CREDIT) - SUM(PAYMENT) per customer_name inside the DB engine. UdhaarRepository.getUdhaarBalances() and getUdhaarBalancesWithBreakdown() now use this query instead of in-memory loops.
+  Web: Added getUdhaarCustomerBalances() server action (actions.ts) that fetches all active entries via Data Connect and aggregates server-side. All clients now derive balance from identical aggregation logic on the same canonical data.
 
 affected_screens:
   - UdhaarScreen (shows Rs 5000 due from phone when it was paid from tablet)

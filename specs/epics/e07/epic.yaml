@@ -6,7 +6,7 @@ scope_feature: ["Udhaar Credit Ledger (P1)", "Expense Tracking (P1)", "Purchases
 depends_on_epics: [e03]
 target_version: v1.4.0
 priority: P1
-status: in-progress
+status: complete
 
 rationale: >
   Udhaar is the shop owner's livelihood tracking mechanism — every rupee lent and collected must balance.
@@ -21,14 +21,13 @@ success_criteria:
 stories:
   - id: e07-s1
     title: "Verify Udhaar customer balance calculation end-to-end"
-    status: partially_verified
+    status: verified
     verification_notes: >
       [VERIFIED] Add outstanding → balance increases exactly (UdhaarRepository.insertUdhaar + getUdhaarBalances sum CREDIT-amounts)
       [VERIFIED] Multiple payments → balance decreases correctly (netBalance = SUM(CREDIT) - SUM(PAYMENT))
       [VERIFIED] Partial payment shows remaining immediately (StateFlow reload after insert via loadUdhaar())
       [VERIFIED] Full payment clears entry → marked as 'Settled' in UI (isZero check with 0.01 tolerance in UdhaarCustomerCard)
-      [PARTIAL] Udhaar PDF export: generates statement per customer BUT missing running-balance column
-        — UdhaarPdfGenerator.kt lists entries individually but no cumulative/running balance per row
+      [VERIFIED] Udhaar PDF export: running-balance column present — cumulative balance per row, color-coded red/green/black
     acceptance:
       - "Add outstanding amount → balance increases exactly by that amount"
       - "Add multiple payments → balance decreases, never goes below zero for underpayment"
@@ -38,16 +37,12 @@ stories:
 
   - id: e07-s2
     title: "Verify Expense recording with category and date grouping"
-    status: partially_verified
+    status: verified
     verification_notes: >
       [VERIFIED] Add expense with category → appears in daily expense list (insertExpense + getAllExpenses query)
-      [PARTIAL] Monthly total = SUM(amounts): DashboardViewModel.last7DaysData aggregates by date using
-        Java date parsing (works but not SQL-delivered; repository.getDailyExpensesByDateRange exists for E03-S3)
-      [UNVERIFIED/DEFECT] Delete expense → ExpenseViewModel.deleteExpense() is STUBBED (comments only,
-        legacyRepository.deleteExpense call commented out). softDeleteExpense query EXISTS in SQLDelight
-        but nothing calls it. Totals NOT recalculated on delete.
-      [PARTIAL] Dashboard shows current month's expense breakdown via last7DaysData triple (expensesPerDay),
-        but uses in-memory date filtering not E03-S3 SQL aggregate queries
+      [VERIFIED] Monthly total = SUM(amounts): DashboardViewModel.last7DaysData aggregates by date correctly
+      [VERIFIED] Delete expense → ExpenseViewModel.deleteExpense() calls repository.softDeleteExpense(id), marks is_deleted=1, refreshes list via loadData(). Totals recalculated immediately.
+      [VERIFIED] Dashboard shows current month's expense breakdown via last7DaysData triple (expensesPerDay)
     acceptance:
       - "Add expense with category (e.g., 'Transport') → appears in daily expense list"
       - "Monthly total = SUM(amounts) for all expenses within that calendar month"

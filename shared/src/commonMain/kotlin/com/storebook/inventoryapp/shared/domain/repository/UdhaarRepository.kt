@@ -21,59 +21,27 @@ class UdhaarRepository(
         queries.getCustomerLedger(customerName).executeAsList().map { it.toDomain() }
     }
 
+    /**
+     * BUG-10 fix: Authoritative udhaar balance computed via SQL query.
+     * Both local DB and Firebase Data Connect derive balance from the same aggregation logic,
+     * so multi-device sync converges to identical results.
+     */
     suspend fun getUdhaarBalances(): List<CustomerBalance> = withContext(Dispatchers.IO) {
-        val allUdhaar = queries.getAllUdhaar().executeAsList()
-        val balances = mutableMapOf<String, Double>()
-        val lastTimes = mutableMapOf<String, Long>()
-        
-        allUdhaar.forEach { entity ->
-            val amt = if (entity.type == "CREDIT") entity.amount else -entity.amount
-            balances[entity.customer_name] = (balances[entity.customer_name] ?: 0.0) + amt
-            val currentLastTime = lastTimes[entity.customer_name] ?: 0L
-            if (entity.timestamp > currentLastTime) {
-                lastTimes[entity.customer_name] = entity.timestamp
-            }
-        }
-        
-        balances.map { (name, netBalance) ->
-            CustomerBalance(name, netBalance, lastTimes[name] ?: 0L)
+        queries.getUdhaarCustomerBalance().executeAsList().map { row ->
+            val netBalance = row.totalOutstanding - row.totalPaid
+            CustomerBalance(row.customer_name, netBalance, row.lastTransactionTime ?: 0L)
         }
     }
 
-    // E03-S2: Detailed balance breakdown — totalOutstanding + totalPaid per customer
+    // E03-S2: Detailed balance breakdown — totalOutstanding + totalPaid per customer (SQL-backed)
     suspend fun getUdhaarBalancesWithBreakdown(): List<CustomerDetailedBalance> = withContext(Dispatchers.IO) {
-        val allUdhaar = queries.getAllUdhaar().executeAsList()
-        val outstandingMap = mutableMapOf<String, Double>()
-        val paidMap = mutableMapOf<String, Double>()
-        val lastTimes = mutableMapOf<String, Long>()
-
-        allUdhaar.forEach { entity ->
-            val name = entity.customer_name
-            if (entity.type == "CREDIT") {
-                outstandingMap[name] = (outstandingMap[name] ?: 0.0) + entity.amount
-            } else {
-                paidMap[name] = (paidMap[name] ?: 0.0) + entity.amount
-            }
-            val currentLastTime = lastTimes[name] ?: 0L
-            if (entity.timestamp > currentLastTime) {
-                lastTimes[name] = entity.timestamp
-            }
-        }
-
-        // Dedupe customer names from both maps
-        val allNames = mutableSetOf<String>()
-        allNames.addAll(outstandingMap.keys)
-        allNames.addAll(paidMap.keys)
-
-        allNames.map { name ->
-            val totalOut = outstandingMap[name] ?: 0.0
-            val totalPd = paidMap[name] ?: 0.0
+        queries.getUdhaarCustomerBalance().executeAsList().map { row ->
             CustomerDetailedBalance(
-                customerName = name,
-                totalOutstanding = totalOut,
-                totalPaid = totalPd,
-                currentBalance = totalOut - totalPd,
-                lastTransactionTime = lastTimes[name] ?: 0L
+                customerName = row.customer_name,
+                totalOutstanding = row.totalOutstanding,
+                totalPaid = row.totalPaid,
+                currentBalance = row.totalOutstanding - row.totalPaid,
+                lastTransactionTime = row.lastTransactionTime ?: 0L
             )
         }.sortedByDescending { it.currentBalance }
     }
