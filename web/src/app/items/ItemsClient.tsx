@@ -959,6 +959,8 @@ export default function ItemsClient({
             sellPrice: updatedItem.sell_price,
             lowStockThreshold: updatedItem.low_stock_threshold,
             category: updatedItem.category,
+            taxRate: updatedItem.taxRate || 0,
+            hsnCode: updatedItem.hsnCode || '',
             batchLotNumber: updatedItem.batchLotNumber,
             expiryDate: updatedItem.expiryDate,
             isDeleted: false,

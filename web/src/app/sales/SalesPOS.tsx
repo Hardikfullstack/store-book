@@ -311,7 +311,7 @@ export default function SalesPOS({
           storeId,
           customerName: customerName.trim(),
           amount: total,
-          type: 'given',
+          type: 'CREDIT',
           timestamp: now,
           notes: `Credit Sale #${saleId}`,
           isDeleted: false,

@@ -308,11 +308,8 @@ fun DashboardScreen(
                     onClick = {
                         val addedQty = addQtyInput.toDoubleOrNull() ?: 0.0
                         if (addedQty > 0) {
-                            viewModel.updateItem(
-                                refillItem.copy(
-                                    quantity = refillItem.quantity + addedQty,
-                                ),
-                            )
+                            // BUG-11 FIX: Use atomic delta-add instead of stale set-absolute.
+                            viewModel.restockItem(refillItem.id, addedQty)
                         }
                         quickRefillItem = null
                     },

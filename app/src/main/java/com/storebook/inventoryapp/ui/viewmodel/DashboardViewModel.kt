@@ -258,6 +258,17 @@ class DashboardViewModel(
         }
     }
 
+    // BUG-11 FIX: Atomic delta-add for quick restock instead of stale set-absolute.
+    fun restockItem(
+        itemId: Long,
+        addedQty: Double,
+    ) {
+        viewModelScope.launch {
+            inventoryRepository.updateItemStock(itemId, addedQty)
+            loadAllData()
+        }
+    }
+
     private val activeStoreId: String
         get() = prefs.getString("active_store_id", "default_store") ?: "default_store"
 

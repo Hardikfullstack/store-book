@@ -110,6 +110,7 @@ class SyncWorker(
                     when (entry.entity_type) {
                         "ITEM" -> retryPushItem(r, c, sid, entry.local_id.toString())
                         "SALE" -> retryPushSale(r, c, sid, entry.local_id.toString())
+                        "UDHAAR" -> retryPushUdhaar(r, c, sid, entry.local_id.toString())
                         else ->
                             android.util.Log
                                 .d("SyncWorker", "Retry skipping unsupported entity: ${entry.entity_type}")
@@ -184,6 +185,24 @@ class SyncWorker(
                     ; businessGstin = sanitize(se.business_gstin)
                 }
             r.markSaleSynced(se.id, res.data.key.id)
+        }
+
+        private suspend fun retryPushUdhaar(
+            r: SyncRepository,
+            c: StorebookConnectorConnector,
+            s: String,
+            localId: String,
+        ) {
+            val udhaars = r.getUnsyncedUdhaars().filter { it.id.toString() == localId }
+            if (udhaars.isEmpty()) return // already synced or deleted
+            val u = udhaars[0]
+            val res =
+                c.syncUdhaar
+                    .execute(
+                        u.id.toString(), s, sanitize(u.customer_name), u.amount, u.type, u.timestamp.toDouble(),
+                        u.is_deleted == 1L, u.updated_at.toDouble(),
+                    ) { notes = u.notes }
+            r.markUdhaarSynced(u.id, res.data.key.id)
         }
 
         // ==========================================================================

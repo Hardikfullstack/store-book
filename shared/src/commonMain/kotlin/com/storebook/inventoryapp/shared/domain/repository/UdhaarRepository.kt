@@ -62,7 +62,7 @@ class UdhaarRepository(
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
             queries.insertUdhaar(customerName, amount, type, timestamp, notes, timestamp)
         }
-        -1L
+        queries.getLastInsertRowId().executeAsOne()
     }
 
     // RP-A0: Push-sync methods

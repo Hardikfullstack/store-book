@@ -134,6 +134,8 @@ export async function archiveOldData(daysOld: number): Promise<{ success: boolea
       }
     }
 
+    /* Revalidate dashboard after archiving data */
+    revalidatePath('/');
     return { success: true, count: totalDeleted };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -161,7 +163,8 @@ export async function purgeStoreData(storeId: string): Promise<{ success: boolea
       }`,
       { variables: { adminId: session.uid, adminUsername: (session as any).username || 'Admin', action: 'GDPR_PURGE', targetId: storeId, ts: Math.floor(Date.now() / 1000) } }
     );
-
+    /* Revalidate dashboard after purging data */
+      revalidatePath('/');
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };

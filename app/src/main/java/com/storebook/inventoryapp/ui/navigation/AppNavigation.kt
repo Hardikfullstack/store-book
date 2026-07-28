@@ -170,6 +170,14 @@ fun AppNavigation() {
         // Error messages handled in individual ViewModels now
     }
 
+    /* BUG-15C FIX: Reload Udhaar data whenever the user navigates to the Udhaar tab,
+       so that credit entries created from SalesViewModel appear immediately. */
+    androidx.compose.runtime.LaunchedEffect(currentRoute) {
+        if (currentRoute == Routes.Udhaar.string) {
+            udhaarViewModel.loadUdhaar()
+        }
+    }
+
     // Check if onboarding is completed
     val sharedPref = remember { context.getSharedPreferences("storebook_prefs", Context.MODE_PRIVATE) }
     var onboardingCompleted by remember {

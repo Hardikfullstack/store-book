@@ -217,6 +217,8 @@ export default function SalesClient({
         invalidateAllPages();
         setCurrentPage(1);
         setRefreshTrigger(prev => prev + 1);
+        try { await import('@/lib/sync-ping').then(m => m.pingDashboardStore(storeId as string)); } catch (_) {}
+        try { await import('@/app/actions').then(m => m.revalidateDashboard() as any); } catch (_) {}
       } catch (err) {
         console.error("Failed to delete sale:", err);
       }
