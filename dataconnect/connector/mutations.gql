@@ -217,6 +217,7 @@ mutation SyncUdhaar(
   $type: String!
   $timestamp: Float!
   $notes: String
+  $saleId: String
   $isDeleted: Boolean!
   $updatedAt: Float!
 ) @auth(level: USER) {
@@ -228,6 +229,7 @@ mutation SyncUdhaar(
     type: $type
     timestamp: $timestamp
     notes: $notes
+    saleId: $saleId
     isDeleted: $isDeleted
     updatedAt: $updatedAt
   })

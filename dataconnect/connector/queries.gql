@@ -130,6 +130,7 @@ query SyncUdhaars($storeId: String!, $lastSync: Float!) @auth(level: USER) {
     type
     timestamp
     notes
+    saleId
     isDeleted
     updatedAt
   }
@@ -267,6 +268,7 @@ query GetActiveUdhaars(
     type
     timestamp
     notes
+    saleId
     updatedAt
   }
 }
@@ -589,6 +591,14 @@ query ListPurchases(
     notes
     isDeleted
     updatedAt
+    purchaseItemDetails_on_purchase {
+      id
+      itemId
+      itemName
+      quantity
+      unit
+      buyPrice
+    }
   }
 }
 

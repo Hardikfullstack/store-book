@@ -210,7 +210,6 @@ export default function PurchasesClient({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {/* {filteredPurchases.map(purchase => { */}
                   {filteredPurchases.map(purchase => {
                     const items = purchase.purchaseItemDetails_on_purchase || [];
 

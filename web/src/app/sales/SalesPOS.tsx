@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, Plus, Minus, Trash2, X, ShoppingCart, Loader2 } from 'lucide-react';
 import { dataConnect } from '@/lib/firebase';
 import { getActiveItems, syncSale, syncSaleItem, syncItem, syncUdhaar } from '@/dataconnect';
@@ -50,6 +50,7 @@ export default function SalesPOS({
   const dispatch = useDispatch();
   const cachedInventory = useSelector((state: RootState) => state.inventory);
   const cartState = useSelector((state: RootState) => state.cart.items);
+  const udhaarRecords = useSelector((state: RootState) => state.udhaar.records);
 
   const [items, setItems] = useState<Item[]>(cachedInventory.items || []);
   const [loading, setLoading] = useState(!cachedInventory.items || cachedInventory.items.length === 0);
@@ -80,6 +81,39 @@ export default function SalesPOS({
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
   const [customerGstin, setCustomerGstin] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
+
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+  const customerInputRef = useRef<HTMLDivElement>(null);
+
+  const udhaarBalances = useMemo(() => {
+    const balances = new Map<string, number>();
+    (udhaarRecords || []).forEach((entry: any) => {
+      const name = entry.customerName?.trim();
+      if (!name || entry.isDeleted) return;
+      const amt = parseFloat(entry.amount) || 0;
+      const current = balances.get(name) || 0;
+      balances.set(name, entry.type === 'GAVE' ? current + amt : current - amt);
+    });
+    return Array.from(balances.entries()).map(([name, netBalance]) => ({ customerName: name, netBalance }));
+  }, [udhaarRecords]);
+
+  const customerSuggestions = useMemo(() => {
+    if (!customerName.trim()) return udhaarBalances.map(b => b.customerName);
+    const lower = customerName.toLowerCase();
+    return udhaarBalances
+      .filter(b => b.customerName.toLowerCase().includes(lower))
+      .map(b => b.customerName);
+  }, [customerName, udhaarBalances]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (customerInputRef.current && !customerInputRef.current.contains(event.target as Node)) {
+        setShowCustomerSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const getUnitIncrement = (unit: string) => {
     console.log("unit", unit);
@@ -314,6 +348,7 @@ export default function SalesPOS({
           type: 'CREDIT',
           timestamp: now,
           notes: `Credit Sale #${saleId}`,
+          saleId: saleId,
           isDeleted: false,
           updatedAt
         });
@@ -560,19 +595,61 @@ export default function SalesPOS({
                   </div>
                 )}
 
-                <div>
+                <div ref={customerInputRef}>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                       👤
                     </span>
                     <input aria-label="Customer Name"
                       type="text"
-                      placeholder={paymentMode === 'Udhaar' ? 'Customer Name *' : 'Customer Name (Optional / Credit)'}
+                      placeholder={paymentMode === 'Udhaar' ? 'Customer Name * (Required)' : 'Customer Name (Optional / Credit)'}
                       value={customerName}
-                      onChange={e => setCustomerName(sanitizeInput(e.target.value))}
+                      onChange={e => {
+                        setCustomerName(sanitizeInput(e.target.value));
+                        setShowCustomerSuggestions(true);
+                      }}
+                      onFocus={() => setShowCustomerSuggestions(true)}
                       className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 dark:text-white text-sm focus:ring-2 focus:ring-teal-500 shadow-sm"
                     />
                   </div>
+
+                  {/* Autocomplete Dropdown */}
+                  {showCustomerSuggestions && customerSuggestions.length > 0 && (
+                    <div className="relative mt-1 z-50">
+                      <ul className="absolute w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-48 overflow-y-auto py-1">
+                        {customerSuggestions.map((name, idx) => {
+                          const balInfo = udhaarBalances.find(b => b.customerName === name);
+                          const isDue = balInfo && balInfo.netBalance > 0;
+                          return (
+                            <li
+                              key={idx}
+                              onClick={() => {
+                                setCustomerName(name);
+                                setShowCustomerSuggestions(false);
+                              }}
+                              className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex justify-between items-center transition-colors"
+                            >
+                              <div className="flex items-center space-x-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${paymentMode === 'Udhaar'
+                                    ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                                    : 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400'
+                                  }`}>
+                                  {name.charAt(0).toUpperCase()}
+                                </div>
+                                <span className="font-medium text-gray-900 dark:text-white text-sm">{name}</span>
+                              </div>
+
+                              {paymentMode === 'Udhaar' && isDue && (
+                                <span className="text-xs font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
+                                  Due: ₹{balInfo.netBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </span>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-2">
