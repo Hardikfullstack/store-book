@@ -3,7 +3,8 @@
 id: bug-web-stale-dashboard-stats
 title: "Dashboard stats not invalidated after mutations — stale revenue numbers shown"
 severity: P1
-status: open
+status: resolved
+resolved_at: "2026-07-28"
 reported: "2026-07-14"
 component: [actions.ts, DashboardClient.tsx]
 
@@ -16,6 +17,15 @@ root_cause: |
 
 fix_approach: |
   Add revalidatePath('/') to ALL mutation server actions that change financials: createSale, convertQuotationToSale, deleteSale, createExpense, recordUdhaar. Or better yet migrate to revalidateTag('dashboard') and attach the tag in data-fetching functions for targeted ISR cache invalidation without evicting unrelated pages.
+
+fix_summary: |
+  Added revalidateDashboard() server action (actions.ts:570) which calls revalidatePath('/').
+  Called after every client-side DataConnect mutation across affected screens:
+  - SalesPOS.tsx:358 (checkout/create sale)
+  - SalesClient.tsx:221 (delete sale)
+  - ExpensesClient.tsx:207 (create expense), :220 (delete expense)
+  - UdhaarClient.tsx:216 (create udhaar), :230 (delete udhaar)
+  Server action layer also revalidates at actions.ts:56, 75, 138, 167, 494-495.
 
 affected_screens:
   - Dashboard home page (stale revenue/reports)

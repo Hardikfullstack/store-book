@@ -1,6 +1,6 @@
 # Epic Registry — StoreBook
 
-last_generated: "2026-07-27"
+last_generated: "2026-07-28"
 
 epics:
   # --- Development Epics (fix/improve existing logic) ---
@@ -122,7 +122,7 @@ epics:
   - id: e06
     title: Sales Billing Engine Logic Verification
     priority: P0
-    status: defined
+    status: complete
     story_count: 4
     target_version: v1.3.1
     depends_on: [e01]
@@ -252,7 +252,7 @@ epics:
   - id: e29
     title: Inventory Auditing & Stock Adjustment Logs
     priority: P1
-    status: defined
+    status: complete
     story_count: 3
     target_version: v1.7.0
     type: development
@@ -260,7 +260,7 @@ epics:
   - id: e30
     title: Automated UI & Snapshot Testing (Paparazzi/Roborazzi)
     priority: P0
-    status: defined
+    status: completed
     story_count: 3
     target_version: v1.3.2
     type: verification
@@ -268,7 +268,7 @@ epics:
   - id: e31
     title: Business Logic & Local Database Testing
     priority: P0
-    status: defined
+    status: done
     story_count: 3
     target_version: v1.3.2
     type: verification
@@ -291,10 +291,10 @@ epics:
 
   - id: e34
     title: App Stock Audit Module and Adjustments
-    priority: P1
+    priority: P0
     status: defined
     story_count: 3
-    target_version: v1.8.0
+    target_version: v1.3.2
     type: development
 
   - id: e35
