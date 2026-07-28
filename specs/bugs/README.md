@@ -1,41 +1,46 @@
-# P0 summary of audit findings
+# Bugs — StoreBook
 
-| Bug ID | Severity | Title | Component |
-|--------|----------|-------|-----------|
-| [BUG-01](./bug-01.yaml) | **P0 — Critical** | Non-atomic sale save allows partial stock deduction on crash | `SalesViewModel`, `InventoryRepository` |
-| [BUG-02](./bug-sync-worker-silent-catch-all.yaml) | **P0 — Critical** | SyncWorker silent catch — errors discarded, no retry | `SyncWorker` |
-| [BUG-03](./bug-sale-item-orphan-during-pull.yaml) | **P0 — Critical** | SaleItems inserted with parent_id=0 — orphan records created | `SyncRepository`, `SyncWorker` |
-| [BUG-04](./bug-npe-hazards-double-bang-assertions.yaml) | **P0 — Critical** | 26 !! assertions on nullable state — unpredictable NPE crashes | `UdhaarScreen`, `InventoryScreen`, etc. |
-| [BUG-05](./web-session-backdoor-note.yaml) | **P0 — Critical** | Backdoor comment + no CSRF protection on mutations | `actions.ts`, `session.ts` |
-| [BUG-06](./bug-negative-stock-race-quotation.yaml) | **P0 — Critical** | Quotation conversion read-then-write — stock goes negative | `actions.ts` |
+This directory tracks identified bugs with IDs matching filename stems. `registry.yaml` is the single source of truth; this README mirrors its contents for quick reference.
 
-## ✅ P1 — High
+Last synced with registry: 2026-07-28
 
-| Bug ID | Severity | Title | Component |
-|--------|----------|-------|-----------|
-| [BUG-07](./bug-inventory-negative-quantity.yaml) | **P1 — High** | No guard against newQty < 0 — negative inventory | `InventoryRepository` |
-| [BUG-08](./bug-udhaar-decimal-locale-crash.yaml) | **P1 — High** | Udhaar !! NPE crash on Indian locale separator | `UdhaarScreen` |
-| [BUG-09](./bug-web-stale-dashboard.yaml) | **P1 — High** | Dashboard not invalidated after mutations — stale revenue | `actions.ts`, `DashboardClient.tsx` |
-| [BUG-10](./bug-sync-worker-duplicate-sales.yaml) | **P1 — High** | Overlapping sync runs can push same sale — no idempotency key | `SyncRepository`, `SyncWorker` |
-| [BUG-11](./bug-udhaar-balance-client-only.yaml) | **P1 — High** | Udhaar balance computed locally — two devices disagree | `UdhaarRepository`, `SyncWorker` |
+## Status Summary
 
-## ⚠️ P2 — Medium
+| Severity | Count |
+|----------|-------|
+| P0 (Critical) | 7 resolved |
+| P1 (High) | 7 resolved |
+| P2 (Medium) | 3 resolved |
+| **Total** | **17 resolved, 0 open** |
 
-| Bug ID | Severity | Title | Component |
-|--------|----------|-------|-----------|
-| [BUG-12](./bug-sync-fake-success.yaml) | **P2 — Medium** | Sync status DONE when all pulls fail silently | `SyncWorker` |
-| [BUG-13](./bug-web-as-any-casts.yaml) | **P2 — Medium** | 33 as any casts in prod TS — silent undefined on API change | `actions.ts`, session.ts, Sidebar.tsx` |
-| [BUG-14](./bug-web-pdf-invoice-generator.yaml) | **P2 — Medium** | InvoicePdfGenerator NaN / negative totals when data corrupt | `InvoicePdfGenerator.ts` |
-| [BUG-15](./bug-float-stock-drift.yaml) | **P2 — Medium** | REAL column + repeated deduction → IEEE 754 drift | `InventoryRepository`, `StoreBook.sq` |
-| [BUG-16](./bug-web-duplicate-revalidatepath.yaml) | **P2 — Medium** | Multiple revalidatePath('/') calls per action — cache churn | `actions.ts` |
-| [BUG-17](./bug-sales-history-items-always-empty.yaml) | **P2 — Medium** | getSalesByDateRange always maps items to emptyList() | `SalesViewModel` |
-| [BUG-18](./bug-backup-progress-stuck-on-error.yaml) | **P2 — Medium** | Cloud backup progress stuck at partial % on failure | `MoreViewModel`, `BackupManager` |
+## P0 — Critical
 
-## 📋 P3 — Low / Cleanup
+| Bug ID | Title | File |
+|--------|-------|------|
+| BUG-01 | Non-atomic sale save allows partial stock deduction on crash | [bug-01.yaml](./bug-01.yaml) |
+| BUG-02 | SyncWorker silent catch — errors discarded, no retry | [bug-sync-worker-silent-catch-all.yaml](./bug-sync-worker-silent-catch-all.yaml) |
+| BUG-03 | SaleItems inserted with parent_id=0 on cloud-ID resolution failure | [bug-sale-item-orphan-during-pull.yaml](./bug-sale-item-orphan-during-pull.yaml) |
+| BUG-04 | 26 !! assertions on nullable state — NPE crashes | [bug-npe-hazards-double-bang-assertions.yaml](./bug-npe-hazards-double-bang-assertions.yaml) |
+| BUG-05 | Backdoor comment + no CSRF protection on web mutations | [web-session-backdoor-note.yaml](./web-session-backdoor-note.yaml) |
+| BUG-06 | Quotation conversion read-then-write — stock goes negative | [bug-negative-stock-race-quotation.yaml](./bug-negative-stock-race-quotation.yaml) |
+| post-sync-stale-ui | Data synced after fresh login not visible until app reopened | [bug-post-sync-stale-ui.yaml](./bug-post-sync-stale-ui.yaml) |
 
-| Bug ID | Severity | Title | Component |
-|--------|----------|-------|-----------|
-| [BUG-19](./bug-unused-columns-schema-bloat.yaml) | **P3 — Low** | 8+ columns never queried by application code | `StoreBook.sq` |
-| [BUG-20](./bug-duplicate-sync-pull-implementations.yaml) | **P3 — Low** | Two upsert variants per entity type — risk of divergence | `SyncRepository` |
-| [BUG-21](./bug-missing-input-validation-forms.yaml) | **P3 — Low** | No max-length on text fields, no email RFC validation | Multiple forms |
-| [BUG-22](./web-sidebar-permission-type-safety-gap.yaml) | **P3 — Low** | Dynamic (perms as any)[permKey] — typos bypass compile safety | `Sidebar.tsx` |
+## P1 — High
+
+| Bug ID | Title | File |
+|--------|-------|------|
+| BUG-07 | No guard against newQty < 0 — negative inventory | [bug-inventory-negative-quantity.yaml](./bug-inventory-negative-quantity.yaml) |
+| BUG-08 | Udhaar amount !! NPE crash on Indian locale format | [bug-udhaar-decimal-locale-crash.yaml](./bug-udhaar-decimal-locale-crash.yaml) |
+| BUG-09 | Dashboard not invalidated after mutations — stale revenue | [bug-web-stale-dashboard.yaml](./bug-web-stale-dashboard.yaml) |
+| BUG-10 | Udhaar balance computed locally — two devices disagree | [bug-udhaar-balance-client-only.yaml](./bug-udhaar-balance-client-only.yaml) |
+| BUG-11 | Inventory restock quantity increases incorrectly (non-atomic addition, duplicate click) | [bug-restock-quantity-incorrect.yaml](./bug-restock-quantity-incorrect.yaml) |
+| BUG-12 | Entered Tax Rate not persisted to database on create/update | [bug-tax-rate-not-saved.yaml](./bug-tax-rate-not-saved.yaml) |
+| BUG-13 | Inventory stock increases instead of decreasing when a sale is created | [bug-sale-increases-stock.yaml](./bug-sale-increases-stock.yaml) |
+
+## P2 — Medium
+
+| Bug ID | Title | File |
+|--------|-------|------|
+| BUG-14 | Estimate created from sale not added to Quotation list | [bug-estimate-not-saved.yaml](./bug-estimate-not-saved.yaml) |
+| BUG-15 | Udhaar created from sale not added to Udhaar list | [bug-udhaar-not-saved.yaml](./bug-udhaar-not-saved.yaml) |
+| BUG-16 | HSN code misused as barcode — scanner matches tax classification instead of product ID | [bug-16-hsn-barcode-separation.yaml](./bug-16-hsn-barcode-separation.yaml) |

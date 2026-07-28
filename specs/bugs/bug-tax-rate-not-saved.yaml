@@ -3,9 +3,13 @@
 id: bug-tax-rate-not-saved
 title: "Entered Tax Rate is not persisted to database when creating or updating items"
 severity: P1
-status: defined
+status: resolved
 reported: "2026-07-20"
-component: [InventoryScreen, AddEditItemDialog, InventoryViewModel, ItemsClient]
+resolved_at: "2026-07-28"
+component: [InventoryScreen, InventoryViewModel, InventoryRepository, StoreBook.sq]
+fix_applied: |
+  taxRate flows full path: inputTaxRate state → ViewModel addItem/updateItem → Repository → SQLDelight.
+  When advanced options hidden on edit, preserves existing item.taxRate instead of defaulting to 0.0.
 
 issue: |
   When creating a new item or editing an existing item, the Tax Rate field is not being saved to the database.

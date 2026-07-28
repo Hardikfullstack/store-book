@@ -1,15 +1,13 @@
 # Release Plan — StoreBook Inventory Management Platform
 
 release_plan_doc: RP1.0
-last_updated: "2026-07-13"
+last_updated: "2026-07-28"
 
----
-
-## Version Roadmap
-
-### v1.3.0 — Foundation Hardening (Target: next release)
+### v1.3.0 — Foundation Hardening (Shipped)
 
 epics: [e01, e02]
+status: shipped
+shipped_date: "2026-07-20"
 focus: >
   Make the critical path (sync + inventory CRUD) reliable and crash-resistant.
   This is the highest value because data divergence between devices and dashboard

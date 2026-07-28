@@ -21,8 +21,8 @@ session:
 
 git:
   branch: master
-  last_hash: ""                    # populated by guard-git on first commit
-  uncommitted_changes: true
+  last_commit_hash: "587f300"      # feat: add pingDashboardStore utility to update store sync timestamp in Firebase RTDB
+  uncommitted_changes: false
 
 defensive_categories:
   - retry                         # SyncWorker network calls

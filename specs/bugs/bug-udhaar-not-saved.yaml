@@ -3,9 +3,13 @@
 id: bug-udhaar-not-saved
 title: "Udhaar created from sale is not added to Udhaar list"
 severity: P2
-status: defined
+status: resolved
 reported: "2026-07-22"
-component: [SaleScreen, UdhaarViewModel, UdhaarRepository]
+resolved_at: "2026-07-28"
+component: [SalesViewModel, UdhaarRepository, SalesPOS.tsx]
+fix_applied: |
+  Android: SalesViewModel.inserts Udhaar on paymentMode == "Udhaar" + reloads StateFlow via loadAllData(true).
+  Web: SalesPOS.tsx calls syncUdhaar DataConnect mutation for credit sales.
 
 issue: |
   When a user creates an Udhaar (credit) entry from the sale flow, the entry is not being added to the Udhaar List in the app.

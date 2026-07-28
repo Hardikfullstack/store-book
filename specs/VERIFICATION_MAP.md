@@ -7,10 +7,10 @@ This document maps every logic domain in the StoreBook Android app to a verifica
 | #{:Epic} | Title | Priority | Stories Done/Total | Status | Target |
 |----------|-------|----------|--------------------|--------|--------|
 | e01 | Sync Reliability — Push/Pull with Retry & Conflict Resolution | P0 | 4/4 | ✅ Complete | v1.3.0 |
-| e02 | Inventory Core Stability — CRUD Safety & Low-Stock Alerts | P0 | 2/3 | 🟡 In Progress | v1.3.0 |
-| e03 | Billing Accuracy & Financial Audit — Sales, Udhaar, Expenses | P1 | 1/4+ | 🟢 Partial | v1.4.0 |
-| e04 | Web Dashboard UX & Realtime Analytics — Charts, Permissions | P2 | 0/3 | 🔴 Not Started | v1.5.0 |
-| e05 | Subscription Monetization & Feature Gating — Razorpay, IAP, Ads | P2 | 0/3 | 🔴 Not Started | v1.6.0 |
+| e02 | Inventory Core Stability — CRUD Safety & Low-Stock Alerts | P0 | 3/3 | ✅ Complete | v1.3.0 |
+| e03 | Billing Accuracy & Financial Audit — Sales, Udhaar, Expenses | P1 | 4/4 | ✅ Complete | v1.4.0 |
+| e04 | Web Dashboard UX & Realtime Analytics — Charts, Permissions | P2 | 3/3 | ✅ Complete | v1.5.0 |
+| e05 | Subscription Monetization & Feature Gating — Razorpay, IAP, Ads | P2 | 0/3 | ⏳ Defined | v1.6.0 |
 
 ## New Verification Epics (e06-e17) — Logic Verification per Domain
 

@@ -1,6 +1,6 @@
 # Bugs Registry — StoreBook
 # Maintained list of identified bugs with IDs matching filename stem.
-# Updated 2026-07-14: Fixed BUG-01 through BUG-08
+# Updated 2026-07-28: All 17 bugs resolved. Added resolved_at timestamps + fix details for BUG-11 through BUG-16.
 
 bugs:
   - id: BUG-01
@@ -83,41 +83,47 @@ bugs:
     file: bug-restock-quantity-incorrect.yaml
     severity: P1
     status: resolved
+    resolved_at: "2026-07-28"
     summary: "Inventory restock quantity increases incorrectly — non-atomic/stale state addition"
-    fix: "Ensure atomic quantity addition via SQLDelight update query + guard against duplicate button click triggers in Compose UI"
+    fix: "Ensured atomic quantity addition via SQLDelight update query + guard against duplicate button click triggers in Compose UI. Verified code in InventoryScreen.kt (inProgressRestocks set), StoreBook.sq (quantity = quantity + ?), InventoryRepository.kt (transaction-wrapped with bounds check)."
 
   - id: BUG-12
     file: bug-tax-rate-not-saved.yaml
     severity: P1
     status: resolved
+    resolved_at: "2026-07-28"
     summary: "Entered Tax Rate is not persisted to database when creating or updating items"
-    fix: "Include taxRate in item form state, ViewModel/repository payload, and database update mutations"
+    fix: "Included taxRate in item form state, ViewModel/repository payload, and database update mutations. Verified full flow: inputTaxRate → addItem/updateItem → Repository → SQLDelight insertItem/updateItem."
 
   - id: BUG-13
     file: bug-sale-increases-stock.yaml
     severity: P1
     status: resolved
+    resolved_at: "2026-07-28"
     summary: "Inventory stock increases instead of decreasing when a sale is created"
-    fix: "SalesRepository.kt:215 passes signed delta (-quantity) to updateItemStock() instead of absolute newQty"
+    fix: "SalesRepository.kt passes signed delta (-quantity) to updateItemStock() instead of absolute newQty. Verified at line ~220 in atomicCheckout() and convertQuotationToSale()."
 
   - id: BUG-14
     file: bug-estimate-not-saved.yaml
     severity: P2
     status: resolved
+    resolved_at: "2026-07-18"
     summary: "Estimate created from sale is not added to Quotation & Estimation list"
-    fix: "SalesViewModel.kt:209-229 reloads StateFlow via loadAllData(true) and explicitly sets _salesHistoryList after checkout"
+    fix: "SalesViewModel.kt reloads StateFlow via loadAllData(true) and explicitly sets _salesHistoryList after checkout"
 
   - id: BUG-15
     file: bug-udhaar-not-saved.yaml
     severity: P2
     status: resolved
+    resolved_at: "2026-07-28"
     summary: "Udhaar created from sale is not added to Udhaar list"
-    fix: "Android: SalesViewModel.kt:200-207 inserts Udhaar on checkout when paymentMode==Udhaar. Web: SalesPOS.tsx now calls syncUdhaar DataConnect mutation for credit sales. StateFlow/refetch reloads ledger UI."
+    fix: "Android: SalesViewModel.kt inserts Udhaar on checkout when paymentMode==Udhaar. Web: SalesPOS.tsx calls syncUdhaar DataConnect mutation for credit sales. StateFlow/refetch reloads ledger UI."
 
   - id: BUG-16
     file: bug-16-hsn-barcode-separation.yaml
     severity: P2
     status: resolved
+    resolved_at: "2026-07-25"
     summary: "HSN code misused as barcode — scanner matches tax classification instead of product ID"
     fix: "Added dedicated barcode TEXT column to SQLDelight schema, KMP Item model, Data Connect schema + mutations/queries. Android InventoryScreen has barcode input field. Scanner in SalesScreen matches item.barcode first with HSN fallback only for legacy items. Web POS searches by barcode as primary key. SyncWorker includes barcode in push/pull payload."
 

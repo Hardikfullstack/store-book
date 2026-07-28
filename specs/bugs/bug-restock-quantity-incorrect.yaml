@@ -3,9 +3,14 @@
 id: bug-restock-quantity-incorrect
 title: "Inventory restock quantity increases incorrectly instead of applying exact entered value"
 severity: P1
-status: defined
+status: resolved
 reported: "2026-07-20"
-component: [InventoryScreen, InventoryViewModel, InventoryRepository]
+resolved_at: "2026-07-28"
+component: [InventoryScreen, InventoryViewModel, InventoryRepository, StoreBook.sq]
+fix_applied: |
+  Atomic SQL update via `updateItemStock` (quantity = quantity + delta).
+  Idempotency guard in InventoryScreen via `inProgressRestocks` set prevents duplicate button taps.
+  Transaction-wrapped in InventoryRepository with bounds check (InsufficientStockException on negative).
 
 issue: |
   When restocking inventory, the entered quantity is not applied correctly. Instead of increasing the stock by the specified amount, the system sometimes adds an incorrect or unexpected value.

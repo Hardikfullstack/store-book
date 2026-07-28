@@ -3,9 +3,13 @@
 id: bug-sale-increases-stock
 title: "Inventory stock increases instead of decreasing when a sale is created"
 severity: P1
-status: defined
+status: resolved
 reported: "2026-07-22"
-component: [SaleScreen, InventoryViewModel, InventoryRepository]
+resolved_at: "2026-07-28"
+component: [SalesRepository, InventoryRepository, StoreBook.sq]
+fix_applied: |
+  SalesRepository.atomicCheckout() at line ~220 now passes -quantity (signed delta) to updateItemStock().
+  Same fix in convertQuotationToSale() — delta = -qi.quantity before calling updateItemStock(delta, timestamp, itemId).
 
 issue: |
   When a user creates a sale for an item, the inventory stock for that item suddenly increases instead of decreasing by the sold amount.

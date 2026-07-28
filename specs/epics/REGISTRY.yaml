@@ -7,7 +7,7 @@ epics:
   - id: e01
     title: Sync Reliability
     priority: P0
-    status: defined
+    status: complete
     story_count: 4
     target_version: v1.3.0
     type: development
@@ -60,7 +60,7 @@ epics:
   - id: e20
     title: Data Backup, Restore & Device Migration
     priority: P0
-    status: defined
+    status: partially_complete
     story_count: 4
     target_version: v1.4.0
     depends_on: [e01]
@@ -236,7 +236,7 @@ epics:
   - id: e27
     title: Server-Side Search & Advanced Filtering
     priority: P0
-    status: partially_verified
+    status: complete
     story_count: 3
     target_version: v1.6.0
     type: development
