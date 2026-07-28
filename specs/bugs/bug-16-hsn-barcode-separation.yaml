@@ -1,5 +1,20 @@
 # BUG-16: HSN Code Misused as Barcode — Scanner Matches Tax Classification Instead of Product ID
 
+id: bug-16-hsn-barcode-separation
+title: "HSN Code Misused as Barcode — Scanner Matches Tax Classification Instead of Product ID"
+severity: P2
+status: resolved
+resolved_at: "2026-07-28"
+reported: "2026-07-14"
+component: [SalesScreen.kt, SalesPOS.tsx]
+
+fix_summary: |
+  Removed HSN fallback from barcode scanner lookup on both platforms.
+  - Android (SalesScreen.kt:1198): removed `?: allItems.firstOrNull { it.hsnCode == code }` fallback.
+    Scanner now matches only against `item.barcode`. No match → "product not found".
+  - Web (SalesPOS.tsx:146-148): removed `item.hsnCode === barcode` from the find() predicate.
+    Scanner now matches only against `item.barcode`.
+
 ## Problem
 HSN (Harmonized System of Nomenclature) code is a **GST tax classification** used for invoicing and filing returns. It should NOT be used as the product identifier for barcode scanning. Currently, the Android scanner (`SalesScreen.kt:1165`) matches scanned input against `item.hsnCode`, and the web POS fallback search also includes HSN. This is incorrect because:
 - HSN codes are shared across many products (e.g., "1001" for rice applies to brands)

@@ -1197,7 +1197,6 @@ fun SalesScreen(
                                             if (!code.isNullOrBlank()) {
                                                 val matched =
                                                     allItems.firstOrNull { it.barcode == code }
-                                                        ?: allItems.firstOrNull { it.hsnCode == code }
                                                 if (matched != null) {
                                                     if (stepForUnit(matched.unit) == 1.0) {
                                                         viewModel.addToCart(matched, 1.0)

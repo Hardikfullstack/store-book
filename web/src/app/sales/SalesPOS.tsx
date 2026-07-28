@@ -142,9 +142,9 @@ export default function SalesPOS({
 
       // If Enter is pressed and we have a barcode, process it
       if (e.key === 'Enter' && barcode.length > 2) {
-        // Find item by ID or Name or HSN (since we don't have a specific barcode column)
+        // Find item by barcode only — HSN is a tax classification, not a product identifier
         const scannedItem = items.find(
-          item => item.barcode === barcode || item.hsnCode === barcode || item.id === barcode || item.name.toLowerCase() === barcode.toLowerCase()
+          item => item.barcode === barcode
         );
 
         if (scannedItem) {
@@ -357,6 +357,12 @@ export default function SalesPOS({
       try {
         await import('@/app/actions').then(m => m.revalidateDashboard() as any);
       } catch (_) { /* best-effort, don't block success path */ }
+      // BUG-A FIX: Invalidate quotations ISR cache when an ESTIMATE is created
+      if (saleType === 'ESTIMATE') {
+        try {
+          await import('@/app/actions').then(m => m.revalidateQuotations() as any);
+        } catch (_) { /* best-effort */ }
+      }
       onSuccess();
     } catch (error) {
       console.error("Checkout failed:", error);

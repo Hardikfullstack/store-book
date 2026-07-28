@@ -570,3 +570,7 @@ export async function getUdhaarCustomerBalances(
 export async function revalidateDashboard() {
   revalidatePath('/');
 }
+
+export async function revalidateQuotations() {
+  revalidatePath('/quotations');
+}

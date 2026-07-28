@@ -3,7 +3,13 @@
 id: bug-estimate-not-saved
 title: "Estimate created from sale is not added to Quotation & Estimation list"
 severity: P2
-status: fixed
+status: resolved
+resolved_at: "2026-07-28"
+
+fix_summary: |
+  The Android fix was already applied (SalesViewModel.kt:256-258).
+  Web-side gap patched: added revalidatePath('/quotations') after ESTIMATE creation in SalesPOS.tsx:357,
+  so the Quotations page ISR cache is invalidated immediately.
 reported: "2026-07-22"
 component: [SaleScreen, EstimateViewModel, EstimateRepository]
 
