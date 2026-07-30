@@ -1,0 +1,9 @@
+id: e36-s1
+status: wip
+title: "Verify discount clamping prevents negative taxable base"
+acceptance:
+  - "discount > subtotal -> actualDiscount capped at subtotal, netTaxableAmount = 0"
+  - "Negative discount (-₹50) clamped to 0 — netTaxableAmount never negative"
+  - "discount == subtotal exactly: all tax amounts = 0, grandTotal = 0"
+  - "Per-item proration: no individual line discounted below zero (Math.max(0, itemGross - itemDiscount))"
+  - "discount = subTotal * 1.5 with 2 items of unequal price — neither goes negative"

@@ -56,7 +56,7 @@ export class BillingEngine {
       subTotal += item.sell_price * item.quantity;
     }
 
-    const actualDiscount = Math.min(totalDiscount, subTotal);
+    const actualDiscount = Math.max(0, Math.min(totalDiscount, subTotal));
     const netTaxableAmount = subTotal - actualDiscount;
 
     if (subTotal <= 0) {

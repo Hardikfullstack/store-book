@@ -1,0 +1,6 @@
+id: e37-s3
+status: wip
+title: "Verify delta sync is_synced=0 coverage"
+acceptance:
+  - "Offline-created item appears in getUnsyncedItems (is_synced=0)"
+  - "Local update after sync resets is_synced=0, second run re-picks it up"

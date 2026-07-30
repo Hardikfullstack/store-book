@@ -563,6 +563,9 @@ WHERE status = 'PERMANENT_FAILURE' ORDER BY created_at DESC;
 getPendingFailureCount:
 SELECT COUNT(*) FROM failed_sync_queue WHERE status = 'PENDING_RETRY';
 
+getFailedSyncQueueById:
+SELECT * FROM failed_sync_queue WHERE id = ?;
+
 deleteAllFailedSyncQueue:
 DELETE FROM failed_sync_queue;
 

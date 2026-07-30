@@ -1,0 +1,6 @@
+id: e36-s4
+status: wip
+title: "Verify rounding consistency grand total reconciliation"
+acceptance:
+  - "qty=3, sell_price=33.33, 18% tax -> grandTotal exactly ₹117.99 ± ₹0.01"
+  - "50-item synthetic invoice: Σ itemDetails[].totalAmountWithTax == grandTotal ± ₹0.01"

@@ -1,0 +1,6 @@
+id: e37-s5
+status: wip
+title: "Verify FailedSyncQueue lifecycle"
+acceptance:
+  - "Enqueue + dequeue success -> count decreases"
+  - "Retry failure -> updateRetryState increments count, sets next_retry_at"

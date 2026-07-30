@@ -1,0 +1,6 @@
+id: e37-s4
+status: wip
+title: "Verify convertQuotationToSale atomicity"
+acceptance:
+  - "Happy path: quotation->sale, stock deducted, all inside transaction"
+  - "InsufficientStockException -> rollback, no sale created, stock unchanged, quotation stays ESTIMATE"

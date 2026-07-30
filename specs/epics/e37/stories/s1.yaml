@@ -1,0 +1,8 @@
+id: e37-s1
+status: wip
+title: "Verify LWW conflict resolution accepts newer remote, rejects stale"
+acceptance:
+  - "remoteTs > local -> accept"
+  - "remoteTs < local -> reject"
+  - "remoteTs == local -> accept (>=)"
+  - "no local record -> accept"

@@ -1,0 +1,5 @@
+id: e37-s2
+status: wip
+title: "Verify upsert ID collision safety"
+acceptance:
+  - "Two distinct cloud_ids -> separate local rows via COALESCE subquery, no overwrite"

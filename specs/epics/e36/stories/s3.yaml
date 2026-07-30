@@ -1,0 +1,7 @@
+id: e36-s3
+status: wip
+title: "Verify multi-tax-rate invoice per-line correctness and foot total aggregation"
+acceptance:
+  - "3-item cart [5%, 12%, 18%], INTRASTATE: each line splits at half-rate CGST/SGST, IGST=0"
+  - "Same cart INTERSTATE: full taxRate goes to IGST only, CGST/SGST=0"
+  - "Zero-rated item (taxRate=0) produces no tax; grandTotal = Σ itemDetails[].totalAmountWithTax ± ₹0.01"

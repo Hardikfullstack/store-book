@@ -1,0 +1,8 @@
+id: e36-s2
+status: wip
+title: "Verify zero and negative quantity edge cases in billing pipeline"
+acceptance:
+  - "qty=0 item -> all-zero line, no crash (no division-by-zero on itemGross/subTotal)"
+  - "All items qty=0 -> early return with empty summary — no arithmetic exception"
+  - "Mixed 0-qty & positive-qty items: only positive items taxed correctly"
+  - "Negative qty does not reach atomicCheckout or produces negative stock silently"
