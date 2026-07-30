@@ -198,6 +198,7 @@ export interface GetActiveUdhaarsData {
     type: string;
     timestamp: number;
     notes?: string | null;
+    saleId?: string | null;
     updatedAt: number;
   } & UdhaarEntry_Key)[];
 }
@@ -908,6 +909,7 @@ export interface SyncUdhaarVariables {
   type: string;
   timestamp: number;
   notes?: string | null;
+  saleId?: string | null;
   isDeleted: boolean;
   updatedAt: number;
 }
@@ -921,6 +923,7 @@ export interface SyncUdhaarsData {
     type: string;
     timestamp: number;
     notes?: string | null;
+    saleId?: string | null;
     isDeleted: boolean;
     updatedAt: number;
   } & UdhaarEntry_Key)[];

@@ -68,6 +68,7 @@ type UdhaarEntry @table {
   type: String!
   timestamp: Float!
   notes: String
+  saleId: String @col(name: "sale_id")
   
   # Sync Columns
   isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
