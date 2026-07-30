@@ -76,7 +76,12 @@ object UdhaarPdfGenerator {
         val dateFmt = SimpleDateFormat("dd MMM yy", Locale.getDefault())
         var runningBal = 0.0
 
-        for (entry in ledgerEntries) {
+        val sortedEntries = ledgerEntries.sortedBy { it.timestamp }
+        var renderedCount = 0
+
+        for (entry in sortedEntries) {
+            if (yPos > 800f) break
+
             val isCredit = entry.type == "CREDIT"
             runningBal += if (isCredit) entry.amount else -entry.amount
 
@@ -101,8 +106,18 @@ object UdhaarPdfGenerator {
                 paint,
             )
             yPos += 20f
+            renderedCount++
+        }
 
-            if (yPos > 800f) break
+        if (renderedCount < sortedEntries.size) {
+            paint.color = Color.GRAY
+            paint.textSize = 10f
+            canvas.drawText(
+                "(Showing $renderedCount of ${sortedEntries.size} entries)",
+                leftMargin,
+                yPos,
+                paint,
+            )
         }
 
         document.finishPage(page)

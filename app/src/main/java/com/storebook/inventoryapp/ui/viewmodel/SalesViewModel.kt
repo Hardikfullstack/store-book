@@ -199,6 +199,8 @@ class SalesViewModel(
                         "quantity" to ci.quantity,
                         "buyPrice" to ci.item.buyPrice,
                         "sellPrice" to ci.item.sellPrice,
+                        "taxRate" to ci.item.taxRate,
+                        "hsnCode" to (ci.item.hsnCode ?: ""),
                     )
                 }
             try {
@@ -317,6 +319,8 @@ class SalesViewModel(
                                     unit = saleItem.unit,
                                     buyPrice = saleItem.buy_price,
                                     sellPrice = saleItem.sell_price,
+                                    taxRate = saleItem.tax_rate ?: 0.0,
+                                    hsnCode = saleItem.hsn_code,
                                 )
                         }
                     Sale(
@@ -363,6 +367,8 @@ class SalesViewModel(
                             unit = saleItem.unit,
                             buyPrice = saleItem.buy_price,
                             sellPrice = saleItem.sell_price,
+                            taxRate = saleItem.tax_rate ?: 0.0,
+                            hsnCode = saleItem.hsn_code,
                         )
                 }
             Sale(
@@ -431,6 +437,8 @@ class SalesViewModel(
                                 unit = saleItem.unit,
                                 buyPrice = saleItem.buy_price,
                                 sellPrice = saleItem.sell_price,
+                                taxRate = saleItem.tax_rate ?: 0.0,
+                                hsnCode = saleItem.hsn_code,
                             )
                     }
                 val sale =

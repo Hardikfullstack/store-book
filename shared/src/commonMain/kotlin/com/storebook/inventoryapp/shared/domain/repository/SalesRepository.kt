@@ -41,11 +41,12 @@ class SalesRepository(
 
     suspend fun insertSaleItem(
         saleId: Long, itemId: Long, itemName: String, unit: String,
-        quantity: Double, buyPrice: Double, sellPrice: Double
+        quantity: Double, buyPrice: Double, sellPrice: Double,
+        taxRate: Double = 0.0, hsnCode: String? = null
     ) = withContext(Dispatchers.IO) {
         database.transaction {
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-            queries.insertSaleItem(saleId, itemId, itemName, unit, quantity, sellPrice, buyPrice, timestamp)
+            queries.insertSaleItem(saleId, itemId, itemName, unit, quantity, sellPrice, buyPrice, taxRate, hsnCode, timestamp)
         }
     }
 
@@ -135,6 +136,9 @@ class SalesRepository(
 
             // Step 3: Copy all sale_items from quotation to new sale (positional params per .sq)
             for (qi in quoteItems) {
+                val item = queries.getItemById(qi.item_id).executeAsOneOrNull()
+                val itemTaxRate = item?.tax_rate ?: 0.0
+                val itemHsnCode = item?.hsn_code
                 queries.insertSaleItem(
                     newSaleId,
                     qi.item_id,
@@ -143,6 +147,8 @@ class SalesRepository(
                     qi.quantity,
                     qi.sell_price,
                     qi.buy_price,
+                    itemTaxRate,
+                    itemHsnCode,
                     nowMs
                 )
 
@@ -172,7 +178,7 @@ class SalesRepository(
      * All or nothing: on ANY failure the entire block rolls back via SQLDelight transaction.
      */
     suspend fun atomicCheckout(
-        cartItemsData: List<Map<String, Any>>, // each map: itemId, itemName, unit, quantity, buyPrice, sellPrice
+        cartItemsData: List<Map<String, Any>>,
         totalAmount: Double,
         discountAmount: Double,
         customerName: String,
@@ -185,7 +191,6 @@ class SalesRepository(
         val shouldDeductStock = type != "ESTIMATE"
         var newSaleId = -1L
         database.transaction {
-            // Step 1: Insert sale header
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
             queries.insertSale(
                 timestamp, totalAmount, discountAmount, customerName,
@@ -193,7 +198,6 @@ class SalesRepository(
             )
             newSaleId = queries.getLastInsertRowId().executeAsOne()
 
-            // Step 2: Insert all sale items + deduct stock (only for SALE, not ESTIMATE)
             for (ci in cartItemsData) {
                 val itemId = ci["itemId"] as Long
                 val itemName = ci["itemName"] as String
@@ -201,8 +205,9 @@ class SalesRepository(
                 val quantity = ci["quantity"] as Double
                 val buyPrice = ci["buyPrice"] as Double
                 val sellPrice = ci["sellPrice"] as Double
+                val taxRate = (ci["taxRate"] ?: 0.0) as Double
+                val hsnCode = ci["hsnCode"] as String?
 
-                // BUG-STOCK-INT: Only deduct stock for actual sales, never for estimates/quotations
                 if (shouldDeductStock) {
                     val currentItem = queries.getItemById(itemId).executeAsOneOrNull()
                     if (currentItem != null) {
@@ -215,15 +220,13 @@ class SalesRepository(
                                 requestedChange = -quantity
                             )
                         }
-                        // BUG-13 FIX: updateItemStock expects a signed delta; pass negative quantity to subtract
                         val curTime = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
                         queries.updateItemStock(-quantity, curTime, itemId)
                     }
                 }
 
-                // Insert sale item (always inserted regardless of type)
                 queries.insertSaleItem(
-                    newSaleId, itemId, itemName, unit, quantity, sellPrice, buyPrice, timestamp
+                    newSaleId, itemId, itemName, unit, quantity, sellPrice, buyPrice, taxRate, hsnCode, timestamp
                 )
             }
         }

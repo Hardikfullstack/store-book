@@ -49,6 +49,8 @@ type SaleItemDetail @table {
   unit: String!
   sellPrice: Float!
   buyPrice: Float!
+  taxRate: Float
+  hsnCode: String
   
   sale: Sale! @ref
   item: Item! @ref

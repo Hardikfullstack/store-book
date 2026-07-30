@@ -455,6 +455,8 @@ class MoreViewModel(
                                     unit = saleItem.unit,
                                     buyPrice = saleItem.buy_price,
                                     sellPrice = saleItem.sell_price,
+                                    taxRate = saleItem.tax_rate ?: 0.0,
+                                    hsnCode = saleItem.hsn_code,
                                 )
                             },
                     )

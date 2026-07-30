@@ -46,7 +46,7 @@ class ViewModelBusinessLogicTest {
         )
         val saleId = database.storeBookQueries.getLastInsertRowId().executeAsOne()
         database.storeBookQueries.insertSaleItem(
-            sale_id = saleId, item_id = 1, item_name = "Widget", unit = "Pcs", quantity = 5.0, sell_price = 100.0, buy_price = 60.0, updated_at = now
+            sale_id = saleId, item_id = 1, item_name = "Widget", unit = "Pcs", quantity = 5.0, sell_price = 100.0, buy_price = 60.0, tax_rate = 0.0, hsn_code = null, updated_at = now
         )
 
         // Revenue = 5 * 100 = 500, COGS = 5 * 60 = 300 → gross profit = 500 - 300 - 20 discount = 180
@@ -82,7 +82,7 @@ class ViewModelBusinessLogicTest {
             customer_address = null, business_address = null, type = "SALE", notes = null, updated_at = now
         )
         val saleId = database.storeBookQueries.getLastInsertRowId().executeAsOne()
-        database.storeBookQueries.insertSaleItem(sale_id = saleId, item_id = 1, item_name = "Small Item", unit = "Pcs", quantity = 1.0, sell_price = 100.0, buy_price = 90.0, updated_at = now)
+        database.storeBookQueries.insertSaleItem(sale_id = saleId, item_id = 1, item_name = "Small Item", unit = "Pcs", quantity = 1.0, sell_price = 100.0, buy_price = 90.0, tax_rate = 0.0, hsn_code = null, updated_at = now)
 
         // Expense of ₹250 (exceeds profit by >₹160 → net negative)
         database.storeBookQueries.insertExpense("Repair", "AC Service", 300.0, now, null, null, now)

@@ -52,6 +52,8 @@ data class SaleItemDetail(
         val unit: String,
         val sellPrice: Double,
         val buyPrice: Double,
+        val taxRate: Double = 0.0,
+        val hsnCode: String? = null,
 )
 
 @Serializable

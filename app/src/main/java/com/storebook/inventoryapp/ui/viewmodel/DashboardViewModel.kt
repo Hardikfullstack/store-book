@@ -175,6 +175,8 @@ class DashboardViewModel(
                                     unit = saleItem.unit,
                                     buyPrice = saleItem.buy_price,
                                     sellPrice = saleItem.sell_price,
+                                    taxRate = saleItem.tax_rate ?: 0.0,
+                                    hsnCode = saleItem.hsn_code,
                                 )
                             }
                         } else {
@@ -311,6 +313,8 @@ class DashboardViewModel(
                                         unit = saleItem.unit,
                                         buyPrice = saleItem.buy_price,
                                         sellPrice = saleItem.sell_price,
+                                        taxRate = saleItem.tax_rate ?: 0.0,
+                                        hsnCode = saleItem.hsn_code,
                                     )
                                 },
                         )
@@ -331,9 +335,8 @@ class DashboardViewModel(
                             taxRate = it.tax_rate,
                         )
                 }
-            com.storebook.inventoryapp.utils.Gstr1CsvExporter.exportGstr1Csv(
+            com.storebook.inventoryapp.utils.ExcelExporter.exportGstr1(
                 context = context,
-                fileName = fileName,
                 sales = sales,
                 businessGstin = businessGstin,
                 allItemsMap = allItemsMap,
@@ -438,6 +441,8 @@ class DashboardViewModel(
                                     unit = saleItem.unit,
                                     buyPrice = saleItem.buy_price,
                                     sellPrice = saleItem.sell_price,
+                                    taxRate = saleItem.tax_rate ?: 0.0,
+                                    hsnCode = saleItem.hsn_code,
                                 )
                             },
                     )
@@ -543,6 +548,8 @@ class DashboardViewModel(
                                     unit = saleItem.unit,
                                     buyPrice = saleItem.buy_price,
                                     sellPrice = saleItem.sell_price,
+                                    taxRate = saleItem.tax_rate ?: 0.0,
+                                    hsnCode = saleItem.hsn_code,
                                 )
                             },
                     )
@@ -634,6 +641,8 @@ class DashboardViewModel(
                             unit = saleItem.unit,
                             buyPrice = saleItem.buy_price,
                             sellPrice = saleItem.sell_price,
+                            taxRate = saleItem.tax_rate ?: 0.0,
+                            hsnCode = saleItem.hsn_code,
                         )
                     },
             )
