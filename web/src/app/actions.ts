@@ -186,6 +186,10 @@ export async function revokeUserSessions(userId: string): Promise<{ success: boo
 }
 
 export async function getStoresPaginated(lastId?: string, limitCount = 20) {
+  const session = await getSession();
+  if (!session || (session?.role !== 'admin' && session?.role !== 'super_admin')) {
+    return [];
+  }
   try {
     const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
     const response = await dc.executeGraphql(
@@ -209,6 +213,10 @@ export async function getStoresPaginated(lastId?: string, limitCount = 20) {
 }
 
 export async function getUsersPaginated(lastId?: string, limitCount = 20) {
+  const session = await getSession();
+  if (!session || (session?.role !== 'admin' && session?.role !== 'super_admin')) {
+    return [];
+  }
   try {
     const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
     const response = await dc.executeGraphql(

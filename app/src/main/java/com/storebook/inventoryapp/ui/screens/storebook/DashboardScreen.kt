@@ -33,6 +33,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.ModeNight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Payments
@@ -915,43 +916,112 @@ fun DashboardScreen(
                                     )
                                 }
                                 // Profit card on its own row (full width)
-                                AnimatedMetricCard(
-                                    title = stringResource(id = R.string.dash_today_profit),
-                                    value = todayProfit.toRupee(),
-                                    gradient =
-                                        if (todayProfit >= 0) {
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    Color(0xFF10B981),
-                                                    Color(0xFF047857),
-                                                ),
-                                            )
-                                        } else {
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    Color(0xFFEF4444),
-                                                    Color(0xFFB91C1C),
-                                                ),
+                                if (viewModel.isPremiumUser) {
+                                    AnimatedMetricCard(
+                                        title = stringResource(id = R.string.dash_today_profit),
+                                        value = todayProfit.toRupee(),
+                                        gradient =
+                                            if (todayProfit >= 0) {
+                                                Brush.linearGradient(
+                                                    listOf(
+                                                        Color(0xFF10B981),
+                                                        Color(0xFF047857),
+                                                    ),
+                                                )
+                                            } else {
+                                                Brush.linearGradient(
+                                                    listOf(
+                                                        Color(0xFFEF4444),
+                                                        Color(0xFFB91C1C),
+                                                    ),
+                                                )
+                                            },
+                                        iconContent = {
+                                            Icon(
+                                                imageVector =
+                                                    if (todayProfit >= 0) {
+                                                        Icons.Filled.TrendingUp
+                                                    } else {
+                                                        Icons.Filled.TrendingDown
+                                                    },
+                                                contentDescription =
+                                                    stringResource(
+                                                        R.string.ui_element_desc,
+                                                    ),
+                                                tint = Color.White,
+                                                modifier = Modifier.size(22.dp),
                                             )
                                         },
-                                    iconContent = {
-                                        Icon(
-                                            imageVector =
-                                                if (todayProfit >= 0) {
-                                                    Icons.Filled.TrendingUp
-                                                } else {
-                                                    Icons.Filled.TrendingDown
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                } else {
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .height(76.dp)
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(
+                                                    MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                        alpha = 0.3f,
+                                                    ),
+                                                ).border(
+                                                    1.dp,
+                                                    MaterialTheme.colorScheme.outlineVariant.copy(
+                                                        alpha = 0.4f,
+                                                    ),
+                                                    RoundedCornerShape(16.dp),
+                                                ).clickable(onClickLabel = "Action") {
+                                                    navController.navigate(Routes.PremiumPlans)
                                                 },
-                                            contentDescription =
-                                                stringResource(
-                                                    R.string.ui_element_desc,
-                                                ),
-                                            tint = Color.White,
-                                            modifier = Modifier.size(22.dp),
-                                        )
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        ) {
+                                            Box(
+                                                modifier =
+                                                    Modifier
+                                                        .size(42.dp)
+                                                        .clip(CircleShape)
+                                                        .background(
+                                                            MaterialTheme.colorScheme.primary.copy(
+                                                                alpha = 0.15f,
+                                                            ),
+                                                        ),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Lock,
+                                                    contentDescription = stringResource(R.string.ui_element_desc),
+                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                                    modifier = Modifier.size(20.dp),
+                                                )
+                                            }
+                                            Column {
+                                                Text(
+                                                    text = stringResource(id = R.string.dash_today_profit),
+                                                    fontSize = 11.5.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color =
+                                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                            alpha = 0.7f,
+                                                        ),
+                                                    maxLines = 1,
+                                                )
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = "Upgrade to Pro",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    fontFamily = Inter,
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),

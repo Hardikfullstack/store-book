@@ -1,10 +1,10 @@
 # Execution Status — StoreBook
-last_updated: "2026-07-28"
+last_updated: "2026-07-30"
 
 active_flow: E24-S3
 phase: "Phase 4 - Build (implementation) - E24-S3 planning complete, awaiting implementation"
 
-epics_complete: [rp-a0, e01, e02, e03, e04, e20]
+epics_complete: [rp-a0, e01, e02, e03, e04, e09, e12, e18, e20]
 
 completion:
   discover_phase: "complete"
@@ -49,6 +49,27 @@ blockers: []
 
 next_steps:
   - active: "E24-S3 — [Active Development]"
+    notes: |
+      specs/epics/e24/E24-S3-SCOPE.yaml and E24-S3-TASKS.yaml define a multi-store P&L view.
+
+  - complete: "E12 — Subscription Gating, Ads & Play Billing Verification",
+    notes: |
+      S1 (Profit Card Gate): DashboardScreen.kt profit card locked with overlay for non-premium users.
+        Lock icon + "Upgrade to Pro" prompt visible. Tap navigates to billing screen. ktlint clean.
+
+      S2 (AppOpenAd Premium Bypass): AppOpenAdManager.kt fetchAd() and showIfAvailable() early-return
+        when SharedPreferences("is_premium") == true. Free users unaffected. No crash on ad load failure.
+
+      S3 (Interstitial Frequency Capping & Safe Zones): InterstitialAdManager.kt fully rewritten with:
+        - 5-minute minimum interval between shows, max 4 shows per session counter reset on app close
+        - Safe zone flags block ads during billing flow (enterBillingFlow/exitBillingFlow) and auth flow
+        - Premium users bypass all interstitial logic immediately
+        - Analytics event logging via custom bridge on show/show-fail/capped/skipped
+
+      S4 (Play Billing Sync & Confirmation): PlayBillingManager.kt purchase listener routes PURCHASED
+        (consumes, persists is_premium + purchaseToken) vs PENDING (logs, no action).
+        ProBillingView.kt shows post-purchase success overlay ("Welcome to Pro!") on billingState changes.
+        ktlint clean across all modified files.
   - complete: "RP-A0 — SQLDelight Migration (schema + repositories + SyncWorker)"
   - complete: "E01-S1 — SyncWorker push phase error handling + retry queue enrollment + SyncState tracking"
   - complete: "E01-S2 — Exponential backoff retry (FailedSyncQueue table + RetryBackoffCalculator + retry processing loop)"

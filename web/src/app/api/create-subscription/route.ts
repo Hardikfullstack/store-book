@@ -4,8 +4,15 @@ import { getSession } from '@/lib/session';
 
 export async function POST(request: Request) {
   try {
+    // Only the account owner may initiate a paid subscription
     const session = await getSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (session.role !== 'owner') return NextResponse.json({ error: 'Forbidden — only owners may create subscriptions' }, { status: 403 });
+
+    // Prevent duplicate subscription creation while one is already active
+    if (session.isPremium) {
+      return NextResponse.json({ error: 'A premium subscription is already active for this store' }, { status: 409 });
+    }
 
     const key_id = process.env.RAZORPAY_KEY_ID;
     const key_secret = process.env.RAZORPAY_KEY_SECRET;
@@ -36,6 +43,6 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('Error creating subscription:', error);
-    return NextResponse.json({ error: 'Internal server error', details: error }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

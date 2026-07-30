@@ -31,27 +31,35 @@ class PlayBillingManager(
                         .d(TAG, "PurchaseUpdated: code=${billingResult.responseCode} n=${purchaseList?.size}")
                 }
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    purchaseList
-                        ?.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-                        ?.takeIf { it.isNotEmpty() }
-                        ?.let {
-                            val ids = it.mapNotNull { p -> p.products.firstOrNull() }.toSet()
-                            _state.value =
-                                _state.value.copy(
-                                    isProUnlocked = true,
-                                    purchasedProductIds = ids,
-                                )
+                    purchaseList?.forEach { purchase ->
+                        val productId = purchase.products.firstOrNull() ?: return@forEach
+                        when (purchase.purchaseState) {
+                            Purchase.PurchaseState.PURCHASED -> {
+                                _state.value =
+                                    _state.value.copy(
+                                        isProUnlocked = true,
+                                        purchasedProductIds = _state.value.purchasedProductIds + setOf(productId),
+                                        purchaseToken = purchase.purchaseToken,
+                                    )
 
-                            // Persist to SharedPreferences so UI picks it up immediately without re-login
-                            if (!ids.isEmpty()) {
+                                // Persist to SharedPreferences so UI picks it up immediately without re-login
                                 val prefs = SecurityUtils.getEncryptedPrefs(appContext)
                                 prefs.edit().putBoolean("is_premium", true).apply()
                                 if (com.storebook.inventoryapp.BuildConfig.DEBUG) {
-                                    Log
-                                        .d(TAG, "SharedPrefs updated: is_premium=true")
+                                    Log.d(TAG, "Purchase confirmed: $productId")
+                                    Log.d(TAG, "SharedPrefs updated: is_premium=true")
                                 }
                             }
+
+                            Purchase.PurchaseState.PENDING -> {
+                                if (com.storebook.inventoryapp.BuildConfig.DEBUG) {
+                                    Log.d(TAG, "Pending purchase detected for: $productId")
+                                }
+                            }
+
+                            else -> {}
                         }
+                    }
                 }
             }.enablePendingPurchases()
             .build()

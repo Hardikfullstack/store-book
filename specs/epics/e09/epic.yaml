@@ -6,7 +6,7 @@ scope_feature: ["Sales & Billing (P0)", "Udhaar Credit Ledger (P1)"]
 depends_on_epics: [e03]
 target_version: v1.4.0
 priority: P1
-status: defined
+status: verified
 
 rationale: >
   PDFs and exports are user-facing documents that represent business transactions legally.

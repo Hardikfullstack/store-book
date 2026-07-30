@@ -75,6 +75,13 @@ fun ProBillingView(
         }
     var selectedPlanIndex by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var productsFetched by remember { mutableStateOf<List<ProductDetails>?>(null) }
+    var purchaseConfirmed by remember { mutableStateOf(false) }
+
+    LaunchedEffect(billingState.isProUnlocked) {
+        if (billingState.isProUnlocked && !purchaseConfirmed) {
+            purchaseConfirmed = true
+        }
+    }
 
     LaunchedEffect(Unit) {
         if (!billingState.isBillingReady) billingManager.connect()
@@ -352,7 +359,7 @@ fun ProBillingView(
                                             act,
                                             product,
                                             offerToken,
-                                            onSuccess = { onDismiss() },
+                                            onSuccess = {},
                                             onFail = { err ->
                                                 android.widget.Toast
                                                     .makeText(
@@ -458,6 +465,70 @@ fun ProBillingView(
                     contentDescription = "Back",
                     modifier = Modifier.size(22.dp),
                 )
+            }
+
+            // Purchase Success Confirmation Overlay
+            if (purchaseConfirmed) {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(if (isDark) Color.Black.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.6f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(if (isDark) Color(0xFF1E1E1E) else Color(0xFFF5F5F5))
+                                .padding(32.dp),
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(80.dp)
+                                    .clip(CircleShape)
+                                    .background(Gold400.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = stringResource(R.string.ui_element_desc),
+                                tint = Gold400,
+                                modifier = Modifier.size(48.dp),
+                            )
+                        }
+                        Text(
+                            text = "Welcome to Pro!",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDark) Color.White else Color.Black,
+                        )
+                        Text(
+                            text = "Your purchase is confirmed. Enjoy ad-free experience with all premium features.",
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center,
+                            color =
+                                if (isDark) {
+                                    Color.White.copy(alpha = 0.7f)
+                                } else {
+                                    Color.Black.copy(alpha = 0.6f)
+                                },
+                        )
+                        androidx.compose.material3.Button(
+                            onClick = { onDismiss() },
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Gold400, contentColor = Color.White),
+                        ) {
+                            Text("Start Using Pro", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
         }
     }

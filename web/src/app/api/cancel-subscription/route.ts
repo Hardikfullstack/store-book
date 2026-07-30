@@ -6,6 +6,9 @@ export async function POST(request: Request) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    // Only the owner of a store can cancel its subscription
+    if (session.role !== 'owner') return NextResponse.json({ error: 'Forbidden — only owners may cancel subscriptions' }, { status: 403 });
 
     const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
 

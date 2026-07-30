@@ -21,6 +21,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Verify the caller is actually the owner of this staff's store
+    if (session.role === 'owner' && ownerId !== session.uid) {
+      return NextResponse.json({ error: 'Unauthorized — caller must be the account owner' }, { status: 403 });
+    }
+
     // Since Firebase Auth requires an email, we create a dummy one
     const dummyEmail = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@storebook.internal`;
 

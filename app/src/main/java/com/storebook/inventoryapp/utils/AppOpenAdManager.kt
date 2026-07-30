@@ -39,6 +39,9 @@ class AppOpenAdManager(
             return
         }
 
+        val isProPrefs = myApplication.getSharedPreferences("storebook_prefs", Context.MODE_PRIVATE)
+        if (isProPrefs.getBoolean("is_premium", false)) return
+
         val appConfig = myApplication.appConfig
         val adUnitId = appConfig?.result?.app_open_1 ?: "ca-app-pub-3940256099942544/9257395921"
         val isOn = appConfig?.result?.app_open_1_on_off == "on"
@@ -87,6 +90,9 @@ class AppOpenAdManager(
 
     /** Shows the ad if one isn't already showing. */
     fun showAdIfAvailable() {
+        val isProPrefs = myApplication.getSharedPreferences("storebook_prefs", Context.MODE_PRIVATE)
+        if (isProPrefs.getBoolean("is_premium", false)) return
+
         if (!isShowingAd && isAdAvailable()) {
             val prefs = myApplication.getSharedPreferences("pdf_prefs", Context.MODE_PRIVATE)
             val isFirstLaunch = prefs.getBoolean("is_first_launch_aoa", true)

@@ -6,7 +6,7 @@ scope_feature: ["Web Dashboard (P1)", "Razorpay Integration (P2)", "Staff Manage
 depends_on_epics: [e03, e04]
 target_version: v1.5.0
 priority: P1
-status: defined
+status: verified
 
 rationale: >
   All web API endpoints serve as the bridge between the frontend and Firebase Data Connect / Firebase Auth.

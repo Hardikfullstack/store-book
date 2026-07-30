@@ -20,12 +20,52 @@ object InterstitialAdManager {
     private var isLoadingAd = false
     private const val TAG = "InterstitialAdManager"
 
+    // Frequency capping
+    private var lastAdShownTime: Long = 0
+    private const val MIN_INTERVAL_MILLIS = 5 * 60 * 1000L
+    private var sessionShowCount = 0
+    private const val MAX_SHOWS_PER_SESSION = 4
+
+    // Safe zones — screens where ads must not show
+    private var isInBillingFlow = false
+    private var isInAuthFlow = false
+
     // Observable state for UI to show loading dialog
     var isAdLoading = mutableStateOf(false)
         private set
 
     private var timeoutJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.Main)
+
+    fun enterBillingFlow() {
+        isInBillingFlow = true
+    }
+
+    fun exitBillingFlow() {
+        isInBillingFlow = false
+    }
+
+    fun enterAuthFlow() {
+        isInAuthFlow = true
+    }
+
+    fun exitAuthFlow() {
+        isInAuthFlow = false
+    }
+
+    private fun isFrequencyLimitReached(): Boolean {
+        if (sessionShowCount >= MAX_SHOWS_PER_SESSION) return true
+        val elapsed = System.currentTimeMillis() - lastAdShownTime
+        return elapsed < MIN_INTERVAL_MILLIS
+    }
+
+    private fun isSafeZone(): Boolean = isInBillingFlow || isInAuthFlow
+
+    private fun isPremium(context: Context): Boolean {
+        val app = context.applicationContext as? com.storebook.inventoryapp.StoreBookApplication ?: return false
+        val prefs = app.getSharedPreferences("storebook_prefs", Context.MODE_PRIVATE)
+        return prefs.getBoolean("is_premium", false)
+    }
 
     /**
      * Preloads an Interstitial Ad. Call this early (e.g., in a LaunchedEffect or when returning to
@@ -88,6 +128,27 @@ object InterstitialAdManager {
             return
         }
 
+        // Premium bypass — never show ads for subscribed users
+        if (isPremium(activity)) {
+            AnalyticsManager.logAdEvent("interstitial", placement, "skipped_premium")
+            onAdDismissed()
+            return
+        }
+
+        // Safe zone guard — do not show during billing or auth flows
+        if (isSafeZone()) {
+            AnalyticsManager.logAdEvent("interstitial", placement, "skipped_safe_zone")
+            onAdDismissed()
+            return
+        }
+
+        // Frequency cap guard — limit to 4 per session with 5-minute minimum interval
+        if (isFrequencyLimitReached()) {
+            AnalyticsManager.logAdEvent("interstitial", placement, "skipped_frequency_cap")
+            onAdDismissed()
+            return
+        }
+
         if (interstitialAd != null) {
             showAd(activity, adUnitId, placement, onAdDismissed)
         } else {
@@ -98,7 +159,7 @@ object InterstitialAdManager {
             timeoutJob?.cancel()
             timeoutJob =
                 scope.launch {
-                    delay(3000) // 3 seconds timeout
+                    delay(3000)
                     if (isAdLoading.value) {
                         isAdLoading.value = false
                         AnalyticsManager.logAdEvent("interstitial", placement, "loading_timeout")
@@ -140,13 +201,16 @@ object InterstitialAdManager {
         placement: String,
         onAdDismissed: () -> Unit,
     ) {
+        // Update frequency cap counters when showing
+        lastAdShownTime = System.currentTimeMillis()
+        sessionShowCount++
+
         interstitialAd?.fullScreenContentCallback =
             object : FullScreenContentCallback() {
                 override fun onAdDismissedFullScreenContent() {
                     AnalyticsManager.logAdEvent("interstitial", placement, "dismissed")
                     interstitialAd = null
                     onAdDismissed()
-                    // Preload the next ad instantly
                     loadAd(activity, adUnitId, placement)
                 }
 
@@ -154,7 +218,8 @@ object InterstitialAdManager {
                     AnalyticsManager.logAdEvent("interstitial", placement, "failed_to_show")
                     interstitialAd = null
                     onAdDismissed()
-                    // Try to load again
+                    // Decrement counter since ad was not actually shown
+                    sessionShowCount--
                     loadAd(activity, adUnitId, placement)
                 }
 
