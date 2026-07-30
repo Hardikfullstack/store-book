@@ -13,6 +13,19 @@ import kotlinx.coroutines.withContext
 
 private fun sanitize(str: String?): String = str?.let { it.replace("<", "").replace(">", "") } ?: ""
 
+/** E01-S2: Classify exception as transient (retry-worth) vs permanent (give up) */
+private fun isTransientException(e: Throwable): Boolean {
+    if (e is java.io.IOException) return true
+    val msg = e.message?.lowercase() ?: ""
+    return "timeout" in msg ||
+        "connection" in msg ||
+        "retry" in msg ||
+        "rate limit" in msg ||
+        "too many requests" in msg ||
+        "unavailable" in msg ||
+        "internal" in msg
+}
+
 /**
  * E01-S1 + E01-S2: SyncWorker with:
  * - Per-mutation try/catch with log.d output ✅ (was already in place)
@@ -111,6 +124,8 @@ class SyncWorker(
                         "ITEM" -> retryPushItem(r, c, sid, entry.local_id.toString())
                         "SALE" -> retryPushSale(r, c, sid, entry.local_id.toString())
                         "UDHAAR" -> retryPushUdhaar(r, c, sid, entry.local_id.toString())
+                        "SUPPLIER" -> retryPushSupplier(r, c, sid, entry.local_id.toString())
+                        "PURCHASE" -> retryPushPurchase(r, c, sid, entry.local_id.toString())
                         else ->
                             android.util.Log
                                 .d("SyncWorker", "Retry skipping unsupported entity: ${entry.entity_type}")
@@ -258,7 +273,11 @@ class SyncWorker(
                     android.util.Log.d("SW", "E01-S1 push item ${it.id} → cloud ${res.data.key.id}")
                 } catch (e: Exception) {
                     android.util.Log.e("SW", "E01-S1 push item ${it.id} FAILED: ${e.message}", e)
-                    // E01-S1: enqueue for retry with backoff
+                    if (!isTransientException(e)) {
+                        android.util.Log.w("SW", "Non-transient error for item ${it.id}, skipping retry")
+                        r.incrementFailedMutationCount()
+                        continue
+                    }
                     try {
                         r.enqueueSyncFailure(
                             entityType = "ITEM",
@@ -298,6 +317,11 @@ class SyncWorker(
                     android.util.Log.d("SW", "E01-S1 push sale ${se.id} → cloud ${res.data.key.id}")
                 } catch (e: Exception) {
                     android.util.Log.e("SW", "E01-S1 push sale ${se.id} FAILED: ${e.message}", e)
+                    if (!isTransientException(e)) {
+                        android.util.Log.w("SW", "Non-transient error for sale ${se.id}, skipping retry")
+                        r.incrementFailedMutationCount()
+                        continue
+                    }
                     try {
                         r
                             .enqueueSyncFailure(
@@ -343,6 +367,11 @@ class SyncWorker(
                     android.util.Log.d("SW", "E01-S1 push sale_item ${si.id}")
                 } catch (e: Exception) {
                     android.util.Log.e("SW", "E01-S1 push sale_item ${si.id} FAILED", e)
+                    if (!isTransientException(e)) {
+                        android.util.Log.w("SW", "Non-transient error for sale_item ${si.id}, skipping retry")
+                        r.incrementFailedMutationCount()
+                        continue
+                    }
                     try {
                         r
                             .enqueueSyncFailure(
@@ -382,6 +411,11 @@ class SyncWorker(
                     android.util.Log.d("SW", "E01-S1 push udhaar ${u.id}")
                 } catch (e: Exception) {
                     android.util.Log.e("SW", "E01-S1 push udhaar ${u.id} FAILED", e)
+                    if (!isTransientException(e)) {
+                        android.util.Log.w("SW", "Non-transient error for udhaar ${u.id}, skipping retry")
+                        r.incrementFailedMutationCount()
+                        continue
+                    }
                     try {
                         r
                             .enqueueSyncFailure(
@@ -427,6 +461,11 @@ class SyncWorker(
                     android.util.Log.d("SW", "E01-S1 push expense ${ex.id}")
                 } catch (e: Exception) {
                     android.util.Log.e("SW", "E01-S1 push expense ${ex.id} FAILED", e)
+                    if (!isTransientException(e)) {
+                        android.util.Log.w("SW", "Non-transient error for expense ${ex.id}, skipping retry")
+                        r.incrementFailedMutationCount()
+                        continue
+                    }
                     try {
                         r
                             .enqueueSyncFailure(
@@ -608,7 +647,7 @@ class SyncWorker(
                         .execute(sid, ls.toDouble())
                         .data.items
                 for (i in items) {
-                    if (r.shouldAcceptRemote(i.updatedAt.toLong(), i.id)) {
+                    if (r.shouldAcceptRemoteItem(i.updatedAt.toLong(), i.id)) {
                         r
                             .upsertItemWithCloudId(
                                 name = i.name, quantity = i.quantity, unit = i.unit,
@@ -763,7 +802,7 @@ class SyncWorker(
                         .execute(sid, ls.toDouble())
                         .data.suppliers
                 for (su in ss) {
-                    if (r.shouldAcceptRemote(su.updatedAt.toLong(), su.id)) {
+                    if (r.shouldAcceptRemoteSupplier(su.updatedAt.toLong(), su.id)) {
                         r
                             .upsertSupplierWithCloudId(
                                 sanitize(su.name), su.phone?.let(::sanitize), su.gstin?.let(::sanitize),
@@ -787,7 +826,7 @@ class SyncWorker(
                         .data.purchases
                 var purchasesProcessed = 0
                 purchasesLoop@ for (pu in ps) {
-                    if (!r.shouldAcceptRemote(pu.updatedAt.toLong(), pu.id)) continue@purchasesLoop
+                    if (!r.shouldAcceptRemotePurchase(pu.updatedAt.toLong(), pu.id)) continue@purchasesLoop
                     // BUG-03 FIX: Skip orphan records instead of inserting with FK=0
                     val resolvedSupplierId = r.resolveSupplierIdByCloudId(pu.supplierId)?.toLong()
                     if (resolvedSupplierId == null) {

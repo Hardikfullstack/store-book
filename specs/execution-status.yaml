@@ -70,6 +70,20 @@ next_steps:
         (consumes, persists is_premium + purchaseToken) vs PENDING (logs, no action).
         ProBillingView.kt shows post-purchase success overlay ("Welcome to Pro!") on billingState changes.
         ktlint clean across all modified files.
+  - complete: "E01 — Sync Worker: Entity-aware LWW + Transient Exception Classifier",
+    notes: |
+      S1-S4 all verified. Code-level gaps fixed post-review:
+        T1: Added getLocalPurchaseByCloudId .sq query (was missing) + regenerated SQLDelight interface.
+        T2: Replaced monolithic shouldAcceptRemote() with entity-specific methods in SyncRepository:
+             shouldAcceptRemoteItem, shouldAcceptRemoteSupplier, shouldAcceptRemotePurchase.
+        T3: Updated SyncWorker call sites to use entity-specific LWW methods. Added SUPPLIER and PURCHASE
+             handlers to processRetries() retry loop (was only ITEM/SALE/UDHAAR).
+        T4: Added isTransientException classifier helper in SyncWorker. All 8 push methods now route
+             transient errors (IOException, timeout, connection, rate-limit) → enqueueSyncFailure for
+             exponential backoff retry. Permanent errors (constraint_violation, permission_denied) →
+             increment failed count and skip.
+      Pre-commit gates: ktlintCheck ✓  shared:jvmTest ✓  BUILD SUCCESSFUL
+
   - complete: "RP-A0 — SQLDelight Migration (schema + repositories + SyncWorker)"
   - complete: "E01-S1 — SyncWorker push phase error handling + retry queue enrollment + SyncState tracking"
   - complete: "E01-S2 — Exponential backoff retry (FailedSyncQueue table + RetryBackoffCalculator + retry processing loop)"

@@ -318,12 +318,27 @@ class SyncRepository(
     // Compare remote updatedAt vs local updatedAt. If remote >= local → accept.
     // Else keep local (will be re-pushed on next run).
     // Sales are append-only by ID uniqueness — no LWW needed.
+    // Entity-specific methods to ensure correct table queries per entity type.
     // ========================================================================
 
-    /** @return true if we should accept the remote entity (remote is newer or doesn't exist locally) */
-    suspend fun shouldAcceptRemote(remoteUpdatedAt: Long, cloudId: String): Boolean {
+    /** @return true if we should accept the remote item (remote is newer or doesn't exist locally) */
+    suspend fun shouldAcceptRemoteItem(remoteUpdatedAt: Long, cloudId: String): Boolean {
         val local = queries.getLocalItemByCloudId(cloudId).executeAsOneOrNull()
-            ?: return true // no local record → always accept
+            ?: return true /* no local record → always accept */
+        return remoteUpdatedAt >= (local.updated_at ?: 0L)
+    }
+
+    /** @return true if we should accept the remote supplier (remote is newer or doesn't exist locally) */
+    suspend fun shouldAcceptRemoteSupplier(remoteUpdatedAt: Long, cloudId: String): Boolean {
+        val local = queries.getLocalSupplierByCloudId(cloudId).executeAsOneOrNull()
+            ?: return true /* no local record → always accept */
+        return remoteUpdatedAt >= (local.updated_at ?: 0L)
+    }
+
+    /** @return true if we should accept the remote purchase (remote is newer or doesn't exist locally) */
+    suspend fun shouldAcceptRemotePurchase(remoteUpdatedAt: Long, cloudId: String): Boolean {
+        val local = queries.getLocalPurchaseByCloudId(cloudId).executeAsOneOrNull()
+            ?: return true /* no local record → always accept */
         return remoteUpdatedAt >= (local.updated_at ?: 0L)
     }
 

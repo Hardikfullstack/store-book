@@ -379,6 +379,9 @@ SELECT id, updated_at FROM sales WHERE cloud_id = :cloudId LIMIT 1;
 getLocalSupplierByCloudId:
 SELECT id, updated_at FROM suppliers WHERE cloud_id = :cloudId LIMIT 1;
 
+getLocalPurchaseByCloudId:
+SELECT id, updated_at FROM purchases WHERE cloud_id = :cloudId LIMIT 1;
+
 -- ============================================================================
 -- UPSERT REMOTE — Pull phase (cloud → local) upsert by cloud_id
 -- Uses INSERT OR REPLACE for atomic upsert semantics in SQLite
