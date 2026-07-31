@@ -51,6 +51,7 @@ class SupplierViewModel(
                         items =
                             purchaseRepository.getPurchaseItems(p.id).map { pi ->
                                 com.storebook.inventoryapp.shared.domain.models.PurchaseItemDetail(
+                                    purchaseId = p.id,
                                     itemId = pi.item_id,
                                     itemName = pi.item_name,
                                     quantity = pi.quantity,

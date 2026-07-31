@@ -220,6 +220,45 @@ class SyncWorker(
             r.markUdhaarSynced(u.id, res.data.key.id)
         }
 
+        private suspend fun retryPushSupplier(
+            r: SyncRepository,
+            c: StorebookConnectorConnector,
+            s: String,
+            localId: String,
+        ) {
+            val suppliers = r.getUnsyncedSuppliers().filter { it.id.toString() == localId }
+            if (suppliers.isEmpty()) return
+            val su = suppliers[0]
+            val res =
+                c.syncSupplier.execute(
+                    su.id.toString(), s, sanitize(su.name), su.is_deleted == 1L,
+                    su.updated_at.toDouble(),
+                ) {
+                    phone = sanitize(su.phone)
+                    ; gstin = sanitize(su.gstin)
+                    address = sanitize(su.address)
+                }
+            r.markSupplierSynced(su.id, res.data.key.id)
+        }
+
+        private suspend fun retryPushPurchase(
+            r: SyncRepository,
+            c: StorebookConnectorConnector,
+            s: String,
+            localId: String,
+        ) {
+            val purchases = r.getUnsyncedPurchases().filter { it.id.toString() == localId }
+            if (purchases.isEmpty()) return
+            val p = purchases[0]
+            val res =
+                c.syncPurchase.execute(
+                    p.id.toString(), s, p.supplier_id.toString(), sanitize(p.supplier_name), p.total_amount,
+                    p.tax_amount ?: 0.0, p.type, p.timestamp.toDouble(), p.is_deleted == 1L,
+                    p.updated_at.toDouble(),
+                ) { notes = p.notes }
+            r.markPurchaseSynced(p.id, res.data.key.id)
+        }
+
         // ==========================================================================
         // PUSH PHASE — E01-S1: every mutation wrapped in try/catch + enqueue on fail
         // ==========================================================================
