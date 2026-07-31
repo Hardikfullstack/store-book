@@ -9,6 +9,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.storebook.inventoryapp.R
+import com.storebook.inventoryapp.data.DbMigrationCallback
 import com.storebook.inventoryapp.shared.data.local.StoreBookDatabase
 import com.storebook.inventoryapp.shared.domain.repository.BatchRepository
 import com.storebook.inventoryapp.shared.domain.repository.InventoryRepository
@@ -22,14 +23,7 @@ class ExpiryCheckWorker(
             com.storebook.inventoryapp.utils.SecurityUtils
                 .getEncryptedPrefs(applicationContext)
         val activeStoreId = prefs.getString("active_store_id", "default") ?: "default"
-        val callback =
-            object : app.cash.sqldelight.driver.android.AndroidSqliteDriver.Callback(StoreBookDatabase.Schema) {
-                override fun onDowngrade(
-                    db: androidx.sqlite.db.SupportSQLiteDatabase,
-                    oldVersion: Int,
-                    newVersion: Int,
-                ) {}
-            }
+        val callback = DbMigrationCallback
         val driver =
             AndroidSqliteDriver(
                 StoreBookDatabase.Schema,

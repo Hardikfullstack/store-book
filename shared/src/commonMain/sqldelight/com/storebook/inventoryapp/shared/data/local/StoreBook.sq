@@ -735,9 +735,9 @@ VALUES(COALESCE((SELECT id FROM sales WHERE cloud_id = :cloudId LIMIT 1), (SELEC
 
 upsertSaleItemRemote:
 INSERT OR REPLACE INTO sale_items(id, sale_id, item_id, item_name, unit,
-    quantity, sell_price, buy_price, is_deleted, cloud_id, is_synced, updated_at)
+    quantity, sell_price, buy_price, tax_rate, hsn_code, is_deleted, cloud_id, is_synced, updated_at)
 VALUES(COALESCE((SELECT id FROM sale_items WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM sale_items), 1), :saleId, :itemId, :itemName, :unit, :quantity, :sellPrice, :buyPrice,
-    :isDeleted, :cloudId, 1, :updatedAt);
+    :taxRate, :hsnCode, :isDeleted, :cloudId, 1, :updatedAt);
 
 upsertUdhaarRemote:
 INSERT OR REPLACE INTO udhaar(id, customer_name, amount, type, timestamp, notes,

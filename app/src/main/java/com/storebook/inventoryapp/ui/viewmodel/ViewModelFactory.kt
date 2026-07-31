@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
+import com.storebook.inventoryapp.data.DbMigrationCallback
 import com.storebook.inventoryapp.shared.data.local.StoreBookDatabase
 import com.storebook.inventoryapp.shared.domain.repository.BatchRepository
 import com.storebook.inventoryapp.shared.domain.repository.ExpenseRepository
@@ -24,18 +25,13 @@ class AppViewModelFactory(
 
     // Lazy initialize the database so it's a singleton within the factory scope
     private val database: StoreBookDatabase by lazy {
-        val callback =
-            object : AndroidSqliteDriver.Callback(StoreBookDatabase.Schema) {
-                override fun onDowngrade(
-                    db: androidx.sqlite.db.SupportSQLiteDatabase,
-                    oldVersion: Int,
-                    newVersion: Int,
-                ) {
-                    // Ignore downgrade to prevent crash when moving from Legacy DB (version 9) to SQLDelight (version 1)
-                }
-            }
         val driver =
-            AndroidSqliteDriver(StoreBookDatabase.Schema, context, "storebook_$storeId.db", callback = callback)
+            AndroidSqliteDriver(
+                StoreBookDatabase.Schema,
+                context,
+                "storebook_$storeId.db",
+                callback = DbMigrationCallback,
+            )
         StoreBookDatabase(driver)
     }
 

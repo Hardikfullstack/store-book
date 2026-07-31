@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
+import com.storebook.inventoryapp.data.DbMigrationCallback
 import com.storebook.inventoryapp.dataconnect.*
 import com.storebook.inventoryapp.shared.data.local.StoreBookDatabase
 import com.storebook.inventoryapp.shared.domain.repository.SyncRepository
@@ -61,6 +62,7 @@ class SyncWorker(
                         StoreBookDatabase.Schema,
                         ctx,
                         "storebook_$storeId.db",
+                        callback = DbMigrationCallback,
                     ),
                 ),
             )
@@ -770,6 +772,8 @@ class SyncWorker(
                             si.quantity,
                             si.sellPrice,
                             si.buyPrice,
+                            0.0,
+                            null,
                             if (si.isDeleted) 1L else 0L,
                             si.id,
                             si.updatedAt
