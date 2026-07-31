@@ -569,20 +569,20 @@ class DashboardViewModel(
                         taxAmount = p.tax_amount,
                         type = p.type,
                         timestamp = p.timestamp,
-                notes = p.notes,
-                items =
-                    purchaseRepository.getPurchaseItems(p.id).map { pi ->
-                        com.storebook.inventoryapp.shared.domain.models.PurchaseItemDetail(
-                            purchaseId = p.id,
-                            itemId = pi.item_id,
-                            itemName = pi.item_name,
-                            quantity = pi.quantity,
-                            unit = pi.unit,
-                            buyPrice = pi.buy_price,
-                        )
-                    },
-            )
-        }
+                        notes = p.notes,
+                        items =
+                            purchaseRepository.getPurchaseItems(p.id).map { pi ->
+                                com.storebook.inventoryapp.shared.domain.models.PurchaseItemDetail(
+                                    purchaseId = p.id,
+                                    itemId = pi.item_id,
+                                    itemName = pi.item_name,
+                                    quantity = pi.quantity,
+                                    unit = pi.unit,
+                                    buyPrice = pi.buy_price,
+                                )
+                            },
+                    )
+                }
             val suppliersMap =
                 supplierRepository.getAllSuppliers().associate {
                     it.id to
@@ -668,19 +668,19 @@ class DashboardViewModel(
                 type = p.type,
                 timestamp = p.timestamp,
                 notes = p.notes,
-                        items =
-                            purchaseRepository.getPurchaseItems(p.id).map { pi ->
-                                com.storebook.inventoryapp.shared.domain.models.PurchaseItemDetail(
-                                    purchaseId = p.id,
-                                    itemId = pi.item_id,
-                                    itemName = pi.item_name,
-                                    quantity = pi.quantity,
-                                    unit = pi.unit,
-                                    buyPrice = pi.buy_price,
-                                )
-                            },
-                    )
-                }
+                items =
+                    purchaseRepository.getPurchaseItems(p.id).map { pi ->
+                        com.storebook.inventoryapp.shared.domain.models.PurchaseItemDetail(
+                            purchaseId = p.id,
+                            itemId = pi.item_id,
+                            itemName = pi.item_name,
+                            quantity = pi.quantity,
+                            unit = pi.unit,
+                            buyPrice = pi.buy_price,
+                        )
+                    },
+            )
+        }
 
     suspend fun getAllSuppliersMap(): Map<Long, com.storebook.inventoryapp.shared.domain.models.Supplier> =
         supplierRepository.getAllSuppliers().associate {
