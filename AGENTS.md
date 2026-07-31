@@ -22,10 +22,11 @@ No CI configured — all gates are local.
 
 ## Pre-Commit Checks
 After completing any code changes, run the following checks before considering work done. If any check fails, fix the errors and re-run until all pass:
-1. `./gradlew :app:ktlintCheck` — Android Kotlin linting
-2. `./gradlew :shared:jvmTest` — KMP shared module unit tests
-3. `cd web && npm run lint` — Web ESLint
-4. `cd web && npm run type-check` — Web TypeScript type checking
+1. `./gradlew assembleDebug` — Android debug build
+2. `./gradlew :app:ktlintCheck` — Android Kotlin linting
+3. `./gradlew :shared:jvmTest` — KMP shared module unit tests
+4. `cd web && npm run lint` — Web ESLint
+5. `cd web && npm run type-check` — Web TypeScript type checking
 
 ## Architecture
 - **Android** (`:app`) — Jetpack Compose UI, ViewModels in `ui/`, SQLite via SQLDelight (schema auto-generated from `:shared`). `SyncWorker` pushes/pulls through Firebase Data Connect.

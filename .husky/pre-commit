@@ -16,6 +16,12 @@ fi
 
 # Check Android/Kotlin code
 if [ -f "gradlew" ]; then
+  echo "👉 Running Android debug build..."
+  if ! ./gradlew assembleDebug; then
+    echo "❌ Android debug build failed. Please fix before committing."
+    exit 1
+  fi
+
   echo "👉 Running Android/Kotlin pre-commit checks (ktlint & detekt)..."
   if ! ./gradlew ktlintCheck; then
     echo "❌ Kotlin code style failed. Please fix before committing."
