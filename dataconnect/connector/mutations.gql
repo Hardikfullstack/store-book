@@ -446,3 +446,44 @@ mutation SyncStockAdjustment(
     }
   )
 }
+
+mutation UpdatePurchaseItemPrice($id: String!, $buyPrice: Float!, $updatedAt: Float!) @auth(level: USER) {
+  purchaseItemDetail_update(id: $id, data: { buyPrice: $buyPrice, updatedAt: $updatedAt })
+}
+
+mutation UpdatePurchaseTotalAmount($id: String!, $totalAmount: Float!, $updatedAt: Float!) @auth(level: USER) {
+  purchase_update(id: $id, data: { totalAmount: $totalAmount, updatedAt: $updatedAt })
+}
+
+mutation UpsertSaleItemDetail(
+  $id: String!
+  $storeId: String!
+  $saleId: String!
+  $itemId: String!
+  $itemName: String!
+  $unit: String!
+  $quantity: Float!
+  $sellPrice: Float!
+  $buyPrice: Float!
+  $taxRate: Float
+  $hsnCode: String
+  $isDeleted: Boolean!
+  $updatedAt: Float!
+) @auth(level: USER) {
+  saleItemDetail_upsert(data: {
+    id: $id
+    storeId: $storeId
+    saleId: $saleId
+    itemId: $itemId
+    itemName: $itemName
+    unit: $unit
+    quantity: $quantity
+    sellPrice: $sellPrice
+    buyPrice: $buyPrice
+    taxRate: $taxRate
+    hsnCode: $hsnCode
+    isDeleted: $isDeleted
+    updatedAt: $updatedAt
+  })
+}
+

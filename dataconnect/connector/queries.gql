@@ -622,3 +622,74 @@ query GetPurchaseDetails($purchaseId: String!) @auth(level: USER) {
     updatedAt
   }
 }
+
+query GetPurchaseItemsForFIFO($storeId: String!, $itemId: String!) @auth(level: USER) {
+  purchaseItemDetails(
+    where: {
+      storeId: { eq: $storeId }
+      itemId: { eq: $itemId }
+      isDeleted: { eq: false }
+    }
+  ) {
+    id
+    purchaseId
+    itemId
+    itemName
+    quantity
+    unit
+    buyPrice
+    updatedAt
+    purchase {
+      timestamp
+    }
+  }
+}
+
+query GetSaleItemsForFIFO($storeId: String!, $itemId: String!) @auth(level: USER) {
+  saleItemDetails(
+    where: {
+      storeId: { eq: $storeId }
+      itemId: { eq: $itemId }
+      isDeleted: { eq: false }
+    }
+    orderBy: [{ updatedAt: ASC }]
+  ) {
+    id
+    saleId
+    itemId
+    itemName
+    quantity
+    unit
+    sellPrice
+    buyPrice
+    updatedAt
+    sale {
+      timestamp
+      totalAmount
+      discountAmount
+      customerName
+      customerGstin
+      businessGstin
+      customerAddress
+      businessAddress
+      type
+      notes
+    }
+  }
+}
+
+query GetUdhaarBySaleId($saleId: String!) @auth(level: USER) {
+  udhaarEntries(where: { saleId: { eq: $saleId }, isDeleted: { eq: false } }) {
+    id
+    storeId
+    customerName
+    amount
+    type
+    timestamp
+    notes
+    saleId
+    isDeleted
+    updatedAt
+  }
+}
+
