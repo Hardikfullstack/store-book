@@ -155,32 +155,20 @@ class DashboardViewModel(
                 }
             val items = _allItems.value
             _lowStockItems.value = items.filter { it.quantity <= it.lowStockThreshold }
-            val todayStr =
-                java.text
-                    .SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault())
-                    .format(java.util.Date())
             _salesList.value =
                 salesRepository.getAllSales().map { s ->
-                    val sDateStr =
-                        java.text
-                            .SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault())
-                            .format(java.util.Date(s.timestamp))
                     val items =
-                        if (sDateStr == todayStr) {
-                            salesRepository.getSaleItems(s.id).map { saleItem ->
-                                com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
-                                    itemId = saleItem.item_id,
-                                    itemName = saleItem.item_name,
-                                    quantity = saleItem.quantity,
-                                    unit = saleItem.unit,
-                                    buyPrice = saleItem.buy_price,
-                                    sellPrice = saleItem.sell_price,
-                                    taxRate = saleItem.tax_rate ?: 0.0,
-                                    hsnCode = saleItem.hsn_code,
-                                )
-                            }
-                        } else {
-                            emptyList()
+                        salesRepository.getSaleItems(s.id).map { saleItem ->
+                            com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
+                                itemId = saleItem.item_id,
+                                itemName = saleItem.item_name,
+                                quantity = saleItem.quantity,
+                                unit = saleItem.unit,
+                                buyPrice = saleItem.buy_price,
+                                sellPrice = saleItem.sell_price,
+                                taxRate = saleItem.tax_rate ?: 0.0,
+                                hsnCode = saleItem.hsn_code,
+                            )
                         }
                     Sale(
                         id = s.id,

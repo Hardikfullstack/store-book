@@ -170,11 +170,15 @@ fun AppNavigation() {
         // Error messages handled in individual ViewModels now
     }
 
-    /* BUG-15C FIX: Reload Udhaar data whenever the user navigates to the Udhaar tab,
-       so that credit entries created from SalesViewModel appear immediately. */
+    /* FIX: Reload screen data whenever navigation targets that tab,
+       so that changes made on other screens are reflected immediately. */
     androidx.compose.runtime.LaunchedEffect(currentRoute) {
-        if (currentRoute == Routes.Udhaar.string) {
+        if (currentRoute == "com.storebook.inventoryapp.ui.navigation.Routes.Udhaar") {
             udhaarViewModel.loadUdhaar()
+        }
+        if (currentRoute == "com.storebook.inventoryapp.ui.navigation.Routes.Dashboard") {
+            dashboardViewModel.loadAllData()
+            dashboardViewModel.loadTodaySnapshot()
         }
     }
 
