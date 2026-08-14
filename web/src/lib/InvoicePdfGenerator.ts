@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { BillingEngine } from './BillingEngine';
 
 export interface PdfSaleData {
@@ -149,7 +149,7 @@ export class InvoicePdfGenerator {
       ]);
     }
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: yPos,
       head: [['#', 'HSN', 'Qty', 'Net Amt', 'CGST', 'SGST', 'IGST', 'Total']],
       body: tableBody,
@@ -172,11 +172,6 @@ export class InvoicePdfGenerator {
         5: { halign: 'right', cellWidth: 18 },
         6: { halign: 'right', cellWidth: 18 },
         7: { halign: 'right', cellWidth: 20 }
-      },
-      didDrawCell: function (data: any) {
-        if (data.row.section === 'body') {
-          data.cell.pos.x;
-        }
       }
     });
 

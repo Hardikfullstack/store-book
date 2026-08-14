@@ -324,7 +324,15 @@ epics:
     depends_on: [e01, e13, e31]
     type: verification
 
-execution_order: ["e08", "e01", "e02", "e17", "e06", "e10", "e11", "e13", "e14", "e15", "e16", "e03", "e07", "e09", "e04", "e18", "e05", "e12", "e20", "e19", "e22", "e21", "e23", "e25", "e24", "e26", "e27", "e28", "e29", "e30", "e31", "e32", "e33", "e34", "e35", "e36", "e37"]
+  - id: e38
+    title: POS Stock Deductions & Inventory Redux Sync Stability
+    priority: P0
+    status: complete
+    story_count: 1
+    target_version: v1.3.2
+    type: development
+
+execution_order: ["e08", "e01", "e02", "e17", "e06", "e10", "e11", "e13", "e14", "e15", "e16", "e03", "e07", "e09", "e04", "e18", "e05", "e12", "e20", "e19", "e22", "e21", "e23", "e25", "e24", "e26", "e27", "e28", "e29", "e30", "e31", "e32", "e33", "e34", "e35", "e36", "e37", "e38"]
 # Development epics (e01-e05) run in original order for fixes
 # New development epics (e19-e26) run after core stabilization
 # Verification epics (e06-e18, e36-e37) can run in parallel with development once base code is stable

@@ -9,7 +9,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { sanitizeInput } from '@/lib/sanitize';
 import { addToCart, updateQuantity, removeFromCart, clearCart } from '@/store/cartSlice';
-import { setInventory } from '@/store/inventorySlice';
+import { setInventory, updateInventoryItem } from '@/store/inventorySlice';
 import { BillingEngine } from '@/lib/BillingEngine';
 import { InvoicePdfGenerator } from '@/lib/InvoicePdfGenerator';
 
@@ -134,7 +134,7 @@ export default function SalesPOS({
       }
 
       try {
-        const response = await getActiveItems(dataConnect, { storeId });
+        const response = await getActiveItems(dataConnect, { storeId }, { fetchPolicy: 'SERVER_ONLY' });
         if (!isMounted) return;
 
         const updated = response.data.items.map((item: any) => ({
@@ -334,6 +334,12 @@ export default function SalesPOS({
             isDeleted: false,
             updatedAt
           });
+
+          // Sync with Redux inventory store and local items state
+          dispatch(updateInventoryItem({ id: c.item.id, quantity: newStock }));
+          setItems(prevItems =>
+            prevItems.map(item => (item.id === c.item.id ? { ...item, quantity: newStock } : item))
+          );
         }
       }
 
