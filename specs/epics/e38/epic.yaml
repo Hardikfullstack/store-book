@@ -1,7 +1,7 @@
 epic_id: e38
 title: "POS Stock Deductions & Inventory Redux Sync Stability"
 priority: P0
-status: in_progress
+status: complete
 target_version: v1.3.2
 type: development
 description: |
