@@ -1,0 +1,64 @@
+# Epic e42 — Android Role-Based Permission Enforcement
+
+id: e42
+title: "Navigation Guards, Sidebar Gating & Granular Permission Flags on Android"
+scope_feature: ["RBAC & Staff Management (P0)"]
+depends_on_epics: [e28, e04]
+target_version: v2.0.0
+priority: P0
+status: defined
+
+rationale: >
+  Android stores user role in SharedPreferences but never actually gates navigation or UI by role.
+  Staff/cashier users can access all screens including Udhaar Expenses Reports and Settings — a security
+  vulnerability for multi-user store deployments where staff should only process sales. Granular flags
+  canViewProfit and canDelete from the User schema are also not enforced on Android.
+
+success_criteria:
+  - "Navigation destinations require role check; denied routes show restricted screen"
+  - "Sidebar/nav items filtered by permissions — staff sees only Sales + Items"
+  - "canViewProfit controls visibility of financial data (dashboard profit cards GST reports)"
+  - "canDelete controls delete buttons across sales and inventory screens"
+
+stories:
+  - id: e42-s1
+    status: pending
+    title: "Navigation-level route guards with role validation composable wrapper"
+    acceptance:
+      - "Create composables/PermissionGate.kt that wraps screen content; checks userRole.matchesAny([allowedRoles]) before rendering children"
+      - "Routes affected with guards:"
+        - "UdhaarScreen — requires OWNER or MANAGER (staff blocked)"
+        - "ExpensesScreen — requires OWNER or MANAGER (staff blocked)"
+        - "SalesAnalyticsScreen / PriceDriftReportScreen — requires canViewProfit flag OR role in [OWNER, MANAGER]"
+        - "Settings screen sections for staff management premium settings — OWNER only"
+      - "On denied access: show 'Access Restricted' composables with lock icon + message + tap to return to dashboard; do NOT crash or navigate away silently"
+      - "Test: login as cash role → attempt manual navigation URI to udhaar route → gate blocks and shows restricted screen; ktlint clean"
+
+  - id: e42-s2
+    status: pending
+    title: "Filter sidebar navigation and dashboard quick actions by resolved permission flags"
+    acceptance:
+      - "MoreScreen.kt nav rows filtered by hasPermission(permission): StaffManagement row visible only to OWNER (matches canManageStaff)"
+        - "Premium settings row — only OWNER, theme customization — only Pro unlocked users"
+        - "Dashboard quick action chips/FABs for udhaar and expense hidden from staff users"
+      - "Sync permission resolution with web roleMatrix.ts matrix: same 10-boolean-per-role pattern replicated in Android UserRole.kt with additional canViewProfit and canDelete checks"
+      - "Test: as cash → sidebar shows only Dashboard Sales Items; as manager → all store features minus Premium/Staff; as owner → everything visible"
+
+  - id: e42-s3
+    status: pending
+    title: "canViewProfit + canDelete granular flags — runtime enforcement synced from DataConnect"
+    acceptance:
+      - "On auth success completeLoginForStore(): fetch full user record including canViewProfit and canDelete booleans; persist to encrypted prefs keys 'can_view_profit' and 'can_delete'"
+      - "Create new PermissionManager.kt (object singleton): exposes StateFlow<PermissionSet> that re-emits on role change or permission update detected during sync"
+      - "SalesViewModel.deleteSale() / SalesViewModel.undoLastSale(): pre-check canDelete → if false, show toast 'You do not have permission to delete sales'; return early"
+      - "All UI components observing these flags via collectAsState: profit cards in DashboardScreen conditional on canViewProfit true; delete buttons in SalesHistoryItemRow gated by canDelete"
+      - "Test: create staff with canViewProfit=false, canDelete=true → login as that staff → profit data hidden but delete buttons visible and functional"
+
+  - id: e42-s4
+    status: pending
+    title: "Dashboard profit cards — hide financial details from restricted users"
+    acceptance:
+      - "DashboardScreen.kt replaces existing if (isPremiumUser) checks with two-layer condition: if (isPremiumUser && (role.canViewFinancials || canViewProfit)) → show Today Revenue/Expenses/Profit cards; else overlay lock icon with upgrade prompt or access message"
+      - "GSTReportScreen SalesAnalyticsScreen: same gating at screen entry via PermissionGate from S1"
+      - "Role update mid-session takes effect within 3 seconds (PermissionManager observes prefs changes and re-emits StateFlow)"
+      - "Test: owner demotes staff canViewProfit flag via web → on Android after ~5s sync, profit cards fade out without logout; no ANR or crash during reactive state change"

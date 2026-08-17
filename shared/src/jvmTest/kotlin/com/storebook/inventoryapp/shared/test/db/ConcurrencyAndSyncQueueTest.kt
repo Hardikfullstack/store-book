@@ -10,13 +10,12 @@ import org.junit.jupiter.api.Assertions.*
 /**
  * e31-s2 — Concurrent write contention & FailedSyncQueue state machine tests.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ConcurrencyAndSyncQueueTest {
 
     private lateinit var database: StoreBookDatabase
     private lateinit var driver: JdbcSqliteDriver
 
-    @BeforeAll
+    @BeforeEach
     fun setup() {
         val (db, d) = com.storebook.inventoryapp.shared.test.DatabaseTestHelper.createDatabase()
         database = db

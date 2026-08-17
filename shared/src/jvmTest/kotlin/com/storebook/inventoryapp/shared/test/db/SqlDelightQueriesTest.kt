@@ -10,13 +10,12 @@ import org.junit.jupiter.api.Assertions.*
  *
  * Uses real JdbcSqliteDriver (in-memory). No mocking of the database layer.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SqlDelightQueriesTest {
 
     private lateinit var database: StoreBookDatabase
     private lateinit var driver: JdbcSqliteDriver
 
-    @BeforeAll
+    @BeforeEach
     fun setup() {
         val (db, d) = com.storebook.inventoryapp.shared.test.DatabaseTestHelper.createDatabase()
         database = db
@@ -39,17 +38,14 @@ class SqlDelightQueriesTest {
     @Test
     fun `softDelete sets is_deleted=True — row exists but excluded from active queries`() {
         database.storeBookQueries.insertItem("Tea Powder", 20.0, "Pack", 80.0, 120.0, 3.0, "Beverage", null, null, null, 5.0, 1721000000000L)
-        database.storeBookQueries.softDeleteItem(1, 1721000001000L, 1721000001000L)
+        // softDeleteItem params: (deleted_timestamp, updated_at, id) per StoreBook.sq line 74
+        database.storeBookQueries.softDeleteItem(1721000001000L, 1721000001000L, 1)
 
-        // getItemById should still see it — soft-deleted row is not removed
         val deleted = database.storeBookQueries.getItemById(1).executeAsOneOrNull()
         requireNotNull(deleted)
         assertEquals(1L, deleted.is_deleted)
 
-        // But getAllItems (which filters is_deleted=0 in SQ file) should NOT return it
         val allActive = database.storeBookQueries.getAllItems().executeAsList()
-        val chaiStillThere = allActive.find { it.name == "Chai Tea Bags" }
-        assertNotNull(chaiStillThere, "Chai Tea Bags still visible as active")
         assertTrue(allActive.none { it.name == "Tea Powder" }, "Soft-deleted item excluded from active list")
     }
 
@@ -100,8 +96,8 @@ class SqlDelightQueriesTest {
         assertFalse(item.quantity < 0, "Quantity must NOT have wrapped negative due to integer overflow")
     }
 
-    @AfterAll
+    @AfterEach
     fun teardown() {
-        driver.close()
+        com.storebook.inventoryapp.shared.test.DatabaseTestHelper.dropDatabase(driver)
     }
 }

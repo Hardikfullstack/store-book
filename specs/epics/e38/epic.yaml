@@ -1,24 +1,59 @@
-epic_id: e38
-title: "POS Stock Deductions & Inventory Redux Sync Stability"
+# Epic e38 — Offline-First Sync Reliability Hardening
+
+id: e38
+title: "Stale Queue Daily Retry + Long-Offline Data Tolerance"
+scope_feature: ["Sync Engine (P0)"]
+depends_on_epics: [e01, e37]
+target_version: v2.0.0
 priority: P0
-status: complete
-target_version: v1.3.2
-type: development
-description: |
-  When completing a sale in SalesPOS, item stock is updated in Firebase DataConnect backend via syncItem, but the client-side Redux inventory store (inventorySlice) and local component items state are not updated.
-  As a result, subsequent POS sessions read stale stock from Redux cache (e.g. 70 instead of 65), leading to inaccurate stock deductions (e.g. deducting from 70 instead of 65 to get 68 instead of 63).
-  This epic ensures immediate Redux store updates upon checkout, local state sync, and SERVER_ONLY cache bypass on fetch to guarantee accurate stock tracking.
+status: defined
+
+rationale: >
+  SyncWorker drops mutations to PERMANENT_FAILURE after exactly 3 retries spaced ~5 minutes apart.
+  For users with intermittent connectivity (common in tier-2/3 Indian cities), a legitimate mutation
+  can be permanently discarded before the device ever reconnects. We need daily retry sweeps so that
+  any entry aged beyond "permanent" gets another shot when connectivity returns, and tolerance for
+  days-to-weeks offline without SQLite queue bloat or data corruption on re-sync.
 
 success_criteria:
-  - "Completing a sale in SalesPOS immediately updates Redux inventory store (updateInventoryItem) with the new remaining stock."
-  - "Local component state (items) in SalesPOS is updated immediately upon checkout."
-  - "Opening POS modal after a sale or purchase displays the correct remaining stock."
-  - "Subsequent sales deduct from the updated stock value (e.g. 65 - 2 = 63)."
+  - "No mutation reaches PERMANENT_FAILURE while app is launched within 24 hours of failure"
+  - "Daily PeriodicWorkRequest ensures eventual sync even if user never opens the app"
+  - "Queue backlog bounded (500 rows) to prevent SQLite file bloat after weeks offline"
+  - "LWW pull reconciles stock counts so concurrent sales on two devices cannot produce negative inventory"
 
 stories:
   - id: e38-s1
-    title: "Sync POS checkout stock deductions with Redux inventory slice and local state"
+    status: pending
+    title: "Daily retry sweep — reset stale PERMANENT_FAILURE entries + scheduled WorkManager backup"
     acceptance:
-      - "handleCheckout dispatches updateInventoryItem for each item sold in a SALE transaction."
-      - "handleCheckout updates local items state in SalesPOS with new stock quantities."
-      - "fetchItems in SalesPOS uses SERVER_ONLY fetchPolicy when fetching items from DataConnect."
+      - "Add PeriodicWorkRequest with tag='daily_retry_sync' that fires every 24 hours regardless of app state"
+      - "On app start, scan failed_sync_queue for rows where status='PERMANENT_FAILURE' AND created_at > nowMs - 86400000ms and set status='PENDING_RETRY', retry_count=0, next_retry_at=nowMs+5000, max_retries=3"
+      - "SyncWorker performSync checks these revived entries in Phase 1 before normal push/pull"
+      - "JVM test: insert 3 PERMANENT_FAILURE entries within last 24h → verify they are reset and retried on next sync run"
+
+  - id: e38-s2
+    status: pending
+    title: "Bounded queue — max 500 failed_sync_queue rows with graceful overflow UX"
+    acceptance:
+      - "Add SQLDelight query getFailedSyncQueueCount() and check before every enqueueSyncFailure call"
+      - "If COUNT >= 500, skip enqueue, log warning, increment per-sync overflow counter in sync_state table"
+      - "Show toast 'Too many pending sync items — please reconnect to Wi-Fi' only once per session (flag in prefs)"
+      - "JVM test: insert 510 entries → verify 501st entry is NOT enqueued and overflow counter increments"
+
+  - id: e38-s3
+    status: pending
+    title: "Post-pull stock reconciliation — cap at zero, flag discrepancies"
+    acceptance:
+      - "After SyncWorker.pull() completes item syncs, run getNegativeStockItems query across all items where quantity < 0"
+      - "For each negative row: UPDATE quantity = 0, set is_low_stock_alert_sent = 1 to trigger notification"
+      - "Create new SQLDelight query reconcilePostSyncItems that compares local.updatedAt vs cloud.updatedAt per item_id; log mismatches to a new sync_reconciliation_log table (entity_type, local_qty, cloud_qty, resolution)"
+      - "JVM test: Device A sells qty=5 of item (was 5), Device B sells qty=3 (was still 5) → after both sync, final qty = 0 not negative; reconciliation log has 1 entry"
+
+  - id: e38-s4
+    status: pending
+    title: "Sync health dashboard indicator with queue depth, last-success timestamp, entity breakdown"
+    acceptance:
+      - "Extend existing DashboardScreen sync badge (E01-S4) to show three inline metrics: time since last success (relative text), count of failed_mutations, total queue depth"
+      - "Tap opens SyncStatusDetail bottom sheet with scrollable list per entity type: Items (synced/pending/failed), Sales (...), Udhaar (...)"
+      - "Add Settings > 'Export Sync Logs' button that writes sync_state + failed_sync_queue + reconciliation_log to JSON file via FileProvider share intent"
+      - "Roborazzi snapshot of detail sheet with seeded mock data for 8 entity types"

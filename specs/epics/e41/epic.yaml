@@ -1,0 +1,64 @@
+# Epic e41 — PWA Enablement for Tabletop POS
+
+id: e41
+title: "Installable Service Worker, Local Icons, Security Headers + Offline Cache Strategy"
+scope_feature: ["Web Dashboard UX (P2)"]
+depends_on_epics: [e04]
+target_version: v2.0.0
+priority: P2
+status: defined
+
+rationale: >
+  next-pwa@5.6.0 is unmaintained and incompatible with Next.js 16. Manifest icons reference remote
+  CDN URLs (uncacheable offline). No security headers configured. Goal: installable web POS that runs
+  on tablets at the counter with proper caching so sales flow continues behind poor Wi-Fi in shops.
+
+success_criteria:
+  - "Service worker properly precaches shell for offline access to /sales, /items, /dashboard"
+  - "PWA manifest references local icons — Lighthouse PWA audit score >= 90"
+  - "Security headers (CSP HSTS X-Frame-Options) configured in production"
+  - "Cache strategy: network-first for data, cache-first for assets, versioned cache ID"
+
+stories:
+  - id: e41-s1
+    status: pending
+    title: "Replace next-pwa with manual workbox service worker registration"
+    acceptance:
+      - "Remove next-pwa from web/package.json (depedency)"
+      - "Remove withPWA wrapper in next.config.mjs → plain Next.js config export."
+      - "Create public/sw.js using workbox-window/workbox-sw CDN imports: precacheManifest includes /sales page shell, /items page shell, and static assets"
+      - "Register service worker via Client Component PWARegistrator.tsx imported in layout.tsx with 'import { registerSW } from 'virtual:pwa-register'"
+      - "Test: visit web app → DevTools Application tab shows active service worker; go offline → sales page still loads shell"
+
+  - id: e41-s2
+    status: pending
+    title: "Local icon assets — generate and place PNG icons at /public/icons/"
+    acceptance:
+      - "Generate icon set: 192x192.png for android-chrome, 512x512.png for apple-touch-icon via sharp/canvas script or manual upload"
+      - "Update manifest.json: replace https://cdn-icons-png.flaticon.com references with /icons/icon-192.png and /icons/icon-512.png"
+      - "Add icons entry in manifest JSON array (sizes 192x192 type image/png 512x512 type image/png)"
+      - "layout.tsx already has link rel='manifest' and meta theme-color — verify both resolve correctly post-pwa removal"
+      - "Test: run cd web && npm run build → build passes without next-pwa polyfills; fetch /manifest.json icon URLs return 200"
+
+  - id: e41-s3
+    status: pending
+    title: "Security headers via Next.js rewrites/headers config for production"
+    acceptance:
+      - "next.config.mjs adds async headers() export returning array with:"
+        - CSP: default-src 'self'; script-src 'self' 'unsafe-inline' (needed for Recharts) styles-src 'self' 'unsafe-inline' img-src 'self' data: firebaseio.com *.googleapis.com"
+        - "Strict-Transport-Security max-age=2592000 (HSTS 30 days)"
+        - "X-Frame-Options DENY"
+        - "X-Content-Type-Options nosniff"
+      - "Headers apply to all routes via matcher '/*'"
+      - "Test: curl -I against production URL → verify each header present in response; no Content-Security-Policy errors in browser console"
+
+  - id: e41-s4
+    status: pending
+    title: "Cache strategy tuning — network first for data, stale-while-revalidate for shell, cache-first for static"
+    acceptance:
+      - "Workbox runtime caching rules:"
+        - "URL pattern /api/* → NetworkFirst with networkTimeoutSeconds=3, cacheName='storebook-api-cache', maxEntries=50"
+        - "Navigation routes (/*) → StaleWhileRevalidate with cacheName='storebook-navigation' revalidateAge: 300s"
+        - "Static assets (/static/** *.js *.css *.png) → CacheFirst with maxAgeSeconds=604800 (7 days)"
+      - "cacheId set to 'storebook-v1.0.1'" in sw.js for explicit versioning and clean cache invalidation on deploy"
+      - "Test: install PWA, go offline → sales page shell renders; network back online → stale data invalidated within 5 min refresh"

@@ -1,0 +1,58 @@
+# Epic e40 — Android Staff Management Parity
+
+id: e40
+title: "Full Staff CRUD + Configurable API URL on Android"
+scope_feature: ["RBAC & Staff Management (P1)"]
+depends_on_epics: [e28]
+target_version: v2.0.0
+priority: P1
+status: defined
+
+rationale: >
+  Android staff flow is incomplete — invite calls hardcoded localhost URL (works emulator-only,
+  broken in production). No ability to list active staff, delete staff, or reset passwords from
+  the app. Web supports granular canViewProfit / canDelete flags per staff member; Android does not.
+
+success_criteria:
+  - "All 4 staff operations (list invite delete update-password) callable from Android"
+  - "API base URL configurable via BuildConfig — no hardcoded IP addresses"
+  - "canViewProfit and canDelete honored on Android with reactive UI gating"
+  - "Staff list shows role last-activity status matching web dashboard"
+
+stories:
+  - id: e40-s1
+    status: pending
+    title: "Replace hardcoded localhost URL with configurable base URL via BuildConfig + Remote Config"
+    acceptance:
+      - "Create com.storebook.inventoryapp.di.BuildConfigApiBase that resolves URL: priority order (a) FirebaseRemoteConfig value 'api_base_url' (b) BuildConfig.API_BASE_URL (c) release default 'https://storebook.in')"
+      - "InviteStaffScreen.kt OkHttp client uses this dynamic base for POST /api/staff/invite"
+      - "ktlint clean, assembleDebug passes, no string literals containing 10.0.2.2 or localhost in production code paths"
+      - "Test: FirebaseRemoteConfig override to test URL → verify OkHttp calls go to overridden host"
+
+  - id: e40-s2
+    status: pending
+    title: "Staff list screen with role, permissions, last-activity, pull-to-refresh"
+    acceptance:
+      - "Create StaffListScreen.kt navigated from Settings > Staff Management; DataConnect query usersByStoreId(storeId) via MoreViewModel"
+      - "Each card shows: username, role badge (color-coded), canViewProfit/canDelete toggles (read-only view), last login time"
+      - "Pull-to-refresh re-fetches list; empty state with 'No staff added yet' + Invite button when 0 items"
+      - "Roborazzi snapshot of list with 5 seeded staff entries and one empty state snapshot"
+
+  - id: e40-s3
+    status: pending
+    title: "Delete staff (POST /api/staff/delete) + reset password from Android with confirmation dialogs"
+    acceptance:
+      - "Swipe-to-reveal or long-press on StaffListScreen card → contextual menu 'Reset Password' and 'Remove Staff'"
+      - "DELETE request includes owner ID verification header; 401/403 handled gracefully (toast + dismiss from list)"
+      - "Confirmation ModalBottomSheet with warning text before irreversible delete"
+      - "Success: item removed from local StateList immediately + re-fetch to confirm server deletion"
+      - "Test: delete staff member → verify DataConnect query reflects removal within 1 pull-to-refresh cycle"
+
+  - id: e40-s4
+    status: pending
+    title: "Granular permission controls when inviting — canViewProfit and canDelete checkboxes"
+    acceptance:
+      - "InviteStaffScreen.kt adds two CompoundButton toggles: 'Can view profit & financials' (canViewProfit) and 'Can delete records' (canDelete)"
+      - "JSON body for /api/staff/invite includes role, canViewProfit, canDelete fields"
+      - "On success response → MoreViewModel fetches updated staff list; shows toast 'Staff invited'"
+      - "Test: create staff with profit-hidden flag → navigate as that user → verify financial data is gated (E42 dependency)"

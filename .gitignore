@@ -68,3 +68,4 @@ backend/.env.local
 backend/package-lock.json
 
 .pi-subagents
+.opencode/**

@@ -1,0 +1,25 @@
+epic_id: e43
+title: "POS Stock Deductions & Inventory Redux Sync Stability"
+priority: P0
+status: complete
+target_version: v1.3.2
+type: development
+description: |
+  When completing a sale in SalesPOS, item stock is updated in Firebase DataConnect backend via syncItem, but the client-side Redux inventory store (inventorySlice) and local component items state are not updated.
+  As a result, subsequent POS sessions read stale stock from Redux cache (e.g. 70 instead of 65), leading to inaccurate stock deductions (e.g. deducting from 70 instead of 65 to get 68 instead of 63).
+  This epic ensures immediate Redux store updates upon checkout, local state sync, and SERVER_ONLY cache bypass on fetch to guarantee accurate stock tracking.
+
+success_criteria:
+  - "Completing a sale in SalesPOS immediately updates Redux inventory store (updateInventoryItem) with the new remaining stock."
+  - "Local component state (items) in SalesPOS is updated immediately upon checkout."
+  - "Opening POS modal after a sale or purchase displays the correct remaining stock."
+  - "Subsequent sales deduct from the updated stock value (e.g. 65 - 2 = 63)."
+
+stories:
+  - id: e43-s1
+    title: "Sync POS checkout stock deductions with Redux inventory slice and local state"
+    acceptance:
+      - "handleCheckout dispatches updateInventoryItem for each item sold in a SALE transaction."
+      - "handleCheckout updates local items state in SalesPOS with new stock quantities."
+      - "fetchItems in SalesPOS uses SERVER_ONLY fetchPolicy when fetching items from DataConnect."
+

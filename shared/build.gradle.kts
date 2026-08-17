@@ -95,6 +95,10 @@ android {
     }
 }
 
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
+}
+
 sqldelight {
     databases {
         create("StoreBookDatabase") {

@@ -1,0 +1,59 @@
+# Epic e39 — Subscription Grace Period & Free/Tier Limits
+
+id: e39
+title: "SaaS Standard Grace Period, Server-Side Expiry, + Free Tier Enforcement"
+scope_feature: ["Subscription Monetization (P1)"]
+depends_on_epics: [e05, e12]
+target_version: v2.0.0
+priority: P1
+status: defined
+
+rationale: >
+  Currently no grace period exists — premium revokes instantly on payment failure or manual cancel.
+  Android never validates subscriptionExpiresAt (boolean flag stays true forever). Free tier has
+  soft UI-only gates with no API-layer enforcement. Standard SaaS practice: 7-day grace after first
+  failed renewal, server-side deactivation via scheduled cron, and hard limits at the data layer.
+
+success_criteria:
+  - "Payment failure triggers 7-day grace period before access revocation (industry standard)"
+  - "subscriptionExpiresAt validated on every web request AND on Android session start"
+  - "Free tier limits enforced at DataConnect query level, not just client UI"
+  - "Nightly audit function deactivates overdue accounts automatically"
+
+stories:
+  - id: e39-s1
+    status: pending
+    title: "7-day grace period for halted subscriptions (web)"
+    acceptance:
+      - "Razorpay webhook handler for subscription.halted sets subscriptionStatus='grace_period', keeps isPremium=true, records graceEndAt = subscriptionExpiresAt + 7 days in milliseconds"
+      - "New webhook event subscription.expired (fires after grace window) sets status='overdue', isPremium=false, clears expiresAt"
+      - "ManageSubscription UI shows countdown banner: 'Your Pro access expires in X days. Update payment method to continue.'"
+      - "Test: mock halted webhook → verify grace period set; fast-forward past graceEndAt → verify auto-revocation"
+
+  - id: e39-s2
+    status: pending
+    title: "Server-side subscription expiry check on every web request + nightly Cloud Function"
+    acceptance:
+      - "session.ts getSession() adds check: if subscriptionStatus='grace_period' AND Date.now() > graceEndAt → auto-flip to 'overdue', revoke premium, write back to DataConnect"
+      - "Create Firebase Cloud Function scheduleOnActiveDeactivation that runs daily at 02:00 IST, queries all users where status IN ('active', 'grace_period') AND subscriptionExpiresAt < Date.now() → batch-update to 'overdue'"
+      - "Add audit log entry for each automated deactivation (user_id, reason='expired_past_grace', timestamp)"
+      - "Test: manually set user expiresAt to past + no grace → cloud function runs → user deactivated with audit trail"
+
+  - id: e39-s3
+    status: pending
+    title: "Android subscription expiry validation on session start"
+    acceptance:
+      - "In MoreViewModel.kt init block AND AuthScreen completeLoginForStore(): read subscriptionExpiresAt from prefs; if null or < System.currentTimeMillis() → set is_premium=false, show upgrade prompt dialog"
+      - "On next successful network connection, push revocation status to DataConnect via new syncUserSubscriptionMutation(storeId, uid, isPremium=false)"
+      - "Handle edge case: device clock skew — compare against server time from SyncWorker.lastFullSyncAt if available; allow ±5 minute tolerance window"
+      - "Test: set fake expired timestamp in prefs → app revokes premium and shows upgrade dialog within 3 seconds of launch"
+
+  - id: e39-s4
+    status: pending
+    title: "Free tier enforcement at API/data layer — not just UI gates"
+    acceptance:
+      - "Data Connect schema adds free_limit_exceeded() helper; server actions for createSale, upsertItem wrap mutation in IF-free-tier-eligible check counting items/sales per storeId"
+      - "Limits: 50 inventory items, 20 sales per calendar month for free tier; counts computed via DataConnect aggregation queries"
+      - "When limit hit → return specific error code (FREE_LIMIT_ITEMS / FREE_LIMIT_SALES) with upgrade message in response body"
+      - "Android enforces locally too: before SalesViewModel.checkout(), if free user → query sales count; if >= 20 show paywall dialog; allow local write but block sync push to cloud"
+      - "Test: as free user, attempt sale #21 → rejected with FREE_LIMIT_SALES; after Pro purchase → same request succeeds"

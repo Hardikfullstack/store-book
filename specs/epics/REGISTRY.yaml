@@ -1,6 +1,6 @@
 # Epic Registry — StoreBook
 
-last_generated: "2026-07-28"
+last_generated: "2026-08-07"
 
 epics:
   # --- Development Epics (fix/improve existing logic) ---
@@ -324,7 +324,55 @@ epics:
     depends_on: [e01, e13, e31]
     type: verification
 
+
+
+  # --- Production Readiness Epics (v2.0.0 gap-fill from end-to-end analysis) ---
   - id: e38
+    title: Offline-First Sync Reliability Hardening
+    priority: P0
+    status: defined
+    story_count: 4
+    target_version: v2.0.0
+    depends_on: [e01, e37]
+    type: development
+
+  - id: e39
+    title: Subscription Grace Period & Free/Tier Limits
+    priority: P1
+    status: defined
+    story_count: 4
+    target_version: v2.0.0
+    depends_on: [e05, e12]
+    type: development
+
+  - id: e40
+    title: Android Staff Management Parity
+    priority: P1
+    status: defined
+    story_count: 4
+    target_version: v2.0.0
+    depends_on: [e28]
+    type: development
+
+  - id: e41
+    title: PWA Enablement for Tabletop POS
+    priority: P2
+    status: defined
+    story_count: 4
+    target_version: v2.0.0
+    depends_on: [e04]
+    type: development
+
+  - id: e42
+    title: Android Role-Based Permission Enforcement
+    priority: P0
+    status: defined
+    story_count: 4
+    target_version: v2.0.0
+    depends_on: [e28, e04]
+    type: development
+
+  - id: e43
     title: POS Stock Deductions & Inventory Redux Sync Stability
     priority: P0
     status: complete
