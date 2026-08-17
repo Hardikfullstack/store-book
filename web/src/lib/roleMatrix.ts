@@ -16,6 +16,11 @@ export interface PermissionSet {
   canManageStaff: boolean;
   canManageUsers: boolean;       // platform-level user CRUD
   canAccessAdmin: boolean;
+  canModifyInventory: boolean;
+  canDeleteRecords: boolean;
+  canApplyDiscount: boolean;
+  canViewProfit: boolean;
+  maxDiscountPercent: number;
 }
 
 // Map database role strings → normalized roles
@@ -48,6 +53,11 @@ export function resolvePermissions(role: string): PermissionSet {
         canManageStaff: true,
         canManageUsers: true,
         canAccessAdmin: true,
+        canModifyInventory: true,
+        canDeleteRecords: true,
+        canApplyDiscount: true,
+        canViewProfit: true,
+        maxDiscountPercent: 100,
       };
 
     case 'owner': // Full store access — no platform user management
@@ -62,9 +72,14 @@ export function resolvePermissions(role: string): PermissionSet {
         canManageStaff: true,
         canManageUsers: false,
         canAccessAdmin: false,
+        canModifyInventory: true,
+        canDeleteRecords: true,
+        canApplyDiscount: true,
+        canViewProfit: true,
+        maxDiscountPercent: 100,
       };
 
-    case 'manager': // All store views, no user management or admin
+    case 'manager': // All store views, settings, limited delete/discount
       return {
         canViewDashboard: true,
         canViewSales: true,
@@ -72,10 +87,15 @@ export function resolvePermissions(role: string): PermissionSet {
         canViewUdhaar: true,
         canViewExpenses: true,
         canViewReports: true,
-        canViewSettings: false,
+        canViewSettings: true,
         canManageStaff: false, // Can view staff list but not add/delete
         canManageUsers: false,
         canAccessAdmin: false,
+        canModifyInventory: true,
+        canDeleteRecords: true,
+        canApplyDiscount: true,
+        canViewProfit: true,
+        maxDiscountPercent: 25,
       };
 
     case 'staff':
@@ -91,6 +111,11 @@ export function resolvePermissions(role: string): PermissionSet {
         canManageStaff: false,
         canManageUsers: false,
         canAccessAdmin: false,
+        canModifyInventory: true,
+        canDeleteRecords: false,
+        canApplyDiscount: true,
+        canViewProfit: false,
+        maxDiscountPercent: 10,
       };
 
     default: // Unknown role → least privilege (cashier)
@@ -105,6 +130,11 @@ export function resolvePermissions(role: string): PermissionSet {
         canManageStaff: false,
         canManageUsers: false,
         canAccessAdmin: false,
+        canModifyInventory: true,
+        canDeleteRecords: false,
+        canApplyDiscount: true,
+        canViewProfit: false,
+        maxDiscountPercent: 10,
       };
   }
 }
@@ -115,6 +145,17 @@ export function hasRolePermission(role: string) {
   return (key: keyof PermissionSet) => perms[key];
 }
 
+/**
+ * Merge per-user overrides on top of role defaults.
+ * E28-S1: replaces standalone canViewProfit/canDelete flags with matrix-based approach.
+ */
+export function mergePermissions(
+  role: string,
+  overrides?: Partial<PermissionSet>,
+): PermissionSet {
+  return { ...resolvePermissions(role), ...overrides };
+}
+
 /** Readable label for the role. */
 export const ROLE_LABELS: Record<string, string> = {
   owner: 'Owner',
@@ -123,4 +164,4 @@ export const ROLE_LABELS: Record<string, string> = {
   cashier: 'Cashier',
   admin: 'Platform Admin',
   super_admin: 'Platform Admin',
-};
+ };

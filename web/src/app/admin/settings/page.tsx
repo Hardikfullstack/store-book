@@ -1,12 +1,13 @@
-import { getSession } from '@/lib/session';
 import SettingsClient from './SettingsClient';
 import { redirect } from 'next/navigation';
 import { getDataConnect } from 'firebase-admin/data-connect';
+import { requirePermission } from '@/lib/permissions';
 
 export default async function AdminSettingsPage() {
-  const session = await getSession();
-  if (!session || (session.role !== 'admin' && session.role !== 'super_admin')) {
-    redirect('/');
+  try {
+    await requirePermission('canAccessAdmin');
+  } catch {
+    return redirect('/');
   }
 
   // Fetch initial data for the settings dashboard

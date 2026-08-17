@@ -330,7 +330,7 @@ epics:
   - id: e38
     title: Offline-First Sync Reliability Hardening
     priority: P0
-    status: defined
+    status: completed
     story_count: 4
     target_version: v2.0.0
     depends_on: [e01, e37]

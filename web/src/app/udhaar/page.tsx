@@ -1,12 +1,14 @@
 import UdhaarClient from './UdhaarClient';
-import { getSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
+import { requirePermission } from '@/lib/permissions';
 
 export default async function UdhaarPage() {
-  const session = await getSession();
-  if (!session) return <div>Please login</div>;
-  // E04-S2: Staff/cashier cannot view Udhaar
-  if (session.role === 'staff' || session.role === 'cashier') redirect('/');
+  let session;
+  try {
+    session = await requirePermission('canViewUdhaar');
+  } catch {
+    return redirect('/login');
+  }
 
   const udhaar: any[] = [];
   const storeName = "Your Store";

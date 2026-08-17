@@ -1,13 +1,14 @@
-import { getSession } from '@/lib/session';
 import AdminDashboardClient from './AdminDashboardClient';
 import { getStoresPaginated, getUsersPaginated } from '@/app/actions';
 import { redirect } from 'next/navigation';
+import { requirePermission } from '@/lib/permissions';
 
 export default async function AdminPage() {
-  const session = await getSession();
-  
-  if (!session || (session.role !== 'admin' && session.role !== 'super_admin')) {
-    redirect('/');
+  let session;
+  try {
+    session = await requirePermission('canAccessAdmin');
+  } catch {
+    return redirect('/');
   }
 
   // In a real implementation, we would query DataConnect for analytics here.

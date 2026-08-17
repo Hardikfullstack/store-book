@@ -4,12 +4,13 @@ import { redirect } from 'next/navigation';
 import SubscriptionButton from './SubscriptionButton';
 import ManageSubscription from './ManageSubscription';
 import StaffManagement from './StaffManagement';
+import { resolvePermissions } from '@/lib/roleMatrix';
 
 export default async function SettingsPage() {
   const session = await getSession();
   if (!session) redirect('/login');
-  // E04-S2: Staff cannot view Settings — redirect to dashboard
-  if (session.role === 'staff' || session.role === 'cashier') {
+  const perms = resolvePermissions(session.role ?? 'staff');
+  if (!perms.canViewSettings) {
     redirect('/')
   }
 
@@ -107,7 +108,7 @@ export default async function SettingsPage() {
         </div>
       </div>
       
-      {session.role === 'owner' && session.storeId && (
+      {perms.canManageStaff && session.storeId && (
         <StaffManagement storeId={session.storeId} />
       )}
       

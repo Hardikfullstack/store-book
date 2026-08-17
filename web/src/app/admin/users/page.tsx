@@ -1,10 +1,11 @@
 import { getUsersPaginated, getStoresPaginated } from '@/app/actions';
 import UsersClient from './UsersClient';
-import { getSession } from '@/lib/session';
+import { requirePermission } from '@/lib/permissions';
 
 export default async function UsersPage() {
-  const session = await getSession();
-  if (!session || session.role !== 'admin') {
+  try {
+    await requirePermission('canAccessAdmin');
+  } catch {
     return <div className="p-8 text-red-500">Unauthorized. Admin access required.</div>;
   }
 

@@ -1,12 +1,13 @@
-import { getSession } from '@/lib/session';
 import DataClient from './DataClient';
 import { redirect } from 'next/navigation';
 import { getDataConnect } from 'firebase-admin/data-connect';
+import { requirePermission } from '@/lib/permissions';
 
 export default async function AdminDataPage() {
-  const session = await getSession();
-  if (!session || (session.role !== 'admin' && session.role !== 'super_admin')) {
-    redirect('/');
+  try {
+    await requirePermission('canAccessAdmin');
+  } catch {
+    return redirect('/');
   }
 
   try {

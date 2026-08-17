@@ -6,7 +6,7 @@ scope_feature: ["Sync Engine (P0)"]
 depends_on_epics: [e01, e37]
 target_version: v2.0.0
 priority: P0
-status: defined
+status: completed
 
 rationale: >
   SyncWorker drops mutations to PERMANENT_FAILURE after exactly 3 retries spaced ~5 minutes apart.

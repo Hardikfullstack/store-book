@@ -1,13 +1,13 @@
-import { getSession } from '@/lib/session';
 import { getStoresPaginated } from '@/app/actions';
 import { redirect } from 'next/navigation';
 import BillingClient from './BillingClient';
+import { requirePermission } from '@/lib/permissions';
 
 export default async function AdminBillingPage() {
-  const session = await getSession();
-  
-  if (!session || (session.role !== 'admin' && session.role !== 'super_admin')) {
-    redirect('/');
+  try {
+    await requirePermission('canAccessAdmin');
+  } catch {
+    return redirect('/');
   }
 
   // Load all stores for billing overview

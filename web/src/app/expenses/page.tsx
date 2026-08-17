@@ -1,12 +1,14 @@
 import ExpensesClient from './ExpensesClient';
-import { getSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
+import { requirePermission } from '@/lib/permissions';
 
 export default async function ExpensesPage() {
-  const session = await getSession();
-  if (!session) return <div>Please login</div>;
-  // E04-S2: Staff/cashier cannot view Expenses
-  if (session.role === 'staff' || session.role === 'cashier') redirect('/');
+  let session;
+  try {
+    session = await requirePermission('canViewExpenses');
+  } catch {
+    return redirect('/login');
+  }
 
   const expenses: any[] = [];
   const isPremium = session.isPremium;
