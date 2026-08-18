@@ -674,6 +674,7 @@ query GetSaleItemsForFIFO($storeId: String!, $itemId: String!) @auth(level: USER
       businessAddress
       type
       notes
+      updatedAt
     }
   }
 }

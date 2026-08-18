@@ -775,3 +775,89 @@ export function getPurchaseDetails(dcOrVars, varsOrOptions, options) {
   return executeQuery(getPurchaseDetailsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
+export const getPurchaseItemsForFIFORef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetPurchaseItemsForFIFO', inputVars);
+}
+getPurchaseItemsForFIFORef.operationName = 'GetPurchaseItemsForFIFO';
+
+export function getPurchaseItemsForFIFO(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getPurchaseItemsForFIFORef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const getSaleItemsForFIFORef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetSaleItemsForFIFO', inputVars);
+}
+getSaleItemsForFIFORef.operationName = 'GetSaleItemsForFIFO';
+
+export function getSaleItemsForFIFO(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getSaleItemsForFIFORef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const getUdhaarBySaleIdRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetUdhaarBySaleId', inputVars);
+}
+getUdhaarBySaleIdRef.operationName = 'GetUdhaarBySaleId';
+
+export function getUdhaarBySaleId(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getUdhaarBySaleIdRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const updatePurchaseItemPriceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpdatePurchaseItemPrice', inputVars);
+}
+updatePurchaseItemPriceRef.operationName = 'UpdatePurchaseItemPrice';
+
+export function updatePurchaseItemPrice(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(updatePurchaseItemPriceRef(dcInstance, inputVars));
+}
+
+export const updatePurchaseTotalAmountRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpdatePurchaseTotalAmount', inputVars);
+}
+updatePurchaseTotalAmountRef.operationName = 'UpdatePurchaseTotalAmount';
+
+export function updatePurchaseTotalAmount(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(updatePurchaseTotalAmountRef(dcInstance, inputVars));
+}
+
+export const upsertSaleItemDetailRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSaleItemDetail', inputVars);
+}
+upsertSaleItemDetailRef.operationName = 'UpsertSaleItemDetail';
+
+export function upsertSaleItemDetail(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSaleItemDetailRef(dcInstance, inputVars));
+}
+
+export const getSaleItemsBySaleIdRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetSaleItemsBySaleId', inputVars);
+}
+getSaleItemsBySaleIdRef.operationName = 'GetSaleItemsBySaleId';
+
+export function getSaleItemsBySaleId(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getSaleItemsBySaleIdRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+
+

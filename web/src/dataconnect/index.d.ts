@@ -1803,3 +1803,140 @@ export const getPurchaseDetailsRef: GetPurchaseDetailsRef;
 export function getPurchaseDetails(vars: GetPurchaseDetailsVariables, options?: ExecuteQueryOptions): QueryPromise<GetPurchaseDetailsData, GetPurchaseDetailsVariables>;
 export function getPurchaseDetails(dc: DataConnect, vars: GetPurchaseDetailsVariables, options?: ExecuteQueryOptions): QueryPromise<GetPurchaseDetailsData, GetPurchaseDetailsVariables>;
 
+export interface GetPurchaseItemsForFIFOVariables {
+  storeId: string;
+  itemId: string;
+}
+export interface GetPurchaseItemsForFIFOData {
+  purchaseItemDetails: {
+    id: string;
+    purchaseId: string;
+    itemId: string;
+    itemName: string;
+    quantity: number;
+    unit: string;
+    buyPrice: number;
+    updatedAt: number;
+    purchase: {
+      timestamp: number;
+    };
+  }[];
+}
+export const getPurchaseItemsForFIFORef: any;
+export function getPurchaseItemsForFIFO(vars: GetPurchaseItemsForFIFOVariables, options?: ExecuteQueryOptions): QueryPromise<GetPurchaseItemsForFIFOData, GetPurchaseItemsForFIFOVariables>;
+export function getPurchaseItemsForFIFO(dc: DataConnect, vars: GetPurchaseItemsForFIFOVariables, options?: ExecuteQueryOptions): QueryPromise<GetPurchaseItemsForFIFOData, GetPurchaseItemsForFIFOVariables>;
+
+export interface GetSaleItemsForFIFOVariables {
+  storeId: string;
+  itemId: string;
+}
+export interface GetSaleItemsForFIFOData {
+  saleItemDetails: {
+    id: string;
+    saleId: string;
+    itemId: string;
+    itemName: string;
+    quantity: number;
+    unit: string;
+    sellPrice: number;
+    buyPrice: number;
+    updatedAt: number;
+    sale: {
+      timestamp: number;
+      totalAmount: number;
+      discountAmount: number;
+      customerName?: string | null;
+      customerGstin?: string | null;
+      businessGstin?: string | null;
+      customerAddress?: string | null;
+      businessAddress?: string | null;
+      type: string;
+      notes?: string | null;
+    };
+  }[];
+}
+export const getSaleItemsForFIFORef: any;
+export function getSaleItemsForFIFO(vars: GetSaleItemsForFIFOVariables, options?: ExecuteQueryOptions): QueryPromise<GetSaleItemsForFIFOData, GetSaleItemsForFIFOVariables>;
+export function getSaleItemsForFIFO(dc: DataConnect, vars: GetSaleItemsForFIFOVariables, options?: ExecuteQueryOptions): QueryPromise<GetSaleItemsForFIFOData, GetSaleItemsForFIFOVariables>;
+
+export interface GetUdhaarBySaleIdVariables {
+  saleId: string;
+}
+export interface GetUdhaarBySaleIdData {
+  udhaarEntries: {
+    id: string;
+    storeId: string;
+    customerName: string;
+    amount: number;
+    type: string;
+    timestamp: number;
+    notes?: string | null;
+    saleId?: string | null;
+    isDeleted: boolean;
+    updatedAt: number;
+  }[];
+}
+export const getUdhaarBySaleIdRef: any;
+export function getUdhaarBySaleId(vars: GetUdhaarBySaleIdVariables, options?: ExecuteQueryOptions): QueryPromise<GetUdhaarBySaleIdData, GetUdhaarBySaleIdVariables>;
+export function getUdhaarBySaleId(dc: DataConnect, vars: GetUdhaarBySaleIdVariables, options?: ExecuteQueryOptions): QueryPromise<GetUdhaarBySaleIdData, GetUdhaarBySaleIdVariables>;
+
+export const updatePurchaseItemPriceRef: any;
+export function updatePurchaseItemPrice(vars: { id: string; buyPrice: number; updatedAt: number }): MutationPromise<any, any>;
+export function updatePurchaseItemPrice(dc: DataConnect, vars: { id: string; buyPrice: number; updatedAt: number }): MutationPromise<any, any>;
+
+export const updatePurchaseTotalAmountRef: any;
+export function updatePurchaseTotalAmount(vars: { id: string; totalAmount: number; updatedAt: number }): MutationPromise<any, any>;
+export function updatePurchaseTotalAmount(dc: DataConnect, vars: { id: string; totalAmount: number; updatedAt: number }): MutationPromise<any, any>;
+
+export const upsertSaleItemDetailRef: any;
+export function upsertSaleItemDetail(vars: {
+  id: string;
+  storeId: string;
+  saleId: string;
+  itemId: string;
+  itemName: string;
+  unit: string;
+  quantity: number;
+  sellPrice: number;
+  buyPrice: number;
+  taxRate?: number | null;
+  hsnCode?: string | null;
+  isDeleted: boolean;
+  updatedAt: number;
+}): MutationPromise<any, any>;
+export function upsertSaleItemDetail(dc: DataConnect, vars: {
+  id: string;
+  storeId: string;
+  saleId: string;
+  itemId: string;
+  itemName: string;
+  unit: string;
+  quantity: number;
+  sellPrice: number;
+  buyPrice: number;
+  taxRate?: number | null;
+  hsnCode?: string | null;
+  isDeleted: boolean;
+  updatedAt: number;
+}): MutationPromise<any, any>;
+
+export interface GetSaleItemsBySaleIdVariables {
+  saleId: string;
+}
+export interface GetSaleItemsBySaleIdData {
+  saleItemDetails: {
+    id: string;
+    saleId: string;
+    itemId: string;
+    itemName: string;
+    quantity: number;
+    sellPrice: number;
+    buyPrice: number;
+  }[];
+}
+export const getSaleItemsBySaleIdRef: any;
+export function getSaleItemsBySaleId(vars: GetSaleItemsBySaleIdVariables, options?: ExecuteQueryOptions): QueryPromise<GetSaleItemsBySaleIdData, GetSaleItemsBySaleIdVariables>;
+export function getSaleItemsBySaleId(dc: DataConnect, vars: GetSaleItemsBySaleIdVariables, options?: ExecuteQueryOptions): QueryPromise<GetSaleItemsBySaleIdData, GetSaleItemsBySaleIdVariables>;
+
+
+
