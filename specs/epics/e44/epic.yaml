@@ -1,0 +1,38 @@
+epic_id: e44
+title: "Web: Selected Sale Details Modal & Margin Inspector"
+priority: P1
+status: implemented
+target_version: v1.9.0
+description: |
+  Interactive modal in the Web Sales Dashboard (/sales) that opens on row click,
+  fetching individual line items via DataConnect to show item quantities, sell prices,
+  FIFO purchase cost prices, calculated profit/loss, bill discounts, and total paid.
+
+scope:
+  in:
+    - Interactive row click on Sales table in SalesClient.tsx.
+    - Fetching line items via getSaleItemsBySaleId DataConnect query.
+    - Line item breakdown: Item Name, Quantity, Sell Price, Purchase Price badge, Profit (with green/red styling), and Total.
+    - Bill summary footer with discount deduction (-discountAmount) and Total Paid.
+    - Glassmorphic modal backdrop with loading and empty states.
+  out:
+    - In-modal editing of sales.
+    - Direct PDF invoice generation from modal.
+
+architecture:
+  components:
+    - name: "SalesClient (/sales)"
+      file: "web/src/app/sales/SalesClient.tsx"
+      role: "Manages selectedSale and selectedSaleItems state, triggers DataConnect fetch on row click, and renders detail modal."
+    - name: "GetSaleItemsBySaleId"
+      file: "dataconnect/connector/queries.gql"
+      role: "Retrieves active SaleItemDetail records for a given saleId."
+
+stories:
+  - id: e44-s1
+    title: "Sale Details Modal & Line-Item Margin Display"
+    acceptance:
+      - "Clicking a sale row opens modal and fetches items via getSaleItemsBySaleId."
+      - "Renders item breakdown table with quantity, sellPrice, buyPrice, profit ((sellPrice - buyPrice) * quantity), and subtotal."
+      - "Displays customer name, date/time, discount amount deduction, and total paid in modal footer."
+      - "Dismisses smoothly via 'X' icon or 'Close' button."

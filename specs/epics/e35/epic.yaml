@@ -1,15 +1,91 @@
 epic_id: e35
-title: "Purchase History Module"
+title: "Purchase History & Retroactive FIFO Cost Recalculation (Web & Android)"
 priority: P1
-status: defined
+status: implemented
 target_version: v1.9.0
 description: |
-  Create a new module to display Purchase History. 
-  Whenever an item is added or restocked, it acts as a "purchase". This module will show all such purchases.
+  Complete Purchase History module across Web Dashboard and Android POS app allowing merchants
+  to view all restock/purchase transactions, edit purchase buy prices in-place, and automatically
+  trigger retroactive FIFO cost recalculation across all historical sales with precise chronological
+  order matching and sale splitting.
+
 scope:
   in:
-    - Create backend APIs (DataConnect/Next.js actions) to fetch purchase history.
-    - Create a Frontend module/page to display purchase history (Item, Supplier, Quantity, Price).
+    - Web Dashboard: Next.js page (/purchases), search, filters, pagination, edit modal, and DataConnect SDK.
+    - Android POS: Compose Purchase History screen, ViewModels, SQLDelight database, and SyncWorker integration.
+    - Core FIFO Engine: Shared domain logic for allocating purchase batch quantities to sales in timestamp ASC order.
+    - Automatic Sale Splitting: Clean division into matched portion (Date.now()) and remainder portion (original timestamp).
+    - Timestamp & Audit Preservation: updatedAt timestamp strictly preserved across all modified, split, and untouched sales.
+    - Proportional Adjustments: Proportional splitting of parent Sale totalAmount, discountAmount, and linked UdhaarEntry records.
   out:
-    - Editing purchase prices and retroactive cost calculation.
-    - Supplier payments and full accounting modules.
+    - Direct supplier invoice OCR/scanning upload.
+    - Supplier ledger debt settlement workflows (handled in dedicated accounting modules).
+
+architecture:
+  web_components:
+    - name: "PurchasesClient (/purchases)"
+      file: "web/src/app/purchases/PurchasesClient.tsx"
+      role: "Renders paginated purchase history, handles filter/search/sort, triggers edit price modal, performs optimistic state updates, and executes FIFO recalculations."
+    - name: "FIFOCalculator (recalculateItemFIFO)"
+      file: "web/src/lib/fifoCalculator.ts"
+      role: "Web FIFO engine allocating purchase batch quantities to sales in timestamp ASC order, executing in-place price updates, and splitting sale records."
+    - name: "DataConnect Schema & Queries"
+      files:
+        - "dataconnect/schema/schema.gql"
+        - "dataconnect/connector/queries.gql"
+        - "dataconnect/connector/mutations.gql"
+      role: "GraphQL operations for listPurchases, updatePurchaseItemPrice, syncSale, upsertSaleItemDetail, and syncUdhaar."
+
+  android_components:
+    - name: "PurchaseHistoryScreen (Compose UI)"
+      package: "com.storebook.inventoryapp.ui.purchases"
+      role: "Renders LazyColumn of purchases with expandable items, search/filter bar, and an EditPriceDialog."
+    - name: "PurchasesViewModel"
+      package: "com.storebook.inventoryapp.ui.purchases"
+      role: "Manages UI state flow (StateFlow<PurchasesUiState>), validates price input, and triggers repository FIFO update."
+    - name: "PurchaseRepository & FifoCalculator"
+      package: "com.storebook.inventoryapp.data.repository"
+      role: "Executes local SQLDelight atomic transaction: updates purchase_items, calculates FIFO attribution, updates/splits sale_items, sales, and udhaar_entries."
+    - name: "SQLDelight Schema (.sq)"
+      module: "shared (KMP)"
+      file: "shared/src/commonMain/sqldelight/com/storebook/inventoryapp/data/StoreBookDatabase.sq"
+      role: "Defines SQLite queries for purchases, purchase_items, sales, sale_items, and udhaar_entries."
+    - name: "SyncWorker (Offline-First Sync)"
+      package: "com.storebook.inventoryapp.workers"
+      role: "Detects dirty/updated records in SQLite and synchronizes them to Firebase DataConnect / Cloud SQL PostgreSQL with retry logic."
+
+fifo_rules:
+  chronological_sorting: "Sales are sorted strictly by sale.timestamp ASC so older sale transactions receive cost attribution first."
+  timestamp_updates: "Only matched/updated sale portions receive timestamp = Date.now(). Unmodified sales retain their original timestamp."
+  updated_at_preservation: "updatedAt is preserved without modification across all updated, split, and untouched records."
+  sale_splitting:
+    matched_portion: "Receives new buyPrice, updated quantity, and timestamp = Date.now()."
+    remainder_portion: "Creates new Sale and SaleItemDetail records with split quantity, original buyPrice, and original timestamp."
+  udhaar_handling: "Linked Udhaar entries are split proportionally by amount, with the matched portion getting timestamp = Date.now() and the remainder keeping the original timestamp."
+
+stories:
+  - id: e35-s1
+    title: "Web: Purchase History View & In-Place Price Editing"
+    acceptance:
+      - "Purchases listed with date, supplier, item badges (qty, unit, buyPrice), and totalAmount."
+      - "Amount range filtering, search by supplier/notes, and column sorting on timestamp, supplier, and total amount."
+      - "Clicking 'Edit Price' opens modal with auto-focused number input."
+      - "Saving updates purchaseItemDetail buyPrice and parent purchase totalAmount via DataConnect mutations."
+      - "Local state updates optimistically and query uses fetchPolicy: 'SERVER_ONLY' so table displays new price immediately."
+
+  - id: e35-s2
+    title: "Web: Retroactive FIFO Recalculation Engine"
+    acceptance:
+      - "recalculateItemFIFO queries all purchases and sales for the target itemId."
+      - "Edited purchase batch quantity is allocated across sales in sale.timestamp ASC order."
+      - "Full matches update buyPrice on SaleItemDetail and set parent Sale timestamp = Date.now()."
+      - "Partial matches split the sale into matched portion (timestamp = Date.now()) and remainder portion (retains original timestamp and buyPrice)."
+      - "Subsequent purchase updates automatically prioritize older split remainder entries due to timestamp ASC ordering."
+
+  - id: e35-s3
+    title: "Android: Compose UI & Offline-First FIFO Recalculation"
+    acceptance:
+      - "PurchaseHistoryScreen displays purchases list with expandable item breakdown and 'Edit Price' action button."
+      - "PurchasesViewModel executes FIFO recalculation inside an atomic database.transaction block in SQLDelight."
+      - "Local SQLite sales and sale_items tables are updated/split following exact FIFO timestamp ASC rules."
+      - "SyncWorker automatically queues and uploads modified and split records to Cloud SQL PostgreSQL upon network availability."
