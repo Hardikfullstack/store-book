@@ -693,3 +693,13 @@ query GetUdhaarBySaleId($saleId: String!) @auth(level: USER) {
   }
 }
 
+query GetBusinessProfile($storeId: String!) @auth(level: USER) {
+  storeProfiles(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    id
+    storeId
+    gstin
+    address
+    phone
+  }
+}
+

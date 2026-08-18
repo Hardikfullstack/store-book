@@ -1,0 +1,30 @@
+# Bug — NPE Risk in SalesAnalytics Custom Date Range Label
+
+id: bug-sales-analytics-custom-date-npe
+title: "customEndDate!! and customStartDate!! can throw NPE when only start date is picked"
+severity: P1
+status: open
+reported: "2026-08-18"
+component: [SalesAnalyticsScreen]
+
+root_cause: >
+  SalesAnalyticsScreen.kt:426 uses `Date(customEndDate!!)` to format the custom
+  date-range filter chip label. The outer guard on line 423 checks
+  `if (customStartDate != null)`, but at line 428 the else branch only fires when
+  `customEndDate == customStartDate` — if both are non-null the path is safe.
+  However, the condition at 425 adds `&& customEndDate != customStartDate`, meaning
+  line 426's `!!` fires inside a truthy branch where end is known to be non-null and
+  different from start. BUT: if `customEndDate` is later changed to null independently
+  and the remember block re-evaluates, the double-bang can still throw because the
+  outer guard only wraps the entire "Custom" branch — not each individual use of the
+  values. The pattern is brittle: any refactor that loosens the guard NPEs.
+
+fix_approach: >
+  Replace `!!` with Elvis-operator fallback or `?.let {}`:
+    customStartDate?.let { start ->
+      val end = customEndDate ?: start
+      "${sf.format(Date(start))}" + (if (end != start) " - ${sf.format(Date(end))}" else "")
+    } ?: defaultLabel
+
+affected_screens:
+  - SalesAnalyticsScreen (date filter chip label rendering)

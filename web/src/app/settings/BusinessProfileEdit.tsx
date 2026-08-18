@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Store, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { validateGSTIN, getGSTStateName } from '@/lib/gstinUtils';
+import { dataConnect } from '@/lib/firebase';
+import { getBusinessProfile, syncBusinessProfile, syncStore } from '@/dataconnect';
 
 interface StoreProfileProps {
   storeId: string;
@@ -20,13 +22,37 @@ function emptyState() {
 
 export default function BusinessProfileEdit({ storeId, storeName }: StoreProfileProps) {
   const [formData, setFormData] = useState(emptyState());
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [gstinError, setGstinError] = useState<string | null>(null);
   const [gstinSuccess, setGstinSuccess] = useState(false);
   const [suggestedState, setSuggestedState] = useState<string | null>(null);
 
-  const initialData = { name: storeName || '', gstin: '', address: '', phone: '' };
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const result = await getBusinessProfile(dataConnect, { storeId });
+        if (result.data?.storeProfiles?.length > 0) {
+          const profile = result.data.storeProfiles[0];
+          setProfileId(profile.id);
+          setFormData({
+            name: storeName || '',
+            gstin: profile.gstin ?? '',
+            address: profile.address ?? '',
+            phone: profile.phone ?? '',
+          });
+        } else {
+          setProfileId(null);
+          setFormData({ name: storeName || '', gstin: '', address: '', phone: '' });
+        }
+      } catch (err) {
+        console.error('Failed to load business profile:', err);
+        setFormData({ name: storeName || '', gstin: '', address: '', phone: '' });
+      }
+    }
+    loadProfile();
+  }, [storeId, storeName]);
 
   function validateField(value: string) {
     const result = validateGSTIN(value.trim() || undefined);
@@ -61,14 +87,23 @@ export default function BusinessProfileEdit({ storeId, storeName }: StoreProfile
 
     setIsSaving(true);
     setJustSaved(false);
+    const effectiveId = profileId ?? crypto.randomUUID();
+    if (!profileId) setProfileId(effectiveId);
+
     try {
-      await new Promise(r => setTimeout(r, 600));
-      // TODO: wire up to syncBusinessProfileRef once the DataConnect mutation is added
-      console.log('[BusinessProfileEdit] saved profile', storeId, {
-        name: formData.name.trim(),
+      await syncBusinessProfile(dataConnect, {
+        id: effectiveId,
+        storeId,
         gstin: formData.gstin.trim().toUpperCase() || null,
         address: formData.address.trim() || null,
         phone: formData.phone.trim() || null,
+        isDeleted: false,
+        updatedAt: Date.now() / 1000,
+      });
+
+      await syncStore(dataConnect, {
+        id: storeId,
+        name: formData.name.trim(),
       });
 
       setJustSaved(true);

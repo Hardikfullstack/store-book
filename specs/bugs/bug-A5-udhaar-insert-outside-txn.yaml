@@ -1,0 +1,33 @@
+# Bug — Udhaar Insert Outside Transaction Causes Phantom Failure
+
+id: bug-uDhaar-insert-outside-transaction
+title: "Udhaar insert after cart clear — throws → UI reports failure but sale + stock already committed"
+severity: P1
+status: open
+reported: "2026-08-18"
+component: [SalesViewModel, UdhaarRepository]
+
+root_cause: >
+  SalesViewModel.kt:239-268 commits the atomic sale (line 227), then clears the cart
+  (line 253). After that, if paymentMode == "Udhaar", it inserts an Udhaar CREDIT
+  entry via udhaarRepository.insertUdhaar() outside the transaction.
+  
+  If this insert throws (DB locked, constraint violation, etc.), the general
+  catch-all on line 281 fires: `onResult(-1, 0.0)`. The UI sees a -1 result and
+  displays "checkout failed" — but the sale is already persisted and stock is
+  deducted. The cart was cleared, so the user can't even retry meaningfully.
+  
+  Net effect: phantom failure. The business thinks the transaction didn't go through,
+  but money and inventory are moved with no visible Udhaar ledger entry for credit tracking.
+
+fix_approach: >
+  Option A (preferred): Move the Udhaar insert back inside atomicCheckout() so it's
+  part of the same database.transaction{...}. If Udhaar insert fails, everything rolls
+  back cleanly.
+  
+  Option B: Catch the Udhaar-specific exception separately, show a "credit entry pending"
+  toast, and re-enqueue via SyncWorker retry queue instead of reporting full checkout failure.
+
+affected_screens:
+  - SalesScreen → PaymentBottomSheet (Udhaar payment mode)
+  - Udhaar ledger screen (missing record)

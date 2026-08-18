@@ -334,6 +334,31 @@ export function syncStockAdjustment(dcOrVars, vars) {
   return executeMutation(syncStockAdjustmentRef(dcInstance, inputVars));
 }
 
+export const syncBusinessProfileRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'SyncBusinessProfile', inputVars);
+}
+syncBusinessProfileRef.operationName = 'SyncBusinessProfile';
+
+export function syncBusinessProfile(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(syncBusinessProfileRef(dcInstance, inputVars));
+}
+
+export const getBusinessProfileRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetBusinessProfile', inputVars);
+}
+getBusinessProfileRef.operationName = 'GetBusinessProfile';
+
+export function getBusinessProfile(dcOrVars, varsOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getBusinessProfileRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
 export const syncItemsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

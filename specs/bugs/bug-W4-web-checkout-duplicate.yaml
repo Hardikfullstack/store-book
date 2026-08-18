@@ -1,0 +1,38 @@
+# Bug — Web Checkout Error Path Allows Duplicate Sale
+
+id: bug-web-checkout-error-duplicate-sale
+title: "on checkout error, sale header already committed but cart not cleared → retry creates duplicate"
+severity: P1
+status: open
+reported: "2026-08-18"
+component: [SalesPOS]
+
+root_cause: >
+  web/src/app/sales/SalesPOS.tsx:488-492:
+    } catch (error) {
+        console.error("Checkout failed:", error);
+        alert("Checkout failed. Check console for details.");
+        setIsSaving(false);
+    }
+
+  The `syncSale` mutation on line 353 commits the sale header to Cloud SQL before the
+  for-loop begins. If any subsequent await in the loop fails (syncSaleItem, syncItem,
+  syncUdhaar), this catch block fires. It shows an alert and re-enables the button — but
+  `clearCart()` was never called on this path. The user's cart is still intact.
+
+  If the user retries checkout, a second sale header is created with the same items,
+  doubling the revenue entry. The first (partial) sale remains orphaned with no visible
+  way to undo it from the UI.
+
+fix_approach: >
+  Option A (preferred): On catch, immediately soft-delete the partially-committed sale
+  header and any committed line items before showing the error alert. This prevents
+  duplicates entirely.
+  
+  Option B: Track which mutations succeeded per item iteration and only clear those cart
+  items that were fully synchronized. Show "partial success — X of Y items saved" instead
+  of blanket failure.
+
+affected_screens:
+  - SalesPOS (web)
+  - Sales list page (duplicate entry visible)

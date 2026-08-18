@@ -849,6 +849,38 @@ export interface SyncStockAdjustmentVariables {
   updatedAt: number;
 }
 
+export interface StoreProfile_Key {
+  id: string;
+  storeId: string;
+  gstin?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  isDeleted?: boolean | null;
+  updatedAt?: number | null;
+}
+
+export interface SyncBusinessProfileData {
+  storeProfile_upsert: StoreProfile_Key;
+}
+
+export interface SyncBusinessProfileVariables {
+  id: string;
+  storeId: string;
+  gstin?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  isDeleted: boolean;
+  updatedAt: number;
+}
+
+export interface GetBusinessProfileData {
+  storeProfiles: StoreProfile_Key[];
+}
+
+export interface GetBusinessProfileVariables {
+  storeId: string;
+}
+
 export interface SyncStoreData {
   store_upsert: Store_Key;
 }
@@ -1362,6 +1394,30 @@ export const syncStockAdjustmentRef: SyncStockAdjustmentRef;
 
 export function syncStockAdjustment(vars: SyncStockAdjustmentVariables): MutationPromise<SyncStockAdjustmentData, SyncStockAdjustmentVariables>;
 export function syncStockAdjustment(dc: DataConnect, vars: SyncStockAdjustmentVariables): MutationPromise<SyncStockAdjustmentData, SyncStockAdjustmentVariables>;
+
+interface SyncBusinessProfileRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SyncBusinessProfileVariables): MutationRef<SyncBusinessProfileData, SyncBusinessProfileVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SyncBusinessProfileVariables): MutationRef<SyncBusinessProfileData, SyncBusinessProfileVariables>;
+  operationName: string;
+}
+export const syncBusinessProfileRef: SyncBusinessProfileRef;
+
+export function syncBusinessProfile(vars: SyncBusinessProfileVariables): MutationPromise<SyncBusinessProfileData, SyncBusinessProfileVariables>;
+export function syncBusinessProfile(dc: DataConnect, vars: SyncBusinessProfileVariables): MutationPromise<SyncBusinessProfileData, SyncBusinessProfileVariables>;
+
+interface GetBusinessProfileRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetBusinessProfileVariables): QueryRef<GetBusinessProfileData, GetBusinessProfileVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetBusinessProfileVariables): QueryRef<GetBusinessProfileData, GetBusinessProfileVariables>;
+  operationName: string;
+}
+export const getBusinessProfileRef: GetBusinessProfileRef;
+
+export function getBusinessProfile(vars: GetBusinessProfileVariables, options?: ExecuteQueryOptions): QueryPromise<GetBusinessProfileData, GetBusinessProfileVariables>;
+export function getBusinessProfile(dc: DataConnect, vars: GetBusinessProfileVariables, options?: ExecuteQueryOptions): QueryPromise<GetBusinessProfileData, GetBusinessProfileVariables>;
 
 interface SyncItemsRef {
   /* Allow users to create refs without passing in DataConnect */

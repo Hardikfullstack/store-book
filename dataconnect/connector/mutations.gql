@@ -487,3 +487,23 @@ mutation UpsertSaleItemDetail(
   })
 }
 
+mutation SyncBusinessProfile(
+  $id: String!
+  $storeId: String!
+  $gstin: String
+  $address: String
+  $phone: String
+  $isDeleted: Boolean!
+  $updatedAt: Float!
+) @auth(level: USER) {
+  storeProfile_upsert(data: {
+    id: $id
+    storeId: $storeId
+    gstin: $gstin
+    address: $address
+    phone: $phone
+    isDeleted: $isDeleted
+    updatedAt: $updatedAt
+  })
+}
+

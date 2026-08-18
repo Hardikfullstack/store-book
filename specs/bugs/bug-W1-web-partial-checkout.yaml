@@ -1,0 +1,38 @@
+# Bug — Web Checkout: Sequential Awaits with No Rollback
+
+id: bug-web-partial-checkout-no-rollback
+title: "Sequential await calls in checkout — partial commits on mid-cart failure, no compensating rollback"
+severity: P0
+status: open
+reported: "2026-08-18"
+component: [SalesPOS]
+
+root_cause: >
+  web/src/app/sales/SalesPOS.tsx:334-492 performs checkout as a series of sequential
+  DataConnect mutations with no transaction boundary:
+
+    1. await syncSale(...)        — creates sale header
+    2. for (c of cart) {         — per-item loop
+         await syncSaleItem(...)  — creates line item
+         await syncItem(...)      — deducts inventory
+       }
+    3. await syncUdhaar(...)     — optional credit entry
+
+  If `syncItem` fails at item #3 of 5, sale header + items 1-2 + partial stock
+  deductions are permanently committed to Cloud SQL. The error is caught on line 488
+  and the UI shows "Checkout failed" — but there's no compensating undo. The user can
+  re-open the POS and retry, creating a duplicate sale header for items 3-5.
+
+  Firebase Data Connect doesn't support multi-mutation transactions via the JS SDK, so
+  partial rollback must be handled at the application layer.
+
+fix_approach: >
+  Option A (server-side): Create a single syncSaleWithItems mutation in the GQL schema
+  that handles the sale header + items + stock deduction server-side in one operation.
+  
+  Option B (client compensating): On any error, catch it and iterate over already-processed
+  items to soft-delete (isDeleted=true) the partial sale header, line items, and reverse
+  inventory deductions via additional DataConnect mutations before surfacing the error.
+
+affected_screens:
+  - SalesPOS (web dashboard)

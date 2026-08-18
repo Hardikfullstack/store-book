@@ -1,0 +1,30 @@
+# Bug — mutableStateOf Thread-Safety in SalesViewModel
+
+id: bug-vm-mutable-state-thread-safety
+title: "cartItems, lastSaleId written from IO dispatcher — IllegalStateException on Compose main-thread assertion"
+severity: P0
+status: open
+reported: "2026-08-18"
+component: [SalesViewModel, SalesScreen]
+
+root_cause: >
+  SalesViewModel.kt uses `mutableStateOf` for cart properties (lines 62-73):
+    var cartItems by mutableStateOf<List<CartItem>>(emptyList())
+    var lastSaleId by mutableStateOf<Long?>(null)
+
+  In checkout() (line 184), clearCart() (line 253) and lastSaleId assignment
+  (line 240) are called inside viewModelScope.launch { }, which inherits the
+  upstream dispatcher. The repository calls it invokes run on Dispatchers.IO,
+  and when control returns to inline code in that block (not inside a new
+  withContext(Dispatchers.Main)), writes to mutableStateOf happen on IO.
+  mutableStateOf requires main-thread access; writing from IO throws
+  IllegalStateException on newer Compose versions or silently corrupts state,
+  causing stale cart UI.
+
+fix_approach: >
+  Wrap all UI-mutable-state writes in checkout()'s finally/after paths with
+  `withContext(Dispatchers.Main) { ... }`. Alternatively, migrate mutableStateOf
+  to StateFlow/MutableStateFlow and expose via collectAsState() in the composable.
+
+affected_screens:
+  - SalesScreen (cart, checkout confirmation)

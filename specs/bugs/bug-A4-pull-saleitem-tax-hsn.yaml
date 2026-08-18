@@ -1,0 +1,33 @@
+# Bug — Cloud Pull Discards SaleItem taxRate & hsnCode
+
+id: bug-pull-saleitem-taxrate-hsncode-dropped
+title: "SyncWorker pull hardcodes taxRate=0.0 and hsnCode=null for pulled SaleItems"
+severity: P1
+status: open
+reported: "2026-08-18"
+component: [SyncWorker, SalesRepository]
+
+root_cause: >
+  SyncWorker.kt:766-780 upserts SaleItems from cloud pull with hardcoded defaults:
+    r.upsertSaleItemWithCloudId(
+        ...
+        0.0,     // <-- always zeroes taxRate
+        null,    // <-- always drops hsnCode
+        ...
+    )
+
+  The remote `si` object carries `taxRate` and `hsnCode` from the cloud record, but
+  they are never passed to the upsert call. Result: any SaleItem pulled from cloud
+  (e.g., sale created on web dashboard) will show 0% tax and no HSN code in the
+  Android local DB. Dashboard revenue/profit reports diverge between platforms for
+  the same sale.
+
+fix_approach: >
+  Pass the remote values through:
+    si.taxRate ?: 0.0,     // safe default if field missing
+    si.hsnCode,            // can be null — that's fine
+
+affected_screens:
+  - Sales history after cross-device sync
+  - Invoice PDFs generated on Android for web-created sales
+  - GST / tax calculations on analytics screens

@@ -1,0 +1,26 @@
+# Bug — storeRes.data.store!! NPE on Multi-Store Selection
+
+id: bug-store-null-ptr-login
+title: "storeRes.data.store!! forces non-null on cloud response — NPE crash when store field is null"
+severity: P0
+status: open
+reported: "2026-08-18"
+component: [AuthScreen]
+
+root_cause: >
+  AuthScreen.kt:1223 fires `storeRes.data.store!!` when fetching stores for the
+  multi-store selection screen. If Firebase Data Connect returns a response where
+  the `store` field is null (e.g., deleted store, malformed record, or empty query
+  result), the double-bang assertion throws an NPE, crashing the login flow.
+
+  This is a regression of BUG-04's surface — that fix covered UdhaarScreen and
+  InventoryScreen but missed the AuthScreen multi-store path.
+
+fix_approach: >
+  Replace `storeRes.data.store!!` with safe access:
+    - If store is null, skip it from the list with a warning log
+    - Use `storeRes.data.store?.let { fetchedStores.add(it) }` or early-return guard
+  Add a fallback state so the user isn't hard-stuck when all store lookups return null.
+
+affected_screens:
+  - AuthScreen (multi-store selection after OTP verification)

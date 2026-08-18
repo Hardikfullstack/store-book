@@ -234,3 +234,15 @@ type StockAdjustment @table {
   isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
   updatedAt: Float! @col(name: "updated_at")
 }
+
+type StoreProfile @table {
+  id: String! @col(name: "id") @default(expr: "uuidV4()")
+  storeId: String! @col(name: "store_id") @unique
+  gstin: String
+  address: String
+  phone: String
+
+  # Sync Columns
+  isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
+  updatedAt: Float! @col(name: "updated_at")
+}

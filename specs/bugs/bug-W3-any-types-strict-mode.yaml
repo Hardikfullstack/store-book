@@ -1,0 +1,32 @@
+# Bug — Excessive `any` Types Violate Strict-Mode Policy
+
+id: bug-web-any-types-strict-mode-violation
+title: "100+ uses of `any` across web/src/ violate TypeScript strict mode policy"
+severity: P2
+status: open
+reported: "2026-08-18"
+component: [web/src/store, web/src/app, web/src/components]
+
+root_cause: >
+  AGENTS.md mandates: "TypeScript strict mode across web/; no any". However, the grep scan
+  found 100+ occurrences of `any` throughout the web codebase:
+
+    - Redux slices use `any[]` and `PayloadAction<any>` (inventorySlice.ts:4, udhaarSlice.ts:4)
+    - Component state defaults to `any[]` (SalesClient.tsx:47, QuotationsClient.tsx:32, etc.)
+    - DataConnect responses cast with `as any` before mapping (SalesPOS.tsx:183, etc.)
+    - DynamicTable and DashboardCharts use `any` for row/value types (DynamicTable.tsx:10-24)
+
+  With strict mode enabled in tsconfig.json, `noImplicitAny` catches implicit anys but
+  explicit `any` annotations bypass type-safety entirely. Field renames, shape changes, or
+  missing fields from DataConnect SDK updates won't surface as compile errors.
+
+fix_approach: >
+  Phase 1 — define explicit interfaces matching DataConnect response shapes and Redux state:
+    interface SyncItemResponse { id: string; quantity: number; ... }
+    type InventoryState = { items: Item[]; lastSynced: number };
+  
+  Phase 2 — replace each `any` with the correct type. Start with Redux slices, then page
+  components, then utility components.
+
+affected_screens:
+  - All web pages (type safety gap)

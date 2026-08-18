@@ -1,6 +1,6 @@
 # Bugs Registry — StoreBook
 # Maintained list of identified bugs with IDs matching filename stem.
-# Updated 2026-07-28: All 17 bugs resolved. Added resolved_at timestamps + fix details for BUG-11 through BUG-16.
+# Updated 2026-08-18: Added 9 new open bugs from code review (BUG-17 through BUG-25).
 
 bugs:
   - id: BUG-01
@@ -127,12 +127,75 @@ bugs:
     summary: "HSN code misused as barcode — scanner matches tax classification instead of product ID"
     fix: "Added dedicated barcode TEXT column to SQLDelight schema, KMP Item model, Data Connect schema + mutations/queries. Android InventoryScreen has barcode input field. Scanner in SalesScreen matches item.barcode first with HSN fallback only for legacy items. Web POS searches by barcode as primary key. SyncWorker includes barcode in push/pull payload."
 
-total: 17
-open: 0
+  - id: BUG-17
+    file: bug-A1-store-null-ptr-login.yaml
+    severity: P0
+    status: open
+    reported: "2026-08-18"
+    summary: "storeRes.data.store!! forces non-null on cloud response — NPE crash when store field is null during login"
+
+  - id: BUG-18
+    file: bug-A2-sales-analytics-custom-date-npe.yaml
+    severity: P1
+    status: open
+    reported: "2026-08-18"
+    summary: "customEndDate!! can throw NPE when only start date is picked in custom date range filter chip"
+
+  - id: BUG-19
+    file: bug-A3-vm-thread-safety.yaml
+    severity: P0
+    status: open
+    reported: "2026-08-18"
+    summary: "mutableStateOf cartItems/lastSaleId written from IO dispatcher — IllegalStateException or stale UI"
+
+  - id: BUG-20
+    file: bug-A4-pull-saleitem-tax-hsn.yaml
+    severity: P1
+    status: open
+    reported: "2026-08-18"
+    summary: "SyncWorker pull hardcodes taxRate=0.0 and hsnCode=null for pulled SaleItems — cross-device report divergence"
+
+  - id: BUG-21
+    file: bug-A5-udhaar-insert-outside-txn.yaml
+    severity: P1
+    status: open
+    reported: "2026-08-18"
+    summary: "Udhaar insert after cart clear throws — UI reports failure but sale + stock already committed, ledger entry missing"
+
+  - id: BUG-22
+    file: bug-W1-web-partial-checkout.yaml
+    severity: P0
+    status: open
+    reported: "2026-08-18"
+    summary: "Sequential awaits in web checkout — partial commits on mid-cart failure, no compensating rollback"
+
+  - id: BUG-23
+    file: bug-W2-web-stale-inventory.yaml
+    severity: P1
+    status: open
+    reported: "2026-08-18"
+    summary: "Web POS writes absolute stale stock to server — concurrent terminals overwrite each other's deductions"
+
+  - id: BUG-24
+    file: bug-W3-any-types-strict-mode.yaml
+    severity: P2
+    status: open
+    reported: "2026-08-18"
+    summary: "100+ explicit `any` types across web/src/ violate strict-mode no-any policy"
+
+  - id: BUG-25
+    file: bug-W4-web-checkout-duplicate.yaml
+    severity: P1
+    status: open
+    reported: "2026-08-18"
+    summary: "Web checkout error path leaves committed sale header + uncleared cart → retry creates duplicate sale"
+
+total: 26
+open: 9
 resolved: 17
 partial: 0
 deferred: 0
 by_severity:
-  P0: "7 resolved"
-  P1: "7 resolved"
-  P2: "3 resolved"
+  P0: "7 resolved, 3 open"
+  P1: "7 resolved, 5 open"
+  P2: "3 resolved, 1 open"

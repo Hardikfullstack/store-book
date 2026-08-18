@@ -1,0 +1,33 @@
+# Bug — Web POS Reads Stale Inventory from Local State
+
+id: bug-web-stale-inventory-race
+title: "handleCheckout reads c.item.quantity from stale React state — concurrent POS terminals overwrite each other's stock"
+severity: P1
+status: open
+reported: "2026-08-18"
+component: [SalesPOS]
+
+root_cause: >
+  web/src/app/sales/SalesPOS.tsx:386 computes new inventory as:
+    const newStock = Math.max(0, c.item.quantity - c.quantity);
+    await syncItem(dataConnect, { id: c.item.id, quantity: newStock, ... });
+
+  `c.item.quantity` is populated from local React state (cart), loaded at component mount.
+  If Terminal A builds a cart at 10:00 while Terminal B sells the same item at 10:05,
+  Terminal A's checkout sends an *absolute* quantity based on a stale read. The DataConnect
+  syncItem mutation does unconditional UPDATE SET quantity=..., overwriting Terminal B's
+  deduction.
+
+  This is different from BUG-13 (Android delta vs absolute) — the Android side was fixed
+  to pass signed delta. The web side still sends absolute values derived from stale local state.
+
+fix_approach: >
+  Option A (preferred): Change syncItem mutation to accept a relative delta instead of
+  an absolute quantity, and apply UPDATE SET quantity = quantity - ? server-side.
+  
+  Option B: Re-fetch the item's current stock immediately before checkout (just before the
+  for-loop) rather than at component mount. This reduces but doesn't eliminate the race window.
+
+affected_screens:
+  - SalesPOS (web — concurrent terminals)
+  - Inventory dashboard (shows wrong quantity after race resolves)
