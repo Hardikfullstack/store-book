@@ -14,6 +14,7 @@ interface PurchaseBatch {
   initialQty: number;
   remainingQty: number;
   timestamp: number;
+  updatedAt: number;
 }
 
 export async function recalculateItemFIFO(
@@ -22,39 +23,42 @@ export async function recalculateItemFIFO(
   dataConnect: any,
   editedPurchaseId?: string
 ) {
-  console.log(`Starting FIFO recalculation for storeId: ${storeId}, itemId: ${itemId}, editedPurchaseId: ${editedPurchaseId}`);
-  const now = Date.now();
+  const now = Math.floor(Date.now() / 1000);
 
   // 1. Fetch active purchases and sort them chronologically by purchase timestamp ASC (older records first)
-  const purchasesResp: any = await getPurchaseItemsForFIFO(dataConnect, { storeId, itemId });
+  const purchasesResp: any = await getPurchaseItemsForFIFO(
+    dataConnect,
+    { storeId, itemId },
+    { fetchPolicy: 'SERVER_ONLY' as const }
+  );
   const rawPurchases = purchasesResp.data?.purchaseItemDetails || [];
   const purchases = rawPurchases.slice().sort((a: any, b: any) => {
     const tA = a.purchase?.timestamp || a.updatedAt || 0;
     const tB = b.purchase?.timestamp || b.updatedAt || 0;
     if (tA !== tB) return tA - tB;
-    return a.updatedAt - b.updatedAt;
+    return (a.updatedAt || 0) - (b.updatedAt || 0);
   });
 
-  // 2. Fetch active sale item details and sort chronologically by sale timestamp ASC (older sales first)
-  const salesResp: any = await getSaleItemsForFIFO(dataConnect, { storeId, itemId });
+  // 2. Fetch active sale item details and sort chronologically by sale updatedAt ASC (older sales first)
+  const salesResp: any = await getSaleItemsForFIFO(
+    dataConnect,
+    { storeId, itemId },
+    { fetchPolicy: 'SERVER_ONLY' as const }
+  );
   const rawSales = salesResp.data?.saleItemDetails || [];
   const saleItems = rawSales.slice().sort((a: any, b: any) => {
-    const tA = a.sale?.timestamp || a.updatedAt || 0;
-    const tB = b.sale?.timestamp || b.updatedAt || 0;
+    const tA = a.sale?.updatedAt || a.updatedAt || a.sale?.timestamp || 0;
+    const tB = b.sale?.updatedAt || b.updatedAt || b.sale?.timestamp || 0;
     if (tA !== tB) return tA - tB;
-    return a.updatedAt - b.updatedAt;
+    return (a.sale?.timestamp || 0) - (b.sale?.timestamp || 0);
   });
 
-  console.log(`Loaded ${purchases.length} purchases and ${saleItems.length} sales for FIFO distribution.`, saleItems);
-
-  // 3. If a specific purchase was edited, allocate that purchase's updated price & quantity to the oldest available sales by timestamp ASC
+  // 3. If a specific purchase was edited, allocate that purchase's updated price & quantity to the oldest available sales by updatedAt ASC
   if (editedPurchaseId) {
     const editedPurchaseItem = purchases.find((p: any) => p.purchaseId === editedPurchaseId || p.id === editedPurchaseId);
     if (editedPurchaseItem) {
       let remainingEditedQty = editedPurchaseItem.quantity;
       const newPrice = editedPurchaseItem.buyPrice;
-
-      console.log(`Re-attributing edited purchase ${editedPurchaseId}: qty=${remainingEditedQty}, price=${newPrice}`);
 
       for (const saleItem of saleItems) {
         if (remainingEditedQty <= 0) break;
@@ -62,14 +66,15 @@ export async function recalculateItemFIFO(
         const originalSale = saleItem.sale;
         if (!originalSale) continue;
 
-        const existingUpdatedAt = originalSale.updatedAt || saleItem.updatedAt || originalSale.timestamp || 0;
+        const existingTimestamp = originalSale.timestamp || saleItem.updatedAt || 0;
+        const existingUpdatedAt = originalSale.updatedAt || saleItem.updatedAt || existingTimestamp;
         const existingItemUpdatedAt = saleItem.updatedAt || existingUpdatedAt;
 
         const matchedQty = Math.min(remainingEditedQty, saleItem.quantity);
         remainingEditedQty -= matchedQty;
 
         if (matchedQty === saleItem.quantity) {
-          // Case A: Full match - update buyPrice and update parent sale timestamp to Date.now(), keep updatedAt as-is
+          // Case A: Full match - update buyPrice and update updatedAt to Date.now(), keep timestamp as-is
           await upsertSaleItemDetail(dataConnect, {
             id: saleItem.id,
             storeId,
@@ -83,13 +88,13 @@ export async function recalculateItemFIFO(
             taxRate: saleItem.taxRate,
             hsnCode: saleItem.hsnCode,
             isDeleted: false,
-            updatedAt: existingItemUpdatedAt // Preserved: not updated
+            updatedAt: now // Updated: updatedAt set to new Date()
           });
 
           await syncSale(dataConnect, {
             id: saleItem.saleId,
             storeId,
-            timestamp: now, // Update timestamp to new Date() as requested
+            timestamp: existingTimestamp, // Preserved: original timestamp kept
             totalAmount: originalSale.totalAmount,
             discountAmount: originalSale.discountAmount,
             customerName: originalSale.customerName || '',
@@ -100,7 +105,7 @@ export async function recalculateItemFIFO(
             type: originalSale.type,
             notes: originalSale.notes || '',
             isDeleted: false,
-            updatedAt: existingUpdatedAt // Preserved: not updated
+            updatedAt: now // Updated: updatedAt set to new Date()
           });
         } else {
           // Case B: Split match - sale item is larger than remaining edited quantity
@@ -118,7 +123,7 @@ export async function recalculateItemFIFO(
           const matchedTotalAmount = Math.max(0, matchedItemSubtotal - matchedDiscount);
           const splitTotalAmount = Math.max(0, splitItemSubtotal - splitDiscount);
 
-          // 1. Update matched portion: quantity = matchedQty, buyPrice = newPrice, timestamp = now, keep updatedAt
+          // 1. Update matched portion: quantity = matchedQty, buyPrice = newPrice, timestamp = original timestamp, updatedAt = now
           await upsertSaleItemDetail(dataConnect, {
             id: saleItem.id,
             storeId,
@@ -132,13 +137,13 @@ export async function recalculateItemFIFO(
             taxRate: saleItem.taxRate,
             hsnCode: saleItem.hsnCode,
             isDeleted: false,
-            updatedAt: existingItemUpdatedAt // Preserved: not updated
+            updatedAt: now // Updated: updatedAt set to new Date()
           });
 
           await syncSale(dataConnect, {
             id: saleItem.saleId,
             storeId,
-            timestamp: now, // Update timestamp to new Date() for updated portion
+            timestamp: existingTimestamp, // Preserved: original timestamp kept
             totalAmount: matchedTotalAmount,
             discountAmount: matchedDiscount,
             customerName: originalSale.customerName || '',
@@ -149,7 +154,7 @@ export async function recalculateItemFIFO(
             type: originalSale.type,
             notes: originalSale.notes || '',
             isDeleted: false,
-            updatedAt: existingUpdatedAt // Preserved: not updated
+            updatedAt: now // Updated: updatedAt set to new Date()
           });
 
           // 2. Create new split record for remainder: quantity = splitQty, buyPrice = original buyPrice, timestamp = old timestamp, updatedAt = old updatedAt
@@ -159,7 +164,7 @@ export async function recalculateItemFIFO(
           await syncSale(dataConnect, {
             id: newSaleId,
             storeId,
-            timestamp: originalSale.timestamp, // Keep old timestamp for split remainder!
+            timestamp: existingTimestamp, // Preserved: original timestamp kept
             totalAmount: splitTotalAmount,
             discountAmount: splitDiscount,
             customerName: originalSale.customerName || '',
@@ -170,7 +175,7 @@ export async function recalculateItemFIFO(
             type: originalSale.type,
             notes: `${originalSale.notes || ''} (Split FIFO Part)`,
             isDeleted: false,
-            updatedAt: existingUpdatedAt // Preserved: old updatedAt
+            updatedAt: existingUpdatedAt // Preserved: old updatedAt kept
           });
 
           await upsertSaleItemDetail(dataConnect, {
@@ -186,7 +191,7 @@ export async function recalculateItemFIFO(
             taxRate: saleItem.taxRate,
             hsnCode: saleItem.hsnCode,
             isDeleted: false,
-            updatedAt: existingItemUpdatedAt // Preserved: old updatedAt
+            updatedAt: existingItemUpdatedAt // Preserved: old updatedAt kept
           });
 
           // 3. Proportional Udhaar entry split
@@ -199,18 +204,18 @@ export async function recalculateItemFIFO(
               const udhaarRatioSplit = originalTotalBeforeSplit > 0 ? splitTotalAmount / originalTotalBeforeSplit : 0;
               const existingUdhaarUpdatedAt = udhaar.updatedAt || existingUpdatedAt;
 
-              // Update matched udhaar: timestamp = now, keep updatedAt
+              // Update matched udhaar: timestamp = old timestamp, updatedAt = now
               await syncUdhaar(dataConnect, {
                 id: udhaar.id,
                 storeId,
                 customerName: udhaar.customerName,
                 amount: udhaar.amount * udhaarRatioMatched,
                 type: udhaar.type,
-                timestamp: now,
+                timestamp: udhaar.timestamp, // Preserved
                 notes: udhaar.notes || '',
                 saleId: udhaar.saleId || '',
                 isDeleted: udhaar.isDeleted,
-                updatedAt: existingUdhaarUpdatedAt
+                updatedAt: now // Updated: updatedAt set to new Date()
               });
 
               // Create split udhaar: timestamp = old timestamp, updatedAt = old updatedAt
@@ -221,18 +226,17 @@ export async function recalculateItemFIFO(
                 customerName: udhaar.customerName,
                 amount: udhaar.amount * udhaarRatioSplit,
                 type: udhaar.type,
-                timestamp: udhaar.timestamp,
+                timestamp: udhaar.timestamp, // Preserved
                 notes: `${udhaar.notes || ''} (Split FIFO Part)`,
                 saleId: newSaleId,
                 isDeleted: udhaar.isDeleted,
-                updatedAt: existingUdhaarUpdatedAt
+                updatedAt: existingUdhaarUpdatedAt // Preserved
               });
             }
           }
         }
       }
 
-      console.log(`FIFO purchase edit allocation complete for purchaseId: ${editedPurchaseId}`);
       return;
     }
   }
@@ -244,7 +248,8 @@ export async function recalculateItemFIFO(
     buyPrice: p.buyPrice,
     initialQty: p.quantity,
     remainingQty: p.quantity,
-    timestamp: p.purchase?.timestamp || p.updatedAt || 0
+    timestamp: p.purchase?.timestamp || p.updatedAt || 0,
+    updatedAt: p.updatedAt || p.purchase?.timestamp || 0
   }));
 
   for (const saleItem of saleItems) {
@@ -252,7 +257,8 @@ export async function recalculateItemFIFO(
     const originalSale = saleItem.sale;
     if (!originalSale) continue;
 
-    const existingUpdatedAt = originalSale.updatedAt || saleItem.updatedAt || originalSale.timestamp || 0;
+    const existingTimestamp = originalSale.timestamp || saleItem.updatedAt || 0;
+    const existingUpdatedAt = originalSale.updatedAt || saleItem.updatedAt || existingTimestamp;
     const existingItemUpdatedAt = saleItem.updatedAt || existingUpdatedAt;
 
     let isFirstMatch = true;
@@ -282,14 +288,14 @@ export async function recalculateItemFIFO(
             taxRate: saleItem.taxRate,
             hsnCode: saleItem.hsnCode,
             isDeleted: false,
-            updatedAt: existingItemUpdatedAt
+            updatedAt: priceChanged ? now : existingItemUpdatedAt
           });
 
           if (priceChanged) {
             await syncSale(dataConnect, {
               id: saleItem.saleId,
               storeId,
-              timestamp: now,
+              timestamp: existingTimestamp,
               totalAmount: originalSale.totalAmount,
               discountAmount: originalSale.discountAmount,
               customerName: originalSale.customerName || '',
@@ -300,7 +306,7 @@ export async function recalculateItemFIFO(
               type: originalSale.type,
               notes: originalSale.notes || '',
               isDeleted: false,
-              updatedAt: existingUpdatedAt
+              updatedAt: now
             });
           }
         } else {
@@ -330,7 +336,7 @@ export async function recalculateItemFIFO(
             taxRate: saleItem.taxRate,
             hsnCode: saleItem.hsnCode,
             isDeleted: false,
-            updatedAt: existingItemUpdatedAt
+            updatedAt: now
           });
 
           const newOriginalTotal = Math.max(0, originalSale.totalAmount - splitTotalAmount);
@@ -339,7 +345,7 @@ export async function recalculateItemFIFO(
           await syncSale(dataConnect, {
             id: saleItem.saleId,
             storeId,
-            timestamp: now,
+            timestamp: existingTimestamp,
             totalAmount: newOriginalTotal,
             discountAmount: newOriginalDiscount,
             customerName: originalSale.customerName || '',
@@ -350,7 +356,7 @@ export async function recalculateItemFIFO(
             type: originalSale.type,
             notes: originalSale.notes || '',
             isDeleted: false,
-            updatedAt: existingUpdatedAt
+            updatedAt: now
           });
         }
         isFirstMatch = false;
@@ -367,7 +373,7 @@ export async function recalculateItemFIFO(
         await syncSale(dataConnect, {
           id: newSaleId,
           storeId,
-          timestamp: originalSale.timestamp,
+          timestamp: existingTimestamp,
           totalAmount: splitTotalAmount,
           discountAmount: splitDiscount,
           customerName: originalSale.customerName || '',

@@ -8,9 +8,11 @@ import {
     Edit2,
     Loader2,
     ArrowDownCircle,
+    Upload,
 } from "lucide-react";
 import { fetchMoreData } from "@/app/actions";
 import ExportButtons from "@/app/ExportButtons";
+import ImportCsvModal from "@/components/items/ImportCsvModal";
 import { sanitizeInput } from "@/lib/sanitize";
 import { lookupHSNGSTRate, VALID_GST_RATES } from "@/lib/hsnGstLookup";
 import { dataConnect } from "@/lib/firebase";
@@ -116,6 +118,25 @@ export default function ItemsClient({
     const pageSize = 10;
     const [totalItems, setTotalItems] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
+
+    const fetchAllItemsForExport = async () => {
+        if (!storeId) return items;
+        try {
+            const res = await executeQuery(
+                getActiveItemsRef(dataConnect, {
+                    storeId,
+                }),
+                { fetchPolicy: "SERVER_ONLY" as const }
+            );
+            if (res.data?.items && res.data.items.length > 0) {
+                return res.data.items;
+            }
+        } catch (e) {
+            console.error("Failed to fetch all items for export:", e);
+        }
+        return items;
+    };
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [sortField, setSortField] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -656,6 +677,8 @@ export default function ItemsClient({
                             "buy_price",
                             "sell_price",
                         ]}
+                        onExportAll={fetchAllItemsForExport}
+                        onImport={() => setShowImportModal(true)}
                     />
                     <button
                         onClick={openCreate}
@@ -766,15 +789,15 @@ export default function ItemsClient({
                             },
                             ...(canAccessCost
                                 ? [
-                                      {
-                                          key: "buy_price",
-                                          label: "Buy Price",
-                                          sortable: true,
-                                          render: (value: any) => (
-                                              <FormattedAmount amount={value} />
-                                          ),
-                                      },
-                                  ]
+                                    {
+                                        key: "buy_price",
+                                        label: "Buy Price",
+                                        sortable: true,
+                                        render: (value: any) => (
+                                            <FormattedAmount amount={value} />
+                                        ),
+                                    },
+                                ]
                                 : []),
                             {
                                 key: "sell_price",
@@ -787,32 +810,32 @@ export default function ItemsClient({
                             },
                             ...(canAccessCost
                                 ? [
-                                      {
-                                          key: "buy_price",
-                                          label: "Margin",
-                                          render: (value: any, row: any) => {
-                                              if (value > 0) {
-                                                  const marginPercent = (
-                                                      ((row.sell_price -
-                                                          value) /
-                                                          value) *
-                                                      100
-                                                  ).toFixed(0);
-                                                  const isPositive =
-                                                      Number(marginPercent) >=
-                                                      0;
-                                                  return (
-                                                      <span
-                                                          className={`px-2 py-1 rounded text-xs font-bold ${isPositive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}
-                                                      >
-                                                          {marginPercent}%
-                                                      </span>
-                                                  );
-                                              }
-                                              return "-";
-                                          },
-                                      },
-                                  ]
+                                    {
+                                        key: "buy_price",
+                                        label: "Margin",
+                                        render: (value: any, row: any) => {
+                                            if (value > 0) {
+                                                const marginPercent = (
+                                                    ((row.sell_price -
+                                                        value) /
+                                                        value) *
+                                                    100
+                                                ).toFixed(0);
+                                                const isPositive =
+                                                    Number(marginPercent) >=
+                                                    0;
+                                                return (
+                                                    <span
+                                                        className={`px-2 py-1 rounded text-xs font-bold ${isPositive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}
+                                                    >
+                                                        {marginPercent}%
+                                                    </span>
+                                                );
+                                            }
+                                            return "-";
+                                        },
+                                    },
+                                ]
                                 : []),
                         ];
 
@@ -833,15 +856,15 @@ export default function ItemsClient({
                             },
                             ...(canDeleteRecords
                                 ? [
-                                      {
-                                          icon: <Trash2 size={18} />,
-                                          onClick: (item: any) =>
-                                              handleDelete(item.id),
-                                          className:
-                                              "text-red-500 hover:text-red-700 transition-colors",
-                                          title: "Delete",
-                                      },
-                                  ]
+                                    {
+                                        icon: <Trash2 size={18} />,
+                                        onClick: (item: any) =>
+                                            handleDelete(item.id),
+                                        className:
+                                            "text-red-500 hover:text-red-700 transition-colors",
+                                        title: "Delete",
+                                    },
+                                ]
                                 : []),
                         ];
 
@@ -1460,6 +1483,20 @@ export default function ItemsClient({
                     setReStockQuantity(null);
                 }}
             />
+
+            {storeId && (
+                <ImportCsvModal
+                    isOpen={showImportModal}
+                    onClose={() => setShowImportModal(false)}
+                    storeId={storeId}
+                    onSuccess={(count) => {
+                        invalidateAllPages();
+                        setCurrentPage(1);
+                        setRefreshTrigger((prev) => prev + 1);
+                        alert(`Successfully imported ${count} items!`);
+                    }}
+                />
+            )}
         </div>
     );
 }

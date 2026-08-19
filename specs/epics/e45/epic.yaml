@@ -1,0 +1,71 @@
+epic_id: e45
+title: "Items Module: CSV Bulk Import & Complete Catalogue Export"
+priority: P1
+status: complete
+target_version: v1.9.0
+description: |
+  Integrated CSV bulk import and complete catalogue export directly inside the Items Management page (/items).
+  Exports ALL inventory records across all pages (not just the current paginated view) and enables merchants
+  to bulk-import or restock inventory using a standardized spreadsheet format matching:
+  [Item Name, Stock Quan, Unit, Buy Price, Sell Price, Alert Thres, Category, HSN Code, Tax Rate].
+
+scope:
+  in:
+    - In-page action buttons on ItemsClient.tsx header: "CSV Export (All Pages)" and "Import CSV".
+    - Complete Store Export: Fetches and exports ALL active inventory items across the entire store into a single CSV file.
+    - Exact Column Headers (9 Columns):
+        1. Item Name
+        2. Stock Quan
+        3. Unit
+        4. Buy Price
+        5. Sell Price
+        6. Alert Thres
+        7. Category
+        8. HSN Code
+        9. Tax Rate
+    - Sample Template: In-modal one-click "Download Sample CSV" button producing the exact column structure with sample rows.
+    - Drag-and-Drop Import Modal: In-page dialog to drop or select .csv files.
+    - Client-Side Parsing & Validation: Verifies headers, checks required fields (Item Name, Stock Quan, Buy Price, Sell Price), enforces positive numeric values, and flags invalid rows with line numbers.
+    - Pre-Import Preview: Summary table of total rows, valid rows, and invalid rows with specific error hints before saving.
+    - Batch Upsert & Instant Refresh: Chunked DataConnect execution (SyncItem), optimistic local Redux store and table updates without page reload.
+  out:
+    - Standalone route or separate page (strictly embedded inside /items).
+    - Direct ERP/Tally integration.
+
+architecture:
+  components:
+    - name: "ItemsClient (/items)"
+      file: "web/src/app/items/ItemsClient.tsx"
+      role: "Hosts Export All CSV action, 'Import CSV' button, manages modal visibility, and triggers instant data refresh upon import."
+    - name: "ExportButtons"
+      file: "web/src/app/ExportButtons.tsx"
+      role: "Updated to support full storewide export by fetching all records when triggered."
+    - name: "ImportCsvModal"
+      file: "web/src/components/items/ImportCsvModal.tsx"
+      role: "Provides drag-and-drop CSV upload, sample template download, validation error highlights, preview table, and batch upload dispatch."
+    - name: "csvUtils"
+      file: "web/src/lib/csvUtils.ts"
+      role: "RFC 4180 compliant CSV parser, validator, and builder mapping between database entities and user-facing spreadsheet headers."
+
+stories:
+  - id: e45-s1
+    title: "Complete Storewide CSV Export with Standardized Headers"
+    acceptance:
+      - "Clicking 'Export CSV' in ItemsClient.tsx exports all items in the store across all pagination pages."
+      - "Generated CSV uses exact column headers: ID, Item Name, Stock Quan, Unit, Buy Price, Sell Price, Alert Thres, Category, HSN Code, Tax Rate."
+      - "Filename formatted as inventory_export_YYYYMMDD.csv with proper character escaping."
+
+  - id: e45-s2
+    title: "Import Modal, Sample Template & Client-Side Validation"
+    acceptance:
+      - "Clicking 'Import CSV' opens an in-page modal with drag-and-drop file selector."
+      - "'Download Sample CSV' button generates sample_inventory_template.csv matching the 10 standard columns."
+      - "Validates required columns: Item Name, Stock Quan, Unit, Buy Price, Sell Price."
+      - "Displays preview summary showing total rows, valid rows, and invalid rows with specific line-by-line error messages."
+
+  - id: e45-s3
+    title: "Batch Data Persistence & Instant Table/Redux Sync"
+    acceptance:
+      - "Confirming import executes chunked batch upserts via DataConnect SyncItem mutations."
+      - "Displays visual progress bar during batch processing."
+      - "Closes modal, displays toast summary, and refreshes the items list and Redux state immediately without requiring manual page reload."

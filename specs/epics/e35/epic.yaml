@@ -7,15 +7,15 @@ description: |
   Complete Purchase History module across Web Dashboard and Android POS app allowing merchants
   to view all restock/purchase transactions, edit purchase buy prices in-place, and automatically
   trigger retroactive FIFO cost recalculation across all historical sales with precise chronological
-  order matching and sale splitting.
+  order matching, sale splitting, and audit timestamp management.
 
 scope:
   in:
     - Web Dashboard: Next.js page (/purchases), search, filters, pagination, edit modal, and DataConnect SDK.
     - Android POS: Compose Purchase History screen, ViewModels, SQLDelight database, and SyncWorker integration.
-    - Core FIFO Engine: Shared domain logic for allocating purchase batch quantities to sales in timestamp ASC order.
-    - Automatic Sale Splitting: Clean division into matched portion (Date.now()) and remainder portion (original timestamp).
-    - Timestamp & Audit Preservation: updatedAt timestamp strictly preserved across all modified, split, and untouched sales.
+    - Core FIFO Engine: Allocates purchase batch quantities to sales sorted strictly by sale.updatedAt ASC.
+    - Automatic Sale Splitting: Clean division into matched portion (updatedAt = Math.floor(Date.now() / 1000)) and remainder portion (original updatedAt).
+    - Original Timestamp Preservation: Transaction timestamp strictly preserved across all modified, split, and untouched sales.
     - Proportional Adjustments: Proportional splitting of parent Sale totalAmount, discountAmount, and linked UdhaarEntry records.
   out:
     - Direct supplier invoice OCR/scanning upload.
@@ -28,7 +28,7 @@ architecture:
       role: "Renders paginated purchase history, handles filter/search/sort, triggers edit price modal, performs optimistic state updates, and executes FIFO recalculations."
     - name: "FIFOCalculator (recalculateItemFIFO)"
       file: "web/src/lib/fifoCalculator.ts"
-      role: "Web FIFO engine allocating purchase batch quantities to sales in timestamp ASC order, executing in-place price updates, and splitting sale records."
+      role: "Web FIFO engine allocating purchase batch quantities to sales in sale.updatedAt ASC order, executing in-place price updates, and splitting sale records."
     - name: "DataConnect Schema & Queries"
       files:
         - "dataconnect/schema/schema.gql"
@@ -55,13 +55,14 @@ architecture:
       role: "Detects dirty/updated records in SQLite and synchronizes them to Firebase DataConnect / Cloud SQL PostgreSQL with retry logic."
 
 fifo_rules:
-  chronological_sorting: "Sales are sorted strictly by sale.timestamp ASC so older sale transactions receive cost attribution first."
-  timestamp_updates: "Only matched/updated sale portions receive timestamp = Date.now(). Unmodified sales retain their original timestamp."
-  updated_at_preservation: "updatedAt is preserved without modification across all updated, split, and untouched records."
+  purchases_sorting: "Purchases are sorted chronologically by purchase.timestamp ASC so older restock batches are evaluated first."
+  sales_sorting: "Sales are sorted chronologically by sale.updatedAt ASC so unallocated or older remainder records receive cost attribution first."
+  updated_at_updates: "Only matched/updated sale portions receive updatedAt = Math.floor(Date.now() / 1000). Split remainder records retain their original updatedAt."
+  timestamp_preservation: "Transaction timestamp is strictly preserved without modification across all updated, split, and untouched sales."
   sale_splitting:
-    matched_portion: "Receives new buyPrice, updated quantity, and timestamp = Date.now()."
-    remainder_portion: "Creates new Sale and SaleItemDetail records with split quantity, original buyPrice, and original timestamp."
-  udhaar_handling: "Linked Udhaar entries are split proportionally by amount, with the matched portion getting timestamp = Date.now() and the remainder keeping the original timestamp."
+    matched_portion: "Receives new buyPrice, updated quantity, and updatedAt = Math.floor(Date.now() / 1000) with original timestamp."
+    remainder_portion: "Creates new Sale and SaleItemDetail records with split quantity, original buyPrice, and original updatedAt/timestamp."
+  udhaar_handling: "Linked Udhaar entries are split proportionally by amount, with the matched portion getting updatedAt = Math.floor(Date.now() / 1000) and the remainder keeping the original updatedAt."
 
 stories:
   - id: e35-s1
@@ -76,16 +77,16 @@ stories:
   - id: e35-s2
     title: "Web: Retroactive FIFO Recalculation Engine"
     acceptance:
-      - "recalculateItemFIFO queries all purchases and sales for the target itemId."
-      - "Edited purchase batch quantity is allocated across sales in sale.timestamp ASC order."
-      - "Full matches update buyPrice on SaleItemDetail and set parent Sale timestamp = Date.now()."
-      - "Partial matches split the sale into matched portion (timestamp = Date.now()) and remainder portion (retains original timestamp and buyPrice)."
-      - "Subsequent purchase updates automatically prioritize older split remainder entries due to timestamp ASC ordering."
+      - "recalculateItemFIFO queries all purchases (timestamp ASC) and sales (updatedAt ASC) using fetchPolicy: 'SERVER_ONLY'."
+      - "Edited purchase batch quantity is allocated across sales in sale.updatedAt ASC order."
+      - "Full matches update buyPrice on SaleItemDetail and set updatedAt = Math.floor(Date.now() / 1000), preserving original timestamp."
+      - "Partial matches split the sale into matched portion (updatedAt = Math.floor(Date.now() / 1000)) and remainder portion (retains original updatedAt and buyPrice)."
+      - "Subsequent purchase updates automatically prioritize older split remainder entries due to sale.updatedAt ASC ordering."
 
   - id: e35-s3
     title: "Android: Compose UI & Offline-First FIFO Recalculation"
     acceptance:
       - "PurchaseHistoryScreen displays purchases list with expandable item breakdown and 'Edit Price' action button."
       - "PurchasesViewModel executes FIFO recalculation inside an atomic database.transaction block in SQLDelight."
-      - "Local SQLite sales and sale_items tables are updated/split following exact FIFO timestamp ASC rules."
+      - "Local SQLite sales and sale_items tables are updated/split following exact FIFO updatedAt ASC rules."
       - "SyncWorker automatically queues and uploads modified and split records to Cloud SQL PostgreSQL upon network availability."
