@@ -207,12 +207,19 @@ bugs:
     summary: "Web checkout error path leaves committed sale header + uncleared cart → retry creates duplicate sale"
     fix: "Added dispatch(clearCart()) in catch block after rollback completes to clear stale cart items and prevent duplicate retries on failure."
 
-total: 26
-open: 1
+  - id: BUG-26
+    file: bug-A6-csv-import-export-id-column.yaml
+    severity: P1
+    status: open
+    reported: "2026-08-20"
+    summary: "Android: Inventory CSV export and import include ID column — runtime UUID generation required instead"
+
+total: 27
+open: 2
 resolved: 25
 partial: 0
 deferred: 0
 by_severity:
   P0: "10 resolved, 0 open"
-  P1: "12 resolved, 0 open"
+  P1: "12 resolved, 1 open"
   P2: "3 resolved, 1 open"

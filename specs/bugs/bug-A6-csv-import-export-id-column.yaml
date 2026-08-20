@@ -1,0 +1,29 @@
+# Bug — Android Inventory CSV Import/Export Contains ID Column Instead of Runtime ID Generation
+
+id: bug-android-csv-import-export-id-column
+title: "Android: Inventory CSV import and export contain ID column instead of generating runtime IDs"
+severity: P1
+status: open
+reported: "2026-08-20"
+component: [InventoryScreen, CsvImportExport, Android]
+
+root_cause: >
+  On the Android POS app, exporting Inventory to CSV and importing Inventory from CSV includes
+  or expects an `ID` column in the spreadsheet.
+  
+  The web dashboard has already implemented the standardized 9-column CSV format without any `ID` column:
+  [Item Name, Stock Quan, Unit, Buy Price, Sell Price, Alert Thres, Category, HSN Code, Tax Rate].
+  
+  On Android, the CSV format must match web:
+  - When exporting, omit the internal database `ID` column completely.
+  - When importing, do not read or require an `ID` column. Instead, generate a unique UUID at runtime
+    during record creation: `val itemId = UUID.randomUUID().toString()`.
+
+fix_approach: >
+  1. In Android CSV export generator and sample template builder, remove the `ID` column and output the 9 standard columns.
+  2. In Android CSV import parser, remove the `ID` column requirement and map rows directly to item fields.
+  3. In the import database insertion loop, generate a runtime unique UUID (`val itemId = UUID.randomUUID().toString()`) for each newly created item before writing to SQLDelight.
+
+affected_screens:
+  - InventoryScreen (Android)
+  - CsvImportExportHelper / ViewModel (Android)
