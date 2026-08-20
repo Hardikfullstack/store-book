@@ -147,3 +147,22 @@ data class ItemBatch(
         val timestamp: Long,
         val notes: String? = null,
 )
+
+/** Payment mode for a sale — replaces naked strings throughout checkout flow */
+enum class PaymentMode {
+    CASH,
+    UPI,
+    UDHAR,
+    ESTIMATE;
+
+    companion object {
+        fun fromString(value: String): PaymentMode =
+            when (value.lowercase()) {
+                "cash" -> CASH
+                "upi" -> UPI
+                "udhaar", "udhar" -> UDHAR
+                "estimate" -> ESTIMATE
+                else -> CASH
+            }
+    }
+}

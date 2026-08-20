@@ -2,6 +2,7 @@ package com.storebook.inventoryapp.shared.domain.repository
 
 import com.storebook.inventoryapp.shared.data.local.StoreBookDatabase
 import com.storebook.inventoryapp.shared.data.local.*
+import com.storebook.inventoryapp.shared.domain.models.PaymentMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -56,6 +57,12 @@ class SalesRepository(
 
     suspend fun getSaleItems(saleId: Long): List<Sale_items> = withContext(Dispatchers.IO) {
         queries.getSaleItemsBySaleId(saleId).executeAsList()
+    }
+
+    /** Batch fetch sale_items for multiple sale IDs — replaces N+1 pattern */
+    suspend fun getSaleItemsBySaleIds(saleIds: List<Long>): List<Sale_items> = withContext(Dispatchers.IO) {
+        if (saleIds.isEmpty()) return@withContext emptyList()
+        queries.getSaleItemsBySaleIds(saleIds).executeAsList()
     }
 
     suspend fun softDeleteSale(id: Long) = withContext(Dispatchers.IO) {
@@ -172,7 +179,7 @@ class SalesRepository(
     // ==========================================================================
 
     /**
-     * Atomically inserts the sale header, all line items, and deducts inventory.
+     * Atomically inserts the sale header, all line items, deducts inventory, and creates Udhaar ledger (BUG-21 fix).
      * Returns -1 if stock is insufficient for any item (BUG-07 enforcement).
      * ESTIMATE type: does NOT deduct stock — only actual SALE deducts.
      * All or nothing: on ANY failure the entire block rolls back via SQLDelight transaction.
@@ -182,6 +189,7 @@ class SalesRepository(
         totalAmount: Double,
         discountAmount: Double,
         customerName: String,
+        paymentMode: PaymentMode,
         customerGstin: String?,
         businessGstin: String?,
         customerAddress: String?,
@@ -227,6 +235,18 @@ class SalesRepository(
 
                 queries.insertSaleItem(
                     newSaleId, itemId, itemName, unit, quantity, sellPrice, buyPrice, taxRate, hsnCode, timestamp
+                )
+            }
+
+            if (paymentMode == PaymentMode.UDHAR && type == "SALE") {
+                val udhaarTimestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                queries.insertUdhaar(
+                    customerName.trim(),
+                    totalAmount,
+                    "CREDIT",
+                    udhaarTimestamp,
+                    "Credit Sale #$newSaleId",
+                    udhaarTimestamp
                 )
             }
         }

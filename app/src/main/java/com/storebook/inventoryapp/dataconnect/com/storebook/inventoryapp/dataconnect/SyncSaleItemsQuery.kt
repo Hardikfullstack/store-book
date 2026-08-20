@@ -41,6 +41,8 @@ public interface SyncSaleItemsQuery :
             val unit: String,
             val sellPrice: Double,
             val buyPrice: Double,
+            val taxRate: Double?,
+            val hsnCode: String?,
             val isDeleted: Boolean,
             val updatedAt: Double,
         )

@@ -8,13 +8,16 @@ import androidx.lifecycle.viewModelScope
 import com.storebook.inventoryapp.shared.domain.models.CartItem
 import com.storebook.inventoryapp.shared.domain.models.CustomerBalance
 import com.storebook.inventoryapp.shared.domain.models.Item
+import com.storebook.inventoryapp.shared.domain.models.PaymentMode
 import com.storebook.inventoryapp.shared.domain.models.Sale
 import com.storebook.inventoryapp.shared.domain.repository.InventoryRepository
 import com.storebook.inventoryapp.shared.domain.repository.SalesRepository
 import com.storebook.inventoryapp.shared.domain.repository.UdhaarRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SalesViewModel(
     private val salesRepository: SalesRepository,
@@ -169,8 +172,10 @@ class SalesViewModel(
                             (!it.customer_gstin.isNullOrBlank() || !it.customer_address.isNullOrBlank())
                     }
                 if (match != null) {
-                    if (!match.customer_gstin.isNullOrBlank()) cartCustomerGstin = match.customer_gstin ?: ""
-                    if (!match.customer_address.isNullOrBlank()) cartCustomerAddress = match.customer_address ?: ""
+                    withContext(Dispatchers.Main) {
+                        if (!match.customer_gstin.isNullOrBlank()) cartCustomerGstin = match.customer_gstin ?: ""
+                        if (!match.customer_address.isNullOrBlank()) cartCustomerAddress = match.customer_address ?: ""
+                    }
                 }
             } catch (e: Exception) {
                 // Ignore error, auto-populate is optional
@@ -229,6 +234,7 @@ class SalesViewModel(
                         totalAmount = total,
                         discountAmount = cartDiscount,
                         customerName = cartCustomerName.ifBlank { "Cash / Anonymous" },
+                        paymentMode = PaymentMode.fromString(paymentMode),
                         customerGstin = cartCustomerGstin.trim().takeIf { it.isNotBlank() },
                         businessGstin = bizGstin?.takeIf { it.isNotBlank() },
                         customerAddress = cartCustomerAddress.trim().takeIf { it.isNotBlank() },
@@ -237,34 +243,27 @@ class SalesViewModel(
                     )
 
                 if (saleId > 0) {
-                    lastSaleId = saleId
-                    lastSaleTime = System.currentTimeMillis()
-
-                    // if Udhaar, log entry (separate from atomic sale so it doesn't block rollbacks)
-                    if (paymentMode == "Udhaar" && type == "SALE") {
-                        udhaarRepository.insertUdhaar(
-                            customerName = cartCustomerName.trim(),
-                            amount = total,
-                            type = "CREDIT",
-                            notes = "Credit Sale #$saleId",
-                        )
+                    // BUG-19 FIX: mutableStateOf writes and callback must run on Main thread
+                    withContext(Dispatchers.Main) {
+                        lastSaleId = saleId
+                        lastSaleTime = System.currentTimeMillis()
+                        clearCart()
+                        onResult(saleId, total)
                     }
-
-                    clearCart()
-                    // BUG-14/BUG-15 FIX: Reload stateflows so QuotationScreen and UdhaarScreen see new entries
-                    loadAllData(true)
-                    val nowMs = System.currentTimeMillis()
-                    _salesHistoryList.value = getSalesWithItems(100, 0)
-                    if (type == "ESTIMATE") {
-                        loadQuotations()
-                    }
-                    triggerSync()
                     isCheckoutProcessing = false
-                    onResult(saleId, total)
+
+                    // Background reload — fire-and-forget, don't block the callback path
+                    viewModelScope.launch {
+                        loadAllData(true)
+                        _salesHistoryList.value = getSalesWithItems(100, 0)
+                        if (type == "ESTIMATE") {
+                            loadQuotations()
+                        }
+                        triggerSync()
+                    }
                 } else {
-                    android.util.Log.e("SalesVM", "BUG-01: atomicCheckout returned -1 (roll-back)")
                     isCheckoutProcessing = false
-                    onResult(-1, 0.0)
+                    withContext(Dispatchers.Main) { onResult(-1, 0.0) }
                     // Keep cart intact — user can fix/adjust and retry
                 }
             } catch (
@@ -276,12 +275,12 @@ class SalesViewModel(
                         "need ${Math.abs(ise.requestedChange)}",
                 )
                 isCheckoutProcessing = false
-                onResult(-1, 0.0)
+                withContext(Dispatchers.Main) { onResult(-1, 0.0) }
                 // Keep cart intact; call onResult with -1 so UI can show stock toast
             } catch (e: Exception) {
                 android.util.Log.e("SalesVM", "BUG-01: checkout failed, rolled back: ${e.message}")
                 isCheckoutProcessing = false
-                onResult(-1, 0.0)
+                withContext(Dispatchers.Main) { onResult(-1, 0.0) }
                 // Keep cart intact
             }
         }
@@ -295,8 +294,11 @@ class SalesViewModel(
                 items.forEach { item ->
                     inventoryRepository.updateItemStock(item.item_id, item.quantity)
                 }
-                lastSaleId = null
-                lastSaleTime = 0L
+                // BUG-19 FIX: mutableStateOf writes must run on Main thread
+                withContext(Dispatchers.Main) {
+                    lastSaleId = null
+                    lastSaleTime = 0L
+                }
                 loadAllData(true)
                 triggerSync()
             }
@@ -307,22 +309,29 @@ class SalesViewModel(
     fun loadQuotations() {
         viewModelScope.launch {
             val rawQuotations = salesRepository.getQuotations()
+            val allItems: Map<Long, List<com.storebook.inventoryapp.shared.data.local.Sale_items>> =
+                if (rawQuotations.isEmpty()) {
+                    emptyMap()
+                } else {
+                    salesRepository
+                        .getSaleItemsBySaleIds(rawQuotations.map { it.id })
+                        .groupBy { it.sale_id }
+                }
             _quotations.value =
                 rawQuotations.map { s ->
                     val items =
-                        salesRepository.getSaleItems(s.id).map { saleItem ->
-                            com.storebook.inventoryapp.shared.domain.models
-                                .SaleItemDetail(
-                                    itemId = saleItem.item_id,
-                                    itemName = saleItem.item_name,
-                                    quantity = saleItem.quantity,
-                                    unit = saleItem.unit,
-                                    buyPrice = saleItem.buy_price,
-                                    sellPrice = saleItem.sell_price,
-                                    taxRate = saleItem.tax_rate ?: 0.0,
-                                    hsnCode = saleItem.hsn_code,
-                                )
-                        }
+                        allItems[s.id]?.map { saleItem ->
+                            com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
+                                itemId = saleItem.item_id,
+                                itemName = saleItem.item_name,
+                                quantity = saleItem.quantity,
+                                unit = saleItem.unit,
+                                buyPrice = saleItem.buy_price,
+                                sellPrice = saleItem.sell_price,
+                                taxRate = saleItem.tax_rate ?: 0.0,
+                                hsnCode = saleItem.hsn_code,
+                            )
+                        } ?: emptyList()
                     Sale(
                         id = s.id,
                         timestamp = s.timestamp,
@@ -356,21 +365,27 @@ class SalesViewModel(
         offset: Long,
     ): List<Sale> {
         val rawSales = salesRepository.getAllSales().drop(offset.toInt()).take(limit.toInt())
+        if (rawSales.isEmpty()) return emptyList()
+
+        val allItems: Map<Long, List<com.storebook.inventoryapp.shared.data.local.Sale_items>> =
+            salesRepository
+                .getSaleItemsBySaleIds(rawSales.map { it.id })
+                .groupBy { it.sale_id }
+
         return rawSales.map { s ->
             val items =
-                salesRepository.getSaleItems(s.id).map { saleItem ->
-                    com.storebook.inventoryapp.shared.domain.models
-                        .SaleItemDetail(
-                            itemId = saleItem.item_id,
-                            itemName = saleItem.item_name,
-                            quantity = saleItem.quantity,
-                            unit = saleItem.unit,
-                            buyPrice = saleItem.buy_price,
-                            sellPrice = saleItem.sell_price,
-                            taxRate = saleItem.tax_rate ?: 0.0,
-                            hsnCode = saleItem.hsn_code,
-                        )
-                }
+                allItems[s.id]?.map { saleItem ->
+                    com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
+                        itemId = saleItem.item_id,
+                        itemName = saleItem.item_name,
+                        quantity = saleItem.quantity,
+                        unit = saleItem.unit,
+                        buyPrice = saleItem.buy_price,
+                        sellPrice = saleItem.sell_price,
+                        taxRate = saleItem.tax_rate ?: 0.0,
+                        hsnCode = saleItem.hsn_code,
+                    )
+                } ?: emptyList()
             Sale(
                 id = s.id,
                 timestamp = s.timestamp,

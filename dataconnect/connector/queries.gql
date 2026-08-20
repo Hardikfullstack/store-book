@@ -52,6 +52,8 @@ query SyncSaleItems($storeId: String!, $lastSync: Float!) @auth(level: USER) {
     unit
     sellPrice
     buyPrice
+    taxRate
+    hsnCode
     isDeleted
     updatedAt
   }

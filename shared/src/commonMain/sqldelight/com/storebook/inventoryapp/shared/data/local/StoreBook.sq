@@ -180,6 +180,10 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 getSaleItemsBySaleId:
 SELECT * FROM sale_items WHERE sale_id = ? AND is_deleted = 0;
 
+-- Batch query: return items for multiple sale IDs in a single round-trip (replaces N+1 pattern)
+getSaleItemsBySaleIds:
+SELECT * FROM sale_items WHERE sale_id IN :saleIds AND is_deleted = 0;
+
 CREATE TABLE udhaar (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   customer_name TEXT NOT NULL,

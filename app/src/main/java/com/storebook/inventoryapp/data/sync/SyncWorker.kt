@@ -772,8 +772,8 @@ class SyncWorker(
                             si.quantity,
                             si.sellPrice,
                             si.buyPrice,
-                            0.0,
-                            null,
+                            si.taxRate ?: 0.0,
+                            si.hsnCode,
                             if (si.isDeleted) 1L else 0L,
                             si.id,
                             si.updatedAt

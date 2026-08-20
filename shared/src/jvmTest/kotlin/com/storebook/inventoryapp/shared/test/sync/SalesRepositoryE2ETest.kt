@@ -2,6 +2,7 @@ package com.storebook.inventoryapp.shared.test.sync
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.storebook.inventoryapp.shared.data.local.StoreBookDatabase
+import com.storebook.inventoryapp.shared.domain.models.PaymentMode
 import com.storebook.inventoryapp.shared.domain.repository.InventoryRepository
 import com.storebook.inventoryapp.shared.domain.repository.UdhaarRepository
 import kotlinx.coroutines.runBlocking
@@ -63,6 +64,7 @@ class SalesRepositoryE2ETest {
             totalAmount = 300.0,
             discountAmount = 0.0,
             customerName = "Test Customer",
+            paymentMode = PaymentMode.CASH,
             customerGstin = null,
             businessGstin = null,
             customerAddress = null,
@@ -105,6 +107,7 @@ class SalesRepositoryE2ETest {
             totalAmount = 750.0,
             discountAmount = 0.0,
             customerName = "Hardware Shop",
+            paymentMode = PaymentMode.CASH,
             customerGstin = null,
             businessGstin = null,
             customerAddress = null,
@@ -142,6 +145,7 @@ class SalesRepositoryE2ETest {
             totalAmount = 750.0,
             discountAmount = 0.0,
             customerName = "Quote Customer",
+            paymentMode = PaymentMode.CASH,
             customerGstin = null,
             businessGstin = null,
             customerAddress = null,
@@ -179,6 +183,7 @@ class SalesRepositoryE2ETest {
             totalAmount = 500.0,
             discountAmount = 0.0,
             customerName = "Big Order",
+            paymentMode = PaymentMode.CASH,
             customerGstin = null,
             businessGstin = null,
             customerAddress = null,
@@ -220,6 +225,7 @@ class SalesRepositoryE2ETest {
             totalAmount = 120.0,
             discountAmount = 0.0,
             customerName = "Old Sale",
+            paymentMode = PaymentMode.CASH,
             customerGstin = null,
             businessGstin = null,
             customerAddress = null,
@@ -259,6 +265,7 @@ class SalesRepositoryE2ETest {
             totalAmount = 125.0,
             discountAmount = 0.0,
             customerName = "Student",
+            paymentMode = PaymentMode.CASH,
             customerGstin = null,
             businessGstin = null,
             customerAddress = null,
@@ -353,5 +360,119 @@ class SalesRepositoryE2ETest {
         val item = database.storeBookQueries.getItemById(1L).executeAsOneOrNull()
         assertNotNull(item)
         assertEquals(3.0, item!!.quantity, 0.01, "Stock unchanged after failed conversion")
+    }
+
+    // ───────── BUG-21: Udhaar created atomically inside transaction ─────────
+
+    @Test
+    fun `atomicCheckout creates Udhaar ledger when paymentMode is Udhaar`() = runBlocking {
+        val now = Clock.System.now().toEpochMilliseconds()
+        database.storeBookQueries.insertItem("CreditWidget", 50.0, "Pcs", 10.0, 20.0, 5.0, "Misc", null, null, null, 0.0, now)
+
+        val cartItemsData = listOf(
+            mapOf<String, Any>(
+                "itemId" to 1L,
+                "itemName" to "CreditWidget",
+                "unit" to "Pcs",
+                "quantity" to 2.0,
+                "buyPrice" to 10.0,
+                "sellPrice" to 20.0,
+                "taxRate" to 0.0,
+                "hsnCode" to "",
+            ),
+        )
+
+        val saleId = salesRepo.atomicCheckout(
+            cartItemsData = cartItemsData,
+            totalAmount = 40.0,
+            discountAmount = 0.0,
+            customerName = "UdhaarCustomer",
+            paymentMode = PaymentMode.UDHAR,
+            customerGstin = null,
+            businessGstin = null,
+            customerAddress = null,
+            businessAddress = null,
+            type = "SALE",
+        )
+
+        assertTrue(saleId > 0, "Sale must succeed: $saleId")
+        val ledger = udhaarRepo.getUdhaarBalances()
+        val match = ledger.find { it.customerName == "UdhaarCustomer" }
+        assertNotNull(match, "Udhaar customer must appear in balances")
+        assertEquals(40.0, match!!.netBalance, 0.01, "Net balance equals sale total")
+    }
+
+    @Test
+    fun `atomicCheckout skips Udhaar ledger for Cash payment`() = runBlocking {
+        val now = Clock.System.now().toEpochMilliseconds()
+        database.storeBookQueries.insertItem("CashWidget", 50.0, "Pcs", 10.0, 20.0, 5.0, "Misc", null, null, null, 0.0, now)
+
+        val cartItemsData = listOf(
+            mapOf<String, Any>(
+                "itemId" to 1L,
+                "itemName" to "CashWidget",
+                "unit" to "Pcs",
+                "quantity" to 2.0,
+                "buyPrice" to 10.0,
+                "sellPrice" to 20.0,
+                "taxRate" to 0.0,
+                "hsnCode" to "",
+            ),
+        )
+
+        val saleId = salesRepo.atomicCheckout(
+            cartItemsData = cartItemsData,
+            totalAmount = 40.0,
+            discountAmount = 0.0,
+            customerName = "CashCustomer",
+            paymentMode = PaymentMode.CASH,
+            customerGstin = null,
+            businessGstin = null,
+            customerAddress = null,
+            businessAddress = null,
+            type = "SALE",
+        )
+
+        assertTrue(saleId > 0, "Sale must succeed: $saleId")
+        val ledger = udhaarRepo.getUdhaarBalances()
+        val match = ledger.find { it.customerName == "CashCustomer" }
+        assertNull(match, "Cash customer must NOT appear in Udhaar balances")
+    }
+
+    @Test
+    fun `atomicCheckout skips Udhaar ledger for ESTIMATE type`() = runBlocking {
+        val now = Clock.System.now().toEpochMilliseconds()
+        database.storeBookQueries.insertItem("EstWidget", 50.0, "Pcs", 10.0, 20.0, 5.0, "Misc", null, null, null, 0.0, now)
+
+        val cartItemsData = listOf(
+            mapOf<String, Any>(
+                "itemId" to 1L,
+                "itemName" to "EstWidget",
+                "unit" to "Pcs",
+                "quantity" to 2.0,
+                "buyPrice" to 10.0,
+                "sellPrice" to 20.0,
+                "taxRate" to 0.0,
+                "hsnCode" to "",
+            ),
+        )
+
+        val saleId = salesRepo.atomicCheckout(
+            cartItemsData = cartItemsData,
+            totalAmount = 40.0,
+            discountAmount = 0.0,
+            customerName = "EstIMATECustomer",
+            paymentMode = PaymentMode.UDHAR,
+            customerGstin = null,
+            businessGstin = null,
+            customerAddress = null,
+            businessAddress = null,
+            type = "ESTIMATE",
+        )
+
+        assertTrue(saleId > 0, "Estimate must succeed: $saleId")
+        val ledger = udhaarRepo.getUdhaarBalances()
+        val match = ledger.find { it.customerName == "EstIMATECustomer" }
+        assertNull(match, "Estimate with Udhaar payment must NOT create ledger entry")
     }
 }

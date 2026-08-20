@@ -17,6 +17,8 @@ import {
     syncSaleItem,
     syncItem,
     syncUdhaar,
+    softDeleteSale,
+    softDeleteUdhaar,
 } from "@/dataconnect";
 import { FormattedAmount } from "@/components/FormattedAmount";
 import { useDispatch, useSelector } from "react-redux";
@@ -342,8 +344,18 @@ export default function SalesPOS({
 
         setIsSaving(true);
 
+        // BUG-22 FIX: Pre-checkout snapshot + rollback vars hoisted outside try/catch
+        const stockSnapshot = new Map(
+            cart.map((c) => [c.item.id, c.item.quantity]),
+        );
+        const committedSaleItemIds: string[] = [];
+        let committedUdhaarId: string | null = null;
+        let saleId = "";
+        // Lazy evaluation — set only when rollback is triggered
+        let rollbackUpdatedAt: number | null = null;
+
         try {
-            const saleId = crypto.randomUUID();
+            saleId = crypto.randomUUID();
             // eslint-disable-next-line react-hooks/purity
             const now = Date.now();
             const updatedAt = Math.floor(now / 1000);
@@ -363,8 +375,28 @@ export default function SalesPOS({
                 updatedAt,
             });
 
+            // BUG-23 FIX: Re-fetch fresh stock levels from server before deducting,
+            // so we never use stale local quantities when the items table changed.
+            const freshItemsResponse = await getActiveItems(
+                dataConnect,
+                { storeId },
+                { fetchPolicy: "SERVER_ONLY" },
+            );
+            const freshMap = new Map<string, Item>();
+            for (const fi of freshItemsResponse.data.items) {
+                freshMap.set(
+                    fi.id,
+                    Object.assign(fi as Item, {
+                        buyPrice: fi.buyPrice || 0,
+                        sellPrice: fi.sellPrice || 0,
+                    }),
+                );
+            }
+
             // 2. Add Sale Items & Update Inventory
             for (const c of cart) {
+                // BUG-23 FIX: use fresh server stock for deduction calc
+                const currentItem = freshMap.get(c.item.id) ?? c.item;
                 const saleItemId = crypto.randomUUID();
                 // Sync sale item
                 await syncSaleItem(dataConnect, {
@@ -381,19 +413,22 @@ export default function SalesPOS({
                     updatedAt,
                 });
 
+                // BUG-22 FIX: Track committed sale item IDs
+                committedSaleItemIds.push(saleItemId);
+
                 // Deduct from inventory ONLY if it's a SALE
                 if (saleType === "SALE") {
-                    const newStock = Math.max(0, c.item.quantity - c.quantity);
+                    const newStock = Math.max(0, currentItem.quantity - c.quantity);
                     await syncItem(dataConnect, {
                         id: c.item.id,
                         storeId,
-                        name: c.item.name,
+                        name: currentItem.name,
                         quantity: newStock,
-                        unit: c.item.unit || "pcs",
-                        buyPrice: c.item.buyPrice,
-                        sellPrice: c.item.sellPrice,
-                        lowStockThreshold: c.item.lowStockThreshold || 0,
-                        category: c.item.category || "",
+                        unit: currentItem.unit || "pcs",
+                        buyPrice: currentItem.buyPrice,
+                        sellPrice: currentItem.sellPrice,
+                        lowStockThreshold: currentItem.lowStockThreshold || 0,
+                        category: currentItem.category || "",
                         isDeleted: false,
                         updatedAt,
                     });
@@ -430,6 +465,8 @@ export default function SalesPOS({
                     isDeleted: false,
                     updatedAt,
                 });
+                // BUG-22 FIX: Track committed udhaar ID
+                committedUdhaarId = udhaarId;
             }
 
             // Generate PDF Invoice
@@ -487,7 +524,91 @@ export default function SalesPOS({
             onSuccess();
         } catch (error) {
             console.error("Checkout failed:", error);
-            alert("Checkout failed. Check console for details.");
+
+            /* eslint-disable-next-line react-hooks/purity */
+            rollbackUpdatedAt = Math.floor(Date.now() / 1000);
+
+            // BUG-22 FIX: Compensating rollback for partially committed state
+            try {
+                // Reverse inventory deductions using pre-checkout snapshot
+                for (const [itemId, oldQty] of stockSnapshot.entries()) {
+                    const cartEntry = cart.find((c) => c.item.id === itemId);
+                    if (cartEntry && rollbackUpdatedAt) {
+                        await syncItem(dataConnect, {
+                            id: itemId,
+                            storeId,
+                            name: cartEntry.item.name,
+                            quantity: oldQty,
+                            unit: cartEntry.item.unit || "pcs",
+                            buyPrice: cartEntry.item.buyPrice,
+                            sellPrice: cartEntry.item.sellPrice,
+                            lowStockThreshold: cartEntry.item.lowStockThreshold || 0,
+                            category: cartEntry.item.category || "",
+                            isDeleted: false,
+                            updatedAt: rollbackUpdatedAt,
+                        });
+
+                        // Reverse optimistic Redux inventory updates
+                        dispatch(
+                            updateInventoryItem({ id: itemId, quantity: oldQty }),
+                        );
+                        setItems((prevItems) =>
+                            prevItems.map((item) =>
+                                item.id === itemId
+                                    ? { ...item, quantity: oldQty }
+                                    : item,
+                            ),
+                        );
+                    }
+                }
+
+                // Mark committed sale items as deleted using syncSaleItem with isDeleted: true
+                for (const sid of committedSaleItemIds) {
+                    if (rollbackUpdatedAt) {
+                        await syncSaleItem(dataConnect, {
+                            id: sid,
+                            storeId,
+                            saleId,
+                            itemId: "",
+                            itemName: "",
+                            unit: "pcs",
+                            quantity: 0,
+                            sellPrice: 0,
+                            buyPrice: 0,
+                            isDeleted: true,
+                            updatedAt: rollbackUpdatedAt,
+                        });
+                    }
+                }
+
+                // Soft-delete sale header
+                if (rollbackUpdatedAt && saleId) {
+                    await softDeleteSale(dataConnect, {
+                        id: saleId,
+                        updatedAt: rollbackUpdatedAt,
+                    });
+                }
+
+                // BUG-22 FIX: Soft-delete udhaar entry if it was committed
+                if (committedUdhaarId) {
+                    await softDeleteUdhaar(dataConnect, {
+                        id: committedUdhaarId,
+                        updatedAt: rollbackUpdatedAt ?? 0,
+                    });
+                }
+            } catch (rollbackError) {
+                // BUG-27 FIX: Surface rollback failure to the user instead of swiping
+                // it under the rug — orphaned sale/inventory rows are worse than a retry.
+                console.error("Rollback also failed:", rollbackError);
+                alert(
+                    "Checkout failed and automatic recovery encountered an issue. " +
+                        "Your cart has been cleared — please review recent transactions.",
+                );
+            }
+
+            // BUG-25 FIX: Clear cart and reset isSaving after failure to prevent
+            // duplicate retries with stale quantities.
+            dispatch(clearCart());
             setIsSaving(false);
         }
     };

@@ -206,7 +206,7 @@ fun AuthScreen(
                 )
                 Spacer(modifier = Modifier.height(32.dp))
 
-                storeSelectionList!!.forEach { store ->
+                (storeSelectionList ?: emptyList()).forEach { store ->
                     Card(
                         modifier =
                             Modifier
@@ -433,7 +433,7 @@ fun AuthScreen(
                                         if (phoneError !=
                                             null
                                         ) {
-                                            { Text(phoneError!!, color = MaterialTheme.colorScheme.error) }
+                                            { Text(phoneError ?: "", color = MaterialTheme.colorScheme.error) }
                                         } else {
                                             null
                                         },
@@ -1219,9 +1219,10 @@ private fun signInWithPhoneAuthCredential(
                                 for (sId in resolvedStores) {
                                     try {
                                         val storeRes = connector.getStore.execute(sId)
-                                        if (storeRes.data.store != null) {
-                                            fetchedStores.add(storeRes.data.store!!)
-                                            val sName = storeRes.data.store!!.name
+                                        val s = storeRes.data.store
+                                        if (s != null) {
+                                            fetchedStores.add(s)
+                                            val sName = s.name
                                             if (!sName.isNullOrBlank()) {
                                                 prefs.edit().putString("business_name_$sId", sName).apply()
                                             }

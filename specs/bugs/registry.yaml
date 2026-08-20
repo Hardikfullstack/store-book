@@ -1,6 +1,7 @@
 # Bugs Registry — StoreBook
 # Maintained list of identified bugs with IDs matching filename stem.
 # Updated 2026-08-18: Added 9 new open bugs from code review (BUG-17 through BUG-25).
+# Updated 2026-08-20: Resolved BUG-20, BUG-21, BUG-23, BUG-25 + final recount.
 
 bugs:
   - id: BUG-01
@@ -130,51 +131,65 @@ bugs:
   - id: BUG-17
     file: bug-A1-store-null-ptr-login.yaml
     severity: P0
-    status: open
+    status: resolved
     reported: "2026-08-18"
+    resolved_at: "2026-08-19"
     summary: "storeRes.data.store!! forces non-null on cloud response — NPE crash when store field is null during login"
+    fix: "Replaced 3 !! assertions with safe patterns: (1) line ~1223: bound storeRes.data.store to local val 's' before null check eliminating repeated accessor calls, (2) line ~209: replaced storeSelectionList!!.forEach with (storeSelectionList ?: emptyList()).forEach, (3) line ~436: replaced phoneError!! with phoneError ?: \"\" in supportingText lambda"
 
   - id: BUG-18
     file: bug-A2-sales-analytics-custom-date-npe.yaml
     severity: P1
-    status: open
+    status: resolved
+    resolved_at: "2026-08-20"
     reported: "2026-08-18"
     summary: "customEndDate!! can throw NPE when only start date is picked in custom date range filter chip"
+    fix: "Replaced delegated property access (lateinit var) with local vals (startDate, endDate) inside inline lambda to avoid re-evaluation. Removed redundant string-template braces (${startLabel} → $startLabel). Fixed ktlint backing-property-naming violations."
 
   - id: BUG-19
     file: bug-A3-vm-thread-safety.yaml
     severity: P0
-    status: open
+    status: resolved
     reported: "2026-08-18"
+    resolved_at: "2026-08-19"
     summary: "mutableStateOf cartItems/lastSaleId written from IO dispatcher — IllegalStateException or stale UI"
+    fix: "Wrapped all mutableStateOf writes after IO-bound repository calls in withContext(Dispatchers.Main) across checkout(), selectCustomer(), and undoLastSale(). onResult callbacks also wrapped to ensure main-thread delivery. Ui-specific writes (lastSaleId, lastSaleTime, clearCart) are protected; background StateFlow reloads remain unchanged as they are inherently thread-safe"
 
   - id: BUG-20
     file: bug-A4-pull-saleitem-tax-hsn.yaml
     severity: P1
-    status: open
+    status: resolved
+    resolved_at: "2026-08-20"
     reported: "2026-08-18"
     summary: "SyncWorker pull hardcodes taxRate=0.0 and hsnCode=null for pulled SaleItems — cross-device report divergence"
+    fix: "Added taxRate and hsnCode to SyncSaleItems GQL query selection set in queries.gql and patched generated SyncSaleItemsQuery.kt dataclass with taxRate (Double?) and hsnCode (String?). SyncWorker now passes si.taxRate ?: 0.0 and si.hsnCode correctly."
 
   - id: BUG-21
     file: bug-A5-udhaar-insert-outside-txn.yaml
     severity: P1
-    status: open
+    status: resolved
+    resolved_at: "2026-08-20"
     reported: "2026-08-18"
     summary: "Udhaar insert after cart clear throws — UI reports failure but sale + stock already committed, ledger entry missing"
+    fix: "Expanded atomicCheckout() transaction to include Udhaar insert. Added paymentMode parameter to signature. When paymentMode==Udhaar && type==SALE, calls queries.insertUdhaar() directly inside database.transaction{}. Removed separate udhaarRepo.insertUdhaar call from SalesViewModel.kt. All 6 test callers updated with paymentMode param; 3 new JVM tests added for Udhaar atomicity (Udhaar path, Cash skip, ESTIMATE skip). Fixed bizGustin→bizGstin typo in caller."
 
   - id: BUG-22
     file: bug-W1-web-partial-checkout.yaml
     severity: P0
-    status: open
+    status: resolved
+    resolved_at: "2026-08-19"
     reported: "2026-08-18"
     summary: "Sequential awaits in web checkout — partial commits on mid-cart failure, no compensating rollback"
+    fix: "Added compensating rollback in SalesPOS.tsx: hoisted stockSnapshot, committedSaleItemIds, committedUdhaarId, and saleId outside try/catch. On catch, reverses inventory deductions using pre-checkout snapshot via syncItem(), soft-deletes committed sale items with isDeleted=true, soft-deletes the sale header via softDeleteSale(), and soft-deletes any committed udhaar entry via softDeleteUdhaar(). Rollback runs in its own try/catch so failure is logged but doesn't mask the original error. eslint-disable react-hooks/purity applied for rollbackUpdatedAt timestamp computation."
 
   - id: BUG-23
     file: bug-W2-web-stale-inventory.yaml
     severity: P1
-    status: open
+    status: resolved
+    resolved_at: "2026-08-20"
     reported: "2026-08-18"
     summary: "Web POS writes absolute stale stock to server — concurrent terminals overwrite each other's deductions"
+    fix: "Added SERVER_ONLY re-fetch of cart items' current stock levels before deduction loop in handleCheckout. Builds freshMap keyed by itemId. Deduction now uses currentItem.quantity from server instead of c.item from potentially stale cart state."
 
   - id: BUG-24
     file: bug-W3-any-types-strict-mode.yaml
@@ -186,16 +201,18 @@ bugs:
   - id: BUG-25
     file: bug-W4-web-checkout-duplicate.yaml
     severity: P1
-    status: open
+    status: resolved
+    resolved_at: "2026-08-20"
     reported: "2026-08-18"
     summary: "Web checkout error path leaves committed sale header + uncleared cart → retry creates duplicate sale"
+    fix: "Added dispatch(clearCart()) in catch block after rollback completes to clear stale cart items and prevent duplicate retries on failure."
 
 total: 26
-open: 9
-resolved: 17
+open: 1
+resolved: 25
 partial: 0
 deferred: 0
 by_severity:
-  P0: "7 resolved, 3 open"
-  P1: "7 resolved, 5 open"
+  P0: "10 resolved, 0 open"
+  P1: "12 resolved, 0 open"
   P2: "3 resolved, 1 open"

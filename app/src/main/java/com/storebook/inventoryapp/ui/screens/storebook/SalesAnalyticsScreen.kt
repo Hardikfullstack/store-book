@@ -420,12 +420,16 @@ fun SalesAnalyticsScreen(
                             "Today" -> stringResource(R.string.ana_date_today)
                             "This Month" -> stringResource(R.string.ana_date_this_month)
                             "Custom" -> {
-                                if (customStartDate != null) {
+                                val startDate = customStartDate
+                                if (startDate != null) {
                                     val sf = SimpleDateFormat("dd MMM", Locale.getDefault())
-                                    if (customEndDate != null && customEndDate != customStartDate) {
-                                        "${sf.format(Date(customStartDate!!))} - ${sf.format(Date(customEndDate!!))}"
+                                    val endDate = customEndDate
+                                    val startLabel = sf.format(Date(startDate))
+                                    val endLabel = endDate?.let { sf.format(Date(it)) }
+                                    if (endLabel != null && endDate != startDate) {
+                                        "$startLabel - $endLabel"
                                     } else {
-                                        "${sf.format(Date(customStartDate!!))}"
+                                        startLabel
                                     }
                                 } else {
                                     stringResource(R.string.ana_date_custom)

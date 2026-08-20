@@ -3,7 +3,8 @@
 id: bug-store-null-ptr-login
 title: "storeRes.data.store!! forces non-null on cloud response — NPE crash when store field is null"
 severity: P0
-status: open
+status: resolved
+resolved: "2026-08-19"
 reported: "2026-08-18"
 component: [AuthScreen]
 
