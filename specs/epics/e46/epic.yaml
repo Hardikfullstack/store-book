@@ -1,0 +1,94 @@
+epic_id: e46
+title: "Web: GST Compliance Reports Hub (GSTR-1, GSTR-2, GSTR-3B & Detailed GST)"
+priority: P1
+status: defined
+target_version: v1.9.0
+description: |
+  Comprehensive GST Compliance and Tax Reporting suite on the Web Dashboard (/reports), bringing full parity
+  with the Android POS application. Merchants and accountants can navigate reporting periods month-by-month,
+  inspect live tax liabilities across 4 specialized tabs (GSTR-1, GSTR-2, GSTR-3B, and Detailed GST Item Breakup),
+  and export standardized GST Excel/CSV reports for filing and audits.
+
+scope:
+  in:
+    - Dedicated Web UI at /reports featuring:
+        - Top Segmented Navigation Tabs: GSTR-1, GSTR-2, GSTR-3B, Detailed GST.
+        - Month-wise Reporting Period Picker with previous (<) and next (>) month selectors (e.g. "Aug 2026").
+        - Dynamic header and subtitle reflecting active report view ("Sales / Outward Supplies", "Purchases / Inward Supplies", "Consolidated Summary", "Item-wise Breakup").
+    - Tab 1: GSTR-1 (Sales / Outward Supplies):
+        - Metric Cards: Total Sales, Taxable Value, Total Tax Liability.
+        - Sub-tax Badges: CGST, SGST, IGST liability breakdown.
+        - Sales Invoices List: Itemized list with invoice badge (e.g. INV00081), transaction date, total amount, and computed tax component.
+        - Action: "Export GSTR-1 Excel Report".
+    - Tab 2: GSTR-2 (Purchases / Inward Supplies):
+        - Metric Cards: Total Purchases, Taxable Value, Total ITC (Eligible Input Tax Credit).
+        - Sub-tax Badges: CGST, SGST, IGST input credit breakdown.
+        - Purchase Bills List: Itemized list with supplier name, bill badge (e.g. PUR00034), date, total purchase amount, and tax amount.
+        - Action: "Export GSTR-2 Excel Report".
+    - Tab 3: GSTR-3B (Consolidated Summary):
+        - Summary Metric Cards: Outward Tax Liability vs. Eligible ITC.
+        - Highlight Card: Net Tax Payable ("Consolidated GSTR-3B balance") in prominent alert styling.
+        - Sectional Breakdown:
+            1. Outward Supplies (Sales Liability): Taxable Value, CGST, SGST, IGST, Total Tax Component.
+            2. Inward Supplies (Eligible ITC): Taxable Value, CGST, SGST, IGST, Total Tax Component.
+        - Action: "Export GSTR-3B Excel Report".
+    - Tab 4: Detailed GST (Item-wise Breakup):
+        - Summary Cards: Total Taxable Value and Consolidated GST.
+        - Granular Line-Item Breakdown: Date, invoice/bill number, type badge (Sale/Purchase), item name, party name (Customer / Supplier / Cash), taxable amount, tax rate percentage & amount, and total amount.
+        - Action: "Export Detailed GST Excel Report".
+    - Standardized Excel / CSV Exporters:
+        - Client-side workbook / CSV generation formatted for GST portal upload and chartered accountant audits.
+  out:
+    - Direct GSTN portal API filing authentication / OTP submission (manual file upload workflow).
+    - E-way bill portal direct integration.
+
+architecture:
+  web_components:
+    - name: "ReportsClient (/reports)"
+      file: "web/src/app/reports/ReportsClient.tsx"
+      role: "Main interactive page hosting segmented tab switcher, month navigator, live calculations, and active report views."
+    - name: "Gstr1ReportView"
+      file: "web/src/components/reports/Gstr1ReportView.tsx"
+      role: "Renders outward sales liabilities, tax metric cards, and invoice lists with GSTR-1 export trigger."
+    - name: "Gstr2ReportView"
+      file: "web/src/components/reports/Gstr2ReportView.tsx"
+      role: "Renders inward purchase supplies, ITC metric cards, and supplier bill lists with GSTR-2 export trigger."
+    - name: "Gstr3BReportView"
+      file: "web/src/components/reports/Gstr3BReportView.tsx"
+      role: "Renders consolidated GSTR-3B balance, Net Tax Payable card, and dual sectional breakdown tables."
+    - name: "DetailedGstReportView"
+      file: "web/src/components/reports/DetailedGstReportView.tsx"
+      role: "Renders granular item-level tax audit cards, party details, and transaction-level tax breakdown."
+    - name: "gstReportExporter"
+      file: "web/src/lib/gstReportExporter.ts"
+      role: "Generates formatted Excel (.xlsx) / CSV spreadsheets for GSTR-1, GSTR-2, GSTR-3B, and Detailed GST."
+
+stories:
+  - id: e46-s1
+    title: "Web: GST Reports Hub Navigation & Month-Wise Period Picker"
+    acceptance:
+      - "Renders top segmented tab bar: GSTR-1, GSTR-2, GSTR-3B, and Detailed GST."
+      - "Month-wise reporting period selector allows stepping forward/backward across months."
+      - "Queries sales, purchases, and line items filtered strictly by the selected month."
+      - "Dynamic subtitle updates with the selected report context."
+
+  - id: e46-s2
+    title: "Web: GSTR-1 (Outward Sales) & GSTR-2 (Inward Purchases) Views"
+    acceptance:
+      - "GSTR-1 displays Total Sales, Taxable Value, Total Tax Liability, and CGST/SGST/IGST breakdown."
+      - "GSTR-1 lists all monthly sales invoices with invoice badges and tax components."
+      - "GSTR-2 displays Total Purchases, Taxable Value, Total ITC, and CGST/SGST/IGST credit breakdown."
+      - "GSTR-2 lists all monthly purchase bills with supplier badges and tax amounts."
+
+  - id: e46-s3
+    title: "Web: GSTR-3B Consolidated Balance & Detailed Item-Wise Breakdown"
+    acceptance:
+      - "GSTR-3B displays Outward Tax Liability, Eligible ITC, and highlighted Net Tax Payable card."
+      - "GSTR-3B provides Section 1 (Outward Supplies) and Section 2 (Inward Supplies) detailed line items."
+      - "Detailed GST view displays granular item-by-item tax breakdown with party names and tax percentages."
+
+  - id: e46-s4
+    title: "Web: Standardized GST Excel & CSV Export Suite"
+    acceptance:
+      - "Export buttons for all 4 views: 'Export GSTR-1 Excel Report', 'Export GSTR-2 Excel Report', 'Export GSTR-3B Excel Report', and 'Export Detailed GST Excel Report'."
+      - "Downloads properly formatted spreadsheets matching standard accounting and GST portal expectations."
