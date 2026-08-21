@@ -1,12 +1,28 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Loader2, Download, FileSpreadsheet } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { ChevronLeft, ChevronRight, Loader2, Download } from 'lucide-react';
 import { dataConnect } from '@/lib/firebase';
-import { getActiveSaleItems, syncSales, syncItems } from '@/dataconnect';
-import { exportGstr1Report } from '@/lib/gstReportExporter';
+import {
+  syncSales,
+  syncSaleItems,
+  syncItems,
+  syncPurchases,
+  syncPurchaseItems,
+  syncSuppliers,
+  getStore,
+  getBusinessProfile,
+} from '@/dataconnect';
+import {
+  exportGstr1Report,
+  exportGstr2Report,
+  exportGstr3BReport,
+  exportDetailedGstReport,
+} from '@/lib/gstReportExporter';
 import Gstr1ReportView from '@/components/reports/Gstr1ReportView';
-import { DcSale, DcSaleItem, DcItem } from '@/types/dataconnect';
+import Gstr2ReportView from '@/components/reports/Gstr2ReportView';
+import Gstr3BReportView from '@/components/reports/Gstr3BReportView';
+import DetailedGstReportView from '@/components/reports/DetailedGstReportView';
 
 type GSTReportType = 'GSTR1' | 'GSTR2' | 'GSTR3B' | 'DETAILED';
 
@@ -36,12 +52,90 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
 
-  const [loading, setLoading] = useState<boolean>(true);
-  const [allSales, setAllSales] = useState<DcSale[]>([]);
-  const [allSaleItems, setAllSaleItems] = useState<DcSaleItem[]>([]);
-  const [allItemsMap, setAllItemsMap] = useState<Map<string, DcItem>>(new Map());
+  const [loading, setLoading] = useState<boolean>(false);
+  const [salesFetched, setSalesFetched] = useState<boolean>(false);
+  const [purchasesFetched, setPurchasesFetched] = useState<boolean>(false);
+
+  // In-flight fetch refs to prevent duplicate requests across renders
+  const salesFetchingRef = useRef<boolean>(false);
+  const purchasesFetchingRef = useRef<boolean>(false);
+  const itemsFetchingRef = useRef<boolean>(false);
+
+  const [allSales, setAllSales] = useState<any[]>([]);
+  const [allSaleItems, setAllSaleItems] = useState<any[]>([]);
+  const [allPurchases, setAllPurchases] = useState<any[]>([]);
+  const [allPurchaseItems, setAllPurchaseItems] = useState<any[]>([]);
+  const [allSuppliersMap, setAllSuppliersMap] = useState<Map<string, any>>(new Map());
+  const [allItemsMap, setAllItemsMap] = useState<Map<string, any>>(new Map());
   const [businessGstin, setBusinessGstin] = useState<string>('');
   const [businessName, setBusinessName] = useState<string>('StoreBook');
+
+  // 1. Fetch store name and business profile on mount
+  useEffect(() => {
+    let isMounted = true;
+    if (!storeId) return;
+
+    const fetchProfile = async () => {
+      try {
+        const [storeRes, profileRes] = await Promise.all([
+          getStore(dataConnect, { id: storeId }).catch(() => null),
+          getBusinessProfile(dataConnect, { storeId }).catch(() => null),
+        ]);
+        if (!isMounted) return;
+
+        const sName = storeRes?.data?.store?.name;
+        if (sName && sName.trim()) {
+          setBusinessName(sName.trim());
+        }
+
+        const profileGstin = profileRes?.data?.storeProfiles?.[0]?.gstin;
+        if (profileGstin && profileGstin.trim()) {
+          setBusinessGstin(profileGstin.trim());
+        }
+      } catch (err) {
+        console.error('Failed to load store and business profile:', err);
+      }
+    };
+
+    fetchProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [storeId]);
+
+  // 2. Fetch master items on mount (isolated to avoid re-triggering tab effects)
+  useEffect(() => {
+    let isMounted = true;
+    if (!storeId || itemsFetchingRef.current) return;
+    itemsFetchingRef.current = true;
+
+    const loadItems = async () => {
+      try {
+        const itemsRes = await syncItems(
+          dataConnect,
+          { storeId, lastSync: -1 },
+          { fetchPolicy: 'SERVER_ONLY' as const }
+        );
+        if (!isMounted) return;
+        const rawMasterItems = itemsRes.data?.items || [];
+        const itemMap = new Map<string, any>();
+        for (const item of rawMasterItems) {
+          itemMap.set(String(item.id).trim(), item);
+        }
+        setAllItemsMap(itemMap);
+      } catch (err) {
+        console.error('Failed to fetch master items:', err);
+        itemsFetchingRef.current = false;
+      }
+    };
+
+    loadItems();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [storeId]);
 
   // Compute month start and end timestamps in ms
   const { startTs, endTs } = useMemo(() => {
@@ -50,62 +144,171 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
     return { startTs: start, endTs: end };
   }, [selectedMonth, selectedYear]);
 
-  // Fetch sales, saleItems, and master items from DataConnect ONCE on mount
+  // 3. Tab-selection-wise on-demand data fetching with strict in-flight locks
   useEffect(() => {
     let isMounted = true;
+    if (!storeId) return;
 
-    const fetchData = async () => {
-      if (!storeId) return;
-      setLoading(true);
-      try {
-        const [salesRes, saleItemsRes, itemsRes] = await Promise.all([
-          syncSales(dataConnect, { storeId, lastSync: 0 }, { fetchPolicy: 'SERVER_ONLY' as const }),
-          getActiveSaleItems(dataConnect, { storeId }, { fetchPolicy: 'SERVER_ONLY' as const }),
-          syncItems(dataConnect, { storeId, lastSync: 0 }, { fetchPolicy: 'SERVER_ONLY' as const }),
-        ]);
+    const loadData = async () => {
+      // GSTR-1 selected: fetch sales & sale items on demand
+      if (activeTab === 'GSTR1' && !salesFetched && !salesFetchingRef.current) {
+        salesFetchingRef.current = true;
+        setLoading(true);
+        try {
+          const [salesRes, saleItemsRes] = await Promise.all([
+            syncSales(dataConnect, { storeId, lastSync: -1 }, { fetchPolicy: 'SERVER_ONLY' as const }),
+            syncSaleItems(dataConnect, { storeId, lastSync: -1 }, { fetchPolicy: 'SERVER_ONLY' as const }),
+          ]);
+          if (!isMounted) return;
+          const rawSales = salesRes.data?.sales || [];
+          const rawSaleItems = (saleItemsRes.data?.saleItemDetails || []).filter((i: any) => !i.isDeleted);
+          setAllSales(rawSales);
+          setAllSaleItems(rawSaleItems);
+          const bizGstin = rawSales.find((s) => s.businessGstin)?.businessGstin || '';
+          if (bizGstin) setBusinessGstin((prev) => prev || bizGstin);
+          setSalesFetched(true);
+        } catch (err) {
+          console.error('Failed to fetch sales data:', err);
+          salesFetchingRef.current = false;
+        } finally {
+          if (isMounted) setLoading(false);
+        }
+      }
 
-        if (!isMounted) return;
+      // GSTR-2 selected: fetch purchases, purchase items & suppliers on demand
+      if (activeTab === 'GSTR2' && !purchasesFetched && !purchasesFetchingRef.current) {
+        purchasesFetchingRef.current = true;
+        setLoading(true);
+        try {
+          const [purchasesRes, purchaseItemsRes, suppliersRes] = await Promise.all([
+            syncPurchases(dataConnect, { storeId, lastSync: -1 }, { fetchPolicy: 'SERVER_ONLY' as const }),
+            syncPurchaseItems(dataConnect, { storeId, lastSync: -1 }, { fetchPolicy: 'SERVER_ONLY' as const }),
+            syncSuppliers(dataConnect, { storeId, lastSync: -1 }, { fetchPolicy: 'SERVER_ONLY' as const }),
+          ]);
+          if (!isMounted) return;
+          const rawPurchases = purchasesRes.data?.purchases || [];
+          const rawPurchaseItems = (purchaseItemsRes.data?.purchaseItemDetails || []).filter((i: any) => !i.isDeleted);
+          const rawSuppliers = suppliersRes.data?.suppliers || [];
 
-        const rawSales = salesRes.data?.sales || [];
-        const rawItems = saleItemsRes.data?.saleItemDetails || [];
-        const rawMasterItems = itemsRes.data?.items || [];
+          const supplierMap = new Map<string, any>();
+          for (const supplier of rawSuppliers) {
+            supplierMap.set(String(supplier.id).trim(), supplier);
+          }
 
-        const itemMap = new Map<string, DcItem>();
-        for (const item of rawMasterItems) {
-          itemMap.set(item.id, item);
+          setAllPurchases(rawPurchases);
+          setAllPurchaseItems(rawPurchaseItems);
+          setAllSuppliersMap(supplierMap);
+          setPurchasesFetched(true);
+        } catch (err) {
+          console.error('Failed to fetch purchases data:', err);
+          purchasesFetchingRef.current = false;
+        } finally {
+          if (isMounted) setLoading(false);
+        }
+      }
+
+      // GSTR-3B or DETAILED selected: ensure both sales and purchases are loaded on demand
+      if (activeTab === 'GSTR3B' || activeTab === 'DETAILED') {
+        const promises: Promise<void>[] = [];
+
+        if (!salesFetched && !salesFetchingRef.current) {
+          salesFetchingRef.current = true;
+          promises.push(
+            Promise.all([
+              syncSales(dataConnect, { storeId, lastSync: -1 }, { fetchPolicy: 'SERVER_ONLY' as const }),
+              syncSaleItems(dataConnect, { storeId, lastSync: -1 }, { fetchPolicy: 'SERVER_ONLY' as const }),
+            ]).then(([salesRes, saleItemsRes]) => {
+              if (!isMounted) return;
+              const rawSales = salesRes.data?.sales || [];
+              const rawSaleItems = (saleItemsRes.data?.saleItemDetails || []).filter((i: any) => !i.isDeleted);
+              setAllSales(rawSales);
+              setAllSaleItems(rawSaleItems);
+              const bizGstin = rawSales.find((s) => s.businessGstin)?.businessGstin || '';
+              if (bizGstin) setBusinessGstin((prev) => prev || bizGstin);
+              setSalesFetched(true);
+            }).catch((err) => {
+              console.error('Failed to fetch sales data:', err);
+              salesFetchingRef.current = false;
+            })
+          );
         }
 
-        setAllSales(rawSales);
-        setAllSaleItems(rawItems);
-        setAllItemsMap(itemMap);
+        if (!purchasesFetched && !purchasesFetchingRef.current) {
+          purchasesFetchingRef.current = true;
+          promises.push(
+            Promise.all([
+              syncPurchases(dataConnect, { storeId, lastSync: -1 }, { fetchPolicy: 'SERVER_ONLY' as const }),
+              syncPurchaseItems(dataConnect, { storeId, lastSync: -1 }, { fetchPolicy: 'SERVER_ONLY' as const }),
+              syncSuppliers(dataConnect, { storeId, lastSync: -1 }, { fetchPolicy: 'SERVER_ONLY' as const }),
+            ]).then(([purchasesRes, purchaseItemsRes, suppliersRes]) => {
+              if (!isMounted) return;
+              const rawPurchases = purchasesRes.data?.purchases || [];
+              const rawPurchaseItems = (purchaseItemsRes.data?.purchaseItemDetails || []).filter((i: any) => !i.isDeleted);
+              const rawSuppliers = suppliersRes.data?.suppliers || [];
 
-        // Derive business GSTIN from latest sale if available
-        const bizGstin = rawSales.find((s) => s.businessGstin)?.businessGstin || '';
-        setBusinessGstin(bizGstin);
-      } catch (err) {
-        console.error('Failed to fetch GST reports data:', err);
-      } finally {
-        if (isMounted) setLoading(false);
+              const supplierMap = new Map<string, any>();
+              for (const supplier of rawSuppliers) {
+                supplierMap.set(String(supplier.id).trim(), supplier);
+              }
+
+              setAllPurchases(rawPurchases);
+              setAllPurchaseItems(rawPurchaseItems);
+              setAllSuppliersMap(supplierMap);
+              setPurchasesFetched(true);
+            }).catch((err) => {
+              console.error('Failed to fetch purchases data:', err);
+              purchasesFetchingRef.current = false;
+            })
+          );
+        }
+
+        if (promises.length > 0) {
+          setLoading(true);
+          try {
+            await Promise.all(promises);
+          } catch (err) {
+            console.error('Failed to fetch consolidated reports data:', err);
+          } finally {
+            if (isMounted) setLoading(false);
+          }
+        }
       }
     };
 
-    fetchData();
+    loadData();
 
     return () => {
       isMounted = false;
     };
-  }, [storeId]);
+  }, [storeId, activeTab, salesFetched, purchasesFetched]);
 
-  // Pure in-memory filter for the selected reporting month
+  const isCurrentTabLoading =
+    loading ||
+    (activeTab === 'GSTR1' && !salesFetched) ||
+    (activeTab === 'GSTR2' && !purchasesFetched) ||
+    ((activeTab === 'GSTR3B' || activeTab === 'DETAILED') && (!salesFetched || !purchasesFetched));
+
+  // In-memory filter for sales in the selected reporting month matching Android
   const monthlySales = useMemo(() => {
     return allSales.filter((sale) => {
       if (sale.isDeleted) return false;
-      if (sale.type === 'ESTIMATE') return false;
+      const isEstimate = typeof sale.type === 'string' && sale.type.toUpperCase() === 'ESTIMATE';
+      if (isEstimate) return false;
       const rawTs = Number(sale.timestamp) || 0;
-      const saleTs = rawTs > 10000000000 ? rawTs : rawTs * 1000;
+      const saleTs = rawTs < 100000000000 ? rawTs * 1000 : rawTs;
       return saleTs >= startTs && saleTs <= endTs;
     });
   }, [allSales, startTs, endTs]);
+
+  // In-memory filter for purchases in the selected reporting month matching Android
+  const monthlyPurchases = useMemo(() => {
+    return allPurchases.filter((purchase) => {
+      if (purchase.isDeleted) return false;
+      const rawTs = Number(purchase.timestamp) || 0;
+      const purchaseTs = rawTs < 100000000000 ? rawTs * 1000 : rawTs;
+      return purchaseTs >= startTs && purchaseTs <= endTs;
+    });
+  }, [allPurchases, startTs, endTs]);
 
   const handlePrevMonth = () => {
     if (selectedMonth === 0) {
@@ -136,8 +339,52 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
         MONTH_NAMES[selectedMonth],
         selectedYear
       );
+    } else if (activeTab === 'GSTR2') {
+      exportGstr2Report(
+        monthlyPurchases,
+        allPurchaseItems,
+        allSuppliersMap,
+        allItemsMap,
+        businessGstin,
+        businessName,
+        MONTH_NAMES[selectedMonth],
+        selectedYear
+      );
+    } else if (activeTab === 'GSTR3B') {
+      exportGstr3BReport(
+        monthlySales,
+        allSaleItems,
+        monthlyPurchases,
+        allPurchaseItems,
+        allSuppliersMap,
+        allItemsMap,
+        businessGstin,
+        businessName,
+        MONTH_NAMES[selectedMonth],
+        selectedYear
+      );
+    } else if (activeTab === 'DETAILED') {
+      exportDetailedGstReport(
+        monthlySales,
+        allSaleItems,
+        monthlyPurchases,
+        allPurchaseItems,
+        allSuppliersMap,
+        allItemsMap,
+        businessGstin,
+        businessName,
+        MONTH_NAMES[selectedMonth],
+        selectedYear
+      );
     }
   };
+
+  const isExportDisabled =
+    (activeTab === 'GSTR1' && monthlySales.length === 0) ||
+    (activeTab === 'GSTR2' && monthlyPurchases.length === 0) ||
+    ((activeTab === 'GSTR3B' || activeTab === 'DETAILED') &&
+      monthlySales.length === 0 &&
+      monthlyPurchases.length === 0);
 
   const currentTabMeta = REPORT_TABS.find((t) => t.id === activeTab) || REPORT_TABS[0];
 
@@ -163,8 +410,8 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`px-5 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap ${isActive
-                  ? 'bg-indigo-950 dark:bg-indigo-900 text-white shadow-md shadow-indigo-950/20'
-                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'
+                ? 'bg-indigo-950 dark:bg-indigo-900 text-white shadow-md shadow-indigo-950/20'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'
                 }`}
             >
               {tab.label}
@@ -209,7 +456,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
         <button
           type="button"
           onClick={handleExport}
-          disabled={monthlySales.length === 0}
+          disabled={isExportDisabled}
           className="h-[60px] w-full px-6 rounded-2xl bg-indigo-950 hover:bg-indigo-900 dark:bg-indigo-900 dark:hover:bg-indigo-800 text-white font-bold text-sm flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Download size={18} />
@@ -218,7 +465,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
       </div>
 
       {/* 4. Content Area */}
-      {loading ? (
+      {isCurrentTabLoading ? (
         <div className="py-20 flex flex-col items-center justify-center space-y-3">
           <Loader2 className="w-8 h-8 text-indigo-950 dark:text-indigo-400 animate-spin" />
           <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
@@ -239,18 +486,47 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
             />
           )}
 
-          {activeTab !== 'GSTR1' && (
-            <div className="glass-card p-12 text-center border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 rounded-2xl space-y-2">
-              <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-3">
-                <FileSpreadsheet size={24} />
-              </div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                {currentTabMeta.label} Report ({currentTabMeta.subtitle})
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-                This report view will be populated in subsequent release stories of Epic e46.
-              </p>
-            </div>
+          {activeTab === 'GSTR2' && (
+            <Gstr2ReportView
+              purchases={monthlyPurchases}
+              purchaseItems={allPurchaseItems}
+              suppliersMap={allSuppliersMap}
+              allItemsMap={allItemsMap}
+              businessGstin={businessGstin}
+              businessName={businessName}
+              monthName={MONTH_NAMES[selectedMonth]}
+              year={selectedYear}
+            />
+          )}
+
+          {activeTab === 'GSTR3B' && (
+            <Gstr3BReportView
+              sales={monthlySales}
+              saleItems={allSaleItems}
+              purchases={monthlyPurchases}
+              purchaseItems={allPurchaseItems}
+              suppliersMap={allSuppliersMap}
+              allItemsMap={allItemsMap}
+              businessGstin={businessGstin}
+              businessName={businessName}
+              monthName={MONTH_NAMES[selectedMonth]}
+              year={selectedYear}
+            />
+          )}
+
+          {activeTab === 'DETAILED' && (
+            <DetailedGstReportView
+              sales={monthlySales}
+              saleItems={allSaleItems}
+              purchases={monthlyPurchases}
+              purchaseItems={allPurchaseItems}
+              suppliersMap={allSuppliersMap}
+              allItemsMap={allItemsMap}
+              businessGstin={businessGstin}
+              businessName={businessName}
+              monthName={MONTH_NAMES[selectedMonth]}
+              year={selectedYear}
+            />
           )}
         </>
       )}
