@@ -22,6 +22,8 @@ class ConcurrencyAndSyncQueueTest {
         driver = d as JdbcSqliteDriver
     }
 
+ 
+
 
 
     @Test
@@ -52,7 +54,7 @@ class ConcurrencyAndSyncQueueTest {
         val now = 1721000000000L
 
         // Enqueue failure
-        database.storeBookQueries.enqueueSyncFailure("ITEM", 42, "cloud-xyz", now + 30_000, "HTTP 503")
+        database.storeBookQueries.enqueueSyncFailure("ITEM", 42, "cloud-xyz", now - 30_000, "HTTP 503")
 
         var entry = database.storeBookQueries.getOverdueForRetry(now).executeAsList().firstOrNull()
         requireNotNull(entry)
@@ -92,7 +94,7 @@ class ConcurrencyAndSyncQueueTest {
             entityType = "SALE",
             localId = 99L,
             cloudId = null,
-            nextRetryAt = now + 30_000,
+            nextRetryAt = now - 30_000,
             errorMessage = "Connection timeout after 15s"
         )
 
@@ -103,8 +105,8 @@ class ConcurrencyAndSyncQueueTest {
         assertEquals("PENDING_RETRY", queued.status)
     }
 
-    @AfterAll
+    @AfterEach
     fun teardown() {
-        driver.close()
+        com.storebook.inventoryapp.shared.test.DatabaseTestHelper.dropDatabase(driver)
     }
 }

@@ -38,10 +38,10 @@ class SqlDelightQueriesTest {
     @Test
     fun `softDelete sets is_deleted=True — row exists but excluded from active queries`() {
         database.storeBookQueries.insertItem("Tea Powder", 20.0, "Pack", 80.0, 120.0, 3.0, "Beverage", null, null, null, 5.0, 1721000000000L)
-        // softDeleteItem params: (deleted_timestamp, updated_at, id) per StoreBook.sq line 74
         database.storeBookQueries.softDeleteItem(1721000001000L, 1721000001000L, 1)
 
-        val deleted = database.storeBookQueries.getItemById(1).executeAsOneOrNull()
+        val deleted = database.storeBookQueries.getDeletedItems().executeAsList()
+            .find { it.name == "Tea Powder" }
         requireNotNull(deleted)
         assertEquals(1L, deleted.is_deleted)
 

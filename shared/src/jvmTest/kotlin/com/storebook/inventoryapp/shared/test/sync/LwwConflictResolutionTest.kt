@@ -49,6 +49,7 @@ class LwwConflictResolutionTest {
         database.storeBookQueries.insertItem(
             "Local Item", 10.0, "Box", 50.0, 100.0, 3.0, "Beverage", null, null, null, 18.0, 2000L
         )
+        database.storeBookQueries.markItemSynced(cloudId = "stale-cloud", id = 1)
 
         database.storeBookQueries.upsertItemRemote(
             name = "Stale Remote", quantity = 5.0, unit = "Box", buyPrice = 30.0, sellPrice = 60.0,
@@ -56,13 +57,9 @@ class LwwConflictResolutionTest {
             hsnCode = null, taxRate = 18.0, isDeleted = 0L, cloudId = "stale-cloud", updatedAt = 500
         )
 
-        val allItems = database.storeBookQueries.getAllItems().executeAsList()
-        val staleItem = allItems.find { it.cloud_id == "stale-cloud" }
-        if (staleItem != null) {
-            assertEquals("Local Item", staleItem.name, "Stale remote should not overwrite local data")
-        } else {
-            assertTrue(true, "Stale item correctly excluded or upserted as new row without overwriting")
-        }
+        val localItem = database.storeBookQueries.getItemById(1).executeAsOneOrNull()
+        requireNotNull(localItem)
+        assertEquals("Local Item", localItem.name, "Stale remote should not overwrite local data")
     }
 
     @Test

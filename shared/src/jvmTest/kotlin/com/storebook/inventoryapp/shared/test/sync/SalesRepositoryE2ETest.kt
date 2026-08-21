@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Assertions.*
  * Validates: atomic checkout, sale item persistence across dates,
  * soft delete + stock restore, quotation conversion.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SalesRepositoryE2ETest {
 
     private lateinit var database: StoreBookDatabase
@@ -24,7 +23,7 @@ class SalesRepositoryE2ETest {
     private lateinit var inventoryRepo: InventoryRepository
     private lateinit var udhaarRepo: UdhaarRepository
 
-    @BeforeAll
+    @BeforeEach
     fun setup() {
         val (db, d) = com.storebook.inventoryapp.shared.test.DatabaseTestHelper.createDatabase()
         database = db
@@ -34,7 +33,7 @@ class SalesRepositoryE2ETest {
         udhaarRepo = UdhaarRepository(database)
     }
 
-    @AfterAll
+    @AfterEach
     fun teardown() {
         com.storebook.inventoryapp.shared.test.DatabaseTestHelper.dropDatabase(driver)
     }
@@ -178,19 +177,26 @@ class SalesRepositoryE2ETest {
             ),
         )
 
-        val saleId = salesRepo.atomicCheckout(
-            cartItemsData = cartItemsData,
-            totalAmount = 500.0,
-            discountAmount = 0.0,
-            customerName = "Big Order",
-            paymentMode = PaymentMode.CASH,
-            customerGstin = null,
-            businessGstin = null,
-            customerAddress = null,
-            businessAddress = null,
-            type = "SALE",
-        )
+        var saleId = -1L
+        var threw = false
+        try {
+            saleId = salesRepo.atomicCheckout(
+                cartItemsData = cartItemsData,
+                totalAmount = 500.0,
+                discountAmount = 0.0,
+                customerName = "Big Order",
+                paymentMode = PaymentMode.CASH,
+                customerGstin = null,
+                businessGstin = null,
+                customerAddress = null,
+                businessAddress = null,
+                type = "SALE",
+            )
+        } catch (e: com.storebook.inventoryapp.shared.domain.repository.InventoryRepository.InsufficientStockException) {
+            threw = true
+        }
 
+        assertTrue(threw, "checkout must throw or return -1 when stock insufficient")
         assertEquals(-1L, saleId, "Checkout must return -1 when stock insufficient")
 
         val item = database.storeBookQueries.getItemById(1L).executeAsOneOrNull()
@@ -354,7 +360,14 @@ class SalesRepositoryE2ETest {
             sell_price = 50.0, buy_price = 25.0, tax_rate = 0.0, hsn_code = null, updated_at = now,
         )
 
-        val result = salesRepo.convertQuotationToSale(quoteId)
+        var result: Long = -1L
+        var threw = false
+        try {
+            result = salesRepo.convertQuotationToSale(quoteId)
+        } catch (e: com.storebook.inventoryapp.shared.domain.repository.InventoryRepository.InsufficientStockException) {
+            threw = true
+        }
+        assertTrue(threw, "Conversion must throw or return -1 with insufficient stock")
         assertEquals(-1L, result, "Conversion fails with insufficient stock")
 
         val item = database.storeBookQueries.getItemById(1L).executeAsOneOrNull()

@@ -725,9 +725,12 @@ upsertItemRemote:
 INSERT OR REPLACE INTO items(id, name, quantity, unit, buy_price, sell_price,
     low_stock_threshold, category, photo_path, barcode, hsn_code, tax_rate,
     is_deleted, cloud_id, is_synced, updated_at)
-VALUES(COALESCE((SELECT id FROM items WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM items), 1), :name, :quantity, :unit, :buyPrice, :sellPrice,
+SELECT COALESCE((SELECT id FROM items WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM items), 1), :name, :quantity, :unit, :buyPrice, :sellPrice,
     :lowStockThreshold, :category, :photoPath, :barcode, :hsnCode, :taxRate,
-    :isDeleted, :cloudId, 1, :updatedAt);
+    :isDeleted, :cloudId, 1, :updatedAt
+WHERE NOT EXISTS (
+    SELECT 1 FROM items WHERE cloud_id = :cloudId AND updated_at >= :updatedAt
+);
 
 upsertSaleRemote:
 INSERT OR REPLACE INTO sales(id, timestamp, total_amount, discount_amount,
