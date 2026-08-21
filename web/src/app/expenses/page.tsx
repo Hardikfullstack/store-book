@@ -10,7 +10,7 @@ export default async function ExpensesPage() {
     return redirect('/login');
   }
 
-  const expenses: any[] = [];
+  const expenses = [] as Parameters<typeof ExpensesClient>[0]['initialExpenses'];
   const isPremium = session.isPremium;
 
   return (

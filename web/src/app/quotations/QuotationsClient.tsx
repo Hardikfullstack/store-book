@@ -7,6 +7,7 @@ import autoTable from "jspdf-autotable";
 import { dataConnect } from "@/lib/firebase";
 import { executeQuery } from "firebase/data-connect";
 import { sanitizeInput } from "@/lib/sanitize";
+import { DcSale } from "@/types/dataconnect";
 import {
     getActiveSalesRef,
     softDeleteSale,
@@ -22,6 +23,38 @@ import DynamicTable, {
 } from "@/components/DynamicTable";
 import { convertQuotationToSale } from "@/app/actions";
 
+/* Quotation rows produced by DataConnect, mapped with legacy aliases */
+type QuotationRow = {
+  id: string;
+  timestamp: number;
+  totalAmount: number;
+  discountAmount: number;
+  customerName?: string | null;
+  type: string;
+  notes?: string | null;
+  updatedAt: number;
+  customer_name?: string | null;
+  total_amount: number;
+  updated_at: number;
+  is_deleted: number;
+} & Record<string, unknown>;
+
+/* Vars object shape for getActiveSalesRef */
+interface SalesQueryVars {
+  storeId: string;
+  type: string;
+  orderByTimestamp?: OrderDirection;
+  orderByCustomerName?: OrderDirection;
+  orderByTotalAmount?: OrderDirection;
+  minAmount?: number;
+  maxAmount?: number;
+  startDate?: number;
+  endDate?: number;
+  searchTerm?: string;
+  limit?: number;
+  offset?: number;
+}
+
 export default function QuotationsClient({
     storeId,
     isPremium,
@@ -29,7 +62,7 @@ export default function QuotationsClient({
     storeId?: string;
     isPremium?: boolean;
 }) {
-    const [quotations, setQuotations] = useState<any[]>([]);
+    const [quotations, setQuotations] = useState<QuotationRow[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 10;
     const [totalItems, setTotalItems] = useState(0);
@@ -78,7 +111,7 @@ export default function QuotationsClient({
     const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
     const [debouncedSearch, setDebouncedSearch] = useState("");
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [searchResults, setSearchResults] = useState<QuotationRow[]>([]);
     const searchResultsKeyRef = useRef("");
 
     // E04-S3: Timer reference for expiry checks — lifted into state to satisfy react-hooks/purity
@@ -189,8 +222,8 @@ export default function QuotationsClient({
                     ? { fetchPolicy: "SERVER_ONLY" as const }
                     : undefined;
 
-                const vars: any = {
-                    storeId,
+                const vars: SalesQueryVars = {
+                    storeId: storeId,
                     type: "ESTIMATE",
                     ...buildSortVars(sortField, sortDirection),
                 };
@@ -222,7 +255,7 @@ export default function QuotationsClient({
 
                 fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
 
-                const updated = response.data.sales.map((q: any) => ({
+                const updated: QuotationRow[] = response.data.sales.map((q) => ({
                     ...q,
                     is_deleted: 0,
                     updated_at: q.updatedAt || Date.now(),
@@ -277,7 +310,7 @@ export default function QuotationsClient({
         }
     };
 
-    const handleConvertToSale = async (quote: any) => {
+    const handleConvertToSale = async (quote: Record<string, unknown>) => {
         if (
             !confirm(
                 "Convert this estimate to a finalized Sale? This will deduct stock from inventory.",
@@ -286,7 +319,7 @@ export default function QuotationsClient({
             return;
         try {
             // E04-S3: Call server action for proper stock deduction
-            const result = await convertQuotationToSale(quote.id);
+            const result = await convertQuotationToSale(String(quote.id));
             if (result.success) {
                 alert(
                     "Successfully converted to Sale! Inventory has been updated.",
@@ -312,7 +345,7 @@ export default function QuotationsClient({
         });
     };
 
-    const generatePDF = (quote: any) => {
+    const generatePDF = (quote: QuotationRow) => {
         const doc = new jsPDF();
 
         doc.setFontSize(20);
@@ -320,9 +353,9 @@ export default function QuotationsClient({
 
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text(`Quote ID: #EST-${quote.id.substring(0, 8)}`, 14, 30);
+        doc.text(`Quote ID: #EST-${String(quote.id).substring(0, 8)}`, 14, 30);
         doc.text(
-            `Date: ${formatDate(quote.timestamp || quote.updated_at)}`,
+            `Date: ${formatDate(Number(quote.timestamp) || Number(quote.updated_at))}`,
             14,
             35,
         );
@@ -573,7 +606,7 @@ export default function QuotationsClient({
                         const rowActions: TableRowAction[] = [
                             {
                                 icon: <Plus size={16} />,
-                                onClick: (quote) => handleConvertToSale(quote as any),
+                                onClick: (quote: Record<string, unknown>) => handleConvertToSale(quote),
                                 className:
                                     "text-emerald-500 hover:text-emerald-700 transition-colors",
                                 title: "Convert to Sale",

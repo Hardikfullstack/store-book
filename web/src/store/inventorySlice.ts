@@ -1,8 +1,11 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { DcItem } from '@/types/dataconnect';
+
+/** Wide duck-typed item shape held in Redux — covers both LocalItem (snake_case)
+    and Item (camelCase) used by different consumers. */
+type InventoryItem = { id: string } & Record<string, unknown>;
 
 interface InventoryState {
-  items: DcItem[];
+  items: InventoryItem[];
   lastSynced: number;
 }
 
@@ -15,16 +18,16 @@ export const inventorySlice = createSlice({
   name: 'inventory',
   initialState,
   reducers: {
-    setInventory: (state, action: PayloadAction<DcItem[]>) => {
+    setInventory: (state, action: PayloadAction<InventoryItem[]>) => {
       state.items = action.payload;
       state.lastSynced = Date.now();
     },
-    updateInventoryItem: (state, action: PayloadAction<Partial<DcItem> & { id: string }>) => {
+    updateInventoryItem: (state, action: PayloadAction<InventoryItem>) => {
       const index = state.items.findIndex(i => i.id === action.payload.id);
       if (index !== -1) {
         state.items[index] = { ...state.items[index], ...action.payload };
       } else {
-        state.items.push(action.payload as DcItem);
+        state.items.push(action.payload);
       }
       state.lastSynced = Date.now();
     },

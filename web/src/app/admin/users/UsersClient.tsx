@@ -5,7 +5,18 @@ import { Users, Loader2, Save } from 'lucide-react';
 import { sanitizeInput } from '@/lib/sanitize';
 import { getUsersPaginated, updateUserRole } from '@/app/actions';
 
-export default function UsersClient({ initialUsers, availableStores }: { initialUsers: any[], availableStores: any[] }) {
+type UserRow = {
+  id: string;
+  role: string;
+  storeId?: string | null;
+};
+
+type StoreRow = {
+  id: string;
+  name: string;
+};
+
+export default function UsersClient({ initialUsers, availableStores }: { initialUsers: UserRow[], availableStores: StoreRow[] }) {
   const [users, setUsers] = useState(initialUsers);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialUsers.length === 20);
@@ -16,7 +27,7 @@ export default function UsersClient({ initialUsers, availableStores }: { initial
     setLoadingMore(true);
     try {
       const lastId = users[users.length - 1]?.id;
-      const nextBatch = await getUsersPaginated(lastId);
+      const nextBatch = (await getUsersPaginated(lastId)) as UserRow[];
       if (nextBatch.length < 20) {
         setHasMore(false);
       }
@@ -36,10 +47,10 @@ export default function UsersClient({ initialUsers, availableStores }: { initial
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, storeId: newStoreId === 'none' ? null : newStoreId } : u));
   };
 
-  const saveUser = async (user: any) => {
+  const saveUser = async (user: UserRow) => {
     setSavingId(user.id);
     try {
-      await updateUserRole(user.id, user.role, user.storeId);
+      await updateUserRole(user.id, user.role, user.storeId ?? null);
       alert(`Successfully updated user ${user.id}`);
     } catch (error) {
       console.error("Save failed:", error);
@@ -115,8 +126,8 @@ export default function UsersClient({ initialUsers, availableStores }: { initial
                               const res = await revokeUserSessions(user.id);
                               if (res.success) alert("Sessions revoked successfully.");
                               else alert("Failed to revoke: " + res.error);
-                            } catch (e: any) {
-                              alert("Error: " + e.message);
+                            } catch (e: unknown) {
+                              alert("Error: " + (e instanceof Error ? e.message : String(e)));
                             }
                           }}
                           className="p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex items-center gap-2 text-sm font-medium"

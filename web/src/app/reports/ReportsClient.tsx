@@ -6,6 +6,7 @@ import { dataConnect } from '@/lib/firebase';
 import { getActiveSaleItems, syncSales, syncItems } from '@/dataconnect';
 import { exportGstr1Report } from '@/lib/gstReportExporter';
 import Gstr1ReportView from '@/components/reports/Gstr1ReportView';
+import { DcSale, DcSaleItem, DcItem } from '@/types/dataconnect';
 
 type GSTReportType = 'GSTR1' | 'GSTR2' | 'GSTR3B' | 'DETAILED';
 
@@ -36,9 +37,9 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
 
   const [loading, setLoading] = useState<boolean>(true);
-  const [allSales, setAllSales] = useState<any[]>([]);
-  const [allSaleItems, setAllSaleItems] = useState<any[]>([]);
-  const [allItemsMap, setAllItemsMap] = useState<Map<string, any>>(new Map());
+  const [allSales, setAllSales] = useState<DcSale[]>([]);
+  const [allSaleItems, setAllSaleItems] = useState<DcSaleItem[]>([]);
+  const [allItemsMap, setAllItemsMap] = useState<Map<string, DcItem>>(new Map());
   const [businessGstin, setBusinessGstin] = useState<string>('');
   const [businessName, setBusinessName] = useState<string>('StoreBook');
 
@@ -69,7 +70,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
         const rawItems = saleItemsRes.data?.saleItemDetails || [];
         const rawMasterItems = itemsRes.data?.items || [];
 
-        const itemMap = new Map<string, any>();
+        const itemMap = new Map<string, DcItem>();
         for (const item of rawMasterItems) {
           itemMap.set(item.id, item);
         }
@@ -79,7 +80,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
         setAllItemsMap(itemMap);
 
         // Derive business GSTIN from latest sale if available
-        const bizGstin = rawSales.find((s: any) => s.businessGstin)?.businessGstin || '';
+        const bizGstin = rawSales.find((s) => s.businessGstin)?.businessGstin || '';
         setBusinessGstin(bizGstin);
       } catch (err) {
         console.error('Failed to fetch GST reports data:', err);

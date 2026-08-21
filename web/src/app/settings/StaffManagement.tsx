@@ -126,8 +126,8 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
             } else {
                 setError(res.error || "Failed to create account");
             }
-        } catch (err: any) {
-            setError(err.message || "An error occurred");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "An error occurred");
         } finally {
             setIsCreating(false);
         }
@@ -147,8 +147,8 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
             } else {
                 setError(res.error || "Failed to update role");
             }
-        } catch (err: any) {
-            setError(err.message || "An error occurred");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "An error occurred");
         }
     };
 
@@ -172,8 +172,8 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
             } else {
                 setError(res.error || "Failed to remove staff");
             }
-        } catch (err: any) {
-            setError(err.message || "An error occurred");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "An error occurred");
         } finally {
             setActionUid(null);
             setActiveAction(null);
@@ -197,8 +197,8 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
             } else {
                 setError(res.error || "Failed to reset password");
             }
-        } catch (err: any) {
-            setError(err.message || "An error occurred");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "An error occurred");
         } finally {
             setActionUid(null);
             setActiveAction(null);

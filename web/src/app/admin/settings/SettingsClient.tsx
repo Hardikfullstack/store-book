@@ -8,9 +8,9 @@ export default function SettingsClient({
   initialPromoCodes, 
   initialAnnouncements 
 }: { 
-  initialSettings: any[], 
-  initialPromoCodes: any[], 
-  initialAnnouncements: any[] 
+  initialSettings: Record<string, unknown>[], 
+  initialPromoCodes: Record<string, unknown>[], 
+  initialAnnouncements: Record<string, unknown>[] 
 }) {
   const [activeTab, setActiveTab] = useState<'config' | 'promo' | 'announcements'>('config');
 

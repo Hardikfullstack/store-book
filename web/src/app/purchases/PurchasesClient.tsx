@@ -22,6 +22,24 @@ import { recalculateItemFIFO } from '@/lib/fifoCalculator';
 import { FormattedAmount } from "@/components/FormattedAmount";
 import Pagination from "@/app/components/Pagination";
 
+interface PurchaseItem {
+  id: string;
+  itemId: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  buyPrice: number;
+}
+
+interface PurchaseEntry {
+  id: string;
+  supplierName: string;
+  totalAmount: number;
+  timestamp: number;
+  notes?: string | null;
+  purchaseItemDetails_on_purchase: PurchaseItem[];
+}
+
 export default function PurchasesClient({
   storeId,
   isPremium,
@@ -29,7 +47,7 @@ export default function PurchasesClient({
   storeId?: string;
   isPremium?: boolean;
 }) {
-  const [purchases, setPurchases] = useState<any[]>([]);
+  const [purchases, setPurchases] = useState<PurchaseEntry[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -48,11 +66,11 @@ export default function PurchasesClient({
   const [sortField, setSortField] = useState<string | null>("timestamp");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [reloadTrigger, setReloadTrigger] = useState(0);
-  const [editingItem, setEditingItem] = useState<{ purchaseId: string; item: any } | null>(null);
+  const [editingItem, setEditingItem] = useState<{ purchaseId: string; item: PurchaseItem } | null>(null);
   const [newPrice, setNewPrice] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const handleEditPriceClick = (purchaseId: string, item: any) => {
+  const handleEditPriceClick = (purchaseId: string, item: PurchaseItem) => {
     setEditingItem({ purchaseId, item });
     setNewPrice(item.buyPrice.toString());
   };
@@ -75,8 +93,8 @@ export default function PurchasesClient({
       const parentPurchase = purchases.find(p => p.id === purchaseId);
       if (parentPurchase) {
         const otherItemsTotal = (parentPurchase.purchaseItemDetails_on_purchase || [])
-          .filter((i: any) => i.id !== item.id)
-          .reduce((sum: number, i: any) => sum + (i.buyPrice * i.quantity), 0);
+          .filter((i: PurchaseItem) => i.id !== item.id)
+          .reduce((sum: number, i: PurchaseItem) => sum + (i.buyPrice * i.quantity), 0);
         const newTotalAmount = otherItemsTotal + (parsedPrice * item.quantity);
 
         await updatePurchaseTotalAmount(dataConnect, {
@@ -93,12 +111,12 @@ export default function PurchasesClient({
       setPurchases(prevPurchases =>
         prevPurchases.map(p => {
           if (p.id === purchaseId) {
-            const updatedItems = (p.purchaseItemDetails_on_purchase || []).map((pi: any) =>
+            const updatedItems = (p.purchaseItemDetails_on_purchase || []).map((pi: PurchaseItem) =>
               pi.id === item.id ? { ...pi, buyPrice: parsedPrice } : pi
             );
             const otherItemsTotal = (p.purchaseItemDetails_on_purchase || [])
-              .filter((i: any) => i.id !== item.id)
-              .reduce((sum: number, i: any) => sum + (i.buyPrice * i.quantity), 0);
+              .filter((i: PurchaseItem) => i.id !== item.id)
+              .reduce((sum: number, i: PurchaseItem) => sum + (i.buyPrice * i.quantity), 0);
             const newTotalAmount = otherItemsTotal + (parsedPrice * item.quantity);
             return {
               ...p,
@@ -368,7 +386,7 @@ export default function PurchasesClient({
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex flex-col gap-2">
-                            {items.map((item: any) => (
+                            {items.map((item: PurchaseItem) => (
                               <div key={item.id} className="text-sm text-gray-700 dark:text-gray-300 flex items-center justify-between gap-4 bg-gray-50 dark:bg-gray-800/40 p-2 rounded-lg border border-gray-100 dark:border-gray-800">
                                 <div>
                                   <span className="font-medium text-gray-900 dark:text-white">{item.itemName}</span>{' '}

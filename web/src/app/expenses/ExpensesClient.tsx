@@ -10,13 +10,27 @@ import { getActiveExpensesRef, syncExpense, softDeleteExpense, getExpenseEntries
 import { FormattedAmount } from '@/components/FormattedAmount';
 import Pagination from '@/app/components/Pagination';
 import DynamicTable, { TableColumn, TableRowAction } from '@/components/DynamicTable';
+import type { GetActiveExpensesVariables } from '@/dataconnect';
+
+type ExpenseRow = {
+  id: string;
+  type: string;
+  description: string;
+  amount: number;
+  timestamp: number;
+  supplierName?: string | null;
+  updatedAt: number;
+  is_deleted: number;
+  updated_at: number;
+  supplier_name?: string | null;
+} & Record<string, unknown>;
 
 export default function ExpensesClient({
   initialExpenses,
   storeId,
   isPremium
 }: {
-  initialExpenses: any[],
+  initialExpenses: ExpenseRow[],
   storeId?: string,
   isPremium?: boolean
 }) {
@@ -31,7 +45,7 @@ export default function ExpensesClient({
   const [dataVersion, setDataVersion] = useState(0);
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<ExpenseRow[]>([]);
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
   const [minAmountFilter, setMinAmountFilter] = useState('');
@@ -105,7 +119,7 @@ export default function ExpensesClient({
         const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
         const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
-        const vars: any = { storeId, ...buildSortVars(sortField, sortDirection) };
+        const vars: GetActiveExpensesVariables = { storeId, ...buildSortVars(sortField, sortDirection) };
         if (startDateFilter) vars.startDate = new Date(startDateFilter).getTime();
         if (endDateFilter) vars.endDate = new Date(endDateFilter).setHours(23, 59, 59, 999);
         if (minAmountFilter) vars.minAmount = Number(minAmountFilter);
@@ -124,7 +138,7 @@ export default function ExpensesClient({
 
         fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
 
-        const updated = response.data.expenseEntries.map((record: any) => ({
+        const updated = response.data.expenseEntries.map((record) => ({
           ...record,
           is_deleted: 0,
           updated_at: record.updatedAt || Date.now(),
@@ -297,33 +311,33 @@ export default function ExpensesClient({
 
         <div className="overflow-x-auto">
           {(() => {
-            const columns: TableColumn<any>[] = [
+            const columns: TableColumn<ExpenseRow>[] = [
               {
                 key: 'timestamp',
                 label: 'Date',
                 sortable: true,
-                render: (value, row) => new Date(value || row.updated_at).toLocaleDateString('en-IN')
+                render: (value, row) => new Date(Number(value) || row.updated_at).toLocaleDateString('en-IN')
               },
               {
                 key: 'type',
                 label: 'Type',
                 sortable: true,
-                render: (value: any) => (
+                render: (value) => (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                    {value}
+                    {value as string}
                   </span>
                 )
               },
               {
                 key: 'description',
                 label: 'Description',
-                render: (value: any) => <span className="text-gray-900 dark:text-gray-100">{value}</span>
+                render: (value) => <span className="text-gray-900 dark:text-gray-100">{value as string}</span>
               },
               {
                 key: 'supplier_name',
                 label: 'Supplier',
                 sortable: true,
-                render: (value: any) => <span className="text-gray-500 dark:text-gray-400">{value || '-'}</span>
+                render: (value) => <span className="text-gray-500 dark:text-gray-400">{(value as string) || '-'}</span>
               },
               {
                 key: 'amount',

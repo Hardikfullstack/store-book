@@ -30,9 +30,9 @@ const ADMIN_ROUTE_PERMISSIONS = [
   { name: 'Data Center', path: '/admin/data', icon: Database, permKey: 'canAccessAdmin' },
 ];
 
-export default function Sidebar({ session }: { session?: any }) {
-  const role = session?.role ?? 'staff';
-  const rawStoreId = session?.storeId;
+export default function Sidebar({ session }: { session?: Record<string, unknown> }) {
+  const role = (session as { role?: string } | undefined)?.role ?? 'staff';
+  const rawStoreId = (session as { storeId?: string } | undefined)?.storeId;
   const currentStoreId = typeof rawStoreId === 'string' ? rawStoreId : '';
   const stores: string[] = Array.isArray(session?.stores) ? session.stores : [];
   const [showCreateModal, setShowCreateModal] = useState(false);

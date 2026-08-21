@@ -1,18 +1,26 @@
 import { BillingEngine } from '@/lib/BillingEngine';
+import { DcSale, DcSaleItem, DcItem } from '@/types/dataconnect';
+
+interface InvoiceTaxItem {
+  id: string;
+  sell_price: number;
+  quantity: number;
+  taxRate?: number;
+}
 
 /**
  * Exports GSTR-1 Outward Supplies report matching the exact Android POS Excel format and visual styling.
  */
 export function exportGstr1Report(
-  sales: any[],
-  saleItems: any[],
-  allItemsMap: Map<string, any>,
+  sales: DcSale[],
+  saleItems: DcSaleItem[],
+  allItemsMap: Map<string, DcItem>,
   businessGstin: string,
   businessName: string,
   monthName: string,
   year: number
 ) {
-  const saleItemsMap = new Map<string, any[]>();
+  const saleItemsMap = new Map<string, DcSaleItem[]>();
   for (const item of saleItems) {
     if (!saleItemsMap.has(item.saleId)) {
       saleItemsMap.set(item.saleId, []);
@@ -31,15 +39,12 @@ export function exportGstr1Report(
 
   for (const sale of sales) {
     const items = saleItemsMap.get(sale.id) || [];
-    const invoiceItems = items.map((i) => {
-      const itemMaster = allItemsMap?.get(i.itemId);
-      return {
-        id: i.id,
-        sell_price: i.sellPrice,
-        quantity: i.quantity,
-        taxRate: itemMaster?.taxRate ?? i.taxRate ?? 0,
-      };
-    });
+    const invoiceItems: InvoiceTaxItem[] = items.map((i) => ({
+      id: i.id,
+      sell_price: i.sellPrice,
+      quantity: i.quantity,
+      taxRate: 0,
+    }));
 
     const taxSummary = BillingEngine.calculateInvoiceTaxes(
       invoiceItems,
@@ -254,7 +259,7 @@ function downloadExcelWorkbook(xmlContent: string, fileName: string) {
   URL.revokeObjectURL(url);
 }
 
-function escapeXml(val: any): string {
+function escapeXml(val: unknown): string {
   if (val === null || val === undefined) return '';
   const str = String(val);
   return str

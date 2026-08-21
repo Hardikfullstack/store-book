@@ -4,7 +4,14 @@ import { useState } from 'react';
 import { Store, Power, Edit3, Loader2 } from 'lucide-react';
 import { toggleStoreStatus, getStoresPaginated } from '@/app/actions';
 
-export default function StoresClient({ initialStores }: { initialStores: any[] }) {
+  interface StoreRow extends Record<string, unknown> {
+    id: string;
+    name: string;
+    location?: string;
+    is_active?: boolean;
+  }
+
+export default function StoresClient({ initialStores }: { initialStores: StoreRow[] }) {
   const [stores, setStores] = useState(initialStores);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialStores.length === 20);
@@ -14,7 +21,7 @@ export default function StoresClient({ initialStores }: { initialStores: any[] }
     setLoadingMore(true);
     try {
       const lastId = stores[stores.length - 1]?.id;
-      const nextBatch = await getStoresPaginated(lastId);
+      const nextBatch = (await getStoresPaginated(lastId)) as StoreRow[];
       if (nextBatch.length < 20) {
         setHasMore(false);
       }

@@ -28,7 +28,7 @@ export default function ImportCsvModal({
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [validItems, setValidItems] = useState<InventoryCsvRow[]>([]);
-  const [invalidItems, setInvalidItems] = useState<{ row: number; data: any; errors: string[] }[]>([]);
+  const [invalidItems, setInvalidItems] = useState<{ row: number; data: Record<string, unknown>; errors: string[] }[]>([]);
   const [activeTab, setActiveTab] = useState<'valid' | 'invalid'>('valid');
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
@@ -339,7 +339,7 @@ export default function ImportCsvModal({
                               Row {inv.row}:
                             </span>
                             <span className="font-medium text-gray-800 dark:text-gray-200">
-                              {inv.data.name}
+                              {inv.data.name as string}
                             </span>
                             <ul className="mt-1 list-disc list-inside text-red-500 dark:text-red-400 space-y-0.5">
                               {inv.errors.map((err, errIdx) => (

@@ -37,6 +37,41 @@ import DynamicTable, {
 	TableColumn,
 	TableRowAction,
 } from "@/components/DynamicTable";
+import type { GetActiveSalesVariables, GetActiveSaleItemsData } from "@/dataconnect";
+
+interface SaleRowBase {
+	id: string;
+	timestamp: number;
+	totalAmount: number;
+	discountAmount: number;
+	customerName?: string | null;
+	type: string;
+	notes?: string | null;
+	updatedAt: number;
+	customer_name?: string | null;
+	total_amount: number;
+	is_deleted: number;
+	cloud_id?: string;
+}
+
+type SaleRow = { [K in keyof SaleRowBase]?: SaleRowBase[K] } & { id: string; timestamp: number; totalAmount: number; discountAmount: number; type: string; updatedAt: number; is_deleted: number } & Record<string, unknown>;
+
+type SaleItemRow = GetActiveSaleItemsData["saleItemDetails"][number];
+
+interface SaleVars {
+	storeId: string;
+	type: string;
+	orderByTimestamp?: OrderDirection;
+	orderByCustomerName?: OrderDirection;
+	orderByTotalAmount?: OrderDirection;
+	minAmount?: number;
+	maxAmount?: number;
+	startDate?: number;
+	endDate?: number;
+	searchTerm?: string;
+	limit?: number;
+	offset?: number;
+}
 
 export default function SalesClient({
 	initialSales,
@@ -45,7 +80,7 @@ export default function SalesClient({
 	storeId,
 	isPremium,
 }: {
-	initialSales: any[];
+	initialSales: SaleRow[];
 	maxDiscountPercent?: number;
 	canDeleteRecords?: boolean;
 	storeId?: string;
@@ -59,23 +94,23 @@ export default function SalesClient({
 	const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
 	const [showModal, setShowModal] = useState(false);
 	const [debouncedSearch, setDebouncedSearch] = useState("");
-	const [searchResults, setSearchResults] = useState<any[]>([]);
+	const [searchResults, setSearchResults] = useState<SaleRow[]>([]);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [minAmountFilter, setMinAmountFilter] = useState("");
 	const [maxAmountFilter, setMaxAmountFilter] = useState("");
 	const [startDateFilter, setStartDateFilter] = useState("");
 	const [endDateFilter, setEndDateFilter] = useState("");
-	const [selectedSale, setSelectedSale] = useState<any | null>(null);
-	const [selectedSaleItems, setSelectedSaleItems] = useState<any[]>([]);
+	const [selectedSale, setSelectedSale] = useState<SaleRow | null>(null);
+	const [selectedSaleItems, setSelectedSaleItems] = useState<SaleItemRow[]>([]);
 	const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const searchResultsKeyRef = useRef("");
 
-	const handleRowClick = async (sale: any) => {
+	const handleRowClick = async (sale: SaleRow) => {
 		setSelectedSale(sale);
 		setIsLoadingDetails(true);
 		try {
-			const resp: any = await getSaleItemsBySaleId(dataConnect, { saleId: sale.id });
+			const resp = await getSaleItemsBySaleId(dataConnect, { saleId: sale.id });
 			setSelectedSaleItems(resp.data.saleItemDetails || []);
 		} catch (e) {
 			console.error('Error fetching sale details:', e);
@@ -201,7 +236,7 @@ export default function SalesClient({
 					? { fetchPolicy: "SERVER_ONLY" as const }
 					: undefined;
 
-				const vars: any = {
+				const vars: SaleVars = {
 					storeId,
 					type: "SALE",
 					...buildSortVars(sortField, sortDirection),
@@ -234,7 +269,7 @@ export default function SalesClient({
 
 				fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
 
-				const updated = response.data.sales.map((sale: any) => ({
+				const updated: SaleRow[] = response.data.sales.map((sale) => ({
 					...sale,
 					is_deleted: 0,
 					updated_at: sale.updatedAt || Date.now(),
@@ -278,7 +313,7 @@ export default function SalesClient({
 		endDateFilter,
 	]);
 	const [expandedSaleId, setExpandedSaleId] = useState<string | null>(null);
-	const [saleItemsMap, setSaleItemsMap] = useState<Record<string, any[]>>({});
+	const [saleItemsMap, setSaleItemsMap] = useState<Record<string, SaleItemRow[]>>({});
 
 	const fetchSaleItems = async (saleId: string) => {
 		if (saleItemsMap[saleId] !== undefined) return;
@@ -287,7 +322,7 @@ export default function SalesClient({
 			const resp = await executeQuery(
 				getActiveSaleItemsRef(dataConnect, { storeId: storeId }),
 			);
-			const allItems: any[] = resp.data?.saleItemDetails || [];
+			const allItems = (resp.data?.saleItemDetails as unknown as SaleItemRow[]) || [];
 			const saleItems = allItems.filter((i) => i.saleId === saleId);
 			setSaleItemsMap((prev) => ({ ...prev, [saleId]: saleItems }));
 		} catch (e) {
@@ -295,7 +330,7 @@ export default function SalesClient({
 		}
 	};
 
-	const toggleRowExpand = async (sale: any) => {
+	const toggleRowExpand = async (sale: SaleRow) => {
 		if (expandedSaleId === sale.id) {
 			setExpandedSaleId(null);
 		} else {
@@ -344,16 +379,15 @@ export default function SalesClient({
 				invalidateAllPages();
 				setCurrentPage(1);
 				setRefreshTrigger((prev) => prev + 1);
-				try {
-					await import("@/lib/sync-ping").then((m) =>
-						m.pingDashboardStore(storeId as string),
-					);
-				} catch (_) { }
-				try {
-					await import("@/app/actions").then(
-						(m) => m.revalidateDashboard() as any,
-					);
-				} catch (_) { }
+			try {
+				await import("@/lib/sync-ping").then((m) =>
+					m.pingDashboardStore(storeId as string),
+				);
+			} catch (_e) { }
+			try {
+				const actions = await import("@/app/actions");
+				await (actions as { revalidateDashboard?: () => Promise<void> }).revalidateDashboard?.();
+			} catch (_e) { }
 			} catch (err) {
 				console.error("Failed to delete sale:", err);
 			}
@@ -371,7 +405,7 @@ export default function SalesClient({
 		});
 	};
 
-	const generateInvoice = async (sale: any) => {
+	const generateInvoice = async (sale: SaleRow) => {
 		await fetchSaleItems(sale.id);
 		const items = saleItemsMap[sale.id] || [];
 
@@ -389,7 +423,7 @@ export default function SalesClient({
 			30,
 		);
 		doc.text(
-			`Date: ${formatDate(sale.timestamp || sale.updated_at)}`,
+			`Date: ${formatDate((sale.timestamp as number) || (sale.updated_at as number))}`,
 			14,
 			35,
 		);
@@ -604,7 +638,7 @@ export default function SalesClient({
 						const rowActions: TableRowAction[] = [
 							{
 								icon: <Download size={16} />,
-								onClick: (sale) => generateInvoice(sale as any),
+								onClick: (s) => generateInvoice(s as SaleRow),
 								className:
 									"text-teal-600 hover:text-teal-800 transition-colors",
 								title: "Download Invoice",

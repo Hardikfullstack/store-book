@@ -1,4 +1,4 @@
-import ItemsClient from "./ItemsClient";
+import ItemsClient, { type LocalItem } from "./ItemsClient";
 import { getSession } from "@/lib/session";
 import { resolvePermissions } from "@/lib/roleMatrix";
 
@@ -10,7 +10,7 @@ export default async function ItemsPage() {
     const canAccessCost = perms.canViewProfit;
     const canDeleteRecords = perms.canDeleteRecords;
 
-    const items: any[] = [];
+    const items: LocalItem[] = [];
     const isPremium = session.isPremium;
 
     return (

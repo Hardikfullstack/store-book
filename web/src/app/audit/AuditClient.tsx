@@ -5,20 +5,32 @@ import { Search, Loader2 } from 'lucide-react';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
-import { getStockAdjustmentsRef, getStockAdjustmentsCountRef } from '@/dataconnect';
+import { getStockAdjustmentsRef, getStockAdjustmentsCountRef, GetStockAdjustmentsVariables } from '@/dataconnect';
 import Pagination from '@/app/components/Pagination';
 import DynamicTable, { TableColumn } from '@/components/DynamicTable';
+
+interface AuditRow extends Record<string, unknown> {
+  id: string;
+  storeId?: string;
+  itemId?: string;
+  itemName: string;
+  reason: string;
+  delta: number;
+  timestamp: number;
+  isDeleted?: boolean;
+  updatedAt?: number;
+}
 
 export default function AuditClient({
   initialAdjustments,
   storeId,
   isPremium
 }: {
-  initialAdjustments: any[],
+  initialAdjustments: AuditRow[],
   storeId?: string,
   isPremium?: boolean
 }) {
-  const [adjustments, setAdjustments] = useState(initialAdjustments);
+  const [adjustments, setAdjustments] = useState<AuditRow[]>(initialAdjustments);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const [totalItems, setTotalItems] = useState(0);
@@ -31,7 +43,7 @@ export default function AuditClient({
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
 
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<AuditRow[]>([]);
   const searchResultsKeyRef = useRef('');
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
   const [dataVersion, setDataVersion] = useState(0);
@@ -98,7 +110,7 @@ export default function AuditClient({
         const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
         const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
-        const vars: any = { storeId };
+        const vars: GetStockAdjustmentsVariables & Record<string, unknown> = { storeId };
         if (debouncedSearch) vars.searchTerm = debouncedSearch;
         if (reasonFilter) vars.reason = reasonFilter;
         if (startDateFilter) vars.startDate = new Date(startDateFilter).getTime();
@@ -115,10 +127,10 @@ export default function AuditClient({
 
         fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
 
-        const updated = response.data.stockAdjustments.map((record: any) => ({
+        const updated = response.data.stockAdjustments.map((record) => ({
           ...record,
           updated_at: record.updatedAt || Date.now()
-        }));
+        }) as AuditRow);
 
         if (needsFullFetch) {
           searchResultsKeyRef.current = currentSearchKey;
@@ -167,7 +179,7 @@ export default function AuditClient({
     });
   };
 
-  const columns: TableColumn<any>[] = [
+  const columns: TableColumn<AuditRow>[] = [
     {
       key: 'timestamp',
       label: 'Date & Time',

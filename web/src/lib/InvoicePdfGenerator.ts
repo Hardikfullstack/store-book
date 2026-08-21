@@ -177,6 +177,7 @@ export class InvoicePdfGenerator {
 
     // Item description table (separate, no grid overlap with tax columns)
     const descYStart = yPos;
+    // jsPDF-AutoTable stores state on the doc instance — not in base type definitions
     let descYEnd = (doc as any).lastAutoTable.finalY;
 
     // Summary Section

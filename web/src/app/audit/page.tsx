@@ -10,7 +10,7 @@ export default async function AuditPage() {
     return redirect('/login');
   }
 
-  const adjustments: any[] = [];
+  const adjustments = [] as Parameters<typeof AuditClient>[0]['initialAdjustments'];
   const isPremium = session.isPremium;
 
   return (

@@ -3,7 +3,10 @@
 import { Store, Users, DollarSign, Activity, TrendingUp, AlertTriangle } from 'lucide-react';
 import { FormattedAmount } from '@/components/FormattedAmount';
 
-export default function AdminDashboardClient({ stores, users }: { stores: any[], users: any[] }) {
+type StoreRow = Record<string, unknown>;
+type UserRow = Record<string, unknown>;
+
+export default function AdminDashboardClient({ stores, users }: { stores: StoreRow[], users: UserRow[] }) {
   // Aggregate Metrics
   const activeStores = stores.filter(s => s.is_active !== false).length;
   const premiumStores = stores.filter(s => s.isPremium).length;

@@ -9,10 +9,24 @@ import { executeQuery } from 'firebase/data-connect';
 import { sanitizeInput } from '@/lib/sanitize';
 import { getActiveUdhaarsRef, syncUdhaar, softDeleteUdhaar, getUdhaarEntriesCountRef, OrderDirection } from '@/dataconnect';
 import { FormattedAmount } from '@/components/FormattedAmount';
+import { GetActiveUdhaarsVariables } from '@/dataconnect';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { setUdhaars, removeUdhaarRecord } from '@/store/udhaarSlice';
 import DynamicTable, { TableColumn, TableRowAction } from '@/components/DynamicTable';
+
+interface UdhaarRow extends Record<string, unknown> {
+  id: string;
+  customerName: string;
+  customer_name: string;
+  amount: number;
+  type: string;
+  timestamp: number;
+  notes?: string | null;
+  saleId?: string | null;
+  is_deleted: number;
+  updated_at: number;
+}
 
 export default function UdhaarClient({
   initialUdhaar,
@@ -20,7 +34,7 @@ export default function UdhaarClient({
   storeId,
   isPremium
 }: {
-  initialUdhaar: any[],
+   initialUdhaar: UdhaarRow[],
   storeName?: string,
   storeId?: string,
   isPremium?: boolean
@@ -29,14 +43,14 @@ export default function UdhaarClient({
   const cachedUdhaars = useSelector((state: RootState) => state.udhaar.records);
   const lastSynced = useSelector((state: RootState) => state.udhaar.lastSynced);
 
-  const [udhaar, setUdhaar] = useState<any[]>(cachedUdhaars.length > 0 ? cachedUdhaars : initialUdhaar);
+  const [udhaar, setUdhaar] = useState<UdhaarRow[]>(cachedUdhaars.length > 0 ? (cachedUdhaars as unknown as UdhaarRow[]) : (initialUdhaar as UdhaarRow[]));
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [dataVersion, setDataVersion] = useState(0);
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<UdhaarRow[]>([]);
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
   const [minAmountFilter, setMinAmountFilter] = useState('');
@@ -113,7 +127,7 @@ export default function UdhaarClient({
         const needsServerFetch = (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
         const options = needsServerFetch ? { fetchPolicy: 'SERVER_ONLY' as const } : undefined;
 
-        const vars: any = { storeId, ...buildSortVars(sortField, sortDirection) };
+        const vars: GetActiveUdhaarsVariables = { storeId, ...buildSortVars(sortField, sortDirection) };
         if (startDateFilter) vars.startDate = new Date(startDateFilter).getTime();
         if (endDateFilter) vars.endDate = new Date(endDateFilter).setHours(23, 59, 59, 999);
         if (minAmountFilter) vars.minAmount = Number(minAmountFilter);
@@ -132,7 +146,7 @@ export default function UdhaarClient({
 
         fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
 
-        const updated = response.data.udhaarEntries.map((record: any) => ({
+        const updated: UdhaarRow[] = response.data.udhaarEntries.map((record) => ({
           ...record,
           is_deleted: 0,
           updated_at: record.updatedAt || Date.now(),
@@ -149,7 +163,12 @@ export default function UdhaarClient({
           setSearchResults([]);
           setUdhaar(updated);
         }
-        dispatch(setUdhaars(updated));
+        dispatch(setUdhaars(updated.map(({ is_deleted, updated_at, customer_name: _cn, ...entry }) => ({
+          ...entry,
+          storeId: '',
+          isDeleted: false,
+          updatedAt: updated_at
+        }))));
       } catch (error) {
         console.error('Data Connect udhaar sync error:', error);
       } finally {

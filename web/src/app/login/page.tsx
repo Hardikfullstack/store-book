@@ -55,9 +55,9 @@ export default function LoginPage() {
       const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       setConfirmationResult(confirmation);
       setStep('OTP');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || 'Failed to send OTP. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to send OTP. Please try again.');
       // Reset recaptcha on error
       if (window.recaptchaVerifier) {
         window.recaptchaVerifier.clear();
@@ -90,9 +90,9 @@ export default function LoginPage() {
         setError(res.error || 'Failed to create session');
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || 'Invalid OTP. Please try again.');
+      setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -117,7 +117,7 @@ export default function LoginPage() {
       } else {
         setError(res.error || 'Failed to create session');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setError('Invalid username or password.');
     } finally {
@@ -293,6 +293,6 @@ export default function LoginPage() {
 // Add type for window.recaptchaVerifier
 declare global {
   interface Window {
-    recaptchaVerifier: any;
+    recaptchaVerifier: import('firebase/auth').RecaptchaVerifier | undefined;
   }
 }

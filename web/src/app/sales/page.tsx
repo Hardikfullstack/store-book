@@ -8,7 +8,7 @@ export default async function SalesPage() {
 
     const perms = resolvePermissions(session.role ?? "staff");
 
-    const sales: any[] = [];
+    const sales = [] as Parameters<typeof SalesClient>[0]['initialSales'];
     const isPremium = session.isPremium;
 
     return (

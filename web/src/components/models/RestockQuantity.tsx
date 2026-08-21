@@ -64,10 +64,10 @@ function RestockQuantity({
                 if (!isMounted) return;
 
                 const nextSuppliers = res.data.suppliers
-                    .map((doc: any) => {
-                        const rawName = doc.name;
+                    .map(doc => {
+                        const rawName = (doc as { name?: string }).name;
                         return {
-                            id: doc.id,
+                            id: (doc as { id: string }).id,
                             name:
                                 typeof rawName === "string"
                                     ? rawName.trim()

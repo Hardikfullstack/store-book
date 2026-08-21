@@ -5,9 +5,17 @@ import { Receipt, Search, CreditCard, Play, Edit, ShieldCheck } from 'lucide-rea
 import { sanitizeInput } from '@/lib/sanitize';
 import { FormattedAmount } from '@/components/FormattedAmount';
 
-export default function BillingClient({ stores }: { stores: any[] }) {
+type StoreBillingRow = {
+  id: string;
+  name: string;
+  isPremium?: boolean;
+  subscriptionPlatform?: string;
+  subscriptionExpiresAt?: string;
+};
+
+export default function BillingClient({ stores }: { stores: StoreBillingRow[] }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingStore, setEditingStore] = useState<any>(null);
+  const [editingStore, setEditingStore] = useState<StoreBillingRow | null>(null);
 
   const filteredStores = stores.filter(s =>
     (s.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -136,7 +144,7 @@ export default function BillingClient({ stores }: { stores: any[] }) {
                 <select className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-teal-500">
                   <option value="razorpay" selected={editingStore.subscriptionPlatform === 'razorpay'}>Razorpay (Web)</option>
                   <option value="google_play" selected={editingStore.subscriptionPlatform === 'google_play'}>Google Play (App)</option>
-                  <option value="manual" selected={!['razorpay', 'google_play'].includes(editingStore.subscriptionPlatform)}>Manual / Support</option>
+                  <option value="manual" selected={editingStore.subscriptionPlatform ? !['razorpay', 'google_play'].includes(editingStore.subscriptionPlatform) : true}>Manual / Support</option>
                 </select>
               </div>
 

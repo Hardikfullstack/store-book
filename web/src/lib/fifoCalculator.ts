@@ -4,8 +4,63 @@ import {
   getUdhaarBySaleId,
   syncSale,
   syncUdhaar,
-  upsertSaleItemDetail
+  upsertSaleItemDetail,
 } from '@/dataconnect';
+import type { DataConnect } from 'firebase/data-connect';
+
+interface FifoPurchase {
+  id: string;
+  purchaseId: string;
+  itemId: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  buyPrice: number;
+  updatedAt: number;
+  purchase?: { timestamp: number };
+}
+
+interface FifoSaleNested {
+  timestamp: number;
+  totalAmount: number;
+  discountAmount: number;
+  customerName?: string | null;
+  customerGstin?: string | null;
+  businessGstin?: string | null;
+  customerAddress?: string | null;
+  businessAddress?: string | null;
+  type: string;
+  notes?: string | null;
+  updatedAt?: number | null;
+}
+
+interface FifoSaleItem {
+  id: string;
+  saleId: string;
+  itemId: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  sellPrice: number;
+  buyPrice: number;
+  updatedAt: number;
+  taxRate?: number | null;
+  hsnCode?: string | null;
+  sale?: FifoSaleNested;
+}
+
+interface FifoUdhaar {
+  id: string;
+  storeId: string;
+  customerName: string;
+  amount: number;
+  type: string;
+  timestamp: number;
+  notes?: string | null;
+  saleId?: string | null;
+  isDeleted: boolean;
+  updatedAt: number;
+}
 
 interface PurchaseBatch {
   id: string;
@@ -20,19 +75,19 @@ interface PurchaseBatch {
 export async function recalculateItemFIFO(
   storeId: string,
   itemId: string,
-  dataConnect: any,
-  editedPurchaseId?: string
+  dataConnect: DataConnect,
+  editedPurchaseId?: string,
 ) {
   const now = Math.floor(Date.now() / 1000);
 
   // 1. Fetch active purchases and sort them chronologically by purchase timestamp ASC (older records first)
-  const purchasesResp: any = await getPurchaseItemsForFIFO(
+  const purchasesResp = await getPurchaseItemsForFIFO(
     dataConnect,
     { storeId, itemId },
-    { fetchPolicy: 'SERVER_ONLY' as const }
+    { fetchPolicy: 'SERVER_ONLY' as const },
   );
-  const rawPurchases = purchasesResp.data?.purchaseItemDetails || [];
-  const purchases = rawPurchases.slice().sort((a: any, b: any) => {
+  const rawPurchases: FifoPurchase[] = purchasesResp.data?.purchaseItemDetails || [];
+  const purchases: FifoPurchase[] = rawPurchases.slice().sort((a, b) => {
     const tA = a.purchase?.timestamp || a.updatedAt || 0;
     const tB = b.purchase?.timestamp || b.updatedAt || 0;
     if (tA !== tB) return tA - tB;
@@ -40,13 +95,13 @@ export async function recalculateItemFIFO(
   });
 
   // 2. Fetch active sale item details and sort chronologically by sale updatedAt ASC (older sales first)
-  const salesResp: any = await getSaleItemsForFIFO(
+  const salesResp = await getSaleItemsForFIFO(
     dataConnect,
     { storeId, itemId },
-    { fetchPolicy: 'SERVER_ONLY' as const }
+    { fetchPolicy: 'SERVER_ONLY' as const },
   );
-  const rawSales = salesResp.data?.saleItemDetails || [];
-  const saleItems = rawSales.slice().sort((a: any, b: any) => {
+  const rawSales: FifoSaleItem[] = salesResp.data?.saleItemDetails || [];
+  const saleItems: FifoSaleItem[] = rawSales.slice().sort((a, b) => {
     const tA = a.sale?.updatedAt || a.updatedAt || a.sale?.timestamp || 0;
     const tB = b.sale?.updatedAt || b.updatedAt || b.sale?.timestamp || 0;
     if (tA !== tB) return tA - tB;
@@ -55,7 +110,7 @@ export async function recalculateItemFIFO(
 
   // 3. If a specific purchase was edited, allocate that purchase's updated price & quantity to the oldest available sales by updatedAt ASC
   if (editedPurchaseId) {
-    const editedPurchaseItem = purchases.find((p: any) => p.purchaseId === editedPurchaseId || p.id === editedPurchaseId);
+    const editedPurchaseItem = purchases.find((p) => p.purchaseId === editedPurchaseId || p.id === editedPurchaseId);
     if (editedPurchaseItem) {
       let remainingEditedQty = editedPurchaseItem.quantity;
       const newPrice = editedPurchaseItem.buyPrice;
@@ -195,7 +250,7 @@ export async function recalculateItemFIFO(
           });
 
           // 3. Proportional Udhaar entry split
-          const udhaarResp: any = await getUdhaarBySaleId(dataConnect, { saleId: saleItem.saleId });
+          const udhaarResp = await getUdhaarBySaleId(dataConnect, { saleId: saleItem.saleId });
           const udhaarEntries = udhaarResp.data?.udhaarEntries || [];
           if (udhaarEntries.length > 0) {
             const originalTotalBeforeSplit = originalSale.totalAmount;
@@ -242,7 +297,7 @@ export async function recalculateItemFIFO(
   }
 
   // 4. Default full FIFO allocation across all batches if editedPurchaseId is not provided
-  const batches: PurchaseBatch[] = purchases.map((p: any) => ({
+  const batches: PurchaseBatch[] = (purchases as FifoPurchase[]).map(p => ({
     id: p.id,
     purchaseId: p.purchaseId,
     buyPrice: p.buyPrice,

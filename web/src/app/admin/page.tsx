@@ -17,5 +17,5 @@ export default async function AdminPage() {
   const stores = await getStoresPaginated(undefined, 100);
   const users = await getUsersPaginated(undefined, 100);
 
-  return <AdminDashboardClient stores={stores} users={users} />;
+  return <AdminDashboardClient stores={stores as Record<string, unknown>[]} users={users as Record<string, unknown>[]} />;
 }

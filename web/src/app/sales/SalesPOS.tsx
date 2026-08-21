@@ -34,7 +34,7 @@ import { setInventory, updateInventoryItem } from "@/store/inventorySlice";
 import { BillingEngine } from "@/lib/BillingEngine";
 import { InvoicePdfGenerator } from "@/lib/InvoicePdfGenerator";
 
-interface Item {
+type Item = {
     id: string;
     name: string;
     quantity: number;
@@ -48,9 +48,9 @@ interface Item {
     hsnCode?: string | null;
     barcode?: string;
     taxRate?: number;
-}
+};
 
-interface CartItem {
+type CartItem = {
     item: Item;
     quantity: number;
 }
@@ -75,7 +75,7 @@ export default function SalesPOS({
         (state: RootState) => state.udhaar.records,
     );
 
-    const [items, setItems] = useState<Item[]>(cachedInventory.items || []);
+    const [items, setItems] = useState<Item[]>(cachedInventory.items as Item[] || []);
     const [loading, setLoading] = useState(
         !cachedInventory.items || cachedInventory.items.length === 0,
     );
@@ -115,10 +115,10 @@ export default function SalesPOS({
 
     const udhaarBalances = useMemo(() => {
         const balances = new Map<string, number>();
-        (udhaarRecords || []).forEach((entry: any) => {
+        (udhaarRecords || []).forEach((entry: typeof udhaarRecords[0]) => {
             const name = entry.customerName?.trim();
             if (!name || entry.isDeleted) return;
-            const amt = parseFloat(entry.amount) || 0;
+            const amt = Number(entry.amount) || 0;
             const current = balances.get(name) || 0;
             balances.set(
                 name,
@@ -170,7 +170,7 @@ export default function SalesPOS({
                 cachedInventory.items.length > 0 &&
                 Date.now() - cachedInventory.lastSynced < 5 * 60 * 1000;
             if (isCacheValid && isMounted) {
-                setItems(cachedInventory.items);
+                setItems(cachedInventory.items as Item[]);
                 setLoading(false);
             }
 
@@ -182,7 +182,7 @@ export default function SalesPOS({
                 );
                 if (!isMounted) return;
 
-                const updated = response.data.items.map((item: any) => ({
+                const updated: Item[] = response.data.items.map((item) => ({
                     ...item,
                     buyPrice: item.buyPrice || 0,
                     sellPrice: item.sellPrice || 0,

@@ -71,9 +71,10 @@ export async function POST(request: Request) {
                 uid: userRecord.uid,
                 username,
             });
-        } catch (authError: any) {
+        } catch (authError: unknown) {
+            const message = authError instanceof Error ? authError.message : "Auth error";
             return NextResponse.json(
-                { error: authError.message || "Auth error" },
+                { error: message },
                 { status: 400 },
             );
         }

@@ -36,6 +36,7 @@ export interface DcSale {
   customerAddress?: string | null;
   businessAddress?: string | null;
   type: string;
+  invoiceNumber?: string | null;
   notes?: string | null;
   isDeleted: boolean;
   updatedAt: number;
@@ -50,11 +51,11 @@ export interface DcSaleItem {
   itemId: string;
   itemName: string;
   quantity: number;
-  unit: string;
+  unit?: string;
   sellPrice: number;
   buyPrice: number;
-  isDeleted: boolean;
-  updatedAt: number;
+  isDeleted?: boolean;
+  updatedAt?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -212,6 +213,21 @@ export interface DcExpenseEntry {
   timestamp: number;
   supplierName?: string | null;
   supplierPhone?: string | null;
+  isDeleted: boolean;
+  updatedAt: number;
+}
+
+// ---------------------------------------------------------------------------
+// StockAdjustment — element of GetStockAdjustmentsData["stockAdjustments"]
+// ---------------------------------------------------------------------------
+export interface DcStockAdjustment {
+  id: string;
+  storeId: string;
+  itemId: string;
+  itemName: string;
+  reason: string;
+  delta: number;
+  timestamp: number;
   isDeleted: boolean;
   updatedAt: number;
 }

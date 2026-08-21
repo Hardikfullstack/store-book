@@ -30,6 +30,54 @@ import {
 } from "@/dataconnect";
 import { FormattedAmount } from "@/components/FormattedAmount";
 import SetupProgress from "@/components/SetupProgress";
+import {
+    DcItem,
+    DcSale,
+    DcUdhaarEntry,
+    DcExpenseEntry,
+    DcSaleItem,
+} from "@/types/dataconnect";
+
+type DashboardItem = Omit<DcItem, "buyPrice"> & { buyPrice?: number };
+
+interface NormalizedSale {
+    id: string;
+    timestamp: number;
+    totalAmount: number;
+    discountAmount: number;
+    customerName?: string | null;
+    type: string;
+    notes?: string | null;
+    updatedAt: number;
+    isDeleted?: boolean;
+    total_amount: number;
+    updated_at: number;
+}
+
+interface NormalizedUdhaar {
+    id: string;
+    customerName: string;
+    amount: number;
+    type: string;
+    timestamp: number;
+    notes?: string | null;
+    saleId?: string | null;
+    updatedAt: number;
+    isDeleted?: boolean;
+    updated_at: number;
+}
+
+interface NormalizedExpense {
+    id: string;
+    type: string;
+    description: string;
+    amount: number;
+    timestamp: number;
+    supplierName?: string | null;
+    updatedAt: number;
+    isDeleted?: boolean;
+    updated_at: number;
+}
 
 interface Stats {
     totalItems: number;
@@ -37,9 +85,9 @@ interface Stats {
     totalUdhaar: number;
     totalExpenses: number;
     totalStores: number;
-    salesData: any[];
-    itemsData: any[];
-    saleItemsData: any[];
+    salesData: NormalizedSale[];
+    itemsData: DashboardItem[];
+    saleItemsData: DcSaleItem[];
 }
 
 export default function DashboardClient({
@@ -59,11 +107,11 @@ export default function DashboardClient({
     const [dateRange, setDateRange] = useState<
         "today" | "week" | "month" | "all"
     >("all");
-    const [rawSales, setRawSales] = useState<any[]>([]);
-    const [rawUdhaars, setRawUdhaars] = useState<any[]>([]);
-    const [rawExpenses, setRawExpenses] = useState<any[]>([]);
-    const [rawSaleItems, setRawSaleItems] = useState<any[]>([]);
-    const [itemsList, setItemsList] = useState<any[]>([]);
+    const [rawSales, setRawSales] = useState<NormalizedSale[]>([]);
+    const [rawUdhaars, setRawUdhaars] = useState<NormalizedUdhaar[]>([]);
+    const [rawExpenses, setRawExpenses] = useState<NormalizedExpense[]>([]);
+    const [rawSaleItems, setRawSaleItems] = useState<DcSaleItem[]>([]);
+    const [itemsList, setItemsList] = useState<DashboardItem[]>([]);
     const [isPreparing, setIsPreparing] = useState(false);
 
     useEffect(() => {
@@ -161,15 +209,17 @@ export default function DashboardClient({
             return 0;
         };
 
-        const mergeDelta = (oldArr: any[], newArr: any[]) => {
+        const mergeDelta = <T extends { id: string; isDeleted?: boolean }>(
+            oldArr: T[],
+            newArr: T[]
+        ): T[] => {
             const newMap = new Map(newArr.map((i) => [i.id, i]));
             const merged = oldArr.map((i) =>
-                newMap.has(i.id) ? newMap.get(i.id) : i,
+                newMap.has(i.id) ? (newMap.get(i.id) ?? i) : i,
             );
             newArr.forEach((i) => {
                 if (!oldArr.find((o) => o.id === i.id)) merged.push(i);
             });
-            // Purge soft-deleted records from persistent cache to prevent bloat
             return merged.filter((i) => !i.isDeleted);
         };
 
@@ -202,28 +252,26 @@ export default function DashboardClient({
 
                     if (!isMounted) return;
 
-                    const parsedItems = itemsRes.data.items.map((item: any) => {
-                        if (!canAccessCost) delete item.buyPrice;
-                        return { id: item.id, ...item };
+                    const parsedItems: DashboardItem[] = itemsRes.data.items.map((item) => {
+                        const entry: DashboardItem = { ...item } as DashboardItem;
+                        if (!canAccessCost) delete (entry as Record<string, unknown>).buyPrice;
+                        return entry;
                     });
-                    const parsedSales = salesRes.data.sales
-                        .filter((sale: any) => sale.type === "SALE")
-                        .map((sale: any) => ({
-                            id: sale.id,
+                    const parsedSales: NormalizedSale[] = salesRes.data.sales
+                        .filter((sale) => sale.type === "SALE")
+                        .map((sale) => ({
                             ...sale,
                             total_amount: sale.totalAmount,
                             updated_at: sale.updatedAt,
                         }));
-                    const parsedUdhaars = udhaarsRes.data.udhaarEntries.map(
-                        (u: any) => ({
-                            id: u.id,
+                    const parsedUdhaars: NormalizedUdhaar[] = udhaarsRes.data.udhaarEntries.map(
+                        (u) => ({
                             ...u,
                             updated_at: u.updatedAt,
                         }),
                     );
-                    const parsedExpenses = expensesRes.data.expenseEntries.map(
-                        (e: any) => ({
-                            id: e.id,
+                    const parsedExpenses: NormalizedExpense[] = expensesRes.data.expenseEntries.map(
+                        (e) => ({
                             ...e,
                             updated_at: e.updatedAt,
                         }),
@@ -275,28 +323,26 @@ export default function DashboardClient({
                         saleItems: [],
                     };
 
-                    const pItems = itemsRes.data.items.map((item: any) => {
-                        if (!canAccessCost) delete item.buyPrice;
-                        return { id: item.id, ...item };
+                    const pItems: DashboardItem[] = itemsRes.data.items.map((item) => {
+                        const entry: DashboardItem = { ...item } as DashboardItem;
+                        if (!canAccessCost) delete (entry as Record<string, unknown>).buyPrice;
+                        return entry;
                     });
-                    const pSales = salesRes.data.sales
-                        .filter((sale: any) => sale.type === "SALE")
-                        .map((sale: any) => ({
-                            id: sale.id,
+                    const pSales: NormalizedSale[] = salesRes.data.sales
+                        .filter((sale) => sale.type === "SALE")
+                        .map((sale) => ({
                             ...sale,
                             total_amount: sale.totalAmount,
                             updated_at: sale.updatedAt,
                         }));
-                    const pUdhaars = udhaarsRes.data.udhaarEntries.map(
-                        (u: any) => ({
-                            id: u.id,
+                    const pUdhaars: NormalizedUdhaar[] = udhaarsRes.data.udhaarEntries.map(
+                        (u) => ({
                             ...u,
                             updated_at: u.updatedAt,
                         }),
                     );
-                    const pExpenses = expensesRes.data.expenseEntries.map(
-                        (e: any) => ({
-                            id: e.id,
+                    const pExpenses: NormalizedExpense[] = expensesRes.data.expenseEntries.map(
+                        (e) => ({
                             ...e,
                             updated_at: e.updatedAt,
                         }),
@@ -408,7 +454,7 @@ export default function DashboardClient({
     if (isAdmin) {
         statCards.unshift({
             title: "Total Stores",
-            value: stats.totalStores as any,
+            value: stats.totalStores,
             icon: <Store className="text-white" size={24} />,
             color: "bg-purple-500",
             trend: "+2 new",
@@ -436,7 +482,9 @@ export default function DashboardClient({
                     <select
                         value={dateRange}
                         onChange={(e) =>
-                            setDateRange(sanitizeInput(e.target.value) as any)
+                            setDateRange(
+                                sanitizeInput(e.target.value) as "today" | "week" | "month" | "all"
+                            )
                         }
                         className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-teal-500"
                     >

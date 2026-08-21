@@ -16,9 +16,15 @@ export interface InventoryCsvRow {
   taxRate: number;
 }
 
+export interface CsvValidationError {
+  row: number;
+  data: { name: string; quantity: number | string; buyPrice: number | string; sellPrice: number | string };
+  errors: string[];
+}
+
 export interface CsvValidationResult {
   validItems: InventoryCsvRow[];
-  invalidItems: { row: number; data: any; errors: string[] }[];
+  invalidItems: CsvValidationError[];
   totalRows: number;
 }
 
@@ -37,7 +43,7 @@ export const INVENTORY_CSV_HEADERS = [
 /**
  * Escapes a field according to RFC 4180 CSV standard.
  */
-function escapeCsvValue(val: any): string {
+function escapeCsvValue(val: unknown): string {
   if (val === null || val === undefined) return '';
   const str = String(val);
   if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
@@ -49,7 +55,26 @@ function escapeCsvValue(val: any): string {
 /**
  * Generates CSV string for full store inventory items (without ID column).
  */
-export function generateInventoryCsv(items: any[]): string {
+interface CsvItemShape {
+  name?: string;
+  itemName?: string;
+  quantity?: number;
+  stock_quan?: number;
+  unit?: string;
+  buyPrice?: number;
+  buy_price?: number;
+  sellPrice?: number;
+  sell_price?: number;
+  lowStockThreshold?: number;
+  low_stock_threshold?: number;
+  category?: string;
+  hsnCode?: string | number;
+  hsn_code?: string | number;
+  taxRate?: number;
+  tax_rate?: number;
+}
+
+export function generateInventoryCsv(items: CsvItemShape[]): string {
   const headerLine = INVENTORY_CSV_HEADERS.join(',');
   const rowLines = items.map((item) => {
     const name = item.name || item.itemName || '';
@@ -192,7 +217,7 @@ export function parseInventoryCsv(csvText: string): CsvValidationResult {
   };
 
   const validItems: InventoryCsvRow[] = [];
-  const invalidItems: { row: number; data: any; errors: string[] }[] = [];
+  const invalidItems: { row: number; data: CsvValidationError['data']; errors: string[] }[] = [];
 
   for (let i = 1; i < lines.length; i++) {
     const rowNumber = i + 1;

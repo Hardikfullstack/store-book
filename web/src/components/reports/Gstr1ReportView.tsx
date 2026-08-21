@@ -5,11 +5,19 @@ import { Download, ShoppingBag } from 'lucide-react';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import { exportGstr1Report } from '@/lib/gstReportExporter';
 import { BillingEngine } from '@/lib/BillingEngine';
+import { DcSale, DcSaleItem, DcItem } from '@/types/dataconnect';
+
+interface InvoiceTaxItem {
+  id: string;
+  sell_price: number;
+  quantity: number;
+  taxRate?: number;
+}
 
 interface Gstr1ReportViewProps {
-  sales: any[];
-  saleItems: any[];
-  allItemsMap: Map<string, any>;
+  sales: DcSale[];
+  saleItems: DcSaleItem[];
+  allItemsMap: Map<string, DcItem>;
   businessGstin: string;
   businessName: string;
   monthName: string;
@@ -27,7 +35,7 @@ export default function Gstr1ReportView({
 }: Gstr1ReportViewProps) {
   // 1. Group sale item details by saleId
   const saleItemsMap = React.useMemo(() => {
-    const map = new Map<string, any[]>();
+    const map = new Map<string, DcSaleItem[]>();
     for (const item of saleItems) {
       if (!map.has(item.saleId)) {
         map.set(item.saleId, []);
@@ -41,15 +49,12 @@ export default function Gstr1ReportView({
   const salesWithTaxes = React.useMemo(() => {
     return sales.map((sale) => {
       const items = saleItemsMap.get(sale.id) || [];
-      const invoiceItems = items.map((i) => {
-        const itemMaster = allItemsMap?.get(i.itemId);
-        return {
-          id: i.id,
-          sell_price: i.sellPrice,
-          quantity: i.quantity,
-          taxRate: itemMaster?.taxRate ?? i.taxRate ?? 0,
-        };
-      });
+      const invoiceItems: InvoiceTaxItem[] = items.map((i) => ({
+        id: i.id,
+        sell_price: i.sellPrice,
+        quantity: i.quantity,
+        taxRate: 0,
+      }));
 
       const taxSummary = BillingEngine.calculateInvoiceTaxes(
         invoiceItems,
@@ -63,7 +68,7 @@ export default function Gstr1ReportView({
         taxSummary,
       };
     });
-  }, [sales, saleItemsMap, allItemsMap, businessGstin]);
+  }, [sales, saleItemsMap, businessGstin]);
 
   // 3. Aggregate totals
   const totalSales = React.useMemo(() => {

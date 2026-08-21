@@ -5,7 +5,16 @@ import { sanitizeInput } from '@/lib/sanitize';
 import { Database, AlertTriangle, CheckCircle, Clock, Shield, Trash2 } from 'lucide-react';
 import { archiveOldData } from '@/app/actions';
 
-export default function DataClient({ initialAuditLogs }: { initialAuditLogs: any[] }) {
+type AuditLogRow = {
+  id: string;
+  adminUsername?: string;
+  adminId?: string;
+  action: string;
+  targetId: string;
+  timestamp: string | number;
+};
+
+export default function DataClient({ initialAuditLogs }: { initialAuditLogs: AuditLogRow[] }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
   const [days, setDays] = useState(180);
@@ -17,8 +26,8 @@ export default function DataClient({ initialAuditLogs }: { initialAuditLogs: any
     try {
       const response = await archiveOldData(days);
       setResult({ success: response.success, message: response.success ? `Successfully archived ${response.count} records.` : response.error || 'Failed to archive data.' });
-    } catch (error: any) {
-      setResult({ success: false, message: error.message || 'Error occurred.' });
+    } catch (error: unknown) {
+      setResult({ success: false, message: error instanceof Error ? error.message : 'Error occurred.' });
     } finally {
       setLoading(false);
     }
@@ -39,8 +48,8 @@ export default function DataClient({ initialAuditLogs }: { initialAuditLogs: any
       } else {
         alert("Purge failed: " + res.error);
       }
-    } catch (e: any) {
-      alert("Error: " + e.message);
+    } catch (e: unknown) {
+      alert("Error: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setLoading(false);
     }
@@ -117,7 +126,7 @@ export default function DataClient({ initialAuditLogs }: { initialAuditLogs: any
             ) : (
               <table className="w-full text-left text-sm">
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {initialAuditLogs.map((log: any) => (
+                  {initialAuditLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
                       <td className="p-4">
                         <span className="font-bold text-gray-900 dark:text-white">{log.adminUsername || log.adminId}</span>

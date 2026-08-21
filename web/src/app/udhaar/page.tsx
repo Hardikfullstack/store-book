@@ -10,7 +10,7 @@ export default async function UdhaarPage() {
     return redirect('/login');
   }
 
-  const udhaar: any[] = [];
+  const udhaar = [] as Parameters<typeof UdhaarClient>[0]['initialUdhaar'];
   const storeName = "Your Store";
   const isPremium = session.isPremium;
 

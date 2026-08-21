@@ -15,58 +15,61 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { sanitizeInput } from '@/lib/sanitize';
+import { ChartDatum, DcItem, DcSaleItem } from '@/types/dataconnect';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+
+interface DashboardChartProps {
+  salesData: Array<{ total_amount?: number; customer_name?: string | null }>;
+  itemsData: Array<Partial<DcItem> & { category?: string | null }>;
+  saleItemsData?: DcSaleItem[];
+}
 
 export default function DashboardCharts({
   salesData = [],
   itemsData = [],
   saleItemsData = []
-}: {
-  salesData: any[],
-  itemsData: any[],
-  saleItemsData?: any[]
-}) {
+}: DashboardChartProps) {
   const [chartType, setChartType] = useState<'customer' | 'product' | 'fast' | 'dead' | 'profit'>('customer');
 
-  const customerData = salesData.reduce((acc: any, sale: any) => {
+  const customerData = salesData.reduce((acc: ChartDatum[], sale) => {
     const name = sale.customer_name || 'Walk-in';
-    const existing = acc.find((item: any) => item.name === name);
+    const existing = acc.find((item: ChartDatum) => item.name === name);
     if (existing) {
       existing.value += sale.total_amount || 0;
     } else {
       acc.push({ name, value: sale.total_amount || 0 });
     }
     return acc;
-  }, []).sort((a: any, b: any) => b.value - a.value).slice(0, 5);
+  }, [] as ChartDatum[]).sort((a: ChartDatum, b: ChartDatum) => b.value - a.value).slice(0, 5);
 
-  const productData = itemsData.reduce((acc: any, item: any) => {
+  const productData = itemsData.reduce((acc: ChartDatum[], item) => {
     const category = item.category || 'Uncategorized';
-    const existing = acc.find((i: any) => i.name === category);
+    const existing = acc.find((i: ChartDatum) => i.name === category);
     if (existing) {
       existing.value += item.quantity || 0;
     } else {
       acc.push({ name: category, value: item.quantity || 0 });
     }
     return acc;
-  }, []).sort((a: any, b: any) => b.value - a.value).slice(0, 5);
+  }, [] as ChartDatum[]).sort((a: ChartDatum, b: ChartDatum) => b.value - a.value).slice(0, 5);
 
   // Fast Moving Items
-  const fastMovingData = (saleItemsData || []).reduce((acc: any, item: any) => {
-    const existing = acc.find((i: any) => i.name === item.itemName);
+  const fastMovingData = (saleItemsData || []).reduce((acc: ChartDatum[], item) => {
+    const existing = acc.find((i: ChartDatum) => i.name === item.itemName);
     if (existing) {
       existing.value += item.quantity || 0;
     } else {
       acc.push({ name: item.itemName, value: item.quantity || 0 });
     }
     return acc;
-  }, []).sort((a: any, b: any) => b.value - a.value).slice(0, 5);
+  }, [] as ChartDatum[]).sort((a: ChartDatum, b: ChartDatum) => b.value - a.value).slice(0, 5);
 
   // Profit Margin Items
-  const profitMarginData = (saleItemsData || []).reduce((acc: any, item: any) => {
+  const profitMarginData = (saleItemsData || []).reduce((acc: ChartDatum[], item) => {
     const profit = (item.sellPrice - item.buyPrice) * item.quantity;
     if (profit > 0) {
-      const existing = acc.find((i: any) => i.name === item.itemName);
+      const existing = acc.find((i: ChartDatum) => i.name === item.itemName);
       if (existing) {
         existing.value += profit;
       } else {
@@ -74,15 +77,15 @@ export default function DashboardCharts({
       }
     }
     return acc;
-  }, []).sort((a: any, b: any) => b.value - a.value).slice(0, 5);
+  }, [] as ChartDatum[]).sort((a: ChartDatum, b: ChartDatum) => b.value - a.value).slice(0, 5);
 
   // Dead Stock Items (High quantity, low sales)
-  const deadStockData = itemsData
-    .map((item: any) => ({ name: item.name, value: item.quantity || 0 }))
-    .sort((a: any, b: any) => b.value - a.value)
+  const deadStockData: ChartDatum[] = itemsData
+    .map(item => ({ name: item.name || 'Unknown', value: item.quantity || 0 }))
+    .sort((a, b) => b.value - a.value)
     .slice(0, 5); // Simplistic dead stock: just highest raw quantity for demo
 
-  let data = [];
+  let data: ChartDatum[] = [];
   let title = '';
   if (chartType === 'customer') { data = customerData; title = 'Top Revenue by Customer'; }
   if (chartType === 'product') { data = productData; title = 'Inventory by Category'; }
@@ -96,7 +99,7 @@ export default function DashboardCharts({
         <h3 className="font-bold text-gray-900 dark:text-white">{title}</h3>
         <select
           value={chartType}
-          onChange={(e) => setChartType(sanitizeInput(e.target.value) as any)}
+          onChange={(e) => setChartType(sanitizeInput(e.target.value) as 'customer' | 'product' | 'fast' | 'dead' | 'profit')}
           className="text-sm border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg dark:text-gray-200 p-1 outline-none"
         >
           <option value="customer">By Customer</option>
@@ -119,12 +122,15 @@ export default function DashboardCharts({
                 paddingAngle={5}
                 dataKey="value"
               >
-                {data.map((entry: any, index: number) => (
+                {data.map((_entry, index: number) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value: any) => (chartType === 'customer' || chartType === 'profit') ? `₹${Number(value).toFixed(2)}` : `${value} units`}
+                formatter={(value) => {
+                    const v = value ?? 0;
+                    return (chartType === 'customer' || chartType === 'profit') ? `₹${Number(v).toFixed(2)}` : `${v} units`;
+                }}
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
               />
               <Legend verticalAlign="bottom" height={36} />

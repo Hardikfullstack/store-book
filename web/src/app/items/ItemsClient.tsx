@@ -35,6 +35,7 @@ import RestockQuantity from "@/components/models/RestockQuantity";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { setInventory, updateInventoryItem } from "@/store/inventorySlice";
+import type { GetActiveItemsVariables, GetActiveSuppliersData } from "@/dataconnect";
 import Pagination from "../components/Pagination";
 import DynamicTable, {
     TableColumn,
@@ -43,6 +44,47 @@ import DynamicTable, {
 
 type UnitOption =
     "pcs" | "kg" | "g" | "litre" | "ml" | "dozen" | "box" | "packet";
+
+// Local state mirrors snake_case fields used throughout UI / Redux
+export type LocalItem = {
+    id: string;
+    name: string;
+    quantity: number;
+    unit: string;
+    buy_price?: number;
+    sell_price: number;
+    low_stock_threshold: number;
+    category: string;
+    barcode: string;
+    hsnCode: string;
+    taxRate: number;
+    batchLotNumber: string;
+    expiryDate: string;
+    is_deleted?: number;
+    updated_at?: number;
+    photoPath?: string | null;
+};
+
+// Mapper from DataConnect camelCase to our local snake_case convention
+function mapDcToLocal(dcItem: { id: string; name: string; quantity: number; unit: string; buyPrice?: number; sellPrice: number; lowStockThreshold: number; category: string; photoPath?: string | null; hsnCode?: string | null; updatedAt: number; barcode?: string; taxRate?: number; batchLotNumber?: string; expiryDate?: string }): LocalItem {
+    return {
+        id: dcItem.id as string,
+        name: dcItem.name as string,
+        quantity: dcItem.quantity as number,
+        unit: dcItem.unit as string,
+        buy_price: dcItem.buyPrice as number | undefined,
+        sell_price: dcItem.sellPrice as number,
+        low_stock_threshold: dcItem.lowStockThreshold as number,
+        category: dcItem.category as string,
+        barcode: (dcItem.barcode ?? "") as string,
+        hsnCode: (dcItem.hsnCode ?? "") as string,
+        taxRate: (dcItem.taxRate ?? 0) as number,
+        batchLotNumber: (dcItem.batchLotNumber ?? "") as string,
+        expiryDate: (dcItem.expiryDate ?? "") as string,
+        is_deleted: 0,
+        updated_at: dcItem.updatedAt as number,
+    };
+}
 
 type ItemFormData = {
     name: string;
@@ -96,7 +138,7 @@ export default function ItemsClient({
     storeId,
     isPremium,
 }: {
-    initialItems: any[];
+    initialItems: LocalItem[];
     canAccessCost?: boolean;
     canDeleteRecords?: boolean;
     storeId?: string;
@@ -111,8 +153,8 @@ export default function ItemsClient({
     );
 
     const CASH_SUPPLIER_ID = "068cdba2-f58e-4ab8-a596-13806e4cb18e";
-    const [items, setItems] = useState<any[]>(
-        cachedItems.length > 0 ? cachedItems : initialItems,
+    const [items, setItems] = useState<LocalItem[]>(
+        cachedItems.length > 0 ? cachedItems as LocalItem[] : initialItems,
     );
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 10;
@@ -143,7 +185,7 @@ export default function ItemsClient({
     const [dataVersion, setDataVersion] = useState(0);
     const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
     const [debouncedSearch, setDebouncedSearch] = useState("");
-    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [searchResults, setSearchResults] = useState<LocalItem[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [minPriceFilter, setMinPriceFilter] = useState("");
     const [maxPriceFilter, setMaxPriceFilter] = useState("");
@@ -247,10 +289,10 @@ export default function ItemsClient({
                     ? { fetchPolicy: "SERVER_ONLY" as const }
                     : undefined;
 
-                const vars: any = {
+                const vars: GetActiveItemsVariables = {
                     storeId,
                     ...buildSortVars(sortField, sortDirection),
-                };
+                } as GetActiveItemsVariables;
                 if (minPriceFilter) vars.minPrice = Number(minPriceFilter);
                 if (maxPriceFilter) vars.maxPrice = Number(maxPriceFilter);
 
@@ -270,18 +312,11 @@ export default function ItemsClient({
 
                 fetchedPagesAtVersionRef.current.set(pageKey, dataVersion);
 
-                let updated = response.data.items.map((item: any) => ({
-                    ...item,
-                    is_deleted: 0,
-                    updated_at: item.updatedAt || Date.now(),
-                    buy_price: item.buyPrice,
-                    sell_price: item.sellPrice,
-                    low_stock_threshold: item.lowStockThreshold,
-                }));
+                let updated = response.data.items.map(mapDcToLocal);
 
                 if (!canAccessCost) {
-                    updated.forEach((item: any) => {
-                        if (item.buy_price !== undefined) delete item.buy_price;
+                    updated.forEach((item) => {
+                        delete item.buy_price;
                     });
                 }
 
@@ -324,7 +359,7 @@ export default function ItemsClient({
     ]);
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [originalItem, setOriginalItem] = useState<any | null>(null);
+    const [originalItem, setOriginalItem] = useState<LocalItem | null>(null);
     const [adjustmentReason, setAdjustmentReason] =
         useState<string>("Count Correction");
 
@@ -360,7 +395,7 @@ export default function ItemsClient({
         null,
     );
     const [hsnToLookup, setHsnToLookup] = useState<string>("");
-    const [reStockQuantity, setReStockQuantity] = useState<any | null>(null);
+    const [reStockQuantity, setReStockQuantity] = useState<LocalItem | null>(null);
     const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>(
         [],
     );
@@ -382,10 +417,10 @@ export default function ItemsClient({
                 const res = await getActiveSuppliers(dataConnect, { storeId });
                 if (!isMounted) return;
                 const nextSuppliers = res.data.suppliers
-                    .map((doc: any) => ({
-                        id: doc.id,
+                    .map((supplier) => ({
+                        id: supplier.id,
                         name:
-                            typeof doc.name === "string" ? doc.name.trim() : "",
+                            typeof supplier.name === "string" ? supplier.name.trim() : "",
                     }))
                     .filter(
                         (supplier: { id: string; name: string }) =>
@@ -582,15 +617,15 @@ export default function ItemsClient({
         }
     };
 
-    const handleEdit = (item: any) => {
+    const handleEdit = (item: LocalItem) => {
         const next: ItemFormData = {
             name: item.name || "",
             category: item.category || "",
-            quantity: item.quantity || 0,
+            quantity: Number(item.quantity) || 0,
             unit: (item.unit || "pcs") as UnitOption,
-            buy_price: item.buy_price || 0,
-            sell_price: item.sell_price || 0,
-            low_stock_threshold: item.low_stock_threshold || 0,
+            buy_price: Number(item.buy_price) || 0,
+            sell_price: Number(item.sell_price) || 0,
+            low_stock_threshold: Number(item.low_stock_threshold) || 0,
 
             barcode: item.barcode || "",
             hsnCode: item.hsnCode || "",
@@ -839,14 +874,14 @@ export default function ItemsClient({
                         const rowActions: TableRowAction[] = [
                             {
                                 icon: <Plus size={18} />,
-                                onClick: (item: Record<string, unknown>) => setReStockQuantity(item as any),
+                                onClick: (item: Record<string, unknown>) => setReStockQuantity(item as LocalItem),
                                 className:
                                     "text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors",
                                 title: "Restock",
                             },
                                     {
                                         icon: <Edit2 size={18} />,
-                                        onClick: (item: Record<string, unknown>) => handleEdit(item as any),
+                                        onClick: (item: Record<string, unknown>) => handleEdit(item as LocalItem),
                                         className:
                                             "text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 transition-colors",
                                         title: "Edit",
@@ -1387,8 +1422,8 @@ export default function ItemsClient({
 
                     // Optimistic update
                     setItems((prev) =>
-                        prev.map((item: any) =>
-                            item.id === reStockQuantity.id ? updatedItem : item,
+                        prev.map((item) =>
+                            item.id === reStockQuantity!.id ? updatedItem : item,
                         ),
                     );
                     dispatch(updateInventoryItem(updatedItem));
@@ -1398,7 +1433,7 @@ export default function ItemsClient({
                         name: updatedItem.name,
                         quantity: updatedItem.quantity,
                         unit: updatedItem.unit || "pcs",
-                        buyPrice: updatedItem.buy_price,
+                        buyPrice: Number(updatedItem.buy_price) || 0,
                         sellPrice: updatedItem.sell_price,
                         lowStockThreshold: updatedItem.low_stock_threshold,
                         category: updatedItem.category,
