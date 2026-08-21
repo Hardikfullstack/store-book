@@ -523,33 +523,43 @@ class MoreViewModel(
                 inputStream.bufferedReader().use { reader ->
                     val header = reader.readLine() ?: throw Exception("CSV file is empty")
 
-                    // Detect if file has new 10-column format (with HSN + Tax) or legacy 8-column
+                    // Detect CSV format by header tokens:
+                    // - Old Android export has "ID" as first column (10 cols: ID + 9 data)
+                    // - New format starts with "Item Name" (9 cols: no ID)
+                    // - Legacy 8-col format lacks HSN Code + Tax Rate
                     val headerTokens = parseCsvLine(header)
                     if (headerTokens.size < 8) {
                         throw Exception("Invalid CSV structure")
                     }
-                    val hasExtendedFields = headerTokens.size >= 10
+                    val hasIdColumn = headerTokens.firstOrNull()?.equals("ID", ignoreCase = true) == true
+                    val startIndex = if (hasIdColumn) 1 else 0
+                    // New format: 9 cols includes HSN+Tax. Old format: 10 cols (ID + 9 data).
+                    // Legacy without extended fields: 8 cols (no ID) or 9 cols (with ID but no HSN/Tax).
+                    val hasExtendedFields =
+                        (!hasIdColumn && headerTokens.size >= 9) ||
+                            (hasIdColumn && headerTokens.size >= 10)
 
                     var line = reader.readLine()
                     while (line != null) {
                         val tokens = parseCsvLine(line)
-                        if (tokens.size >= 8) {
-                            val name = tokens[1].trim()
-                            val qty = tokens[2].toDoubleOrNull() ?: 0.0
-                            val unit = tokens[3].trim()
-                            val buyPrice = tokens[4].toDoubleOrNull() ?: 0.0
-                            val sellPrice = tokens[5].toDoubleOrNull() ?: 0.0
-                            val threshold = tokens[6].toDoubleOrNull() ?: 0.0
-                            val category = tokens[7].trim()
+                        val expectedMin = startIndex + 8
+                        if (tokens.size >= expectedMin) {
+                            val name = tokens[startIndex].trim()
+                            val qty = tokens[startIndex + 1].toDoubleOrNull() ?: 0.0
+                            val unit = tokens[startIndex + 2].trim()
+                            val buyPrice = tokens[startIndex + 3].toDoubleOrNull() ?: 0.0
+                            val sellPrice = tokens[startIndex + 4].toDoubleOrNull() ?: 0.0
+                            val threshold = tokens[startIndex + 5].toDoubleOrNull() ?: 0.0
+                            val category = tokens[startIndex + 6].trim()
                             val hsnCode =
-                                if (hasExtendedFields && tokens.size > 8) {
-                                    tokens[8].trim().ifBlank { null }
+                                if (hasExtendedFields && tokens.size >= startIndex + 8) {
+                                    tokens[startIndex + 7].trim().ifBlank { null }
                                 } else {
                                     null
                                 }
                             val taxRate =
-                                if (hasExtendedFields && tokens.size > 9) {
-                                    tokens[9].toDoubleOrNull() ?: 0.0
+                                if (hasExtendedFields && tokens.size >= startIndex + 9) {
+                                    tokens[startIndex + 8].toDoubleOrNull() ?: 0.0
                                 } else {
                                     0.0
                                 }
@@ -600,11 +610,11 @@ class MoreViewModel(
                 val items = inventoryRepository.getActiveItems()
                 val csvContent = StringBuilder()
                 csvContent.append(
-                    "ID,Item Name,Stock Quantity,Unit,Buy Price,Sell Price,Alert Threshold,Category,HSN Code,Tax Rate\n",
+                    "Item Name,Stock Quantity,Unit,Buy Price,Sell Price,Alert Threshold,Category,HSN Code,Tax Rate\n",
                 )
                 for (item in items) {
                     csvContent.append(
-                        "${item.id},${csvEscape(item.name)},${item.quantity},${csvEscape(item.unit)}," +
+                        "${csvEscape(item.name)},${item.quantity},${csvEscape(item.unit)}," +
                             "${item.buy_price},${item.sell_price},${item.low_stock_threshold}," +
                             "${csvEscape(item.category)},${csvEscape(item.hsn_code ?: "")},${item.tax_rate}\n",
                     )

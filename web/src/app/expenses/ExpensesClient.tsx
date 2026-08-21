@@ -297,7 +297,7 @@ export default function ExpensesClient({
 
         <div className="overflow-x-auto">
           {(() => {
-            const columns: TableColumn[] = [
+            const columns: TableColumn<any>[] = [
               {
                 key: 'timestamp',
                 label: 'Date',
@@ -308,7 +308,7 @@ export default function ExpensesClient({
                 key: 'type',
                 label: 'Type',
                 sortable: true,
-                render: (value) => (
+                render: (value: any) => (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
                     {value}
                   </span>
@@ -317,13 +317,13 @@ export default function ExpensesClient({
               {
                 key: 'description',
                 label: 'Description',
-                render: (value) => <span className="text-gray-900 dark:text-gray-100">{value}</span>
+                render: (value: any) => <span className="text-gray-900 dark:text-gray-100">{value}</span>
               },
               {
                 key: 'supplier_name',
                 label: 'Supplier',
                 sortable: true,
-                render: (value) => <span className="text-gray-500 dark:text-gray-400">{value || '-'}</span>
+                render: (value: any) => <span className="text-gray-500 dark:text-gray-400">{value || '-'}</span>
               },
               {
                 key: 'amount',
@@ -331,14 +331,14 @@ export default function ExpensesClient({
                 sortable: true,
                 textAlign: 'right',
                 className: 'font-bold text-orange-600 dark:text-orange-400',
-                render: (value) => <FormattedAmount amount={value} />
+                render: (value) => <FormattedAmount amount={Number(value) || 0} />
               }
             ];
 
             const rowActions: TableRowAction[] = [
               {
                 icon: <Trash2 size={16} />,
-                onClick: (expense) => handleDelete(expense.id),
+                onClick: (expense) => handleDelete(String(expense.id)),
                 className: 'text-red-500 hover:text-red-700 transition-colors',
                 title: 'Delete Expense'
               }

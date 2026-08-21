@@ -3,8 +3,9 @@
 id: bug-android-csv-import-export-id-column
 title: "Android: Inventory CSV import and export contain ID column instead of generating runtime IDs"
 severity: P1
-status: open
+status: resolved
 reported: "2026-08-20"
+resolved_at: "2026-08-21"
 component: [InventoryScreen, CsvImportExport, Android]
 
 root_cause: >

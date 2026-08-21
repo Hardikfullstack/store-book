@@ -17,7 +17,7 @@ export async function getSession() {
       { variables: { id: decodedClaims.uid } }
     );
     
-    let userDoc = (result.data as any).user;
+    let userDoc = (result.data as { user?: { id?: string; phoneNumber?: string; role?: string; stores?: string[]; storeId?: string; subscriptionPlan?: string; subscriptionStatus?: string } }).user;
 
     // Fallback for legacy phone-number based IDs if not found
     if (!userDoc && decodedClaims.phone_number) {
@@ -25,7 +25,7 @@ export async function getSession() {
         `query GetUser($id: String!) { user(id: $id) { id, phoneNumber, role, stores, storeId, subscriptionPlan, subscriptionStatus } }`,
         { variables: { id: decodedClaims.phone_number } }
       );
-      userDoc = (result.data as any).user;
+      userDoc = (result.data as { user?: { id?: string; phoneNumber?: string; role?: string; stores?: string[]; storeId?: string; subscriptionPlan?: string; subscriptionStatus?: string } }).user;
     }
     
     if (!userDoc) {

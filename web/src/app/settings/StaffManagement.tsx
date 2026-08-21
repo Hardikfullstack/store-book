@@ -64,8 +64,8 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
             try {
                 const res = await getStaffByStore(storeId);
                 if (!cancelled) {
-                    if (res.success && res.data) {
-                        setStaff(res.data);
+                if (res.success && res.data) {
+                    setStaff(res.data as StaffMember[]);
                     } else {
                         setListError(res.error || "Failed to load staff");
                     }
@@ -87,7 +87,7 @@ export default function StaffManagement({ storeId }: { storeId: string }) {
         try {
             const res = await getStaffByStore(storeId);
             if (res.success && res.data) {
-                setStaff(res.data);
+                setStaff(res.data as StaffMember[]);
             } else {
                 setListError(res.error || "Failed to load staff");
             }

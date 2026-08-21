@@ -2,6 +2,7 @@
 # Maintained list of identified bugs with IDs matching filename stem.
 # Updated 2026-08-18: Added 9 new open bugs from code review (BUG-17 through BUG-25).
 # Updated 2026-08-20: Resolved BUG-20, BUG-21, BUG-23, BUG-25 + final recount.
+# Updated 2026-08-21: Resolved BUG-26 — CSV ID column removed from Android export/import.
 
 bugs:
   - id: BUG-01
@@ -210,16 +211,18 @@ bugs:
   - id: BUG-26
     file: bug-A6-csv-import-export-id-column.yaml
     severity: P1
-    status: open
+    status: resolved
     reported: "2026-08-20"
+    resolved_at: "2026-08-21"
     summary: "Android: Inventory CSV export and import include ID column — runtime UUID generation required instead"
+    fix: "Removed ID column from CSV export header and data rows (9-col format matching web). Updated import parser to auto-detect CSV format via first header token: if 'ID' detected, skips index 0; otherwise starts at index 0. Backward-compatible with old 10-col exports, web 9-col exports, and legacy 8-col imports."
 
 total: 27
-open: 2
-resolved: 25
+open: 1
+resolved: 26
 partial: 0
 deferred: 0
 by_severity:
   P0: "10 resolved, 0 open"
-  P1: "12 resolved, 1 open"
+  P1: "13 resolved, 0 open"
   P2: "3 resolved, 1 open"

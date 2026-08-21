@@ -167,7 +167,7 @@ export default function AuditClient({
     });
   };
 
-  const columns: TableColumn[] = [
+  const columns: TableColumn<any>[] = [
     {
       key: 'timestamp',
       label: 'Date & Time',
@@ -176,12 +176,13 @@ export default function AuditClient({
     {
       key: 'itemName',
       label: 'Item Name',
-      render: (value) => <span className="text-sm text-gray-900 dark:text-white">{value}</span>
+      render: (value) => <span className="text-sm text-gray-900 dark:text-white">{String(value)}</span>
     },
     {
       key: 'reason',
       label: 'Reason',
       render: (value) => {
+        const strValue = String(value);
         const reasonColors: Record<string, string> = {
           'Damage': 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-100 dark:border-red-800',
           'Expiry': 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-orange-100 dark:border-orange-800',
@@ -189,10 +190,10 @@ export default function AuditClient({
           'Restock': 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800',
           'Count Correction': 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-100 dark:border-blue-800'
         };
-        const colorClass = reasonColors[value as string] || 'bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200';
+        const colorClass = reasonColors[strValue] || 'bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200';
         return (
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${colorClass}`}>
-            {value}
+            {strValue}
           </span>
         );
       }

@@ -44,8 +44,8 @@ interface Item {
     lowStockThreshold: number;
     category: string;
     is_deleted?: number;
-    photoPath?: string;
-    hsnCode?: string;
+    photoPath?: string | null;
+    hsnCode?: string | null;
     barcode?: string;
     taxRate?: number;
 }
@@ -240,7 +240,7 @@ export default function SalesPOS({
                             unit: scannedItem.unit || "pcs",
                             maxStock: scannedItem.quantity,
                             taxRate: scannedItem.taxRate,
-                            hsnCode: scannedItem.hsnCode,
+                            hsnCode: scannedItem.hsnCode ?? undefined,
                         }),
                     );
                     // Play a small beep sound for feedback
@@ -287,7 +287,7 @@ export default function SalesPOS({
                 unit: item.unit || "pcs",
                 maxStock: item.quantity,
                 taxRate: item.taxRate,
-                hsnCode: item.hsnCode,
+                hsnCode: item.hsnCode ?? undefined,
             }),
         );
         setSearchQuery("");

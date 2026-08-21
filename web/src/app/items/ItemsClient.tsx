@@ -751,16 +751,16 @@ export default function ItemsClient({
                                 key: "name",
                                 label: "Item Name",
                                 sortable: true,
-                                render: (value, row) => (
+                                render: (_value, row) => (
                                     <div>
                                         <div className="font-medium text-gray-900 dark:text-gray-100">
-                                            {value}
+                                            {String(row.name)}
                                         </div>
-                                        {row.expiryDate && (
+                                        {(row.expiryDate ?? null) ? (
                                             <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
-                                                Exp: {row.expiryDate}
+                                                Exp: {String(row.expiryDate)}
                                             </div>
-                                        )}
+                                        ) : null}
                                     </div>
                                 ),
                             },
@@ -770,7 +770,7 @@ export default function ItemsClient({
                                 sortable: true,
                                 render: (value) => (
                                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                                        {value || "Uncategorized"}
+                                        {String(value) || "Uncategorized"}
                                     </span>
                                 ),
                             },
@@ -780,9 +780,9 @@ export default function ItemsClient({
                                 sortable: true,
                                 render: (value, row) => (
                                     <span className="text-sm text-gray-900 dark:text-white">
-                                        {value}{" "}
+                                        {String(value)}{" "}
                                         <span className="text-gray-400 dark:text-gray-500 text-xs">
-                                            {row.unit}
+                                            {String(row.unit)}
                                         </span>
                                     </span>
                                 ),
@@ -793,8 +793,8 @@ export default function ItemsClient({
                                         key: "buy_price",
                                         label: "Buy Price",
                                         sortable: true,
-                                        render: (value: any) => (
-                                            <FormattedAmount amount={value} />
+                                        render: (value: unknown) => (
+                                            <FormattedAmount amount={Number(value) || 0} />
                                         ),
                                     },
                                 ]
@@ -804,8 +804,8 @@ export default function ItemsClient({
                                 label: "Sell Price",
                                 sortable: true,
                                 className: "font-medium",
-                                render: (value: any) => (
-                                    <FormattedAmount amount={value} />
+                                render: (value) => (
+                                    <FormattedAmount amount={Number(value) || 0} />
                                 ),
                             },
                             ...(canAccessCost
@@ -813,14 +813,11 @@ export default function ItemsClient({
                                     {
                                         key: "buy_price",
                                         label: "Margin",
-                                        render: (value: any, row: any) => {
-                                            if (value > 0) {
-                                                const marginPercent = (
-                                                    ((row.sell_price -
-                                                        value) /
-                                                        value) *
-                                                    100
-                                                ).toFixed(0);
+                                        render: (value: unknown, row: Record<string, unknown>) => {
+                                            const buyPrice = Number(value) || 0;
+                                            if (buyPrice > 0) {
+                                                const sellPrice = Number(row.sell_price) || 0;
+                                                const marginPercent = (((sellPrice - buyPrice) / buyPrice) * 100).toFixed(0);
                                                 const isPositive =
                                                     Number(marginPercent) >=
                                                     0;
@@ -842,24 +839,24 @@ export default function ItemsClient({
                         const rowActions: TableRowAction[] = [
                             {
                                 icon: <Plus size={18} />,
-                                onClick: (item) => setReStockQuantity(item),
+                                onClick: (item: Record<string, unknown>) => setReStockQuantity(item as any),
                                 className:
                                     "text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors",
                                 title: "Restock",
                             },
-                            {
-                                icon: <Edit2 size={18} />,
-                                onClick: (item) => handleEdit(item),
-                                className:
-                                    "text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 transition-colors",
-                                title: "Edit",
-                            },
+                                    {
+                                        icon: <Edit2 size={18} />,
+                                        onClick: (item: Record<string, unknown>) => handleEdit(item as any),
+                                        className:
+                                            "text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 transition-colors",
+                                        title: "Edit",
+                                    },
                             ...(canDeleteRecords
                                 ? [
                                     {
                                         icon: <Trash2 size={18} />,
-                                        onClick: (item: any) =>
-                                            handleDelete(item.id),
+                                        onClick: (item: Record<string, unknown>) =>
+                                            handleDelete(String(item.id)),
                                         className:
                                             "text-red-500 hover:text-red-700 transition-colors",
                                         title: "Delete",

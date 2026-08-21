@@ -1,7 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { DcUdhaarEntry } from '@/types/dataconnect';
 
 interface UdhaarState {
-  records: any[];
+  records: DcUdhaarEntry[];
   lastSynced: number;
 }
 
@@ -14,16 +15,16 @@ export const udhaarSlice = createSlice({
   name: 'udhaar',
   initialState,
   reducers: {
-    setUdhaars: (state, action: PayloadAction<any[]>) => {
+    setUdhaars: (state, action: PayloadAction<DcUdhaarEntry[]>) => {
       state.records = action.payload;
       state.lastSynced = Date.now();
     },
-    updateUdhaarRecord: (state, action: PayloadAction<any>) => {
+    updateUdhaarRecord: (state, action: PayloadAction<Partial<DcUdhaarEntry> & { id: string }>) => {
       const index = state.records.findIndex(i => i.id === action.payload.id);
       if (index !== -1) {
         state.records[index] = { ...state.records[index], ...action.payload };
       } else {
-        state.records.push(action.payload);
+        state.records.push(action.payload as DcUdhaarEntry);
       }
       state.lastSynced = Date.now();
     },

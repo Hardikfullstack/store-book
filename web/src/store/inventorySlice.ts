@@ -1,7 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { DcItem } from '@/types/dataconnect';
 
 interface InventoryState {
-  items: any[];
+  items: DcItem[];
   lastSynced: number;
 }
 
@@ -14,16 +15,16 @@ export const inventorySlice = createSlice({
   name: 'inventory',
   initialState,
   reducers: {
-    setInventory: (state, action: PayloadAction<any[]>) => {
+    setInventory: (state, action: PayloadAction<DcItem[]>) => {
       state.items = action.payload;
       state.lastSynced = Date.now();
     },
-    updateInventoryItem: (state, action: PayloadAction<any>) => {
+    updateInventoryItem: (state, action: PayloadAction<Partial<DcItem> & { id: string }>) => {
       const index = state.items.findIndex(i => i.id === action.payload.id);
       if (index !== -1) {
         state.items[index] = { ...state.items[index], ...action.payload };
       } else {
-        state.items.push(action.payload);
+        state.items.push(action.payload as DcItem);
       }
       state.lastSynced = Date.now();
     },

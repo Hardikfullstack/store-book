@@ -2,37 +2,37 @@
 
 import { Loader2 } from 'lucide-react';
 
-export type TableColumn = {
+export type TableColumn<T extends Record<string, unknown> = Record<string, unknown>> = {
   key: string;
   label: string;
   className?: string;
   textAlign?: 'left' | 'right' | 'center';
-  render?: (value: any, row: any) => React.ReactNode;
+  render?: (value: unknown, row: T) => React.ReactNode;
   sortable?: boolean;
 };
 
-export type TableRowAction = {
+export type TableRowAction<T extends Record<string, unknown> = Record<string, unknown>> = {
   label?: string;
   icon: React.ReactNode;
-  onClick: (row: any) => void;
+  onClick: (row: T) => void;
   className?: string;
   title?: string;
 };
 
-interface DynamicTableProps {
-  columns: TableColumn[];
-  rows: any[];
+interface DynamicTableProps<T extends Record<string, unknown>> {
+  columns: TableColumn<T>[];
+  rows: T[];
   isLoading: boolean;
   emptyMessage: string;
   rowKey?: string;
-  rowActions?: TableRowAction[];
-  onRowClick?: (row: any) => void;
+  rowActions?: TableRowAction<T>[];
+  onRowClick?: (row: T) => void;
   sortField?: string;
   sortDirection?: 'asc' | 'desc';
   onSort?: (field: string) => void;
 }
 
-export default function DynamicTable({
+export default function DynamicTable<T extends Record<string, unknown>>({
   columns,
   rows,
   isLoading,
@@ -43,7 +43,7 @@ export default function DynamicTable({
   sortField,
   sortDirection,
   onSort
-}: DynamicTableProps) {
+}: DynamicTableProps<T>) {
   const getTextAlignClass = (align?: 'left' | 'right' | 'center') => {
     switch (align) {
       case 'right':
@@ -105,7 +105,7 @@ export default function DynamicTable({
           ) : (
             rows.map((row) => (
               <tr
-                key={row[rowKey]}
+                key={String(row[rowKey])}
                 className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
                 onClick={() => onRowClick?.(row)}
               >
@@ -116,7 +116,7 @@ export default function DynamicTable({
                   >
                     {column.render
                       ? column.render(row[column.key], row)
-                      : row[column.key]}
+                      : String(row[column.key])}
                   </td>
                 ))}
                 {rowActions && rowActions.length > 0 && (

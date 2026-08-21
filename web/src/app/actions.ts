@@ -29,7 +29,7 @@ export async function login(idToken: string) {
             { variables: { id: decodedIdToken.uid } },
         );
 
-        let userDoc = (userResult.data as any).user;
+        let userDoc = (userResult.data as { user?: { role?: string; stores?: string[]; storeId?: string } }).user;
         if (userDoc) {
             // Inject Custom Claims for Data Connect @auth rules
             const resolvedStores =
@@ -137,8 +137,9 @@ export async function createStore(name: string) {
         );
 
         return { success: true, storeId };
-    } catch (err: any) {
-        return { success: false, error: err.message };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+        return { success: false, error: message };
     }
 }
 
@@ -174,8 +175,8 @@ export async function archiveOldData(
         `,
                     { variables: { cutoff } },
                 );
-                const deletedCount =
-                    (result.data as any)[`${table}_deleteMany`] || 0;
+          const rawData = result.data as Record<string, number> | undefined;
+                const deletedCount = (rawData?.[`${table}_deleteMany`]) ?? 0;
                 totalDeleted += deletedCount;
             } catch (err) {
                 console.warn(`Could not delete from ${table}:`, err);
@@ -185,8 +186,9 @@ export async function archiveOldData(
         /* Revalidate dashboard after archiving data */
         revalidatePath("/");
         return { success: true, count: totalDeleted };
-    } catch (err: any) {
-        return { success: false, error: err.message };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+        return { success: false, error: message };
     }
 }
 
@@ -210,7 +212,8 @@ export async function purgeStoreData(
             {
                 variables: {
                     adminId: session.uid,
-                    adminUsername: (session as any).username || "Admin",
+                    // requirePermission returns Session with no username field; default is safe
+                    adminUsername: (session as { username?: string }).username || "Admin",
                     action: "GDPR_PURGE",
                     targetId: storeId,
                     ts: Math.floor(Date.now() / 1000),
@@ -220,8 +223,9 @@ export async function purgeStoreData(
         /* Revalidate dashboard after purging data */
         revalidatePath("/");
         return { success: true };
-    } catch (err: any) {
-        return { success: false, error: err.message };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+        return { success: false, error: message };
     }
 }
 
@@ -237,8 +241,9 @@ export async function revokeUserSessions(
         // Revoke Firebase Auth refresh tokens
         await adminAuth.revokeRefreshTokens(userId);
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+        return { success: false, error: message };
     }
 }
 
@@ -267,7 +272,7 @@ export async function getStoresPaginated(lastId?: string, limitCount = 20) {
       }`,
             {},
         );
-        return (response.data as any)?.stores || [];
+        return (response.data as { stores?: unknown[] })?.stores || [];
     } catch (error) {
         console.error("Error fetching stores:", error);
         return [];
@@ -298,7 +303,7 @@ export async function getUsersPaginated(lastId?: string, limitCount = 20) {
       }`,
             {},
         );
-        return (response.data as any)?.users || [];
+        return (response.data as { users?: unknown[] })?.users || [];
     } catch (error) {
         console.error("Error fetching users:", error);
         return [];
@@ -320,9 +325,10 @@ export async function toggleStoreStatus(storeId: string, isActive: boolean) {
             { variables: { id: storeId, isActive } },
         );
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
         console.error("Toggle store failed:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: message };
     }
 }
 export async function updateUserRole(
@@ -352,9 +358,10 @@ export async function updateUserRole(
         }
 
         return { success: true };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
         console.error("Update user role failed:", err);
-        return { success: false, error: err.message };
+        return { success: false, error: message };
     }
 }
 
@@ -418,9 +425,10 @@ export async function createStaffAccount(
         );
 
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
         console.error("Error creating staff:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: message };
     }
 }
 
@@ -440,7 +448,7 @@ export async function updateStaffRole(
             `query GetUser($id: String!) { user(id: $id) { storeId ownerId } }`,
             { variables: { id: targetUid } },
         );
-        const target = (checkRes.data as any)?.user;
+        const target = (checkRes.data as { user?: { storeId?: string; ownerId?: string } })?.user;
         if (!target) return { success: false, error: "Staff not found" };
 
         if (
@@ -470,9 +478,10 @@ export async function updateStaffRole(
         }
 
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
         console.error("Update staff role failed:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: message };
     }
 }
 
@@ -491,7 +500,7 @@ export async function deleteStaffAccount(
             `query GetUser($id: String!) { user(id: $id) { storeId ownerId } }`,
             { variables: { id: targetUid } },
         );
-        const target = (checkRes.data as any)?.user;
+        const target = (checkRes.data as { user?: { storeId?: string; ownerId?: string } })?.user;
         if (!target) return { success: false, error: "Staff not found" };
 
         if (
@@ -513,9 +522,10 @@ export async function deleteStaffAccount(
         );
 
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
         console.error("Delete staff failed:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: message };
     }
 }
 
@@ -535,7 +545,7 @@ export async function resetStaffPassword(
             `query GetUser($id: String!) { user(id: $id) { storeId ownerId } }`,
             { variables: { id: targetUid } },
         );
-        const target = (checkRes.data as any)?.user;
+        const target = (checkRes.data as { user?: { storeId?: string; ownerId?: string } })?.user;
         if (!target) return { success: false, error: "Staff not found" };
 
         if (
@@ -551,15 +561,16 @@ export async function resetStaffPassword(
 
         await adminAuth.updateUser(targetUid, { password: newPassword });
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
         console.error("Reset staff password failed:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: message };
     }
 }
 
 export async function getStaffByStore(
     storeId: string,
-): Promise<{ success: boolean; data?: any[]; error?: string }> {
+): Promise<{ success: boolean; data?: Record<string, unknown>[]; error?: string }> {
     const session = await getSession();
     if (!session) {
         return { success: false, error: "Unauthorized" };
@@ -586,10 +597,11 @@ export async function getStaffByStore(
         }`,
             { variables: { storeId } },
         );
-        return { success: true, data: (response.data as any)?.users || [] };
-    } catch (error: any) {
+        return { success: true, data: (response.data as { users?: Record<string, unknown>[] })?.users || [] };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
         console.error("Get staff by store failed:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: message };
     }
 }
 
@@ -647,9 +659,8 @@ export async function getSalesTrendData(
             { variables: { storeId, cutoffTimestamp } },
         );
 
-        const salesList = ((response.data as any)?.sales?.edges || []).map(
-            (e: any) => e.node,
-        );
+        const salesEdges = (response.data as { sales?: { edges?: Array<{ node: { id: string; timestamp?: number; totalAmount?: number } }> } })?.sales?.edges || [];
+        const salesList = salesEdges.map((e) => e.node);
 
         // Filter by date and aggregate by day
         const dailyMap = new Map<
@@ -658,8 +669,9 @@ export async function getSalesTrendData(
         >();
 
         for (const sale of salesList) {
-            if (sale.timestamp >= cutoffTimestamp) {
-                const dateKey = new Date(sale.timestamp * 1000)
+            const timestamp = sale.timestamp ?? 0;
+            if (timestamp >= cutoffTimestamp) {
+                const dateKey = new Date(timestamp * 1000)
                     .toISOString()
                     .slice(0, 10);
                 const existing = dailyMap.get(dateKey);
@@ -686,9 +698,10 @@ export async function getSalesTrendData(
             }));
 
         return { success: true, data };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
         console.error("getSalesTrendData failed:", err);
-        return { success: false, error: err.message };
+        return { success: false, error: message };
     }
 }
 
@@ -718,7 +731,7 @@ export async function convertQuotationToSale(
             `query GetSaleById($id: String!) { sale(id: $id) { id, storeId, type, totalAmount, discountAmount, customerName, notes, timestamp } }`,
             { variables: { id: estimateId } },
         );
-        const est = (saleCheck.data as any)?.sale;
+        const est = (saleCheck.data as { sale?: { id: string; storeId: string; type: string; totalAmount?: number; discountAmount?: number; customerName?: string; notes?: string; timestamp?: number } })?.sale;
         if (!est || est.storeId !== session.storeId) {
             return {
                 success: false,
@@ -734,7 +747,7 @@ export async function convertQuotationToSale(
             `query GetSaleItems($saleId: String!) { saleItemDetails(where: { saleId: { eq: $saleId }, isDeleted: { eq: false } }) { id, itemId, quantity, buyPrice } }`,
             { variables: { saleId: estimateId } },
         );
-        const items = (itemsRes.data as any)?.saleItemDetails || [];
+        const items = (itemsRes.data as { saleItemDetails?: Array<{ id: string; itemId: string; quantity: number; buyPrice?: number }> })?.saleItemDetails || [];
 
         // 3. Fetch live inventory, deduct stock, and write back using the full upsert pattern
         for (const si of items) {
@@ -742,7 +755,7 @@ export async function convertQuotationToSale(
                 `query GetItemById($id: String!) { item(id: $id) { id, storeId, name, quantity, unit, buyPrice, sellPrice, lowStockThreshold, category, isDeleted, updatedAt } }`,
                 { variables: { id: si.itemId } },
             );
-            const liveItem = (itemRes.data as any)?.item;
+            const liveItem = (itemRes.data as { item?: { id: string; storeId: string; name: string; quantity: number; unit: string; buyPrice?: number; sellPrice?: number; lowStockThreshold?: number; category?: string } })?.item;
             if (!liveItem || liveItem.storeId !== session.storeId) {
                 console.warn(
                     `Skipping stock deduct for ${si.itemId}: not found`,
@@ -809,9 +822,10 @@ export async function convertQuotationToSale(
         revalidatePath("/quotations");
         revalidatePath("/");
         return { success: true };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
         console.error("convertQuotationToSale failed:", err);
-        return { success: false, error: err.message };
+        return { success: false, error: message };
     }
 }
 
@@ -865,9 +879,8 @@ export async function getUdhaarCustomerBalances(storeId: string): Promise<{
             { variables: { storeId } },
         );
 
-        const entries = (
-            (response.data as any)?.udhaarEntries?.edges || []
-        ).map((e: any) => e.node);
+        const udhaarEdges = (response.data as { udhaarEntries?: { edges?: Array<{ node: { customerName?: string; amount?: number; type?: string; timestamp?: number } }> } })?.udhaarEntries?.edges || [];
+        const entries = udhaarEdges.map((e) => e.node);
 
         // Aggregate per-customer balances server-side
         const customerMap = new Map<
@@ -876,20 +889,22 @@ export async function getUdhaarCustomerBalances(storeId: string): Promise<{
         >();
 
         for (const entry of entries) {
-            const key = entry.customerName;
+            const key = entry.customerName ?? "unknown";
+            const amount = entry.amount ?? 0;
+            const ts = entry.timestamp ?? 0;
             const existing = customerMap.get(key);
             if (existing) {
-                if (entry.type === "CREDIT") existing.creditSum += entry.amount;
-                else existing.paymentSum += entry.amount;
-                if (entry.timestamp > existing.lastTime)
-                    existing.lastTime = entry.timestamp;
+                if (entry.type === "CREDIT") existing.creditSum += amount;
+                else existing.paymentSum += amount;
+                if (ts > existing.lastTime)
+                    existing.lastTime = ts;
             } else {
-                const creditSum = entry.type === "CREDIT" ? entry.amount : 0;
-                const paymentSum = entry.type !== "CREDIT" ? entry.amount : 0;
+                const creditSum = entry.type === "CREDIT" ? amount : 0;
+                const paymentSum = entry.type !== "CREDIT" ? amount : 0;
                 customerMap.set(key, {
                     creditSum,
                     paymentSum: paymentSum,
-                    lastTime: entry.timestamp ?? 0,
+                    lastTime: ts,
                 });
             }
         }
@@ -907,9 +922,10 @@ export async function getUdhaarCustomerBalances(storeId: string): Promise<{
         );
 
         return { success: true, data };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
         console.error("getUdhaarCustomerBalances failed:", err);
-        return { success: false, error: err.message };
+        return { success: false, error: message };
     }
 }
 

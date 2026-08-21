@@ -559,7 +559,7 @@ export default function SalesClient({
 								render: (value, row) => (
 									<span className="font-medium text-teal-600 dark:text-teal-400">
 										#
-										{`INV-${(row.cloud_id || value).substring(0, 8)}`}
+										{`INV-${String(row.cloud_id || value).substring(0, 8)}`}
 									</span>
 								),
 							},
@@ -568,7 +568,7 @@ export default function SalesClient({
 								label: "Date & Time",
 								sortable: true,
 								render: (value, row) =>
-									formatDate(value || row.updated_at),
+									formatDate(Number(value) || Number(row.updated_at)),
 							},
 							{
 								key: "customer_name",
@@ -576,7 +576,7 @@ export default function SalesClient({
 								sortable: true,
 								render: (value) => (
 									<span className="font-medium text-gray-900 dark:text-gray-100">
-										{value || "Walk-in Customer"}
+										{String(value) || "Walk-in Customer"}
 									</span>
 								),
 							},
@@ -586,7 +586,7 @@ export default function SalesClient({
 								textAlign: "right",
 								className:
 									"text-gray-500 dark:text-gray-400 truncate max-w-[150px]",
-								render: (value) => value || "-",
+								render: (value) => String(value) || "-",
 							},
 							{
 								key: "total_amount",
@@ -596,7 +596,7 @@ export default function SalesClient({
 								className:
 									"font-bold text-gray-900 dark:text-gray-100",
 								render: (value) => (
-									<FormattedAmount amount={value || 0} />
+									<FormattedAmount amount={Number(value) || 0} />
 								),
 							},
 						];
@@ -604,7 +604,7 @@ export default function SalesClient({
 						const rowActions: TableRowAction[] = [
 							{
 								icon: <Download size={16} />,
-								onClick: (sale: any) => generateInvoice(sale),
+								onClick: (sale) => generateInvoice(sale as any),
 								className:
 									"text-teal-600 hover:text-teal-800 transition-colors",
 								title: "Download Invoice",
@@ -613,7 +613,7 @@ export default function SalesClient({
 								? [
 									{
 										icon: <Trash2 size={16} />,
-										onClick: (sale: any) => handleDelete(sale.id),
+										onClick: (sale: Record<string, unknown>) => handleDelete(String(sale.id)),
 										className:
 											"text-red-500 hover:text-red-700 transition-colors",
 										title: "Delete Sale",

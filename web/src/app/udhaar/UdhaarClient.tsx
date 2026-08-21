@@ -312,20 +312,21 @@ export default function UdhaarClient({
                 key: 'timestamp',
                 label: 'Date',
                 sortable: true,
-                render: (value, row) => new Date(value || row.updated_at).toLocaleDateString('en-IN')
+                render: (value, row) => new Date(Number(value) || Number(row.updated_at)).toLocaleDateString('en-IN')
               },
               {
                 key: 'customer_name',
                 label: 'Customer Name',
                 sortable: true,
-                render: (value) => <span className="font-medium text-gray-900 dark:text-gray-100">{value}</span>
+                render: (value) => <span className="font-medium text-gray-900 dark:text-gray-100">{String(value)}</span>
               },
               {
                 key: 'type',
                 label: 'Type',
                 sortable: true,
                 render: (value) => {
-                  if (value?.toLowerCase() === 'given') {
+                  const str = String(value);
+                  if (str.toLowerCase() === 'given') {
                     return (
                       <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400">
                         <UserMinus size={14} className="mr-1" /> Given
@@ -343,18 +344,21 @@ export default function UdhaarClient({
                 key: 'notes',
                 label: 'Notes',
                 className: 'text-gray-500 dark:text-gray-400 truncate max-w-xs',
-                render: (value) => value || '-'
+                render: (value) => String(value) || '-'
               },
               {
                 key: 'amount',
                 label: 'Amount',
                 sortable: true,
                 textAlign: 'right',
-                render: (value, row) => (
-                  <span className={`font-bold ${row.type?.toLowerCase() === 'given' ? 'text-red-600 dark:text-red-400' : 'text-teal-600 dark:text-teal-400'}`}>
-                    <FormattedAmount amount={value} />
-                  </span>
-                )
+                render: (value, row) => {
+                  const typeStr = String(row.type ?? '');
+                  return (
+                    <span className={`font-bold ${typeStr.toLowerCase() === 'given' ? 'text-red-600 dark:text-red-400' : 'text-teal-600 dark:text-teal-400'}`}>
+                      <FormattedAmount amount={Number(value) || 0} />
+                    </span>
+                  );
+                }
               }
             ];
 
@@ -371,7 +375,7 @@ export default function UdhaarClient({
               },
               {
                 icon: <Trash2 size={16} />,
-                onClick: (record) => handleDelete(record.id),
+                onClick: (record) => handleDelete(String(record.id)),
                 className: 'p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors',
                 title: 'Delete Record'
               }

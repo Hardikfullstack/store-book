@@ -516,9 +516,9 @@ export default function QuotationsClient({
                             {
                                 key: "id",
                                 label: "Estimate ID",
-                                render: (value, row) => (
+                                render: (value) => (
                                     <span className="font-medium text-purple-600 dark:text-purple-400">
-                                        #{`EST-${value.substring(0, 8)}`}
+                                        #{`EST-${String(value).substring(0, 8)}`}
                                     </span>
                                 ),
                             },
@@ -527,14 +527,14 @@ export default function QuotationsClient({
                                 label: "Date",
                                 sortable: true,
                                 render: (value, row) =>
-                                    formatDate(value || row.updated_at),
+                                    formatDate(Number(value) || Number(row.updated_at)),
                             },
                             {
                                 key: "status",
                                 label: "Status",
-                                render: (_v: any, row: any) => {
+                                render: (_v, row) => {
                                     const exp = isExpired(
-                                        row.timestamp ?? row.updated_at,
+                                        Number(row.timestamp) ?? Number(row.updated_at),
                                     );
                                     return exp ? (
                                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
@@ -553,7 +553,7 @@ export default function QuotationsClient({
                                 sortable: true,
                                 render: (value) => (
                                     <span className="font-medium text-gray-900 dark:text-gray-100">
-                                        {value || "Walk-in Customer"}
+                                        {String(value) || "Walk-in Customer"}
                                     </span>
                                 ),
                             },
@@ -565,7 +565,7 @@ export default function QuotationsClient({
                                 className:
                                     "font-bold text-gray-900 dark:text-gray-100",
                                 render: (value) => (
-                                    <FormattedAmount amount={value || 0} />
+                                    <FormattedAmount amount={Number(value) || 0} />
                                 ),
                             },
                         ];
@@ -573,21 +573,21 @@ export default function QuotationsClient({
                         const rowActions: TableRowAction[] = [
                             {
                                 icon: <Plus size={16} />,
-                                onClick: (quote) => handleConvertToSale(quote),
+                                onClick: (quote) => handleConvertToSale(quote as any),
                                 className:
                                     "text-emerald-500 hover:text-emerald-700 transition-colors",
                                 title: "Convert to Sale",
                             },
                             {
                                 icon: <Download size={16} />,
-                                onClick: (quote) => generatePDF(quote),
+                                onClick: (quote) => generatePDF(quote as any),
                                 className:
                                     "text-purple-600 hover:text-purple-800 transition-colors",
                                 title: "Download PDF",
                             },
                             {
                                 icon: <Trash2 size={16} />,
-                                onClick: (quote) => handleDelete(quote.id),
+                                onClick: (quote) => handleDelete(String(quote.id)),
                                 className:
                                     "text-red-500 hover:text-red-700 transition-colors",
                                 title: "Delete Estimate",
