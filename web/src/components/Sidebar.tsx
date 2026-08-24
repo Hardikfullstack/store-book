@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Users, Receipt, LogOut, Database, Store, Settings, BadgeCheck, LockKeyhole, History, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, Receipt, LogOut, Database, Store, Settings, BadgeCheck, LockKeyhole, History, ShoppingBag, Truck } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useState } from 'react';
 import CreateStoreModal from '@/components/CreateStoreModal';
@@ -11,6 +11,7 @@ import { resolvePermissions, ROLE_LABELS, hasRolePermission, PermissionSet } fro
 const ROUTE_PERMISSIONS = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard, permKey: 'canViewDashboard' },
   { name: 'Purchase History', path: '/purchases', icon: ShoppingBag, permKey: 'canViewItems' },
+  { name: 'Suppliers', path: '/suppliers', icon: Truck, permKey: 'canViewItems' },
   { name: 'Sales', path: '/sales', icon: ShoppingCart, permKey: 'canViewSales' },
   { name: 'Items', path: '/items', icon: Package, permKey: 'canViewItems' },
   { name: 'Quotations', path: '/quotations', icon: Receipt, permKey: 'canViewItems' }, // Quotations share Items permission

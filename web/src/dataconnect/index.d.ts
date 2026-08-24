@@ -272,6 +272,16 @@ export interface GetItemsCountVariables {
   storeId: string;
 }
 
+export interface GetSuppliersCountData {
+  suppliers: ({
+    id: string;
+  } & Supplier_Key)[];
+}
+
+export interface GetSuppliersCountVariables {
+  storeId: string;
+}
+
 export interface GetPromoCodesData {
   promoCodes: ({
     id: string;
@@ -927,6 +937,11 @@ export interface SyncSuppliersData {
 export interface SyncSuppliersVariables {
   storeId: string;
   lastSync: number;
+  limit?: number | null;
+  offset?: number | null;
+  searchTerm?: string | null;
+  orderByName?: OrderDirection | null;
+  orderByUpdatedAt?: OrderDirection | null;
 }
 
 export interface SyncUdhaarData {
@@ -1694,6 +1709,18 @@ export const getItemsCountRef: GetItemsCountRef;
 
 export function getItemsCount(vars: GetItemsCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
 export function getItemsCount(dc: DataConnect, vars: GetItemsCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetItemsCountData, GetItemsCountVariables>;
+
+interface GetSuppliersCountRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetSuppliersCountVariables): QueryRef<GetSuppliersCountData, GetSuppliersCountVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetSuppliersCountVariables): QueryRef<GetSuppliersCountData, GetSuppliersCountVariables>;
+  operationName: string;
+}
+export const getSuppliersCountRef: GetSuppliersCountRef;
+
+export function getSuppliersCount(vars: GetSuppliersCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetSuppliersCountData, GetSuppliersCountVariables>;
+export function getSuppliersCount(dc: DataConnect, vars: GetSuppliersCountVariables, options?: ExecuteQueryOptions): QueryPromise<GetSuppliersCountData, GetSuppliersCountVariables>;
 
 interface GetSalesCountRef {
   /* Allow users to create refs without passing in DataConnect */
