@@ -19,6 +19,7 @@ import {
   exportGstr3BReport,
   exportDetailedGstReport,
 } from '@/lib/gstReportExporter';
+import { DcSale, DcSaleItem, DcItem } from '@/types/dataconnect';
 import Gstr1ReportView from '@/components/reports/Gstr1ReportView';
 import Gstr2ReportView from '@/components/reports/Gstr2ReportView';
 import Gstr3BReportView from '@/components/reports/Gstr3BReportView';
@@ -61,12 +62,12 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
   const purchasesFetchingRef = useRef<boolean>(false);
   const itemsFetchingRef = useRef<boolean>(false);
 
-  const [allSales, setAllSales] = useState<any[]>([]);
-  const [allSaleItems, setAllSaleItems] = useState<any[]>([]);
+  const [allSales, setAllSales] = useState<DcSale[]>([]);
+  const [allSaleItems, setAllSaleItems] = useState<DcSaleItem[]>([]);
   const [allPurchases, setAllPurchases] = useState<any[]>([]);
   const [allPurchaseItems, setAllPurchaseItems] = useState<any[]>([]);
   const [allSuppliersMap, setAllSuppliersMap] = useState<Map<string, any>>(new Map());
-  const [allItemsMap, setAllItemsMap] = useState<Map<string, any>>(new Map());
+  const [allItemsMap, setAllItemsMap] = useState<Map<string, DcItem>>(new Map());
   const [businessGstin, setBusinessGstin] = useState<string>('');
   const [businessName, setBusinessName] = useState<string>('StoreBook');
 
@@ -119,7 +120,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
         );
         if (!isMounted) return;
         const rawMasterItems = itemsRes.data?.items || [];
-        const itemMap = new Map<string, any>();
+        const itemMap = new Map<string, DcItem>();
         for (const item of rawMasterItems) {
           itemMap.set(String(item.id).trim(), item);
         }
