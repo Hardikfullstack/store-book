@@ -1,7 +1,7 @@
 epic_id: e46
 title: "Web: GST Compliance Reports Hub (GSTR-1, GSTR-2, GSTR-3B & Detailed GST)"
 priority: P1
-status: in_progress
+status: complete
 target_version: v1.9.0
 description: |
   Comprehensive GST Compliance and Tax Reporting suite on the Web Dashboard (/reports), bringing full parity

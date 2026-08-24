@@ -1,0 +1,79 @@
+epic_id: e48
+title: "Web: Supplier Management & Payment Settlement Workflows (Add/Edit Supplier, Record Payment & Ledger History)"
+priority: P1
+status: defined
+target_version: v1.9.0
+description: |
+  Comprehensive supplier CRUD and payment ledger transaction workflows on the Web Dashboard (/suppliers),
+  matching the exact Android POS modal dialogs and bottom-sheet lifecycle (SupplierLedgerScreen.kt).
+  Enables merchants to add/edit suppliers with 4 core fields, record outbound supplier payments with custom notes,
+  and inspect real-time transaction history (bills vs. payments) with instant balance recalculation.
+
+scope:
+  in:
+    - Add / Edit Supplier Modal:
+        - 4 Input Fields:
+            1. Supplier Name (Required, with validation error on empty)
+            2. Phone Number (Optional, 10-digit format)
+            3. GSTIN (Optional, uppercase 15-character Indian GST format validation: ^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]$)
+            4. Address (Optional, multiline text)
+        - Save Supplier button dispatching DataConnect supplier upsert and updating directory list.
+    - Supplier Actions Column:
+        - Edit button: Opens Edit Supplier Modal populated with the selected supplier's 4 fields.
+        - Record Payment button: Opens the Supplier Ledger / Payment Sheet modal.
+    - Supplier Ledger / Payment Detail Modal:
+        - Header with Supplier Name, Phone, and GSTIN.
+        - Current Balance Summary card: Shows Pending Payable amount or Advance Balance.
+        - Prominent "Record Payment" action button.
+        - Scrollable Transaction History list:
+            - Displays all Purchase Bills (+₹XX in Red/Coral) and Payments (-₹XX in Green/Emerald).
+            - Includes transaction timestamp (e.g. "24 Aug 2026, 05:30 PM"), bill/payment identifier, and notes.
+    - Record Payment Sub-Modal / Dialog:
+        - Triggered from "Record Payment" button inside the ledger modal.
+        - 2 Input Fields:
+            1. Amount Paid (Required, decimal number > 0)
+            2. Notes (Optional, e.g. "Bank Ref, Cash, etc.")
+        - Confirm action:
+            - Inserts a Purchase record with type="PAYMENT", taxAmount=0.0, and notes.
+            - Updates supplier balance in real-time.
+            - Immediately adds the new payment into the Transaction History list of the open ledger modal.
+  out:
+    - Supplier payment gateway auto-debit (manual settlement record logging only).
+    - Purchase bill line-item creation workflow (covered in e16).
+
+architecture:
+  web_components:
+    - name: "AddEditSupplierModal"
+      file: "web/src/components/suppliers/AddEditSupplierModal.tsx"
+      role: "Modal dialog for creating new suppliers or editing existing supplier records with 4 fields and GSTIN validation."
+    - name: "SupplierLedgerModal"
+      file: "web/src/components/suppliers/SupplierLedgerModal.tsx"
+      role: "Parent ledger modal displaying current supplier balance, advance balance, Record Payment trigger, and full transaction history."
+    - name: "RecordSupplierPaymentModal"
+      file: "web/src/components/suppliers/RecordSupplierPaymentModal.tsx"
+      role: "Sub-modal for logging amount paid and notes, syncing payment to DataConnect, and updating ledger history."
+
+stories:
+  - id: e48-s1
+    title: "Web: Add & Edit Supplier Modal with 4-Field Validation"
+    acceptance:
+      - "Add Supplier modal contains Supplier Name (Required), Phone Number, GSTIN, and Address."
+      - "Validates Supplier Name is non-blank and validates GSTIN format (^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]$)."
+      - "Edit Supplier button pre-fills the 4 fields and saves changes to DataConnect."
+      - "Successfully updates local supplier state without page reload."
+
+  - id: e48-s2
+    title: "Web: Supplier Ledger Modal with Advance Balance & Transaction History"
+    acceptance:
+      - "Clicking 'Record Payment' or supplier row opens the Supplier Ledger Modal."
+      - "Displays current Pending Balance or Advance Balance clearly."
+      - "Displays complete chronologically ordered Transaction History showing Purchase Bills (+₹) and Payments (-₹) with dates and notes."
+      - "Features a prominent 'Record Payment' button."
+
+  - id: e48-s3
+    title: "Web: Record Payment Sub-Modal & Real-time Ledger History Append"
+    acceptance:
+      - "Record Payment button inside ledger opens the Payment Dialog with Amount Paid (Required) and Notes."
+      - "Saving payment writes a Purchase record with type='PAYMENT' into DataConnect."
+      - "Immediately recalculates the supplier balance and prepends the new payment into the Transaction History list in the lower modal."
+      - "Shows success toast notification on completion."
