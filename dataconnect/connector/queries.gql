@@ -421,8 +421,31 @@ query GetPromoCodes @auth(level: USER) {
 
 
 # Pull updated suppliers since last sync
-query SyncSuppliers($storeId: String!, $lastSync: Float!) @auth(level: USER) {
-  suppliers(where: { storeId: { eq: $storeId }, updatedAt: { gt: $lastSync } }, limit: 10000) {
+query SyncSuppliers(
+  $storeId: String!
+  $lastSync: Float!
+  $limit: Int
+  $offset: Int
+  $searchTerm: String
+  $orderByName: OrderDirection
+  $orderByUpdatedAt: OrderDirection
+) @auth(level: USER) {
+  suppliers(
+    where: {
+      _and: [
+        { storeId: { eq: $storeId } }
+        { updatedAt: { gt: $lastSync } }
+        { isDeleted: { eq: false } }
+        { name: { contains: $searchTerm } }
+      ]
+    }
+    limit: $limit
+    offset: $offset
+    orderBy: [
+      { name: $orderByName }
+      { updatedAt: $orderByUpdatedAt }
+    ]
+  ) {
     id
     storeId
     name
@@ -506,6 +529,12 @@ query GetUdhaarEntriesCount($storeId: String!) @auth(level: USER) {
 
 query GetExpenseEntriesCount($storeId: String!) @auth(level: USER) {
   expenseEntries(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+    id
+  }
+}
+
+query GetSuppliersCount($storeId: String!) @auth(level: USER) {
+  suppliers(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
     id
   }
 }

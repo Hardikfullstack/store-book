@@ -408,9 +408,9 @@ epics:
     type: development
 
   - id: e47
-    title: "Web: Suppliers Module — Supplier Ledger Directory & Net Payable Summary"
+    title: "Web: Suppliers Module — Supplier Listing, Filters & Backend Pagination"
     priority: P1
-    status: defined
+    status: complete
     story_count: 3
     target_version: v1.9.0
     depends_on: [e04, e16]

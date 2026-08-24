@@ -1,63 +1,62 @@
 epic_id: e47
-title: "Web: Suppliers Module — Supplier Ledger Directory & Net Payable Summary"
+title: "Web: Suppliers Module — Supplier Listing, Filters & Backend Pagination"
 priority: P1
-status: defined
+status: complete
 target_version: v1.9.0
 description: |
-  Comprehensive Supplier Directory and Ledger Hub on the Web Dashboard (/suppliers), replicating the core
-  supplier discovery, outstanding net balances, and transaction sorting features from the Android POS app
-  (SupplierLedgerScreen.kt). Enables store owners to track all suppliers, inspect real-time pending payable vs.
-  advance balances, search by supplier name, and sort by transaction timestamps.
+  Supplier module for Web (/suppliers) matching the Android app: supplier directory listing,
+  filters (search by supplier name and sort by timestamp), top summary card showing Total Net Payable
+  to Suppliers, and backend pagination.
 
 scope:
   in:
     - Dedicated Web UI at /suppliers featuring:
-        - Header Metric Cards: Total Net Payable to Suppliers - (sum of all suppliers with positive net balance), Total Supplier Count, and Advance Balance aggregates.
-        - Realtime Search Filter: Search query filtering suppliers by name dynamically.
-        - Sorting Controls: Sort suppliers by timestamp (latest transaction / creation date), alphabetical (A-Z / Z-A), and highest outstanding payable balance.
-        - Supplier Directory Table & Cards:
-            - Supplier Name & Avatar Initial
-            - Phone Number & quick contact link
-            - GSTIN (if registered)
+        - Top Metric Card: "Total Net Payable to Suppliers" matching App calculation (sum of net balance where net balance > 0).
+        - Supplier Directory Listing:
+            - Supplier Name
+            - Phone Number
+            - GSTIN
             - Address
-            - Outstanding Net Balance Badge (Pending Payable in coral/red, Advance Balance in emerald/green, Settled in gray)
+            - Outstanding Net Balance Status
             - Last Transaction Timestamp
-            - Action column with dedicated action triggers
-        - Empty states for no suppliers created and no search match results.
+        - Filters:
+            - Real-time search filter by supplier name.
+            - Sorting by timestamp.
+        - Backend Pagination: Server-driven pagination with page navigation controls (10 items per page).
+        - Empty states for zero suppliers and no search results.
+    - Sidebar navigation entry linking to /suppliers in web/src/components/Sidebar.tsx.
   out:
-    - Supplier creation and payment modal flows (covered in e48).
-    - Purchase invoice item creation (covered in e16).
+    - Add/Edit Supplier modal (covered in Epic e48).
+    - Record Payment sub-modal and Supplier Ledger modal (covered in Epic e48).
 
 architecture:
   web_components:
+    - name: "SuppliersPage (/suppliers)"
+      file: "web/src/app/suppliers/page.tsx"
+      role: "Server component enforcing authentication and rendering SuppliersClient."
     - name: "SuppliersClient (/suppliers)"
       file: "web/src/app/suppliers/SuppliersClient.tsx"
-      role: "Main interactive page managing supplier balances, realtime searching, timestamp sorting, and net payable summary calculations."
-    - name: "SupplierSummaryCards"
-      file: "web/src/components/suppliers/SupplierSummaryCards.tsx"
-      role: "Renders top summary metrics including Total Net Payable to Suppliers and Advance balances."
-    - name: "SupplierTable"
-      file: "web/src/components/suppliers/SupplierTable.tsx"
-      role: "Renders directory list of suppliers with status badges, contact info, and action triggers."
+      role: "Main client component managing supplier listing, backend search, timestamp sorting, pagination, and top Net Payable summary card."
+    - name: "Sidebar"
+      file: "web/src/components/Sidebar.tsx"
+      role: "Sidebar navigation linking to /suppliers."
 
 stories:
   - id: e47-s1
     title: "Web: Suppliers Directory Page & Top Net Payable Summary Card"
     acceptance:
-      - "Route /suppliers displays top summary banner showing Total Net Payable to Suppliers matching Android calculation (sum of netBalance > 0)."
-      - "Fetches suppliers and purchases from DataConnect and computes net balance per supplier (Total Purchases - Total Payments)."
-      - "Displays total active suppliers count and advance balances."
+      - "Route /suppliers displays top summary card showing Total Net Payable to Suppliers matching App calculation (sum of netBalance > 0)."
+      - "Computes net balance per supplier as (Total Purchases - Total Payments)."
 
   - id: e47-s2
-    title: "Web: Supplier Listing Table with Contact Details & Balance Status"
+    title: "Web: Supplier Listing with Contact Info & Balance Status"
     acceptance:
-      - "Renders table listing Supplier Name, Phone Number, GSTIN, Address, and Net Balance."
+      - "Renders directory table listing Supplier Name, Phone Number, GSTIN, Address, and Net Balance Status."
       - "Displays balance in distinct color styles: Red/Coral for Pending Payable, Green/Emerald for Advance Balance, and Gray for Zero/Settled."
-      - "Provides empty state when no suppliers are registered."
 
   - id: e47-s3
-    title: "Web: Real-time Search by Supplier Name & Timestamp Sorting"
+    title: "Web: Search by Supplier Name, Timestamp Sorting & Backend Pagination"
     acceptance:
-      - "Search input filters suppliers by name instantaneously."
-      - "Sort dropdown allows ordering by Timestamp (latest activity), Name (A-Z), and Outstanding Balance (Highest to Lowest)."
-      - "Handles search query clearing smoothly."
+      - "Search input filters suppliers by supplier name."
+      - "Sort controls allow ordering by timestamp."
+      - "Backend pagination controls page through suppliers with page indicator and navigation buttons."
