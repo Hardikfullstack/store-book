@@ -419,7 +419,7 @@ epics:
   - id: e48
     title: "Web: Supplier Management & Payment Settlement Workflows (Add/Edit Supplier, Record Payment & Ledger History)"
     priority: P1
-    status: defined
+    status: complete
     story_count: 3
     target_version: v1.9.0
     depends_on: [e47]
