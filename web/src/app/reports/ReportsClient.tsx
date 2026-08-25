@@ -412,7 +412,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
               onClick={() => setActiveTab(tab.id)}
               className={`px-5 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap ${isActive
                 ? 'bg-indigo-950 dark:bg-indigo-900 text-white shadow-md shadow-indigo-950/20'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                 }`}
             >
               {tab.label}

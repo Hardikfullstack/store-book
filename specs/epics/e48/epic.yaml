@@ -1,7 +1,7 @@
 epic_id: e48
 title: "Web: Supplier Management & Payment Settlement Workflows (Add/Edit Supplier, Record Payment & Ledger History)"
 priority: P1
-status: defined
+status: complete
 target_version: v1.9.0
 description: |
   Comprehensive supplier CRUD and payment ledger transaction workflows on the Web Dashboard (/suppliers),

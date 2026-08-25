@@ -298,7 +298,7 @@ function SectionBreakdownCard({
         </h4>
       </div>
 
-      <div className="divide-y divide-gray-50 dark:divide-gray-750 text-xs">
+      <div className="divide-y divide-gray-50 dark:divide-gray-700/60 text-xs">
         <BreakdownRow label='Taxable Value' amount={taxable} />
         <BreakdownRow label='CGST Amount' amount={cgst} />
         <BreakdownRow label='SGST Amount' amount={sgst} />

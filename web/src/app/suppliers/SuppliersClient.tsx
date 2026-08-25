@@ -7,6 +7,9 @@ import {
   Phone,
   MapPin,
   RefreshCw,
+  Plus,
+  Edit2,
+  BookOpen,
 } from 'lucide-react';
 import { dataConnect } from '@/lib/firebase';
 import { executeQuery } from 'firebase/data-connect';
@@ -21,6 +24,11 @@ import { FormattedAmount } from '@/components/FormattedAmount';
 import { sanitizeInput } from '@/lib/sanitize';
 import Pagination from '@/app/components/Pagination';
 import DynamicTable, { TableColumn } from '@/components/DynamicTable';
+import AddEditSupplierModal, {
+  SupplierFormInitialData,
+} from '@/components/suppliers/AddEditSupplierModal';
+import SupplierLedgerModal from '@/components/suppliers/SupplierLedgerModal';
+import { RecordedPaymentData } from '@/components/suppliers/RecordSupplierPaymentModal';
 
 interface SupplierData {
   id: string;
@@ -80,6 +88,12 @@ export default function SuppliersClient({
   const pageSize = 10;
   const [totalItems, setTotalItems] = useState<number>(0);
 
+  // Modal states for Epic 48
+  const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<SupplierFormInitialData | null>(null);
+  const [selectedLedgerSupplier, setSelectedLedgerSupplier] = useState<SupplierRow | null>(null);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+
   const [dataVersion, setDataVersion] = useState<number>(0);
   const fetchedPagesAtVersionRef = useRef<Map<string, number>>(new Map());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -87,6 +101,13 @@ export default function SuppliersClient({
   const invalidateAllPages = () => {
     setDataVersion((v) => v + 1);
     fetchedPagesAtVersionRef.current = new Map();
+  };
+
+  const showToast = (message: string) => {
+    setSuccessToast(message);
+    setTimeout(() => {
+      setSuccessToast(null);
+    }, 3500);
   };
 
   // Debounced search (300ms) - only for supplier name
@@ -118,11 +139,20 @@ export default function SuppliersClient({
     setRefreshTrigger((prev) => prev + 1);
   };
 
+  // Reset state when active store changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setSuppliers([]);
+    setAllPurchases([]);
+    setTotalItems(0);
+    invalidateAllPages();
+  }, [storeId]);
+
   // 1. Fetch total supplier count from backend API for pagination (same as Items module getItemsCount)
   useEffect(() => {
     if (!storeId || debouncedSearch) return;
 
-    const countKey = 'count';
+    const countKey = `count-${storeId}`;
     const needsServerFetch =
       (fetchedPagesAtVersionRef.current.get(countKey) ?? -1) < dataVersion;
     const options = needsServerFetch
@@ -180,7 +210,7 @@ export default function SuppliersClient({
       setIsLoading(true);
       try {
         const isSearching = debouncedSearch.length > 0;
-        const pageKey = `page-${currentPage}-${sortField}-${sortDirection}-${debouncedSearch}`;
+        const pageKey = `page-${storeId}-${currentPage}-${sortField}-${sortDirection}-${debouncedSearch}`;
         const needsServerFetch =
           (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) < dataVersion;
         const options = needsServerFetch
@@ -344,7 +374,54 @@ export default function SuppliersClient({
     });
   };
 
-  // Table Columns matching Items module layout — only updatedAt is sortable
+  // Handlers for Add/Edit Supplier & Payment
+  const handleOpenAddSupplier = () => {
+    setEditingSupplier(null);
+    setIsAddEditModalOpen(true);
+  };
+
+  const handleOpenEditSupplier = (row: SupplierRow) => {
+    setEditingSupplier({
+      id: row.supplierId,
+      name: row.supplierName,
+      phone: row.phone,
+      gstin: row.gstin,
+      address: row.address,
+      updatedAt: row.updatedAt,
+    });
+    setIsAddEditModalOpen(true);
+  };
+
+  const handleOpenLedgerModal = (row: SupplierRow) => {
+    setSelectedLedgerSupplier(row);
+  };
+
+  const handleSupplierSaved = (savedSupplier: SupplierFormInitialData) => {
+    showToast(
+      editingSupplier
+        ? `Supplier "${savedSupplier.name}" updated successfully!`
+        : `Supplier "${savedSupplier.name}" created successfully!`
+    );
+    handleRefresh();
+  };
+
+  const handlePaymentLogged = (newPayment: RecordedPaymentData) => {
+    // Add to allPurchases to immediately reflect across all cards, table rows, and active modal
+    setAllPurchases((prev) => [newPayment, ...prev]);
+    showToast(
+      `Payment of ₹${newPayment.totalAmount.toLocaleString('en-IN')} recorded successfully!`
+    );
+  };
+
+  // Get active purchases for the currently opened ledger modal
+  const selectedSupplierPurchases = useMemo(() => {
+    if (!selectedLedgerSupplier) return [];
+    return allPurchases.filter(
+      (p) => String(p.supplierId || '').trim() === selectedLedgerSupplier.supplierId
+    );
+  }, [selectedLedgerSupplier, allPurchases]);
+
+  // Table Columns matching Items module layout + Actions column
   const columns: TableColumn<SupplierRow>[] = [
     {
       key: 'supplierName',
@@ -355,11 +432,6 @@ export default function SuppliersClient({
           <div className="font-medium text-gray-900 dark:text-gray-100">
             {row.supplierName}
           </div>
-          {row.gstin ? (
-            <span className="inline-block px-1.5 py-0.5 mt-0.5 rounded text-[10px] font-mono font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-750 border border-gray-200 dark:border-gray-700">
-              GSTIN: {row.gstin}
-            </span>
-          ) : null}
         </div>
       ),
     },
@@ -380,14 +452,13 @@ export default function SuppliersClient({
         ),
     },
     {
-      key: 'address',
-      label: 'Address',
+      key: 'gstin',
+      label: 'GSTIN',
       render: (_val, row) =>
-        row.address ? (
-          <div className="flex items-center space-x-1 text-gray-600 dark:text-gray-300 max-w-xs truncate" title={row.address}>
-            <MapPin size={13} className="text-gray-400 shrink-0" />
-            <span className="truncate">{row.address}</span>
-          </div>
+        row.gstin ? (
+          <span className="font-medium text-sm text-gray-500 dark:text-gray-400">
+            {row.gstin}
+          </span>
         ) : (
           <span className="text-gray-400 dark:text-gray-500">-</span>
         ),
@@ -443,10 +514,50 @@ export default function SuppliersClient({
         );
       },
     },
+    {
+      key: 'actions',
+      label: 'Actions',
+      textAlign: 'right',
+      render: (_val, row) => (
+        <div className="flex items-center justify-end space-x-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenLedgerModal(row);
+            }}
+            className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/50 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/70 transition-colors shadow-2xs"
+            title="Record payment or view transaction history"
+          >
+            <BookOpen size={13} />
+            <span>View Ledger</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenEditSupplier(row);
+            }}
+            className="p-1.5 text-gray-500 hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            title="Edit supplier details"
+          >
+            <Edit2 size={14} />
+          </button>
+        </div>
+      ),
+    },
   ];
 
   return (
     <div className="space-y-6">
+      {/* Toast Notification */}
+      {successToast && (
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl shadow-xl text-sm font-medium animate-in fade-in slide-in-from-bottom-3 duration-200 flex items-center space-x-2">
+          <span>{successToast}</span>
+        </div>
+      )}
+
       {/* 1. Header (Same styling as Items module) */}
       <div className="flex justify-between items-center mb-6">
         <div>
@@ -468,6 +579,17 @@ export default function SuppliersClient({
             <RefreshCw size={15} className={isRefreshing ? 'animate-spin text-teal-600' : ''} />
             <span>Refresh</span>
           </button>
+
+          {storeId && (
+            <button
+              type="button"
+              onClick={handleOpenAddSupplier}
+              className="flex items-center space-x-1.5 px-4 py-2 text-sm font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-sm hover:shadow transition-all"
+            >
+              <Plus size={16} />
+              <span>Add Supplier</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -535,6 +657,35 @@ export default function SuppliersClient({
           />
         )}
       </div>
+
+      {/* Add / Edit Supplier Modal */}
+      {storeId && isAddEditModalOpen && (
+        <AddEditSupplierModal
+          isOpen={isAddEditModalOpen}
+          onClose={() => setIsAddEditModalOpen(false)}
+          storeId={storeId}
+          supplier={editingSupplier}
+          onSuccess={handleSupplierSaved}
+        />
+      )}
+
+      {/* Supplier Ledger & Transaction History Modal */}
+      {storeId && selectedLedgerSupplier && (
+        <SupplierLedgerModal
+          isOpen={Boolean(selectedLedgerSupplier)}
+          onClose={() => setSelectedLedgerSupplier(null)}
+          storeId={storeId}
+          supplier={{
+            id: selectedLedgerSupplier.supplierId,
+            name: selectedLedgerSupplier.supplierName,
+            phone: selectedLedgerSupplier.phone,
+            gstin: selectedLedgerSupplier.gstin,
+            address: selectedLedgerSupplier.address,
+          }}
+          initialPurchases={selectedSupplierPurchases}
+          onPaymentLogged={handlePaymentLogged}
+        />
+      )}
     </div>
   );
 }

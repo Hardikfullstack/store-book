@@ -269,7 +269,7 @@ export default function DetailedGstReportView({
         <h3 className="text-sm font-bold text-gray-900 dark:text-white">
           Detailed Transaction Breakdown ({filteredRows.length})
         </h3>
-        <div className="flex items-center space-x-1.5 bg-gray-100 dark:bg-gray-750 p-1 rounded-xl">
+        <div className="flex items-center space-x-1.5 bg-gray-100 dark:bg-gray-700/60 p-1 rounded-xl">
           <button
             type="button"
             onClick={() => setFilterType('ALL')}
@@ -332,7 +332,7 @@ export default function DetailedGstReportView({
             return (
               <div
                 key={row.id}
-                className="p-3.5 border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 hover:bg-gray-50/70 dark:hover:bg-gray-750 rounded-2xl shadow-sm transition-all"
+                className="p-3.5 border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 hover:bg-gray-50/70 dark:hover:bg-gray-700 rounded-2xl shadow-sm transition-all"
               >
                 {/* Header line: Date, Txn ID, Type Chip, Total Amount */}
                 <div className="flex items-center justify-between">
