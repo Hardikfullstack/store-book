@@ -36,7 +36,13 @@ export default function Sidebar({ session }: { session?: Record<string, unknown>
   const rawStoreId = (session as { storeId?: string } | undefined)?.storeId;
   const currentStoreId = typeof rawStoreId === 'string' ? rawStoreId : '';
   const stores: string[] = Array.isArray(session?.stores) ? session.stores : [];
+  const rawStoreDetails = (session as { storeDetails?: { id: string; name: string }[] } | undefined)?.storeDetails;
+  const storeList: { id: string; name: string }[] = Array.isArray(rawStoreDetails) && rawStoreDetails.length > 0
+    ? rawStoreDetails
+    : stores.map((sId, idx) => ({ id: sId, name: `Store ${idx + 1} (${sId.slice(0, 8)}…)` }));
+
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
   const pathname = usePathname();
 
   // Build nav items based on permission set
@@ -44,6 +50,31 @@ export default function Sidebar({ session }: { session?: Record<string, unknown>
   const hasPerm = hasRolePermission(role);
   const filteredNavItems = isPlatformAdmin ? ADMIN_ROUTE_PERMISSIONS.filter((r) => hasPerm(r.permKey as keyof PermissionSet)) : ROUTE_PERMISSIONS.filter((r) => hasPerm(r.permKey as keyof PermissionSet));
 
+  const canSwitchStore = role === 'owner' || role === 'manager' || isPlatformAdmin;
+
+  const handleStoreChange = async (targetValue: string) => {
+    if (targetValue === 'NEW') {
+      setShowCreateModal(true);
+      return;
+    }
+    if (!targetValue || targetValue === currentStoreId) return;
+
+    setIsSwitching(true);
+    try {
+      const { persistor } = await import('@/store');
+      await persistor.purge();
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.clear();
+      }
+      const { switchStore } = await import('@/app/actions');
+      await switchStore(targetValue);
+      window.location.href = window.location.pathname;
+    } catch (err) {
+      console.error("Store switch error:", err);
+      alert("Failed to switch store: " + (err instanceof Error ? err.message : String(err)));
+      setIsSwitching(false);
+    }
+  };
 
   if (pathname === '/login' || pathname === '/signup') {
     return null;
@@ -79,30 +110,30 @@ export default function Sidebar({ session }: { session?: Record<string, unknown>
         </div>
       )}
 
-      {/* Store switcher — only owners */}
-      {role === 'owner' && (
+      {/* Store switcher — owners, managers, and admins */}
+      {canSwitchStore && (
         <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Current Store</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Store</label>
+            {isSwitching && (
+              <span className="text-xs text-teal-600 dark:text-teal-400 animate-pulse font-medium">Switching…</span>
+            )}
+          </div>
           <select
-            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-sm rounded-lg focus:ring-teal-500 focus:border-teal-500 block p-2.5"
+            disabled={isSwitching}
+            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-sm rounded-lg focus:ring-teal-500 focus:border-teal-500 block p-2.5 disabled:opacity-50"
             value={currentStoreId || ''}
-            onChange={async (e) => {
-              if (e.target.value === 'NEW') {
-                setShowCreateModal(true);
-              } else {
-                const { switchStore } = await import('@/app/actions');
-                await switchStore(e.target.value);
-                window.location.reload();
-              }
-            }}
+            onChange={(e) => handleStoreChange(e.target.value)}
           >
-            {stores.map((sId: string, idx: number) => (
-              <option key={sId} value={sId}>Store {idx + 1} ({sId.slice(0, 8)}…)</option>
+            {storeList.map((st) => (
+              <option key={st.id} value={st.id}>{st.name}</option>
             ))}
-            {stores.length === 0 && currentStoreId && (
+            {storeList.length === 0 && currentStoreId && (
               <option value={currentStoreId}>My Primary Store</option>
             )}
-            <option value="NEW">+ Create New Store</option>
+            {(role === 'owner' || isPlatformAdmin) && (
+              <option value="NEW">+ Create New Store</option>
+            )}
           </select>
         </div>
       )}
@@ -114,8 +145,8 @@ export default function Sidebar({ session }: { session?: Record<string, unknown>
             key={item.name}
             href={item.path}
             className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${pathname === item.path || item.path !== '/' && pathname.startsWith(item.path)
-                ? 'bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400 font-medium'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
+              ? 'bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400 font-medium'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
           >
             <item.icon size={20} className={

@@ -17,7 +17,12 @@ export default async function SettingsPage() {
 
   let storeData = null;
   if (session.storeId) {
-    storeData = { name: 'Migrated Store', is_premium: session.isPremium, subscription_platform: 'web' };
+    const currentStoreMeta = session.storeDetails?.find((s: { id: string; name: string }) => s.id === session.storeId);
+    storeData = { 
+      name: currentStoreMeta?.name || 'My Store', 
+      is_premium: session.isPremium, 
+      subscription_platform: 'web' 
+    };
   }
 
   const userData = session;
@@ -111,10 +116,6 @@ export default async function SettingsPage() {
       {perms.canManageStaff && session.storeId && (
         <StaffManagement storeId={session.storeId} />
       )}
-      
-      <div className="glass-card p-6 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50 mt-6">
-        Note: Store Context Switching feature is coming soon. Currently, each user account is mapped to a single primary store.
-      </div>
     </div>
   );
 }

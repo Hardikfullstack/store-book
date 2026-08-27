@@ -13,8 +13,18 @@ export default function CreateStoreModal({ onClose }: { onClose: () => void }) {
     setLoading(true);
     try {
       const sanitizedName = sanitizeInput(storeName);
-      await createStore(sanitizedName);
-      window.location.href = '/';
+      const res = await createStore(sanitizedName);
+      if (res.success) {
+        const { persistor } = await import('@/store');
+        await persistor.purge();
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.clear();
+        }
+        window.location.href = '/';
+      } else {
+        alert(res.error || 'Failed to create store.');
+        setLoading(false);
+      }
     } catch (err) {
       console.error(err);
       alert('Failed to create store.');
@@ -29,12 +39,12 @@ export default function CreateStoreModal({ onClose }: { onClose: () => void }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium dark:text-gray-300">Store Name</label>
-            <input aria-label="text" 
-              required 
-              type="text" 
-              value={storeName} 
-              onChange={e => setStoreName(sanitizeInput(e.target.value))} 
-              className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" 
+            <input aria-label="text"
+              required
+              type="text"
+              value={storeName}
+              onChange={e => setStoreName(sanitizeInput(e.target.value))}
+              className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
               placeholder="e.g. My Second Shop"
             />
           </div>

@@ -36,8 +36,8 @@ export async function login(idToken: string) {
                 userDoc.stores && userDoc.stores.length > 0
                     ? userDoc.stores
                     : userDoc.storeId
-                      ? [userDoc.storeId]
-                      : [];
+                        ? [userDoc.storeId]
+                        : [];
 
             await adminAuth.setCustomUserClaims(decodedIdToken.uid, {
                 role: userDoc.role,
@@ -53,14 +53,16 @@ export async function login(idToken: string) {
         const cookieStore = await cookies();
         // SameSite=Lax protects against most cross-site request forgery; httpOnly prevents XSS access
         cookieStore.set("session", sessionCookie, {
-            maxAge: expiresIn,
+            path: "/",
+            maxAge: Math.floor(expiresIn / 1000),
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
         });
-        // Store CSRF token as a separate httpOnly cookie (server verifies on mutations)
+        // Store CSRF token as a separate cookie (server verifies on mutations)
         cookieStore.set("csrfToken", csrfToken, {
-            maxAge: expiresIn,
+            path: "/",
+            maxAge: Math.floor(expiresIn / 1000),
             httpOnly: false,
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
@@ -75,31 +77,41 @@ export async function login(idToken: string) {
 export async function logout() {
     const cookieStore = await cookies();
     cookieStore.delete("session");
+    cookieStore.delete("csrfToken");
     cookieStore.delete("activeStoreId");
-    revalidatePath("/");
+    cookieStore.set("session", "", { path: "/", maxAge: 0 });
+    cookieStore.set("activeStoreId", "", { path: "/", maxAge: 0 });
+    revalidatePath("/", "layout");
 }
+
 export async function switchStore(storeId: string) {
     const session = await getSession();
     if (!session) throw new Error("Unauthorized");
 
-    const perms = resolvePermissions(session.role ?? "staff");
-    if (!perms.canViewSettings) {
+    const role = session.role ?? "staff";
+    const perms = resolvePermissions(role);
+    if (!perms.canViewSettings && !perms.canAccessAdmin) {
         throw new Error("Insufficient permissions to switch stores");
+    }
+
+    // IDOR Protection: Owners and managers can only switch to stores they have access to
+    if (role === "owner" || role === "manager") {
+        if (!session.stores.includes(storeId) && session.storeId !== storeId) {
+            throw new Error("Unauthorized: You do not have access to this store");
+        }
     }
 
     const cookieStore = await cookies();
     cookieStore.set("activeStoreId", storeId, {
-        maxAge: 60 * 60 * 24 * 5 * 1000,
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30, // 30 days
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
     });
 
-    if (session.role === "owner" && !session.stores.includes(storeId)) {
-        throw new Error("Unauthorized: You do not own this store");
-    }
-
-    revalidatePath("/");
+    revalidatePath("/", "layout");
+    return { success: true, storeId };
 }
 
 // -- MIGRATED CRUD ACTIONS DELETED --
@@ -123,7 +135,7 @@ export async function createStore(name: string) {
             { variables: { id: storeId, name: sanitizedName } },
         );
 
-        const updatedStores = [...(session.stores || []), storeId];
+        const updatedStores = Array.from(new Set([...(session.stores || []), storeId]));
         await dc.executeGraphql(
             `mutation UpdateUserStores($uid: String!, $stores: [String!]!) {
         user_update(id: $uid, data: { stores: $stores })
@@ -136,9 +148,21 @@ export async function createStore(name: string) {
             },
         );
 
+        // Auto-switch to newly created store
+        const cookieStore = await cookies();
+        cookieStore.set("activeStoreId", storeId, {
+            path: "/",
+            maxAge: 60 * 60 * 24 * 30,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+        });
+
+        revalidatePath("/", "layout");
+
         return { success: true, storeId };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+        const message = err instanceof Error ? err.message : String(err);
         return { success: false, error: message };
     }
 }
@@ -175,7 +199,7 @@ export async function archiveOldData(
         `,
                     { variables: { cutoff } },
                 );
-          const rawData = result.data as Record<string, number> | undefined;
+                const rawData = result.data as Record<string, number> | undefined;
                 const deletedCount = (rawData?.[`${table}_deleteMany`]) ?? 0;
                 totalDeleted += deletedCount;
             } catch (err) {
@@ -187,7 +211,7 @@ export async function archiveOldData(
         revalidatePath("/");
         return { success: true, count: totalDeleted };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+        const message = err instanceof Error ? err.message : String(err);
         return { success: false, error: message };
     }
 }
@@ -224,7 +248,7 @@ export async function purgeStoreData(
         revalidatePath("/");
         return { success: true };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+        const message = err instanceof Error ? err.message : String(err);
         return { success: false, error: message };
     }
 }
@@ -242,7 +266,7 @@ export async function revokeUserSessions(
         await adminAuth.revokeRefreshTokens(userId);
         return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
         return { success: false, error: message };
     }
 }
@@ -326,7 +350,7 @@ export async function toggleStoreStatus(storeId: string, isActive: boolean) {
         );
         return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
         console.error("Toggle store failed:", error);
         return { success: false, error: message };
     }
@@ -359,7 +383,7 @@ export async function updateUserRole(
 
         return { success: true };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+        const message = err instanceof Error ? err.message : String(err);
         console.error("Update user role failed:", err);
         return { success: false, error: message };
     }
@@ -426,7 +450,7 @@ export async function createStaffAccount(
 
         return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
         console.error("Error creating staff:", error);
         return { success: false, error: message };
     }
@@ -479,7 +503,7 @@ export async function updateStaffRole(
 
         return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
         console.error("Update staff role failed:", error);
         return { success: false, error: message };
     }
@@ -523,7 +547,7 @@ export async function deleteStaffAccount(
 
         return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
         console.error("Delete staff failed:", error);
         return { success: false, error: message };
     }
@@ -562,7 +586,7 @@ export async function resetStaffPassword(
         await adminAuth.updateUser(targetUid, { password: newPassword });
         return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
         console.error("Reset staff password failed:", error);
         return { success: false, error: message };
     }
@@ -599,7 +623,7 @@ export async function getStaffByStore(
         );
         return { success: true, data: (response.data as { users?: Record<string, unknown>[] })?.users || [] };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
         console.error("Get staff by store failed:", error);
         return { success: false, error: message };
     }
@@ -699,7 +723,7 @@ export async function getSalesTrendData(
 
         return { success: true, data };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+        const message = err instanceof Error ? err.message : String(err);
         console.error("getSalesTrendData failed:", err);
         return { success: false, error: message };
     }
@@ -823,7 +847,7 @@ export async function convertQuotationToSale(
         revalidatePath("/");
         return { success: true };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+        const message = err instanceof Error ? err.message : String(err);
         console.error("convertQuotationToSale failed:", err);
         return { success: false, error: message };
     }
@@ -915,7 +939,7 @@ export async function getUdhaarCustomerBalances(storeId: string): Promise<{
                 netBalance:
                     Math.round(
                         (vals.creditSum - vals.paymentSum + Number.EPSILON) *
-                            100,
+                        100,
                     ) / 100,
                 lastTransactionTime: vals.lastTime ?? 0,
             }),
@@ -923,7 +947,7 @@ export async function getUdhaarCustomerBalances(storeId: string): Promise<{
 
         return { success: true, data };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+        const message = err instanceof Error ? err.message : String(err);
         console.error("getUdhaarCustomerBalances failed:", err);
         return { success: false, error: message };
     }

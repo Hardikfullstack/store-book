@@ -1,0 +1,82 @@
+epic_id: e49
+title: "Web: Multi-Store Context Switching, Session Resolution & Client Cache Purge Architecture"
+priority: P0
+status: complete
+target_version: v1.9.0
+description: |
+  Comprehensive multi-tenant store context switching architecture across the StoreBook Web Dashboard.
+  Resolves the defect where switching stores via the Sidebar dropdown, Admin Stores table, or Create Store modal
+  failed to update the active store context, caused non-serializable Redux errors during persistor purge,
+  or displayed stale cached data from the previously active store.
+
+scope:
+  in:
+    - Multi-Tenant Session Resolution (session.ts):
+        - Full role support for owner, manager, admin, super_admin, staff, and cashier.
+        - Merge and deduplicate stores across user.stores array and user.storeId.
+        - IDOR mitigation ensuring owners and managers can only switch to authorized stores.
+        - Real-time store name resolution via DataConnect query returning storeDetails with human-readable names.
+        - Admin and super_admin isPremium bypass.
+    - Server Action Cookie Lifecycle (actions.ts):
+        - switchStore(storeId) sets activeStoreId cookie with root path: "/", 30-day maxAge, httpOnly, sameSite: "lax".
+        - Revalidates entire Server Component tree via revalidatePath('/', 'layout').
+        - createStore(name) automatically assigns and switches to the newly created store with activeStoreId cookie.
+        - login and logout standardize root path: "/" and proper cookie deletion.
+    - Redux Persist & Client Cache Flushing (store/index.ts, Sidebar.tsx, CreateStoreModal.tsx):
+        - Adds all redux-persist action constants (FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER) to Redux Toolkit serializableCheck.ignoredActions to eliminate console errors during purge.
+        - Invokes persistor.purge() and clears sessionStorage upon store switch or store creation.
+        - Hard page reload (window.location.href = window.location.pathname) guarantees fresh Server Component render and unpolluted Redux state.
+    - UI & Store Navigation (Sidebar.tsx, Settings, Admin Stores):
+        - Sidebar dropdown renders dynamic store names (e.g. "Main Store", "Branch 2") from session.storeDetails.
+        - Shows disabled switching state during store transition.
+        - Fixed Admin Ghost Login navigation to root / (resolving previous 404 from /dashboard).
+        - Settings page displays real active store name resolved from session.
+  out:
+    - Cross-store aggregated reporting dashboards (covered in e24).
+
+architecture:
+  web_components:
+    - name: "Sidebar"
+      file: "web/src/components/Sidebar.tsx"
+      role: "Navigation sidebar housing the store switcher dropdown with real store names, switching state, and persistor purge lifecycle."
+    - name: "StoreIndex"
+      file: "web/src/store/index.ts"
+      role: "Configures Redux Toolkit store with redux-persist middleware serialization exclusions (PURGE, FLUSH, REHYDRATE)."
+    - name: "SessionResolver"
+      file: "web/src/lib/session.ts"
+      role: "Resolves activeStoreId cookie against user permissions, handles role-specific fallback logic, and queries store names."
+    - name: "ServerActions"
+      file: "web/src/app/actions.ts"
+      role: "Server actions for switchStore, createStore, login, and logout with proper cookie scoping and layout revalidation."
+
+stories:
+  - id: e49-s1
+    title: "Web: Multi-Tenant Session Resolution & Store Metadata Mapping"
+    acceptance:
+      - "getSession() validates activeStoreId against resolvedStores for owners/managers and allows global switching for platform admins."
+      - "Supports all system roles: owner, manager, admin, super_admin, staff, and cashier."
+      - "Queries DataConnect stores collection to map store UUIDs to real store names (storeDetails)."
+      - "Admins and super_admins receive isPremium=true automatically."
+
+  - id: e49-s2
+    title: "Web: Server Action Cookie Scoping & Layout Revalidation"
+    acceptance:
+      - "switchStore(storeId) verifies ownership before setting activeStoreId cookie."
+      - "Sets activeStoreId with path: '/' and maxAge in seconds (30 days)."
+      - "Calls revalidatePath('/', 'layout') to bust Next.js server component cache across all routes."
+      - "createStore(name) auto-switches to the new store upon creation."
+
+  - id: e49-s3
+    title: "Web: Redux Persist Serialization Fix & Cache Purging"
+    acceptance:
+      - "Redux serializableCheck middleware ignores all redux-persist actions (FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER)."
+      - "persistor.purge() executes without throwing non-serializable value console errors."
+      - "Client cache (localStorage, sessionStorage) is flushed on store change before triggering hard reload."
+
+  - id: e49-s4
+    title: "Web: Store Switcher Dropdown & Impersonation Navigation"
+    acceptance:
+      - "Sidebar dropdown displays human-readable store names instead of generic placeholders."
+      - "Shows visual loading indicator and disables select while switching is in flight."
+      - "Admin Ghost Login purges cache and navigates to '/' without 404 errors."
+      - "Settings page displays real store name from session metadata."

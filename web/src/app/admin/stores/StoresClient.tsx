@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { Store, Power, Edit3, Loader2 } from 'lucide-react';
 import { toggleStoreStatus, getStoresPaginated } from '@/app/actions';
 
-  interface StoreRow extends Record<string, unknown> {
-    id: string;
-    name: string;
-    location?: string;
-    is_active?: boolean;
-  }
+interface StoreRow extends Record<string, unknown> {
+  id: string;
+  name: string;
+  location?: string;
+  is_active?: boolean;
+}
 
 export default function StoresClient({ initialStores }: { initialStores: StoreRow[] }) {
   const [stores, setStores] = useState(initialStores);
@@ -71,31 +71,35 @@ export default function StoresClient({ initialStores }: { initialStores: StoreRo
                   </td>
                   <td className="p-4 text-sm text-gray-600 dark:text-gray-400">{store.location || 'N/A'}</td>
                   <td className="p-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      store.is_active !== false ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                    }`}>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${store.is_active !== false ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                      }`}>
                       {store.is_active !== false ? 'Active' : 'Suspended'}
                     </span>
                   </td>
                   <td className="p-4 flex items-center justify-end gap-2">
-                    <button 
+                    <button
                       onClick={async () => {
                         if (confirm(`Are you sure you want to log in as ${store.name}?`)) {
                           try {
+                            const { persistor } = await import('@/store');
+                            await persistor.purge();
+                            if (typeof window !== 'undefined') {
+                              window.sessionStorage.clear();
+                            }
                             const { switchStore } = await import('@/app/actions');
                             await switchStore(store.id);
-                            window.location.href = '/dashboard';
+                            window.location.href = '/';
                           } catch (err) {
-                            alert("Ghost login failed: " + err);
+                            alert("Store switch failed: " + err);
                           }
                         }
                       }}
                       className="p-2 rounded-lg transition-colors text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20"
                       title="Ghost Login (Impersonate)"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleToggleStatus(store.id, store.is_active !== false)}
                       className={`p-2 rounded-lg transition-colors ${store.is_active !== false ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20' : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'}`}
                       title={store.is_active !== false ? 'Suspend Store' : 'Activate Store'}
@@ -115,11 +119,11 @@ export default function StoresClient({ initialStores }: { initialStores: StoreRo
             </tbody>
           </table>
         </div>
-        
+
         {hasMore && (
           <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-center">
-            <button 
-              onClick={loadMore} 
+            <button
+              onClick={loadMore}
               disabled={loadingMore}
               className="px-6 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
             >
