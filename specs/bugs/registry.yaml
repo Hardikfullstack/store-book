@@ -217,12 +217,19 @@ bugs:
     summary: "Android: Inventory CSV export and import include ID column — runtime UUID generation required instead"
     fix: "Removed ID column from CSV export header and data rows (9-col format matching web). Updated import parser to auto-detect CSV format via first header token: if 'ID' detected, skips index 0; otherwise starts at index 0. Backward-compatible with old 10-col exports, web 9-col exports, and legacy 8-col imports."
 
-total: 27
-open: 1
+  - id: BUG-27
+    file: bug-A7-sales-history-view-all-crash.yaml
+    severity: P0
+    status: open
+    reported: "2026-09-01"
+    summary: "Android: Clicking 'View All' on Dashboard crashes app due to Long.MAX_VALUE integer overflow in getSalesWithItems"
+
+total: 28
+open: 2
 resolved: 26
 partial: 0
 deferred: 0
 by_severity:
-  P0: "10 resolved, 0 open"
+  P0: "10 resolved, 1 open"
   P1: "13 resolved, 0 open"
   P2: "3 resolved, 1 open"

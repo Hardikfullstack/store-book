@@ -1,0 +1,24 @@
+# Bug — Sales History View All Crash on Dashboard
+# ID: BUG-27
+
+id: bug-A7-sales-history-view-all-crash
+title: "Dashboard 'View All' sales button crashes app due to Long.MAX_VALUE integer overflow"
+severity: P0
+status: open
+reported: "2026-09-01"
+component: [DashboardScreen, SalesHistoryScreen, SalesViewModel]
+
+root_cause: |
+  Clicking "View All" on Dashboard navigates to `Routes.SalesHistory`.
+  `SalesHistoryScreen` calls `viewModel.loadSalesHistory(startTs, endTs)`, which invokes `getSalesWithItems(Long.MAX_VALUE, 0)`.
+  In `SalesViewModel.kt:367`:
+    `salesRepository.getAllSales().drop(offset.toInt()).take(limit.toInt())`
+  `Long.MAX_VALUE.toInt()` overflows to `-1`. Kotlin's `Iterable.take(-1)` throws `IllegalArgumentException: Requested element count -1 is less than zero`, crashing the app.
+
+fix_approach: |
+  1. In `SalesViewModel.kt`, safely cap limit: `limit.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()`.
+  2. Update `loadSalesHistory(startTs, endTs)` to query/filter by `startTs..endTs` instead of passing `Long.MAX_VALUE`.
+
+affected_screens:
+  - DashboardScreen (Recent Sales -> View All button)
+  - SalesHistoryScreen (Sales timeline crash)
