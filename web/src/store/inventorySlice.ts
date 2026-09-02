@@ -1,9 +1,29 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-/** Wide duck-typed item shape held in Redux — covers both LocalItem (snake_case)
-    and Item (camelCase) used by different consumers. */
-type InventoryItem = { id: string } & Record<string, unknown>;
-
+export interface InventoryItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  buyPrice?: number;
+  sellPrice?: number;
+  lowStockThreshold?: number;
+  category: string;
+  photoPath?: string | null;
+  hsnCode?: string | null;
+  barcode?: string | null;
+  taxRate?: number | null;
+  batchLotNumber?: string | null;
+  expiryDate?: string | null;
+  isDeleted?: boolean | number;
+  updatedAt?: number;
+  // Legacy snake_case fields
+  buy_price?: number;
+  sell_price?: number;
+  low_stock_threshold?: number;
+  is_deleted?: number;
+  updated_at?: number;
+}
 interface InventoryState {
   items: InventoryItem[];
   lastSynced: number;
@@ -22,12 +42,12 @@ export const inventorySlice = createSlice({
       state.items = action.payload;
       state.lastSynced = Date.now();
     },
-    updateInventoryItem: (state, action: PayloadAction<InventoryItem>) => {
+    updateInventoryItem: (state, action: PayloadAction<Partial<InventoryItem> & { id: string }>) => {
       const index = state.items.findIndex(i => i.id === action.payload.id);
       if (index !== -1) {
-        state.items[index] = { ...state.items[index], ...action.payload };
+        state.items[index] = { ...state.items[index], ...action.payload } as InventoryItem;
       } else {
-        state.items.push(action.payload);
+        state.items.push(action.payload as InventoryItem);
       }
       state.lastSynced = Date.now();
     },

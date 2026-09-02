@@ -23,11 +23,11 @@ class PurchaseRepository(
         supplierId: Long, supplierName: String, totalAmount: Double,
         taxAmount: Double, type: String, notes: String?
     ): Long = withContext(Dispatchers.IO) {
-        database.transaction {
+        database.transactionWithResult {
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
             queries.insertPurchase(supplierId, supplierName, totalAmount, taxAmount, type, timestamp, notes, timestamp)
+            queries.getLastInsertRowId().executeAsOne()
         }
-        queries.getLastInsertRowId().executeAsOne()
     }
 
     suspend fun insertPurchaseItem(

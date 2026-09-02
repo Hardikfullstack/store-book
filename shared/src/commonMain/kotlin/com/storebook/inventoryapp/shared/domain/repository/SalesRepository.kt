@@ -29,15 +29,15 @@ class SalesRepository(
         customerGstin: String?, businessGstin: String?, customerAddress: String?,
         businessAddress: String?, type: String, notes: String?
     ): Long = withContext(Dispatchers.IO) {
-        database.transaction {
+        database.transactionWithResult {
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
             queries.insertSale(
                 timestamp, totalAmount, discountAmount, customerName,
                 customerGstin, businessGstin, customerAddress, businessAddress,
                 type, notes, timestamp
             )
+            queries.getLastInsertRowId().executeAsOne()
         }
-        queries.getLastInsertRowId().executeAsOne()
     }
 
     suspend fun insertSaleItem(

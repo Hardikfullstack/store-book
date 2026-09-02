@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Building2, Loader2, Check } from 'lucide-react';
 import { dataConnect } from '@/lib/firebase';
 import { syncSupplier } from '@/dataconnect';
@@ -33,33 +33,16 @@ export default function AddEditSupplierModal({
   supplier,
   onSuccess,
 }: AddEditSupplierModalProps) {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [gstin, setGstin] = useState('');
-  const [address, setAddress] = useState('');
+  // Component remounts on each open (conditionally rendered), so initial values work as reset
+  const [name, setName] = useState(supplier?.name || '');
+  const [phone, setPhone] = useState(supplier?.phone || '');
+  const [gstin, setGstin] = useState(supplier?.gstin || '');
+  const [address, setAddress] = useState(supplier?.address || '');
 
   const [errors, setErrors] = useState<{ name?: string; gstin?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditing = Boolean(supplier?.id);
-
-  // Initialize or reset form values
-  useEffect(() => {
-    if (isOpen) {
-      if (supplier) {
-        setName(supplier.name || '');
-        setPhone(supplier.phone || '');
-        setGstin(supplier.gstin || '');
-        setAddress(supplier.address || '');
-      } else {
-        setName('');
-        setPhone('');
-        setGstin('');
-        setAddress('');
-      }
-      setErrors({});
-    }
-  }, [isOpen, supplier]);
 
   if (!isOpen) return null;
 

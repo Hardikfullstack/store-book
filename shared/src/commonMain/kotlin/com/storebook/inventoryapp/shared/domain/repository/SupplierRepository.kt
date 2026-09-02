@@ -19,11 +19,11 @@ class SupplierRepository(
     suspend fun insertSupplier(
         name: String, phone: String?, gstin: String?, address: String?
     ): Long = withContext(Dispatchers.IO) {
-        database.transaction {
+        database.transactionWithResult {
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
             queries.insertSupplier(name, phone, gstin, address, timestamp)
+            queries.getLastInsertRowId().executeAsOne()
         }
-        queries.getLastInsertRowId().executeAsOne()
     }
 
     suspend fun deleteSupplier(id: Long) = withContext(Dispatchers.IO) {

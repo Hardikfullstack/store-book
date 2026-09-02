@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, CreditCard, Loader2, Check } from 'lucide-react';
 import { dataConnect } from '@/lib/firebase';
 import { syncPurchase } from '@/dataconnect';
@@ -39,18 +39,11 @@ export default function RecordSupplierPaymentModal({
   supplier,
   onPaymentRecorded,
 }: RecordSupplierPaymentModalProps) {
+  // Component remounts on each open (conditionally rendered), so initial values work as reset
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setAmount('');
-      setNotes('');
-      setError(null);
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 

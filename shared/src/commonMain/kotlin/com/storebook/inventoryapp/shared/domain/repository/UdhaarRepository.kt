@@ -58,11 +58,11 @@ class UdhaarRepository(
     suspend fun insertUdhaar(
         customerName: String, amount: Double, type: String, notes: String?
     ): Long = withContext(Dispatchers.IO) {
-        database.transaction {
+        database.transactionWithResult {
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
             queries.insertUdhaar(customerName, amount, type, timestamp, notes, timestamp)
+            queries.getLastInsertRowId().executeAsOne()
         }
-        queries.getLastInsertRowId().executeAsOne()
     }
 
     // RP-A0: Push-sync methods

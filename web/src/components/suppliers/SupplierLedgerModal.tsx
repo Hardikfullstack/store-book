@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   X,
   Phone,
@@ -53,12 +53,14 @@ export default function SupplierLedgerModal({
   onPaymentLogged,
 }: SupplierLedgerModalProps) {
   const [showRecordPayment, setShowRecordPayment] = useState(false);
-  const [transactions, setTransactions] = useState<SupplierLedgerItem[]>(initialPurchases);
+  const [localPayments, setLocalPayments] = useState<SupplierLedgerItem[]>([]);
 
-  // Sync transactions when initialPurchases changes
-  React.useEffect(() => {
-    setTransactions(initialPurchases);
-  }, [initialPurchases]);
+  // Merge prop-driven purchases with locally-added payments (no effect needed)
+  const transactions = useMemo(() => {
+    const existingIds = new Set(initialPurchases.map((p) => p.id));
+    const uniqueLocal = localPayments.filter((p) => !existingIds.has(p.id));
+    return [...uniqueLocal, ...initialPurchases];
+  }, [initialPurchases, localPayments]);
 
   if (!isOpen) return null;
 
@@ -79,8 +81,8 @@ export default function SupplierLedgerModal({
   const netBalance = totalPurchases - totalPaid;
 
   const handlePaymentSuccess = (payment: RecordedPaymentData) => {
-    // Prepend to transaction history and propagate to parent
-    setTransactions((prev) => [payment, ...prev]);
+    // Prepend to local payments and propagate to parent
+    setLocalPayments((prev) => [payment, ...prev]);
     onPaymentLogged(payment);
   };
 

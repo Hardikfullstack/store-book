@@ -17,7 +17,7 @@ export default async function SuppliersPage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <SuppliersClient storeId={session.storeId} isPremium={isPremium} />
+      <SuppliersClient key={session.storeId} storeId={session.storeId} isPremium={isPremium} />
     </div>
   );
 }

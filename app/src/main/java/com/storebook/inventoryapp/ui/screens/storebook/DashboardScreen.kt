@@ -164,8 +164,8 @@ fun DashboardScreen(
     val last7DaysData by viewModel.last7DaysData.collectAsStateWithLifecycle()
 
     val salesTrend = last7DaysData.first
-    val salesSumFirstHalf = salesTrend.take(3).sum()
-    val salesSumSecondHalf = salesTrend.takeLast(3).sum()
+    val salesSumFirstHalf = salesTrend.take(4).sum()
+    val salesSumSecondHalf = salesTrend.takeLast(4).sum()
     val salesIndicatorColor =
         when {
             salesSumSecondHalf > salesSumFirstHalf ->

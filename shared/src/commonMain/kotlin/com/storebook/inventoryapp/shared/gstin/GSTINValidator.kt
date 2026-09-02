@@ -1,6 +1,6 @@
 package com.storebook.inventoryapp.shared.gstin
 
-import java.util.*
+
 
 /**
  * GSTIN (Goods and Services Tax Identification Number) validator for Indian businesses.
@@ -90,7 +90,7 @@ object GSTINValidator {
             )
         }
 
-        val cleanedGstin = gstin.trim().uppercase(Locale.getDefault())
+        val cleanedGstin = gstin.trim().uppercase()
 
         if (cleanedGstin.length != 15) {
             errors.add("GSTIN must be exactly 15 characters")
@@ -220,8 +220,8 @@ object GSTINValidator {
      */
     fun isInterstateGSTIN(gstin1: String?, gstin2: String?): Boolean {
         if (gstin1.isNullOrEmpty() || gstin2.isNullOrEmpty()) return false
-        val state1 = gstin1.trim().uppercase(Locale.getDefault()).substring(0, 2)
-        val state2 = gstin2.trim().uppercase(Locale.getDefault()).substring(0, 2)
+        val state1 = gstin1.trim().uppercase().substring(0, 2)
+        val state2 = gstin2.trim().uppercase().substring(0, 2)
         return state1 != state2
     }
 
@@ -233,6 +233,52 @@ object GSTINValidator {
      */
     fun getGSTStateName(stateCode: String): String? {
         return GST_STATES[stateCode]
+    }
+
+    /**
+     * Convenience method matching the app's existing sealed-class API.
+     *
+     * Returns [ValidationResult.Valid] with the state name on success,
+     * or [ValidationResult.Invalid] with a human-readable reason on failure.
+     * An empty/blank input is treated as valid-but-empty (no GSTIN provided).
+     *
+     * Usage:
+     * ```
+     * when (val res = GSTINValidator.validate(input)) {
+     *     is ValidationResult.Valid -> { /* res.stateName */ }
+     *     is ValidationResult.Invalid -> { /* res.reason */ }
+     * }
+     * ```
+     */
+    fun validate(gstin: String): ValidationResult {
+        val trimmed = gstin.trim()
+        if (trimmed.isEmpty()) return ValidationResult.Valid(null)
+
+        val result = validateGSTIN(trimmed)
+        return if (result.isValid) {
+            ValidationResult.Valid(result.stateName)
+        } else {
+            ValidationResult.Invalid(
+                result.errors.firstOrNull() ?: "Invalid GSTIN"
+            )
+        }
+    }
+
+    /**
+     * Sealed result type for simple Valid/Invalid pattern matching in UI code.
+     */
+    sealed class ValidationResult {
+        /**
+         * The GSTIN is valid.
+         * @property stateName The resolved state name, or null if input was empty.
+         */
+        data class Valid(val stateName: String?) : ValidationResult()
+
+        /**
+         * The GSTIN is invalid.
+         * @property reason Human-readable description of why validation failed.
+         */
+        data class Invalid(val reason: String) : ValidationResult()
     }
 }
 
@@ -252,3 +298,4 @@ data class GSTINValidationResult(
     val entityType: String?,
     val errors: List<String>
 )
+

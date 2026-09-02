@@ -24,11 +24,11 @@ class BatchRepository(
         itemId: Long, batchNumber: String?, expiryDate: Long?,
         quantity: Double, costPrice: Double, notes: String?
     ): Long = withContext(Dispatchers.IO) {
-        database.transaction {
+        database.transactionWithResult {
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
             queries.insertItemBatch(itemId, batchNumber, expiryDate, quantity, costPrice, timestamp, notes, timestamp)
+            queries.getLastInsertRowId().executeAsOne()
         }
-        queries.getLastInsertRowId().executeAsOne()
     }
 
     // RP-A0: Push-sync methods for item_batches

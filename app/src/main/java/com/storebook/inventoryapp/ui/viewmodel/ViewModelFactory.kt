@@ -66,6 +66,13 @@ class AppViewModelFactory(
                 SalesViewModel(salesRepository, inventoryRepository, udhaarRepository, context) as T
             }
             modelClass.isAssignableFrom(DashboardViewModel::class.java) -> {
+                val gstExportService =
+                    com.storebook.inventoryapp.services.GSTExportService(
+                        salesRepository,
+                        purchaseRepository,
+                        supplierRepository,
+                        inventoryRepository,
+                    )
                 val vm =
                     DashboardViewModel(
                         inventoryRepository,
@@ -73,6 +80,7 @@ class AppViewModelFactory(
                         purchaseRepository,
                         supplierRepository,
                         expenseRepository,
+                        gstExportService,
                         context,
                     )
                 // BP-3: Inject centralized sync hub into DashboardViewModel

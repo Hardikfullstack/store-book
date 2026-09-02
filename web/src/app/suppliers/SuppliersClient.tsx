@@ -139,14 +139,6 @@ export default function SuppliersClient({
     setRefreshTrigger((prev) => prev + 1);
   };
 
-  // Reset state when active store changes
-  useEffect(() => {
-    setCurrentPage(1);
-    setSuppliers([]);
-    setAllPurchases([]);
-    setTotalItems(0);
-    invalidateAllPages();
-  }, [storeId]);
 
   // 1. Fetch total supplier count from backend API for pagination (same as Items module getItemsCount)
   useEffect(() => {

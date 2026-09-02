@@ -35,14 +35,14 @@ class InventoryRepository(
         sellPrice: Double, threshold: Double, category: String,
         photoPath: String?, barcode: String?, hsnCode: String?, taxRate: Double
     ): Long? = withContext(Dispatchers.IO) {
-        database.transaction {
+        database.transactionWithResult {
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
             queries.insertItem(
                 name, quantity, unit, buyPrice, sellPrice, threshold,
                 category, photoPath, barcode, hsnCode, taxRate, timestamp
             )
+            queries.getLastInsertRowId().executeAsOneOrNull()
         }
-        queries.getLastInsertRowId().executeAsOneOrNull()
     }
 
     suspend fun updateItem(

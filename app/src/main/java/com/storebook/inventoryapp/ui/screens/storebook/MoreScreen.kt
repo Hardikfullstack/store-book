@@ -115,6 +115,8 @@ import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.shared.domain.models.ExpenseEntry
 import com.storebook.inventoryapp.shared.domain.models.Item
 import com.storebook.inventoryapp.shared.domain.models.Sale
+import com.storebook.inventoryapp.shared.gstin.GSTINValidator
+import com.storebook.inventoryapp.shared.gstin.GSTINValidator.ValidationResult
 import com.storebook.inventoryapp.ui.navigation.Routes
 import com.storebook.inventoryapp.ui.theme.AppThemeMode
 import com.storebook.inventoryapp.ui.theme.Coral500
@@ -124,8 +126,6 @@ import com.storebook.inventoryapp.ui.theme.Gold400
 import com.storebook.inventoryapp.ui.theme.PrimaryButton
 import com.storebook.inventoryapp.ui.viewmodels.AppPermission
 import com.storebook.inventoryapp.ui.viewmodels.hasPermission
-import com.storebook.inventoryapp.utils.GstinValidator
-import com.storebook.inventoryapp.utils.GstinValidator.ValidationResult
 import com.storebook.inventoryapp.utils.LanguageManager
 import com.storebook.inventoryapp.utils.autoMarquee
 import com.storebook.inventoryapp.utils.toRupee
@@ -1446,7 +1446,7 @@ fun MoreScreen(
                                     gstinInput = it
                                     if (it.trim().length == 15) {
                                         when (
-                                            val res = GstinValidator.validate(it)
+                                            val res = GSTINValidator.validate(it)
                                         ) {
                                             is ValidationResult.Valid -> {
                                                 gstinError = null
@@ -1660,7 +1660,7 @@ fun MoreScreen(
                             PrimaryButton(
                                 onClick = {
                                     val trimmedGstin = gstinInput.trim().uppercase()
-                                    val validation = GstinValidator.validate(trimmedGstin)
+                                    val validation = GSTINValidator.validate(trimmedGstin)
                                     if (validation is ValidationResult.Invalid) {
                                         gstinError = validation.reason
                                         android.widget.Toast
