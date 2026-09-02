@@ -224,12 +224,19 @@ bugs:
     reported: "2026-09-01"
     summary: "Android: Clicking 'View All' on Dashboard crashes app due to Long.MAX_VALUE integer overflow in getSalesWithItems"
 
-total: 28
-open: 2
+  - id: BUG-28
+    file: bug-A8-sales-analytics-api-data.yaml
+    severity: P1
+    status: open
+    reported: "2026-09-02"
+    summary: "Android: Sales Analytics (Product, Customer, Timeline) loads from local SQL query instead of cloud API"
+
+total: 29
+open: 3
 resolved: 26
 partial: 0
 deferred: 0
 by_severity:
   P0: "10 resolved, 1 open"
-  P1: "13 resolved, 0 open"
+  P1: "13 resolved, 1 open"
   P2: "3 resolved, 1 open"
