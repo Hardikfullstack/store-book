@@ -434,7 +434,16 @@ epics:
     depends_on: [e04, e24]
     type: development
 
-execution_order: ["e08", "e01", "e02", "e17", "e06", "e10", "e11", "e13", "e14", "e15", "e16", "e03", "e07", "e09", "e04", "e18", "e05", "e12", "e20", "e19", "e22", "e21", "e23", "e25", "e24", "e26", "e27", "e28", "e29", "e30", "e31", "e32", "e33", "e34", "e35", "e36", "e37", "e38", "e39", "e40", "e41", "e42", "e43", "e44", "e45", "e46", "e47", "e48", "e49"]
+  - id: e50
+    title: "Web: Sales Multi-Dimensional Grouping (Timeline, Customers & Products)"
+    priority: P1
+    status: in_progress
+    story_count: 3
+    target_version: v1.9.0
+    depends_on: [e04]
+    type: development
+
+execution_order: ["e08", "e01", "e02", "e17", "e06", "e10", "e11", "e13", "e14", "e15", "e16", "e03", "e07", "e09", "e04", "e18", "e05", "e12", "e20", "e19", "e22", "e21", "e23", "e25", "e24", "e26", "e27", "e28", "e29", "e30", "e31", "e32", "e33", "e34", "e35", "e36", "e37", "e38", "e39", "e40", "e41", "e42", "e43", "e44", "e45", "e46", "e47", "e48", "e49", "e50"]
 # Development epics (e01-e05) run in original order for fixes
 # New development epics (e19-e26) run after core stabilization
 # Verification epics (e06-e18, e36-e37) can run in parallel with development once base code is stable

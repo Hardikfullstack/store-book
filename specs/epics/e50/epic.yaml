@@ -1,0 +1,71 @@
+epic_id: e50
+title: "Web: Sales Multi-Dimensional Grouping (Timeline, Customers & Products)"
+priority: P1
+status: in_progress
+target_version: v1.9.0
+description: |
+  Multi-dimensional sales analytics and transaction grouping on the StoreBook Web Dashboard (SalesClient.tsx).
+  Provides a top-bar Group By dropdown allowing users to seamlessly switch between:
+  1. Timeline (Recent First): Chronological transaction feed sorted newest-first by timestamp (DESC).
+  2. Customers: Aggregates invoices by customer with total orders, total spend, average order value (AOV), and last active date.
+  3. Products: Aggregates sales line items by product name with units sold, invoice count, gross profit margin, and total revenue.
+  All views integrate with search, date range filters, client/server pagination, and dynamic CSV/PDF export.
+
+scope:
+  in:
+    - Group By Control & State Management (SalesClient.tsx):
+        - Dropdown selector at top filter bar with options: Timeline (Recent First), Customers, Products.
+        - Defaults to Timeline (Recent First) with sortField='timestamp' and sortDirection='desc'.
+        - Contextual search placeholder adapting to the active mode.
+    - Timeline Chronological Ordering:
+        - Defaults to ordering by timestamp DESC at both GraphQL query level (buildSortVars) and client-side mapper.
+        - Ensures newest transactions always appear at the top.
+    - Customer Aggregated Dimension:
+        - In-memory aggregation across active/filtered sales computing total orders, total spend, AOV, and last purchase date.
+        - Multi-column client-side sorting and pagination.
+    - Product Aggregated Dimension:
+        - Automatic lazy loading of active sale items via getActiveSaleItemsRef.
+        - Scopes line items to active date range filters.
+        - Calculates units sold, invoice frequency, estimated gross profit, and revenue.
+    - Dynamic Export Integration (ExportButtons.tsx):
+        - Dynamically passes columns and datasets matching the active grouping mode for CSV and PDF downloads.
+  out:
+    - POS Checkout flow modifications (SalesPOS.tsx).
+    - Database schema changes (no backend/GQL schema changes required).
+
+architecture:
+  web_components:
+    - name: "SalesClient"
+      file: "web/src/app/sales/SalesClient.tsx"
+      role: "Main sales client component managing grouping state, data aggregation, table rendering, and sorting."
+    - name: "DynamicTable"
+      file: "web/src/components/DynamicTable.tsx"
+      role: "Reusable dynamic table rendering typed columns for timeline, customer, and product datasets."
+    - name: "ExportButtons"
+      file: "web/src/app/ExportButtons.tsx"
+      role: "Handles multi-dimensional CSV and PDF exports based on current grouping."
+
+stories:
+  - id: e50-s1
+    title: "Web: Group By Dropdown Selector & Timeline Newest-First Ordering"
+    acceptance:
+      - "Top toolbar provides Group By dropdown with Timeline, Customers, and Products options."
+      - "Defaults to Timeline (Recent First) and queries DataConnect with orderByTimestamp: DESC."
+      - "Client-side mapper guarantees newest transactions appear at top of list."
+      - "Search input placeholder dynamically changes per grouping mode."
+
+  - id: e50-s2
+    title: "Web: Customer Sales Aggregation & Metric Summary"
+    acceptance:
+      - "Customer mode aggregates sales by customer name."
+      - "Computes Invoices count, Avg Order Value, Last Purchase date, and Total Spent."
+      - "Supports client-side sorting on all columns and client-side pagination."
+      - "Respects active date range filters."
+
+  - id: e50-s3
+    title: "Web: Product Sales Aggregation & Profit Margin View"
+    acceptance:
+      - "Product mode loads sale line items via getActiveSaleItemsRef."
+      - "Aggregates line items by product name, computing units sold, invoice count, gross profit, and total revenue."
+      - "Scopes product items to active date/amount filters."
+      - "Export buttons dynamically export active group dataset."
