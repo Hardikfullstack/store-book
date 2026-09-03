@@ -1,7 +1,7 @@
 epic_id: e50
 title: "Web: Sales Multi-Dimensional Grouping (Timeline, Customers & Products)"
 priority: P1
-status: in_progress
+status: complete
 target_version: v1.9.0
 description: |
   Multi-dimensional sales analytics and transaction grouping on the StoreBook Web Dashboard (SalesClient.tsx).

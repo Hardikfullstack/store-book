@@ -1,0 +1,25 @@
+# Bug — Sales Analytics loads from local SQL query instead of cloud API
+# ID: BUG-28
+
+id: bug-A8-sales-analytics-api-data
+title: "Sales Analytics (Product, Customer, Timeline) loads from local SQL query instead of cloud API"
+severity: P1
+status: open
+reported: "2026-09-02"
+component: [SalesAnalyticsScreen, SalesViewModel, Android]
+
+root_cause: |
+  In `SalesAnalyticsScreen.kt:138-143`, the Sales Analytics screen (covering Product, Customer, and Date/Timeline views) loads its data via:
+    `rawSales = viewModel.getSalesWithItems(limit = 5000, offset = 0)`
+  This queries strictly from the local SQLite/SQLDelight database (`salesRepository.getAllSales()`).
+  In contrast, the web dashboard fetches sales and sale items directly from the cloud API (Firebase Data Connect / Cloud SQL).
+  Because the Android analytics screen relies strictly on a local SQL query, any sales created on other devices, web POS, or synced to the cloud are missing from the analytics reports unless a manual background sync occurs, causing cross-platform report discrepancies and stale local analytics.
+
+fix_approach: |
+  1. In `SalesViewModel.kt` or data layer, implement cloud API fetching for sales analytics (or trigger an on-demand sync/pull with cloud Data Connect before loading analytics).
+  2. In `SalesAnalyticsScreen.kt`, update `LaunchedEffect` to retrieve data from the cloud API (with graceful offline fallback to local database when disconnected).
+  3. Ensure all 3 dimensions (Product, Customer, and Timeline) reflect accurate, up-to-date cloud data matching the web dashboard.
+
+affected_screens:
+  - SalesAnalyticsScreen (Product, Customer, and Timeline views)
+  - SalesViewModel (Analytics data loading pipeline)

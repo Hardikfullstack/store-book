@@ -2,16 +2,16 @@
 
 This directory tracks identified bugs with IDs matching filename stems. `registry.yaml` is the single source of truth; this README mirrors its contents for quick reference.
 
-Last synced with registry: 2026-09-01
+Last synced with registry: 2026-09-02
 
 ## Status Summary
 
 | Severity | Count |
 |----------|-------|
 | P0 (Critical) | 10 resolved, 1 open |
-| P1 (High) | 13 resolved, 0 open |
+| P1 (High) | 13 resolved, 1 open |
 | P2 (Medium) | 3 resolved, 1 open |
-| **Total** | **26 resolved, 2 open (28 total)** |
+| **Total** | **26 resolved, 3 open (29 total)** |
 
 ## P0 — Critical
 
@@ -46,6 +46,7 @@ Last synced with registry: 2026-09-01
 | BUG-23 | Web POS writes absolute stale stock to server | Resolved | [bug-W2-web-stale-inventory.yaml](./bug-W2-web-stale-inventory.yaml) |
 | BUG-25 | Web checkout error path leaves committed sale header | Resolved | [bug-W4-web-checkout-duplicate.yaml](./bug-W4-web-checkout-duplicate.yaml) |
 | BUG-26 | Inventory CSV export/import includes ID column | Resolved | [bug-A6-csv-import-export-id-column.yaml](./bug-A6-csv-import-export-id-column.yaml) |
+| BUG-28 | Sales Analytics (Product, Customer, Timeline) loads from local SQL instead of cloud API | **Open** | [bug-A8-sales-analytics-api-data.yaml](./bug-A8-sales-analytics-api-data.yaml) |
 
 ## P2 — Medium
 
