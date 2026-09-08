@@ -167,7 +167,7 @@ export default function PurchasesClient({
     const fetchTotal = async () => {
       try {
         const resp = await executeQuery(
-          getPurchasesCountRef(dataConnect, { storeId }),
+          getPurchasesCountRef(dataConnect, { storeId, type: "BILL" }),
           { fetchPolicy: 'SERVER_ONLY' as const }
         );
         setTotalItems(resp.data.purchases.length);
@@ -189,6 +189,7 @@ export default function PurchasesClient({
         const resp = await executeQuery(
           listPurchasesRef(dataConnect, {
             storeId,
+            type: "BILL",
             limit: pageSize,
             offset: (currentPage - 1) * pageSize,
             ...buildSortVars(sortField, sortDirection),

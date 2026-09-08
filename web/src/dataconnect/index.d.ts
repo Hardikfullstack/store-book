@@ -322,6 +322,7 @@ export interface GetPurchasesCountData {
 
 export interface GetPurchasesCountVariables {
   storeId: string;
+  type?: string | null;
 }
 
 export interface GetSalesCountData {
@@ -472,6 +473,7 @@ export interface ListPurchasesData {
 
 export interface ListPurchasesVariables {
   storeId: string;
+  type?: string | null;
   limit?: number | null;
   offset?: number | null;
   orderByTimestamp?: OrderDirection | null;

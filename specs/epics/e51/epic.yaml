@@ -1,0 +1,61 @@
+epic_id: e51
+title: "Web & DataConnect: Purchase History Type Filtering (BILL vs PAYMENT) for ListPurchases & GetPurchasesCount"
+priority: P1
+status: complete
+target_version: v1.9.0
+description: |
+  Filter purchases by transaction type (specifically type="BILL") in Firebase DataConnect queries (ListPurchases, GetPurchasesCount)
+  and the Web Purchase History module (PurchasesClient.tsx). Prevents supplier settlement payments (type="PAYMENT") from contaminating
+  the purchase bills listing, ensuring that purchase pagination, total bill counts, and line-item cost inspections accurately reflect
+  actual inventory purchase invoices.
+
+scope:
+  in:
+    - DataConnect GQL Query Parametrization (dataconnect/connector/queries.gql):
+        - Update `ListPurchases` query to accept an optional `$type: String` parameter in the `where` filter clause (`type: { eq: $type }`).
+        - Update `GetPurchasesCount` query to accept an optional `$type: String` parameter in the `where` filter clause (`type: { eq: $type }`).
+    - Web Purchase History Client Integration (web/src/app/purchases/PurchasesClient.tsx):
+        - Pass `type: "BILL"` in `getPurchasesCountRef` query call to ensure total count accurately reflects purchase bills only.
+        - Pass `type: "BILL"` in `listPurchasesRef` query call to ensure table rows display only purchase invoices with line items.
+        - Ensure pagination calculations and UI empty states reflect only purchase bills.
+    - Type Safety & Build Verification:
+        - Verify DataConnect SDK generation / queries type definitions in TypeScript.
+        - Ensure strict TypeScript adherence across web dashboard components.
+  out:
+    - Supplier Ledger queries (`SyncPurchases`, `SupplierLedgerModal.tsx`) which require both `BILL` and `PAYMENT` to compute running balances.
+    - Android local SQLite schema modifications (already supports `type TEXT NOT NULL DEFAULT 'BILL'`).
+
+architecture:
+  graphql_queries:
+    - name: "ListPurchases"
+      file: "dataconnect/connector/queries.gql"
+      role: "GraphQL query with optional $type filter to fetch paginated purchase invoices."
+    - name: "GetPurchasesCount"
+      file: "dataconnect/connector/queries.gql"
+      role: "GraphQL query with optional $type filter to count purchase invoices matching tenant and type criteria."
+  web_components:
+    - name: "PurchasesClient"
+      file: "web/src/app/purchases/PurchasesClient.tsx"
+      role: "Purchase History client component passing type='BILL' to getPurchasesCountRef and listPurchasesRef."
+
+stories:
+  - id: e51-s1
+    title: "DataConnect: Add Optional $type Filter to ListPurchases and GetPurchasesCount Queries"
+    acceptance:
+      - "ListPurchases in queries.gql accepts $type: String parameter and filters purchases where type equals $type."
+      - "GetPurchasesCount in queries.gql accepts $type: String parameter and counts purchases where type equals $type."
+      - "Queries preserve multi-tenancy storeId and isDeleted=false conditions."
+
+  - id: e51-s2
+    title: "Web: Pass type='BILL' to Purchases Count and List Queries in PurchasesClient"
+    acceptance:
+      - "PurchasesClient invokes getPurchasesCountRef with { storeId, type: 'BILL' }."
+      - "PurchasesClient invokes listPurchasesRef with { storeId, type: 'BILL', limit, offset, ...sortVars }."
+      - "Table excludes any supplier payment records (type='PAYMENT') from the Purchase History view."
+
+  - id: e51-s3
+    title: "Web: Accurate Pagination, Search, and FIFO Price Update with Filtered Purchases"
+    acceptance:
+      - "Pagination properly computes total pages based on count of BILL records only."
+      - "In-table price editing and FIFO recalculation operate seamlessly on purchase bill records."
+      - "Zero-state and search filters operate exclusively within purchase bills."

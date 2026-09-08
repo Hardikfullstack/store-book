@@ -595,6 +595,7 @@ query GetStockAdjustmentsCount($storeId: String!) @auth(level: USER) {
 
 query ListPurchases(
   $storeId: String!
+  $type: String
   $limit: Int
   $offset: Int
   $orderByTimestamp: OrderDirection
@@ -602,7 +603,7 @@ query ListPurchases(
   $orderByTotalAmount: OrderDirection
 ) @auth(level: USER) {
   purchases(
-    where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }
+    where: { storeId: { eq: $storeId }, type: { eq: $type }, isDeleted: { eq: false } }
     limit: $limit
     offset: $offset
     orderBy: [
@@ -633,8 +634,8 @@ query ListPurchases(
   }
 }
 
-query GetPurchasesCount($storeId: String!) @auth(level: USER) {
-  purchases(where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }) {
+query GetPurchasesCount($storeId: String!, $type: String) @auth(level: USER) {
+  purchases(where: { storeId: { eq: $storeId }, type: { eq: $type }, isDeleted: { eq: false } }) {
     id
   }
 }
