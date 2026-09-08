@@ -1967,5 +1967,51 @@ export const getSaleItemsBySaleIdRef: any;
 export function getSaleItemsBySaleId(vars: GetSaleItemsBySaleIdVariables, options?: ExecuteQueryOptions): QueryPromise<GetSaleItemsBySaleIdData, GetSaleItemsBySaleIdVariables>;
 export function getSaleItemsBySaleId(dc: DataConnect, vars: GetSaleItemsBySaleIdVariables, options?: ExecuteQueryOptions): QueryPromise<GetSaleItemsBySaleIdData, GetSaleItemsBySaleIdVariables>;
 
+export interface Category_Key {
+  id: string;
+  __typename?: 'Category_Key';
+}
 
+export interface GetCategoriesData {
+  categories: ({
+    id: string;
+    storeId: string;
+    name: string;
+    isDeleted: boolean;
+    updatedAt: number;
+  } & Category_Key)[];
+}
 
+export interface GetCategoriesVariables {
+  storeId: string;
+}
+
+export interface SyncCategoryData {
+  category_upsert: Category_Key;
+}
+
+export interface SyncCategoryVariables {
+  id: string;
+  storeId: string;
+  name: string;
+  isDeleted: boolean;
+  updatedAt: number;
+}
+
+interface GetCategoriesRef {
+  (vars: GetCategoriesVariables): QueryRef<GetCategoriesData, GetCategoriesVariables>;
+  (dc: DataConnect, vars: GetCategoriesVariables): QueryRef<GetCategoriesData, GetCategoriesVariables>;
+  operationName: string;
+}
+export const getCategoriesRef: GetCategoriesRef;
+export function getCategories(vars: GetCategoriesVariables, options?: ExecuteQueryOptions): QueryPromise<GetCategoriesData, GetCategoriesVariables>;
+export function getCategories(dc: DataConnect, vars: GetCategoriesVariables, options?: ExecuteQueryOptions): QueryPromise<GetCategoriesData, GetCategoriesVariables>;
+
+interface SyncCategoryRef {
+  (vars: SyncCategoryVariables): MutationRef<SyncCategoryData, SyncCategoryVariables>;
+  (dc: DataConnect, vars: SyncCategoryVariables): MutationRef<SyncCategoryData, SyncCategoryVariables>;
+  operationName: string;
+}
+export const syncCategoryRef: SyncCategoryRef;
+export function syncCategory(vars: SyncCategoryVariables, options?: ExecuteQueryOptions): MutationPromise<SyncCategoryData, SyncCategoryVariables>;
+export function syncCategory(dc: DataConnect, vars: SyncCategoryVariables, options?: ExecuteQueryOptions): MutationPromise<SyncCategoryData, SyncCategoryVariables>;

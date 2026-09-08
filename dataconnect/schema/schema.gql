@@ -20,6 +20,16 @@ type Item @table {
   updatedAt: Float! @col(name: "updated_at")
 }
 
+type Category @table {
+  id: String! @col(name: "id") @default(expr: "uuidV4()")
+  storeId: String! @col(name: "store_id")
+  name: String!
+  
+  # Sync Columns
+  isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")
+  updatedAt: Float! @col(name: "updated_at")
+}
+
 type Sale @table {
   id: String! @col(name: "id") @default(expr: "uuidV4()")
   storeId: String! @col(name: "store_id")

@@ -1006,4 +1006,31 @@ exports.getSaleItemsBySaleId = function getSaleItemsBySaleId(dcOrVars, varsOrOpt
   return executeQuery(getSaleItemsBySaleIdRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 };
 
+const getCategoriesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetCategories', inputVars);
+}
+getCategoriesRef.operationName = 'GetCategories';
+exports.getCategoriesRef = getCategoriesRef;
+
+exports.getCategories = function getCategories(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getCategoriesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+};
+
+const syncCategoryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'SyncCategory', inputVars);
+}
+syncCategoryRef.operationName = 'SyncCategory';
+exports.syncCategoryRef = syncCategoryRef;
+
+exports.syncCategory = function syncCategory(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(syncCategoryRef(dcInstance, inputVars));
+};
+
+
 

@@ -736,3 +736,17 @@ query GetBusinessProfile($storeId: String!) @auth(level: USER) {
   }
 }
 
+query GetCategories($storeId: String!) @auth(level: USER) {
+  categories(
+    where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }
+    orderBy: [{ name: ASC }]
+  ) {
+    id
+    storeId
+    name
+    isDeleted
+    updatedAt
+  }
+}
+
+

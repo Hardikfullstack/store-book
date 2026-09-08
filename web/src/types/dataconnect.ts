@@ -151,6 +151,17 @@ export interface DcSupplier {
 }
 
 // ---------------------------------------------------------------------------
+// Category — element of GetCategoriesData["categories"]
+// ---------------------------------------------------------------------------
+export interface DcCategory {
+  id: string;
+  storeId: string;
+  name: string;
+  isDeleted: boolean;
+  updatedAt: number;
+}
+
+// ---------------------------------------------------------------------------
 // AuditLog — element of GetAdminAuditLogsData["adminAuditLogs"]
 // ---------------------------------------------------------------------------
 export interface DcAuditLog {

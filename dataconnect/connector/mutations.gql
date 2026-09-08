@@ -507,3 +507,20 @@ mutation SyncBusinessProfile(
   })
 }
 
+mutation SyncCategory(
+  $id: String!
+  $storeId: String!
+  $name: String!
+  $isDeleted: Boolean!
+  $updatedAt: Float!
+) @auth(level: USER) {
+  category_upsert(data: {
+    id: $id
+    storeId: $storeId
+    name: $name
+    isDeleted: $isDeleted
+    updatedAt: $updatedAt
+  })
+}
+
+
