@@ -48,6 +48,7 @@ class AppViewModelFactory(
     // BP-3: Centralized sync status hub — shared across all ViewModels via the factory
     private val syncStatusViewModel by lazy { SyncStatusViewModel(context, syncRepository) }
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         when {
             modelClass.isAssignableFrom(UdhaarViewModel::class.java) -> {

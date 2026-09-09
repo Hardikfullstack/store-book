@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 
 class MoreViewModel(
     private val salesRepository: SalesRepository,
@@ -695,10 +696,7 @@ class MoreViewModel(
                     """.trimIndent()
 
                 val body =
-                    okhttp3.RequestBody.create(
-                        "application/json; charset=utf-8".toMediaTypeOrNull(),
-                        json,
-                    )
+                    json.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
                 val request =
                     okhttp3.Request
                         .Builder()

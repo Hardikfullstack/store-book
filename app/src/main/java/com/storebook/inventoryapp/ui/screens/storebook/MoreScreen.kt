@@ -43,12 +43,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.AssignmentInd
@@ -79,6 +79,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -2741,9 +2742,9 @@ fun ReportsSheetContent(
                             if (netProfit >=
                                 0
                             ) {
-                                Icons.Filled.TrendingUp
+                                Icons.AutoMirrored.Filled.TrendingUp
                             } else {
-                                Icons.Filled.TrendingDown
+                                Icons.AutoMirrored.Filled.TrendingDown
                             },
                         contentDescription = stringResource(R.string.ui_element_desc),
                         tint = if (netProfit >= 0) Emerald500 else Coral500,
@@ -2904,7 +2905,7 @@ fun RestockSheetContent(
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                 modifier =
                     Modifier
-                        .menuAnchor()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
                         .fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),

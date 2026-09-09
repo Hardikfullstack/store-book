@@ -33,15 +33,15 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.ModeNight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WbTwilight
@@ -903,7 +903,7 @@ fun DashboardScreen(
                                             ),
                                         iconContent = {
                                             Icon(
-                                                Icons.Filled.ReceiptLong,
+                                                Icons.AutoMirrored.Filled.ReceiptLong,
                                                 contentDescription =
                                                     stringResource(
                                                         R.string.ui_element_desc,
@@ -940,9 +940,9 @@ fun DashboardScreen(
                                             Icon(
                                                 imageVector =
                                                     if (todayProfit >= 0) {
-                                                        Icons.Filled.TrendingUp
+                                                        Icons.AutoMirrored.Filled.TrendingUp
                                                     } else {
-                                                        Icons.Filled.TrendingDown
+                                                        Icons.AutoMirrored.Filled.TrendingDown
                                                     },
                                                 contentDescription =
                                                     stringResource(
