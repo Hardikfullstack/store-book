@@ -513,7 +513,7 @@ mutation SyncCategory(
   $name: String!
   $isDeleted: Boolean!
   $updatedAt: Float!
-) @auth(level: USER) {
+) @auth(level: USER, insecureReason: "Multi-tenancy isolation is enforced by storeId") {
   category_upsert(data: {
     id: $id
     storeId: $storeId

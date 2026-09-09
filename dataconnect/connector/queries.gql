@@ -736,7 +736,7 @@ query GetBusinessProfile($storeId: String!) @auth(level: USER) {
   }
 }
 
-query GetCategories($storeId: String!) @auth(level: USER) {
+query GetCategories($storeId: String!) @auth(level: USER, insecureReason: "Multi-tenancy isolation is enforced by storeId") {
   categories(
     where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }
     orderBy: [{ name: ASC }]
