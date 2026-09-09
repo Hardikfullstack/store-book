@@ -1,0 +1,106 @@
+epic_id: e53
+title: "Android: Purchase History Module, In-Place Price Editing & Offline FIFO Recalculation"
+priority: P1
+status: defined
+target_version: v1.9.0
+description: |
+  Dedicated Android POS native module for Purchase History matching the Web Dashboard capabilities.
+  Enables merchants to view all purchase and restock records (strictly filtered by type = "BILL"), with expandable
+  item breakdowns, search and filter by supplier and amount, edit buy prices in-place via an intuitive dialog, and
+  automatically execute retroactive FIFO cost recalculation locally in SQLite (SQLDelight) with offline-first
+  SyncWorker cloud synchronization.
+
+scope:
+  in:
+    - Android UI (Jetpack Compose):
+        - PurchaseHistoryScreen displaying a chronologically sorted list of purchase transactions strictly filtered by type = "BILL".
+        - Expandable purchase cards displaying supplier name, date/time, total amount, tax amount, and item details (quantity, unit, buy price).
+        - Search by supplier name or notes, and amount range filtering.
+        - In-place 'Edit Price' dialog with currency formatting and input validation.
+    - Android State Management (PurchasesViewModel):
+        - StateFlow<PurchasesUiState> providing loading, success, empty, and error states.
+        - Handles optimistic state updates and user action dispatching.
+    - Local Data Layer & FIFO Engine:
+        - SQLDelight queries in `StoreBook.sq` for querying, filtering purchases (where type = "BILL"), updating purchases, and splitting sales.
+        - Kotlin Multiplatform / Android FIFO calculator allocating purchase batch quantities chronologically to sales.
+        - Transaction timestamp preservation and proportional splitting of parent Sale total, discount, and linked Udhaar entries.
+    - Offline-First Cloud Sync (SyncWorker):
+        - Queues modified and newly split records in SQLite for high-water mark sync to Cloud SQL PostgreSQL.
+  out:
+    - Web Dashboard implementation (covered in e35/e51).
+    - Supplier ledger debt payment recording (handled in Supplier Management module).
+
+architecture:
+  android_components:
+    - name: "PurchaseHistoryScreen"
+      package: "com.storebook.inventoryapp.ui.purchases"
+      role: "Jetpack Compose screen rendering purchases list (filtered by type = 'BILL'), filter bar, search input, and edit price modal."
+    - name: "PurchasesViewModel"
+      package: "com.storebook.inventoryapp.ui.purchases"
+      role: "ViewModel exposing PurchasesUiState, managing UI events, and triggering FIFO price update repository calls."
+    - name: "PurchaseRepository & FifoCalculator"
+      package: "com.storebook.inventoryapp.data.repository"
+      role: "Executes atomic SQLDelight database transactions for buy price updates, sale splitting, and FIFO attribution."
+    - name: "StoreBook.sq (SQLDelight)"
+      module: "shared (KMP)"
+      file: "shared/src/commonMain/sqldelight/com/storebook/inventoryapp/shared/data/local/StoreBook.sq"
+      role: "Defines SQLite queries for purchases (with type = 'BILL' filter), purchase items, sales, sale items, and udhaar entries."
+    - name: "SyncWorker"
+      package: "com.storebook.inventoryapp.workers"
+      role: "Syncs dirty/updated SQLite records to Firebase DataConnect and PostgreSQL with exponential backoff."
+
+fifo_rules:
+  type_filtering: "Only purchases with type = 'BILL' are included in restock history and FIFO cost allocation. Supplier PAYMENT entries are strictly excluded."
+  purchases_sorting: "Purchases are sorted chronologically by purchase.timestamp ASC so older batches are evaluated first."
+  sales_sorting: "Sales are sorted chronologically by sale.updatedAt ASC so unallocated or older remainder sale records receive cost attribution first."
+  updated_at_updates: "Only matched/updated sale portions receive updatedAt = System.currentTimeMillis() / 1000. Split remainder records retain original updatedAt."
+  timestamp_preservation: "Transaction timestamp is strictly preserved without modification across all updated, split, and untouched sales."
+  sale_splitting:
+    matched_portion:
+      quantity: "matchedQty = min(remainingEditedQty, saleItem.quantity)"
+      buy_price: "Updated to new buyPrice from edited purchase."
+      updated_at: "Updated to current epoch seconds (System.currentTimeMillis() / 1000)."
+      timestamp: "Preserves original sale transaction timestamp."
+      financials: "Proportional discount = (matchedItemSubtotal / saleSubtotalEstimate) * originalSale.discountAmount; totalAmount = max(0, matchedItemSubtotal - matchedDiscount)."
+    remainder_portion:
+      quantity: "splitQty = saleItem.quantity - matchedQty"
+      buy_price: "Retains original buyPrice."
+      updated_at: "Retains original sale.updatedAt (ensuring older remainder entries are prioritized in future restock edits)."
+      timestamp: "Preserves original sale transaction timestamp."
+      financials: "Proportional discount = (splitItemSubtotal / saleSubtotalEstimate) * originalSale.discountAmount; totalAmount = max(0, splitItemSubtotal - splitDiscount)."
+  udhaar_handling:
+    matched_udhaar: "amount = originalUdhaar.amount * (matchedTotalAmount / originalTotalAmount), updatedAt = current epoch seconds, timestamp preserved."
+    remainder_udhaar: "Creates new UdhaarEntry linked to new split sale with amount = originalUdhaar.amount * (splitTotalAmount / originalTotalAmount), original updatedAt, timestamp preserved."
+
+stories:
+  - id: e53-s1
+    title: "Android: Purchase History Screen & Expandable Purchase Cards (Compose UI)"
+    acceptance:
+      - "PurchaseHistoryScreen renders a scrollable list of purchase transactions strictly filtered where type = 'BILL'."
+      - "Each card displays supplier name, formatted timestamp, total amount, and line item breakdown (quantity, unit, buy price)."
+      - "Search bar filters purchases by supplier name and notes in real time."
+      - "Amount range filter allows filtering by minimum and maximum total amount."
+
+  - id: e53-s2
+    title: "Android: PurchasesViewModel & In-Place Buy Price Editing Dialog"
+    acceptance:
+      - "PurchasesViewModel manages UI state with loading, data, and empty states."
+      - "Clicking 'Edit Price' opens a Compose Dialog with formatted currency input and auto-focus."
+      - "Validates input > 0 and dispatches price update to repository."
+      - "Provides immediate visual feedback upon successful update."
+
+  - id: e53-s3
+    title: "Android: SQLDelight Atomic FIFO Recalculation & Sale Splitting"
+    acceptance:
+      - "Price update runs inside a database atomic transaction."
+      - "Allocates edited purchase quantity across historical sales sorted by sale.updatedAt ASC."
+      - "Handles full matches (updates SaleItemDetail.buyPrice and updatedAt) and partial matches (splits sale and udhaar proportionally)."
+      - "Strictly preserves original transaction timestamps on all records."
+      - "Split remainder sales retain original updatedAt to ensure subsequent purchase edits prioritize older unallocated remainders."
+
+  - id: e53-s4
+    title: "Android: SyncWorker Offline-First Cloud Sync"
+    acceptance:
+      - "Modified purchase items, split sales, and split udhaar records marked dirty/synced = 0 in SQLite."
+      - "SyncWorker uploads updated and newly created records to Firebase DataConnect / Cloud SQL."
+      - "Works completely offline with automatic sync upon network reconnection."

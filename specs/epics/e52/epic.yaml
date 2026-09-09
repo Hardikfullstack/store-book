@@ -1,0 +1,62 @@
+epic_id: e52
+title: "Web & DataConnect: Category Management, Dynamic Creatable Dropdown & Item Categorization"
+priority: P1
+status: complete
+target_version: v1.9.0
+description: |
+  Introduces a dedicated `Category` table in Firebase DataConnect (PostgreSQL) matching the `Item` table architecture.
+  Provides dynamic category retrieval, automated backfill of existing item categories, and a searchable, creatable
+  category dropdown in the Web Dashboard Item Modal (ItemsClient.tsx). Enables merchants to choose existing categories
+  or immediately create and assign new categories on-the-fly.
+
+scope:
+  in:
+    - DataConnect Schema & Operations:
+        - Add `type Category @table` with `id: String!` (uuidV4), `storeId: String!`, `name: String!`, `isDeleted: Boolean!`, `updatedAt: Float!`.
+        - Add `GetCategories` query in `queries.gql` (scoped by `storeId` and `isDeleted: false`, sorted by name ASC).
+        - Add `SyncCategory` mutation in `mutations.gql` (`category_upsert`).
+    - Web Category State & Auto-Backfill:
+        - Fetch categories from `GetCategories` in `ItemsClient.tsx`.
+        - Extract existing distinct categories from current items and auto-seed/persist any missing categories into the `Category` table so legacy categories are seamlessly retained.
+    - Web Creatable Category Dropdown (ItemsClient.tsx):
+        - Replace plain text category input with an interactive Searchable & Creatable Category Dropdown.
+        - User can search and select an existing category.
+        - If the typed category does not exist, provide a "+ Create '[Category Name]'" action that instantly saves the category to the database and selects it for the item.
+        - Seamless keyboard navigation, outside click dismiss, and dark mode support.
+  out:
+    - Android native Compose screens and SQLDelight Category migration (scoped for separate future mobile epic).
+
+architecture:
+  dataconnect:
+    - name: "Category Table & Queries"
+      files:
+        - "dataconnect/schema/schema.gql"
+        - "dataconnect/connector/queries.gql"
+        - "dataconnect/connector/mutations.gql"
+      role: "Multi-tenant category persistence, retrieval, and upsert."
+  web_components:
+    - name: "ItemsClient"
+      file: "web/src/app/items/ItemsClient.tsx"
+      role: "Item management client incorporating creatable category dropdown, dynamic category fetching, and on-the-fly creation."
+
+stories:
+  - id: e52-s1
+    title: "DataConnect: Add Category Table, GetCategories Query & SyncCategory Mutation"
+    acceptance:
+      - "Category table defined in schema.gql with uuidV4 id, storeId, name, isDeleted, and updatedAt."
+      - "GetCategories query in queries.gql returns active categories for given storeId."
+      - "SyncCategory mutation in mutations.gql performs upsert for category records."
+
+  - id: e52-s2
+    title: "Web: Dynamic Category Retrieval & Existing Category Backfill"
+    acceptance:
+      - "ItemsClient fetches categories on mount and whenever storeId changes."
+      - "Seamlessly collects any distinct categories from existing items and populates them into category state."
+
+  - id: e52-s3
+    title: "Web: Searchable & Creatable Category Dropdown in Add/Edit Item Modal"
+    acceptance:
+      - "Add/Edit item modal renders searchable dropdown displaying all available categories."
+      - "Typing filters the dropdown list."
+      - "If typed category is new, '+ Create [Name]' option appears."
+      - "Clicking '+ Create' saves new category via SyncCategory, updates state, and assigns to item."
