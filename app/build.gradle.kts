@@ -13,6 +13,15 @@ android {
     namespace = "com.storebook.inventoryapp"
     compileSdk = 36
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(rootProject.property("STORE_FILE"))
+            storePassword = rootProject.property("STORE_PASSWORD") as String
+            keyAlias = rootProject.property("KEY_ALIAS") as String
+            keyPassword = rootProject.property("KEY_PASSWORD") as String
+        }
+    }
+
     defaultConfig {
         applicationId = "com.storebook.inventoryapp"
         minSdk = 26
@@ -39,6 +48,7 @@ android {
             firebaseCrashlytics {
                 mappingFileUploadEnabled = true
             }
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
