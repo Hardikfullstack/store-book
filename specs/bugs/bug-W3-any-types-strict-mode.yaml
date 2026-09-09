@@ -3,8 +3,9 @@
 id: bug-web-any-types-strict-mode-violation
 title: "100+ uses of `any` across web/src/ violate TypeScript strict mode policy"
 severity: P2
-status: open
+status: resolved
 reported: "2026-08-18"
+resolved_at: "2026-09-08"
 component: [web/src/store, web/src/app, web/src/components]
 
 root_cause: >

@@ -4,6 +4,12 @@ import { useState } from 'react';
 import { CreditCard } from 'lucide-react';
 import Script from 'next/script';
 
+declare global {
+  interface Window {
+    Razorpay?: new (options: Record<string, unknown>) => { open(): void };
+  }
+}
+
 export default function SubscriptionButton() {
   const [loading, setLoading] = useState(false);
 
@@ -30,15 +36,15 @@ export default function SubscriptionButton() {
         subscription_id: data.subscription.id,
         name: "StoreBook Pro",
         description: "Monthly Premium Subscription",
-        handler: async function (response: any) {
+        handler: async function (_response: unknown) {
           // 3. Verify Payment
           const verifyRes = await fetch('/api/verify-payment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_subscription_id: response.razorpay_subscription_id || data.subscription.id,
-              razorpay_signature: response.razorpay_signature
+              razorpay_payment_id: (_response as { razorpay_payment_id?: string }).razorpay_payment_id,
+              razorpay_subscription_id: (_response as { razorpay_subscription_id?: string }).razorpay_subscription_id || data.subscription.id,
+              razorpay_signature: (_response as { razorpay_signature?: string }).razorpay_signature
             })
           });
           const verifyData = await verifyRes.json();
@@ -59,9 +65,9 @@ export default function SubscriptionButton() {
         }
       };
 
-      if ((window as any).Razorpay) {
-        const rzp = new (window as any).Razorpay(options);
-        rzp.open();
+      if (window.Razorpay) {
+        const rzp = new window.Razorpay(options as Record<string, unknown>);
+        (rzp as { open?: () => void }).open?.();
       } else {
         alert("Razorpay SDK failed to load. Please check your internet connection.");
       }

@@ -380,7 +380,7 @@ export default function QuotationsClient({
             headStyles: { fillColor: [147, 51, 234] }, // Purple-600
         });
 
-        const finalY = (doc as any).lastAutoTable.finalY || 50;
+        const finalY = (doc as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 50;
         doc.setFontSize(12);
         doc.setTextColor(0);
         doc.text(`Total Estimate: Rs. ${displayAmount}`, 14, finalY + 10);
@@ -613,7 +613,7 @@ export default function QuotationsClient({
                             },
                             {
                                 icon: <Download size={16} />,
-                                onClick: (quote) => generatePDF(quote as any),
+                                onClick: (row) => generatePDF(row as QuotationRow),
                                 className:
                                     "text-purple-600 hover:text-purple-800 transition-colors",
                                 title: "Download PDF",

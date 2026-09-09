@@ -10,7 +10,7 @@ type SupplierOption = {
 
 type RestockQuantityProps = {
     readonly open: boolean;
-    readonly item: Record<string, any> | null;
+    readonly item: Record<string, unknown> | null;
     readonly canAccessCost?: boolean;
     readonly storeId?: string;
     readonly onClose: () => void;
@@ -108,7 +108,7 @@ function RestockQuantity({
         setIsSubmitting(false);
     }, [open, item]);
 
-    const unitLabel = item?.unit || "pcs";
+    const unitLabel = item ? (item.unit as string) : "pcs";
     const presets =
         unitLabel === "pcs" ||
         unitLabel === "dozen" ||
@@ -213,7 +213,7 @@ function RestockQuantity({
                             Restock Stock
                         </h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            Add stock for {item?.name || "this item"}
+                             Add stock for {String(item.name ?? "this item")}
                         </p>
                     </div>
                     <button
@@ -231,7 +231,7 @@ function RestockQuantity({
                             Current stock
                         </p>
                         <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {Number(item?.quantity || 0)} {unitLabel}
+                             {Number(item.quantity ?? 0)} {unitLabel}
                         </p>
                     </div>
 
@@ -275,7 +275,7 @@ function RestockQuantity({
                                 htmlFor="restock-buy-price"
                                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                             >
-                                Buy Price (per {unitLabel})
+                                 Buy Price (per {String(unitLabel)})
                             </label>
                             <input
                                 id="restock-buy-price"

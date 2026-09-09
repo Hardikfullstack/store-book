@@ -16,6 +16,7 @@ import com.storebook.inventoryapp.shared.domain.repository.UdhaarRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -356,7 +357,74 @@ class SalesViewModel(
         endTs: Long,
     ) {
         viewModelScope.launch {
-            _salesHistoryList.value = getSalesWithItems(Long.MAX_VALUE, 0)
+            val rawSales = salesRepository.getSalesByDateRange(startTs, endTs)
+            _salesHistoryList.value = mapToSaleWithItems(rawSales)
+        }
+    }
+
+    private suspend fun mapToSaleWithItems(
+        sales: List<com.storebook.inventoryapp.shared.data.local.Sales>,
+    ): List<Sale> {
+        if (sales.isEmpty()) return emptyList()
+
+        val saleIds = sales.map { it.id }
+        val allItems: Map<Long, List<com.storebook.inventoryapp.shared.data.local.Sale_items>> =
+            salesRepository
+                .getSaleItemsBySaleIds(saleIds)
+                .groupBy { it.sale_id }
+
+        return sales.map { s ->
+            val items =
+                allItems[s.id]?.map { saleItem ->
+                    com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
+                        itemId = saleItem.item_id,
+                        itemName = saleItem.item_name,
+                        quantity = saleItem.quantity,
+                        unit = saleItem.unit,
+                        buyPrice = saleItem.buy_price,
+                        sellPrice = saleItem.sell_price,
+                        taxRate = saleItem.tax_rate ?: 0.0,
+                        hsnCode = saleItem.hsn_code,
+                    )
+                } ?: emptyList()
+            Sale(
+                id = s.id,
+                timestamp = s.timestamp,
+                totalAmount = s.total_amount,
+                discountAmount = s.discount_amount,
+                customerName = s.customer_name,
+                customerGstin = s.customer_gstin,
+                businessGstin = s.business_gstin,
+                customerAddress = s.customer_address,
+                businessAddress = s.business_address,
+                type = s.type,
+                notes = s.notes,
+                isConverted = s.is_converted == 1L,
+                items = items,
+            )
+        }
+    }
+
+    /** BUG-28: Trigger sync + reload local sales, with offline fallback. */
+    fun reloadAfterSync(onReload: (List<Sale>) -> Unit = {}) {
+        val monitor =
+            com.storebook.inventoryapp.utils
+                .NetworkMonitor(context)
+
+        viewModelScope.launch {
+            val isOnline =
+                monitor.isOnline
+                    .first()
+            if (!isOnline) {
+                onReload(getSalesWithItems(5000, 0))
+                return@launch
+            }
+
+            triggerSync()
+
+            // Wait ~12s for sync to finish before reloading fresh local data
+            kotlinx.coroutines.delay(12_000)
+            onReload(getSalesWithItems(5000, 0))
         }
     }
 
@@ -364,7 +432,9 @@ class SalesViewModel(
         limit: Long,
         offset: Long,
     ): List<Sale> {
-        val rawSales = salesRepository.getAllSales().drop(offset.toInt()).take(limit.toInt())
+        val safeLimit = limit.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        val safeOffset = offset.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        val rawSales = salesRepository.getAllSales().drop(safeOffset).take(safeLimit)
         if (rawSales.isEmpty()) return emptyList()
 
         val allItems: Map<Long, List<com.storebook.inventoryapp.shared.data.local.Sale_items>> =

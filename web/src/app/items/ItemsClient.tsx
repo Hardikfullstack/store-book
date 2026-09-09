@@ -162,8 +162,8 @@ export default function ItemsClient({
     const [isLoading, setIsLoading] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
 
-    const fetchAllItemsForExport = async () => {
-        if (!storeId) return items;
+    const fetchAllItemsForExport = async (): Promise<Record<string, unknown>[]> => {
+        if (!storeId) return items as unknown as Record<string, unknown>[];
         try {
             const res = await executeQuery(
                 getActiveItemsRef(dataConnect, {
@@ -172,12 +172,12 @@ export default function ItemsClient({
                 { fetchPolicy: "SERVER_ONLY" as const }
             );
             if (res.data?.items && res.data.items.length > 0) {
-                return res.data.items;
+                return res.data.items as unknown as Record<string, unknown>[];
             }
         } catch (e) {
             console.error("Failed to fetch all items for export:", e);
         }
-        return items;
+        return items as unknown as Record<string, unknown>[];
     };
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [sortField, setSortField] = useState<string | null>(null);

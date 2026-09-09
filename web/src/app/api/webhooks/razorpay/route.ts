@@ -58,17 +58,17 @@ async function handleSubscriptionRenewal(subscriptionId: string) {
   const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
   
   // Query stores collection for this subscription_id
-  const res = await dc.executeGraphql(
+  const res = (await dc.executeGraphql(
     `query GetStoreBySub($subId: String!) { stores(where: { subscriptionId: { eq: $subId } }, limit: 1) { id } }`,
     { variables: { subId: subscriptionId } }
-  ) as any;
+  )) as { data?: { stores?: Array<{ id: string }> } };
   
-  if (!res.data.stores || res.data.stores.length === 0) {
+  if (!res.data?.stores || res.data.stores.length === 0) {
     console.error(`Webhook: No store found with subscription_id ${subscriptionId}`);
     return;
   }
 
-  const storeId = res.data.stores[0].id;
+  const storeId = res.data!.stores[0].id;
   const newExpiresAt = Date.now() + (31 * 24 * 60 * 60 * 1000); // Add ~1 month
 
   await dc.executeGraphql(
@@ -83,17 +83,17 @@ async function handleSubscriptionCancellation(subscriptionId: string) {
   const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
 
   // Query stores collection for this subscription_id
-  const res = await dc.executeGraphql(
+  const res = (await dc.executeGraphql(
     `query GetStoreBySub($subId: String!) { stores(where: { subscriptionId: { eq: $subId } }, limit: 1) { id } }`,
     { variables: { subId: subscriptionId } }
-  ) as any;
+  )) as { data?: { stores?: Array<{ id: string }> } };
   
-  if (!res.data.stores || res.data.stores.length === 0) {
+  if (!res.data?.stores || res.data.stores.length === 0) {
     console.error(`Webhook: No store found with subscription_id ${subscriptionId}`);
     return;
   }
 
-  const storeId = res.data.stores[0].id;
+  const storeId = res.data!.stores[0].id;
 
   await dc.executeGraphql(
     `mutation HaltStore($id: String!) { 

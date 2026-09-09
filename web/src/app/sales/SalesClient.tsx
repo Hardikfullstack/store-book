@@ -702,7 +702,7 @@ export default function SalesClient({
 			});
 		}
 
-		const finalY = (doc as any).lastAutoTable.finalY || 50;
+		const finalY = (doc as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 50;
 		doc.setFontSize(12);
 		doc.setTextColor(0);
 		doc.text(`Total Amount: Rs. ${displayAmount}`, 14, finalY + 10);

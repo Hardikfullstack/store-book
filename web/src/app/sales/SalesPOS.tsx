@@ -245,19 +245,19 @@ export default function SalesPOS({
                     );
                     // Play a small beep sound for feedback
                     try {
-                        const audioCtx = new (
-                            window.AudioContext ||
-                            (window as any).webkitAudioContext
-                        )();
-                        const oscillator = audioCtx.createOscillator();
-                        oscillator.type = "sine";
-                        oscillator.frequency.setValueAtTime(
-                            800,
-                            audioCtx.currentTime,
-                        );
-                        oscillator.connect(audioCtx.destination);
-                        oscillator.start();
-                        oscillator.stop(audioCtx.currentTime + 0.1);
+                        const AudioContextCtor = window.AudioContext || (window as { webkitAudioContext?: unknown }).webkitAudioContext;
+                        if (AudioContextCtor) {
+                            const audioCtx = new AudioContextCtor() as AudioContext;
+                            const oscillator = audioCtx.createOscillator();
+                            oscillator.type = "sine";
+                            oscillator.frequency.setValueAtTime(
+                                800,
+                                audioCtx.currentTime,
+                            );
+                            oscillator.connect(audioCtx.destination);
+                            oscillator.start();
+                            oscillator.stop(audioCtx.currentTime + 0.1);
+                        }
                     } catch (e) {
                         console.error("Audio Context Error:", e);
                         alert("Error playing beep sound.");
@@ -506,7 +506,7 @@ export default function SalesPOS({
             // BUG-09 FIX: Invalidate dashboard ISR cache after client-side DataConnect mutation
             try {
                 await import("@/app/actions").then(
-                    (m) => m.revalidateDashboard() as any,
+                    (m) => m.revalidateDashboard(),
                 );
             } catch (_) {
                 /* best-effort, don't block success path */
@@ -515,7 +515,7 @@ export default function SalesPOS({
             if (saleType === "ESTIMATE") {
                 try {
                     await import("@/app/actions").then(
-                        (m) => m.revalidateQuotations() as any,
+                        (m) => m.revalidateQuotations(),
                     );
                 } catch (_) {
                     /* best-effort */
@@ -880,11 +880,9 @@ export default function SalesPOS({
                                             "Udhaar",
                                             "Estimate",
                                         ].map((mode) => (
-                                            <button
-                                                key={mode}
-                                                onClick={() =>
-                                                    setPaymentMode(mode as any)
-                                                }
+                                             <button
+                                                 key={mode}
+                                                 onClick={() => setPaymentMode(mode as "Cash" | "UPI" | "Udhaar" | "Estimate")}
                                                 className={`py-2 px-1 rounded-xl text-sm font-medium transition-colors flex items-center justify-center ${
                                                     paymentMode === mode
                                                         ? mode === "Udhaar"

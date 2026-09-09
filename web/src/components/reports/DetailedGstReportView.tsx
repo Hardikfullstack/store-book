@@ -4,14 +4,15 @@ import React, { useState, useMemo } from 'react';
 import { Layers } from 'lucide-react';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import { BillingEngine } from '@/lib/BillingEngine';
+import { DcSale, DcSaleItem, DcPurchase, DcPurchaseItem, DcSupplier, DcItem } from '@/types/dataconnect';
 
 interface DetailedGstReportViewProps {
-  sales: any[];
-  saleItems: any[];
-  purchases: any[];
-  purchaseItems: any[];
-  suppliersMap: Map<string, any>;
-  allItemsMap: Map<string, any>;
+  sales: DcSale[];
+  saleItems: DcSaleItem[];
+  purchases: DcPurchase[];
+  purchaseItems: DcPurchaseItem[];
+  suppliersMap: Map<string, DcSupplier>;
+  allItemsMap: Map<string, DcItem>;
   businessGstin: string;
   businessName: string;
   monthName: string;
@@ -49,9 +50,9 @@ export default function DetailedGstReportView({
 
   // 1. Group sale item details by saleId
   const saleItemsMap = useMemo(() => {
-    const map = new Map<string, any[]>();
+    const map = new Map<string, DcSaleItem[]>();
     for (const item of saleItems) {
-      const sId = String(item.saleId ?? item.sale_id ?? '').trim();
+      const sId = String(item.saleId ?? '').trim();
       if (sId) {
         if (!map.has(sId)) map.set(sId, []);
         map.get(sId)!.push(item);
@@ -62,9 +63,9 @@ export default function DetailedGstReportView({
 
   // 2. Group purchase item details by purchaseId
   const purchaseItemsMap = useMemo(() => {
-    const map = new Map<string, any[]>();
+    const map = new Map<string, DcPurchaseItem[]>();
     for (const item of purchaseItems) {
-      const pId = String(item.purchaseId ?? item.purchase_id ?? '').trim();
+      const pId = String(item.purchaseId ?? '').trim();
       if (pId) {
         if (!map.has(pId)) map.set(pId, []);
         map.get(pId)!.push(item);
@@ -79,26 +80,26 @@ export default function DetailedGstReportView({
 
     // Sales item details
     for (const sale of sales) {
-      const sId = String(sale.id ?? sale.sale_id ?? '').trim();
+      const sId = String(sale.id ?? '').trim();
       const items = saleItemsMap.get(sId) || [];
       const rawTs = Number(sale.timestamp) || 0;
       const saleTs = rawTs < 100000000000 ? rawTs * 1000 : rawTs;
       const txnId = sale.invoiceNumber || `INV${sId.slice(0, 5).toUpperCase()}`;
-      const party = sale.customerName || sale.customer_name || 'Cash Customer';
-      const saleDiscount = Number(sale.discountAmount ?? sale.discount_amount) || 0;
-      const customerGstin = sale.customerGstin || sale.customer_gstin || '';
+      const party = sale.customerName || 'Cash Customer';
+      const saleDiscount = Number(sale.discountAmount) || 0;
+      const customerGstin = sale.customerGstin || '';
 
       const invoiceItems = items.map((i) => {
-        const itemMaster = allItemsMap?.get(String(i.itemId ?? i.item_id ?? '').trim());
-        const sellPrice = Number(i.sellPrice ?? i.sell_price ?? itemMaster?.sellPrice ?? 0);
+        const itemMaster = allItemsMap?.get(String(i.itemId ?? '').trim());
+        const sellPrice = Number(i.sellPrice ?? itemMaster?.sellPrice ?? 0);
         return {
           id: String(i.id ?? ''),
           sell_price: sellPrice,
           quantity: Number(i.quantity ?? 1),
-          taxRate: Number(itemMaster?.taxRate ?? i.taxRate ?? i.tax_rate ?? 0),
+          taxRate: 0,
           unit: i.unit || itemMaster?.unit || 'Units',
-          hsnCode: itemMaster?.hsnCode || i.hsnCode || i.hsn_code || '-',
-          name: itemMaster?.name || i.itemName || i.item_name || 'Item',
+          hsnCode: null,
+          name: itemMaster?.name || i.itemName || 'Item',
         };
       });
 
@@ -110,7 +111,7 @@ export default function DetailedGstReportView({
       );
 
       if (invoiceItems.length === 0) {
-        const saleTotal = Number(sale.totalAmount ?? sale.total_amount) || 0;
+        const saleTotal = Number(sale.totalAmount) || 0;
         const taxable = Math.max(0, saleTotal - saleDiscount);
         rows.push({
           id: `sale-${sId}-0`,
@@ -151,26 +152,26 @@ export default function DetailedGstReportView({
 
     // Purchases item details
     for (const purchase of purchases) {
-      const pId = String(purchase.id ?? purchase.purchase_id ?? '').trim();
+      const pId = String(purchase.id ?? '').trim();
       const items = purchaseItemsMap.get(pId) || [];
-      const supplier = suppliersMap?.get(String(purchase.supplierId ?? purchase.supplier_id ?? '').trim());
+      const supplier = suppliersMap?.get(String(purchase.supplierId ?? '').trim());
       const supplierGstin = supplier?.gstin || '';
       const rawTs = Number(purchase.timestamp) || 0;
       const purchaseTs = rawTs < 100000000000 ? rawTs * 1000 : rawTs;
-      const txnId = purchase.billNumber || `PUR${pId.slice(0, 5).toUpperCase()}`;
-      const party = purchase.supplierName ?? purchase.supplier_name ?? supplier?.name ?? 'Supplier';
+      const txnId = `PUR${pId.slice(0, 5).toUpperCase()}`;
+      const party = purchase.supplierName ?? supplier?.name ?? 'Supplier';
 
       const invoiceItems = items.map((pi) => {
-        const itemMaster = allItemsMap?.get(String(pi.itemId ?? pi.item_id ?? '').trim());
-        const buyPrice = Number(pi.buyPrice ?? pi.buy_price ?? itemMaster?.buyPrice ?? 0);
+        const itemMaster = allItemsMap?.get(String(pi.itemId ?? '').trim());
+        const buyPrice = Number(pi.buyPrice ?? itemMaster?.buyPrice ?? 0);
         return {
           id: String(pi.id ?? ''),
           sell_price: buyPrice,
           quantity: Number(pi.quantity ?? 1),
-          taxRate: Number(itemMaster?.taxRate ?? pi.taxRate ?? pi.tax_rate ?? 0),
+          taxRate: 0,
           unit: pi.unit || itemMaster?.unit || 'Units',
-          hsnCode: itemMaster?.hsnCode || pi.hsnCode || pi.hsn_code || '-',
-          name: itemMaster?.name || pi.itemName || pi.item_name || 'Item',
+          hsnCode: null,
+          name: itemMaster?.name || pi.itemName || 'Item',
         };
       });
 
@@ -182,7 +183,7 @@ export default function DetailedGstReportView({
       );
 
       if (invoiceItems.length === 0) {
-        const purchaseTotal = Number(purchase.totalAmount ?? purchase.total_amount) || 0;
+        const purchaseTotal = Number(purchase.totalAmount) || 0;
         rows.push({
           id: `pur-${pId}-0`,
           date: purchaseTs,

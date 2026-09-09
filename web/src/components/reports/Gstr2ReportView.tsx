@@ -4,12 +4,13 @@ import React from 'react';
 import { Truck } from 'lucide-react';
 import { FormattedAmount } from '@/components/FormattedAmount';
 import { BillingEngine } from '@/lib/BillingEngine';
+import { DcPurchase, DcPurchaseItem, DcSupplier, DcItem } from '@/types/dataconnect';
 
 interface Gstr2ReportViewProps {
-  purchases: any[];
-  purchaseItems: any[];
-  suppliersMap: Map<string, any>;
-  allItemsMap: Map<string, any>;
+  purchases: DcPurchase[];
+  purchaseItems: DcPurchaseItem[];
+  suppliersMap: Map<string, DcSupplier>;
+  allItemsMap: Map<string, DcItem>;
   businessGstin: string;
   businessName: string;
   monthName: string;
@@ -27,9 +28,9 @@ export default function Gstr2ReportView({
 }: Gstr2ReportViewProps) {
   // 1. Group purchase item details by purchaseId (using String key for compatibility)
   const purchaseItemsMap = React.useMemo(() => {
-    const map = new Map<string, any[]>();
+    const map = new Map<string, DcPurchaseItem[]>();
     for (const item of purchaseItems) {
-      const pId = String(item.purchaseId ?? item.purchase_id ?? '').trim();
+      const pId = String(item.purchaseId ?? '').trim();
       if (pId) {
         if (!map.has(pId)) {
           map.set(pId, []);
@@ -43,23 +44,23 @@ export default function Gstr2ReportView({
   // 2. Compute individual purchase bill tax summaries via BillingEngine (matching Android GSTReportScreen)
   const purchasesWithTaxes = React.useMemo(() => {
     return purchases.map((purchase) => {
-      const pId = String(purchase.id ?? purchase.purchase_id ?? '').trim();
+      const pId = String(purchase.id ?? '').trim();
       const items = purchaseItemsMap.get(pId) || [];
-      const supplier = suppliersMap?.get(String(purchase.supplierId ?? purchase.supplier_id ?? '').trim());
+      const supplier = suppliersMap?.get(String(purchase.supplierId ?? '').trim());
       const supplierGstin = supplier?.gstin || '';
 
       const invoiceItems = items.map((pi) => {
-        const itemMaster = allItemsMap?.get(String(pi.itemId ?? pi.item_id ?? '').trim());
-        const buyPrice = Number(pi.buyPrice ?? pi.buy_price ?? itemMaster?.buyPrice ?? 0);
+        const itemMaster = allItemsMap?.get(String(pi.itemId ?? '').trim());
+        const buyPrice = Number(pi.buyPrice ?? itemMaster?.buyPrice ?? 0);
         return {
           id: String(pi.id ?? ''),
           sell_price: buyPrice, // Inward supplies: buy price acts as base calculation price
           quantity: Number(pi.quantity ?? 1),
-          taxRate: Number(itemMaster?.taxRate ?? pi.taxRate ?? pi.tax_rate ?? 0),
+          taxRate: 0, // DcItem/DcPurchaseItem do not carry taxRate
         };
       });
 
-      const purchaseTotal = Number(purchase.totalAmount ?? purchase.total_amount) || 0;
+      const purchaseTotal = Number(purchase.totalAmount) || 0;
 
       let taxSummary = BillingEngine.calculateInvoiceTaxes(
         invoiceItems,
@@ -89,7 +90,7 @@ export default function Gstr2ReportView({
 
   // 3. Aggregate totals matching Android sumOfBigDecimal
   const totalPurchases = React.useMemo(() => {
-    return purchases.reduce((acc, p) => acc + (Number(p.totalAmount ?? p.total_amount) || 0), 0);
+    return purchases.reduce((acc, p) => acc + (Number(p.totalAmount) || 0), 0);
   }, [purchases]);
 
   const totalTaxable = React.useMemo(() => {
@@ -199,7 +200,7 @@ export default function Gstr2ReportView({
           <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 space-y-2.5 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
             {purchasesWithTaxes.map(({ purchase, supplier, supplierGstin, taxSummary }) => {
               const billNo =
-                purchase.billNumber || `PUR${String(purchase.id ?? '').slice(0, 5).toUpperCase()}`;
+                `PUR${String(purchase.id ?? '').slice(0, 5).toUpperCase()}`;
               const rawTs = Number(purchase.timestamp) || 0;
               const purchaseTs = rawTs < 100000000000 ? rawTs * 1000 : rawTs;
               const dateStr = new Date(purchaseTs).toLocaleDateString(
@@ -211,7 +212,7 @@ export default function Gstr2ReportView({
                 }
               );
               const supplierName =
-                purchase.supplierName ?? purchase.supplier_name ?? supplier?.name ?? 'Supplier';
+                purchase.supplierName ?? supplier?.name ?? 'Supplier';
               const totalTax =
                 taxSummary.totalCgst +
                 taxSummary.totalSgst +

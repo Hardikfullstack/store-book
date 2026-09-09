@@ -75,8 +75,6 @@ import com.storebook.inventoryapp.ui.viewmodel.SalesViewModel
 import com.storebook.inventoryapp.utils.autoMarquee
 import com.storebook.inventoryapp.utils.toRupee
 import com.storebook.inventoryapp.utils.toRupeeWithDecimals
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -136,10 +134,10 @@ fun SalesAnalyticsScreen(
     var showDateRangePicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            rawSales = viewModel.getSalesWithItems(limit = 5000, offset = 0)
+        viewModel.reloadAfterSync { sales ->
+            rawSales = sales
+            isLoading = false
         }
-        isLoading = false
     }
 
     val lineItems =

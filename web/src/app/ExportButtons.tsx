@@ -7,10 +7,10 @@ import autoTable from 'jspdf-autotable';
 import { generateInventoryCsv, downloadCsvFile } from '@/lib/csvUtils';
 
 interface ExportButtonsProps {
-  data: any[];
+  data: Record<string, unknown>[];
   type: string;
   columns: string[];
-  onExportAll?: () => Promise<any[]>;
+  onExportAll?: () => Promise<Record<string, unknown>[]>;
   onImport?: () => void;
 }
 

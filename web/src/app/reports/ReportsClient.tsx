@@ -19,7 +19,7 @@ import {
   exportGstr3BReport,
   exportDetailedGstReport,
 } from '@/lib/gstReportExporter';
-import { DcSale, DcSaleItem, DcItem } from '@/types/dataconnect';
+import { DcSale, DcSaleItem, DcItem, DcPurchase, DcPurchaseItem, DcSupplier } from '@/types/dataconnect';
 import Gstr1ReportView from '@/components/reports/Gstr1ReportView';
 import Gstr2ReportView from '@/components/reports/Gstr2ReportView';
 import Gstr3BReportView from '@/components/reports/Gstr3BReportView';
@@ -64,9 +64,9 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
 
   const [allSales, setAllSales] = useState<DcSale[]>([]);
   const [allSaleItems, setAllSaleItems] = useState<DcSaleItem[]>([]);
-  const [allPurchases, setAllPurchases] = useState<any[]>([]);
-  const [allPurchaseItems, setAllPurchaseItems] = useState<any[]>([]);
-  const [allSuppliersMap, setAllSuppliersMap] = useState<Map<string, any>>(new Map());
+  const [allPurchases, setAllPurchases] = useState<DcPurchase[]>([]);
+  const [allPurchaseItems, setAllPurchaseItems] = useState<DcPurchaseItem[]>([]);
+  const [allSuppliersMap, setAllSuppliersMap] = useState<Map<string, DcSupplier>>(new Map());
   const [allItemsMap, setAllItemsMap] = useState<Map<string, DcItem>>(new Map());
   const [businessGstin, setBusinessGstin] = useState<string>('');
   const [businessName, setBusinessName] = useState<string>('StoreBook');
@@ -162,7 +162,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
           ]);
           if (!isMounted) return;
           const rawSales = salesRes.data?.sales || [];
-          const rawSaleItems = (saleItemsRes.data?.saleItemDetails || []).filter((i: any) => !i.isDeleted);
+          const rawSaleItems = (saleItemsRes.data?.saleItemDetails || []).filter((x: DcSaleItem) => !x.isDeleted);
           setAllSales(rawSales);
           setAllSaleItems(rawSaleItems);
           const bizGstin = rawSales.find((s) => s.businessGstin)?.businessGstin || '';
@@ -188,10 +188,10 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
           ]);
           if (!isMounted) return;
           const rawPurchases = purchasesRes.data?.purchases || [];
-          const rawPurchaseItems = (purchaseItemsRes.data?.purchaseItemDetails || []).filter((i: any) => !i.isDeleted);
+          const rawPurchaseItems = (purchaseItemsRes.data?.purchaseItemDetails || []).filter((x: DcPurchaseItem) => !x.isDeleted);
           const rawSuppliers = suppliersRes.data?.suppliers || [];
 
-          const supplierMap = new Map<string, any>();
+          const supplierMap = new Map<string, DcSupplier>();
           for (const supplier of rawSuppliers) {
             supplierMap.set(String(supplier.id).trim(), supplier);
           }
@@ -221,7 +221,7 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
             ]).then(([salesRes, saleItemsRes]) => {
               if (!isMounted) return;
               const rawSales = salesRes.data?.sales || [];
-              const rawSaleItems = (saleItemsRes.data?.saleItemDetails || []).filter((i: any) => !i.isDeleted);
+          const rawSaleItems = (saleItemsRes.data?.saleItemDetails || []).filter((x: DcSaleItem) => !x.isDeleted);
               setAllSales(rawSales);
               setAllSaleItems(rawSaleItems);
               const bizGstin = rawSales.find((s) => s.businessGstin)?.businessGstin || '';
@@ -244,10 +244,10 @@ export default function ReportsClient({ storeId }: { storeId: string }) {
             ]).then(([purchasesRes, purchaseItemsRes, suppliersRes]) => {
               if (!isMounted) return;
               const rawPurchases = purchasesRes.data?.purchases || [];
-              const rawPurchaseItems = (purchaseItemsRes.data?.purchaseItemDetails || []).filter((i: any) => !i.isDeleted);
+              const rawPurchaseItems = (purchaseItemsRes.data?.purchaseItemDetails || []).filter((x: DcPurchaseItem) => !x.isDeleted);
               const rawSuppliers = suppliersRes.data?.suppliers || [];
 
-              const supplierMap = new Map<string, any>();
+              const supplierMap = new Map<string, DcSupplier>();
               for (const supplier of rawSuppliers) {
                 supplierMap.set(String(supplier.id).trim(), supplier);
               }

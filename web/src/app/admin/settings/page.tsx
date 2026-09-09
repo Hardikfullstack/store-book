@@ -19,12 +19,16 @@ export default async function AdminSettingsPage() {
       dc.executeGraphql('query GetAnnouncements { announcements { id title message type isActive createdAt } }', {})
     ]);
 
+    const typedSettings = settingsRes.data as Record<string, unknown>[] | undefined;
+    const typedPromos = promosRes.data as Record<string, unknown>[] | undefined;
+    const typedAnnouncements = announcementsRes.data as Record<string, unknown>[] | undefined;
+
     /* eslint-disable react-hooks/error-boundaries */
     return (
-      <SettingsClient 
-        initialSettings={(settingsRes.data as any)?.globalSettings || []}
-        initialPromoCodes={(promosRes.data as any)?.promoCodes || []}
-        initialAnnouncements={(announcementsRes.data as any)?.announcements || []}
+      <SettingsClient
+        initialSettings={typedSettings ?? []}
+        initialPromoCodes={typedPromos ?? []}
+        initialAnnouncements={typedAnnouncements ?? []}
       />
     );
     /* eslint-enable react-hooks/error-boundaries */
