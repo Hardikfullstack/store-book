@@ -262,7 +262,7 @@ class DashboardViewModel(
     }
 
     private val activeStoreId: String
-        get() = prefs.getString("active_store_id", "default_store") ?: "default_store"
+        get() = prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID
 
     val businessName: String
         get() = prefs.getString("business_name_$activeStoreId", prefs.getString("business_name", "Store")) ?: "Store"

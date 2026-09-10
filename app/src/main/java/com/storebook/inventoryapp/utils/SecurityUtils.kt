@@ -7,6 +7,8 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
 object SecurityUtils {
+    const val DEFAULT_STORE_ID = "default"
+
     fun getEncryptedPrefs(context: Context): SharedPreferences {
         try {
             val masterKey =

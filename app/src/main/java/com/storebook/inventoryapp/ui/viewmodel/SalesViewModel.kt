@@ -13,6 +13,7 @@ import com.storebook.inventoryapp.shared.domain.models.Sale
 import com.storebook.inventoryapp.shared.domain.repository.InventoryRepository
 import com.storebook.inventoryapp.shared.domain.repository.SalesRepository
 import com.storebook.inventoryapp.shared.domain.repository.UdhaarRepository
+import com.storebook.inventoryapp.utils.SecurityUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,12 +27,10 @@ class SalesViewModel(
     private val udhaarRepository: UdhaarRepository,
     private val context: android.content.Context,
 ) : ViewModel() {
-    private val prefs =
-        com.storebook.inventoryapp.utils.SecurityUtils
-            .getEncryptedPrefs(context)
+    private val prefs = SecurityUtils.getEncryptedPrefs(context)
 
     private fun triggerSync() {
-        val storeId = prefs.getString("active_store_id", "default_store") ?: "default_store"
+        val storeId = prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID
         val data =
             androidx.work.Data
                 .Builder()
@@ -211,10 +210,7 @@ class SalesViewModel(
                 }
             try {
                 // BUG-01: All-or-nothing atomic insert + deduce inside a single database.transaction{}
-                val prefs =
-                    com.storebook.inventoryapp.utils.SecurityUtils
-                        .getEncryptedPrefs(context)
-                val activeStoreId = prefs.getString("active_store_id", "default_store") ?: "default_store"
+                val activeStoreId = prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID
                 val bizGstin = prefs.getString("business_gstin_$activeStoreId", prefs.getString("business_gstin", ""))
                 val bizAddress =
                     prefs
@@ -499,10 +495,7 @@ class SalesViewModel(
         context: android.content.Context,
         saleId: Long,
     ) {
-        val prefs =
-            com.storebook.inventoryapp.utils.SecurityUtils
-                .getEncryptedPrefs(context)
-        val activeStoreId = prefs.getString("active_store_id", "default_store") ?: "default_store"
+        val activeStoreId = prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID
         val businessName =
             prefs.getString("business_name_$activeStoreId", prefs.getString("business_name", "Store")) ?: "Store"
         val businessAddress =

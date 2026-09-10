@@ -1112,6 +1112,7 @@ private fun completeLoginForStore(
     stores: List<String>,
     onSuccess: () -> Unit,
     onSyncProgress: (Int, String) -> Unit,
+    onError: ((String) -> Unit)? = null,
 ) {
     val prefs =
         com.storebook.inventoryapp.utils.SecurityUtils
@@ -1155,6 +1156,9 @@ private fun completeLoginForStore(
                 }
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
+                android.util.Log.e("AuthScreen", "Sync failed during login for store $storeId", e)
+                onError?.invoke("Sync failed: ${e.message ?: "unknown"}")
+                return@launch
             }
 
             kotlinx.coroutines.delay(800)
@@ -1163,7 +1167,8 @@ private fun completeLoginForStore(
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            android.os.Handler(android.os.Looper.getMainLooper()).post {
+            android.util.Log.e("AuthScreen", "Login setup failed for store $storeId", e)
+            onError?.invoke("Failed to set up store data") ?: run {
                 onSuccess()
             }
         }
@@ -1318,7 +1323,10 @@ private fun signInWithPhoneAuthCredential(
                             }
                         } catch (e: Exception) {
                             if (e is kotlinx.coroutines.CancellationException) throw e
-                            android.os.Handler(android.os.Looper.getMainLooper()).post { onSuccess() }
+                            android.util.Log.e("AuthScreen", "DataConnect fetch failed after sign-in", e)
+                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                onError(e.message ?: "Failed to load store data. Please try again.")
+                            }
                         }
                     }
                 } else {

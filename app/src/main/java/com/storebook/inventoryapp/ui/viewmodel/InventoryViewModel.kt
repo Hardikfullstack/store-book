@@ -62,7 +62,7 @@ class InventoryViewModel(
     private var currentSortBy = "Name"
 
     private fun triggerSync() {
-        val storeId = prefs.getString("active_store_id", "default_store") ?: "default_store"
+        val storeId = prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID
         val data = Data.Builder().putString("STORE_ID", storeId).build()
         val request = OneTimeWorkRequestBuilder<SyncWorker>().setInputData(data).build()
         WorkManager.getInstance(context).enqueue(request)

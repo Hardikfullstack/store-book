@@ -72,6 +72,7 @@ import com.storebook.inventoryapp.shared.domain.models.Sale
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.theme.primaryGradient
 import com.storebook.inventoryapp.ui.viewmodel.SalesViewModel
+import com.storebook.inventoryapp.utils.SecurityUtils
 import com.storebook.inventoryapp.utils.autoMarquee
 import com.storebook.inventoryapp.utils.toRupee
 import com.storebook.inventoryapp.utils.toRupeeWithDecimals
@@ -112,10 +113,10 @@ fun SalesAnalyticsScreen(
     val defaultCustName = stringResource(id = R.string.customer_walk_in)
     val storeId =
         remember {
-            com.storebook.inventoryapp.utils.SecurityUtils
+            SecurityUtils
                 .getEncryptedPrefs(context)
-                .getString("active_store_id", "default_store")
-                ?: "default_store"
+                .getString("active_store_id", null)
+                ?: SecurityUtils.DEFAULT_STORE_ID
         }
 
     // Filters

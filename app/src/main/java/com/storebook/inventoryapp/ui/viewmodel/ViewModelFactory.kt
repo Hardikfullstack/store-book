@@ -21,7 +21,7 @@ class AppViewModelFactory(
     private val context: Context,
 ) : ViewModelProvider.Factory {
     private val prefs by lazy { SecurityUtils.getEncryptedPrefs(context) }
-    private val storeId by lazy { prefs.getString("active_store_id", "default_store") ?: "default_store" }
+    private val storeId by lazy { prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID }
 
     // Lazy initialize the database so it's a singleton within the factory scope
     private val database: StoreBookDatabase by lazy {
