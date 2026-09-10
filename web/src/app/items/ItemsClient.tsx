@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
     Plus,
     Search,
     Trash2,
     Edit2,
     Loader2,
-    ArrowDownCircle,
-    Upload,
+    ChevronDown,
+    Check,
 } from "lucide-react";
-import { fetchMoreData } from "@/app/actions";
 import ExportButtons from "@/app/ExportButtons";
 import ImportCsvModal from "@/components/items/ImportCsvModal";
 import { sanitizeInput } from "@/lib/sanitize";
@@ -29,6 +28,8 @@ import {
     syncItemBatch,
     getActiveSuppliers,
     syncSupplier,
+    getCategoriesRef,
+    syncCategory,
 } from "@/dataconnect";
 import { FormattedAmount } from "@/components/FormattedAmount";
 import RestockQuantity from "@/components/models/RestockQuantity";
@@ -136,12 +137,14 @@ export default function ItemsClient({
     canAccessCost = true,
     canDeleteRecords = true,
     storeId,
+    businessType = "general",
     isPremium,
 }: {
     initialItems: LocalItem[];
     canAccessCost?: boolean;
     canDeleteRecords?: boolean;
     storeId?: string;
+    businessType?: string;
     isPremium?: boolean;
 }) {
     const dispatch = useDispatch();
@@ -191,6 +194,63 @@ export default function ItemsClient({
     const [maxPriceFilter, setMaxPriceFilter] = useState("");
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const searchResultsKeyRef = useRef("");
+
+    // Category Management State
+    const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+    const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+    const [categorySearchTerm, setCategorySearchTerm] = useState("");
+    const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+    const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Close category dropdown on click outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                categoryDropdownRef.current &&
+                !categoryDropdownRef.current.contains(event.target as Node)
+            ) {
+                setCategoryDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+    // Load categories once per businessType (read-only on page load)
+    useEffect(() => {
+        let isMounted = true;
+        const currentBusinessType = businessType || "general";
+
+        const fetchCategories = async () => {
+            try {
+                const resp = await executeQuery(
+                    getCategoriesRef(dataConnect, { businessType: currentBusinessType }),
+                    { fetchPolicy: "SERVER_ONLY" as const }
+                );
+
+                const fetched = (resp.data?.categories || []).map(
+                    (c: { id: string; name: string }) => ({
+                        id: c.id,
+                        name: c.name,
+                    })
+                );
+
+                if (isMounted) {
+                    setCategories(fetched);
+                }
+            } catch (e) {
+                console.error("Failed to load categories:", e);
+            }
+        };
+
+        fetchCategories();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [businessType]);
 
     const buildSortVars = (
         sortField: string | null,
@@ -444,6 +504,60 @@ export default function ItemsClient({
 
     const filteredSuppliers = suppliers.filter((s) =>
         s.name.toLowerCase().includes(supplierSearch.trim().toLowerCase()),
+    );
+
+    const handleCreateNewCategory = useCallback(
+        async (nameToCreate: string) => {
+            const trimmed = nameToCreate.trim();
+            if (!trimmed) return;
+
+            const existing = categories.find(
+                (c) => c.name.toLowerCase() === trimmed.toLowerCase()
+            );
+            if (existing) {
+                setFormData((prev) => ({ ...prev, category: existing.name }));
+                setCategoryDropdownOpen(false);
+                setCategorySearchTerm("");
+                return;
+            }
+
+            setIsCreatingCategory(true);
+            const newId = crypto.randomUUID();
+            const now = Math.floor(Date.now() / 1000);
+            const currentBusinessType = businessType || "general";
+            try {
+                await syncCategory(dataConnect, {
+                    id: newId,
+                    businessType: currentBusinessType,
+                    storeId: storeId || null,
+                    name: trimmed,
+                    isDeleted: false,
+                    updatedAt: now,
+                });
+                const updated = [...categories, { id: newId, name: trimmed }].sort(
+                    (a, b) => a.name.localeCompare(b.name)
+                );
+                setCategories(updated);
+                setFormData((prev) => ({ ...prev, category: trimmed }));
+                setCategoryDropdownOpen(false);
+                setCategorySearchTerm("");
+            } catch (err) {
+                console.error("Failed to create new category:", err);
+                setFormData((prev) => ({ ...prev, category: trimmed }));
+                setCategoryDropdownOpen(false);
+            } finally {
+                setIsCreatingCategory(false);
+            }
+        },
+        [businessType, storeId, categories]
+    );
+
+    const filteredCategories = useMemo(
+        () =>
+            categories.filter((c) =>
+                c.name.toLowerCase().includes(categorySearchTerm.toLowerCase().trim())
+            ),
+        [categories, categorySearchTerm]
     );
 
     const handleQuickCreateSupplier = async () => {
@@ -879,13 +993,13 @@ export default function ItemsClient({
                                     "text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors",
                                 title: "Restock",
                             },
-                                    {
-                                        icon: <Edit2 size={18} />,
-                                        onClick: (item: Record<string, unknown>) => handleEdit(item as LocalItem),
-                                        className:
-                                            "text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 transition-colors",
-                                        title: "Edit",
-                                    },
+                            {
+                                icon: <Edit2 size={18} />,
+                                onClick: (item: Record<string, unknown>) => handleEdit(item as LocalItem),
+                                className:
+                                    "text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 transition-colors",
+                                title: "Edit",
+                            },
                             ...(canDeleteRecords
                                 ? [
                                     {
@@ -951,23 +1065,179 @@ export default function ItemsClient({
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium dark:text-gray-300">
+                                    <label className="block text-sm font-medium dark:text-gray-300 mb-1">
                                         Category
                                     </label>
-                                    <input
-                                        aria-label="text"
-                                        type="text"
-                                        value={formData.category}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                category: sanitizeInput(
-                                                    e.target.value,
-                                                ),
-                                            })
-                                        }
-                                        className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
-                                    />
+                                    <div className="relative" ref={categoryDropdownRef}>
+                                        <div
+                                            onClick={() =>
+                                                setCategoryDropdownOpen(
+                                                    (prev) => !prev
+                                                )
+                                            }
+                                            className="flex items-center justify-between w-full p-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white cursor-pointer hover:border-teal-500 transition-colors"
+                                        >
+                                            <span
+                                                className={
+                                                    formData.category
+                                                        ? "text-gray-900 dark:text-white text-sm"
+                                                        : "text-gray-400 dark:text-gray-500 text-sm"
+                                                }
+                                            >
+                                                {formData.category ||
+                                                    "Select category..."}
+                                            </span>
+                                            <ChevronDown
+                                                size={16}
+                                                className={`text-gray-400 transition-transform ${categoryDropdownOpen ? "rotate-180" : ""}`}
+                                            />
+                                        </div>
+
+                                        {categoryDropdownOpen && (
+                                            <div className="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl overflow-hidden max-h-60 flex flex-col">
+                                                <div className="p-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
+                                                    <div className="relative">
+                                                        <Search
+                                                            size={14}
+                                                            className="absolute left-2.5 top-2.5 text-gray-400"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            autoFocus
+                                                            value={
+                                                                categorySearchTerm
+                                                            }
+                                                            onChange={(e) =>
+                                                                setCategorySearchTerm(
+                                                                    sanitizeInput(
+                                                                        e.target
+                                                                            .value
+                                                                    )
+                                                                )
+                                                            }
+                                                            onKeyDown={(e) => {
+                                                                if (
+                                                                    e.key ===
+                                                                    "Enter"
+                                                                ) {
+                                                                    e.preventDefault();
+                                                                    if (
+                                                                        categorySearchTerm.trim()
+                                                                    ) {
+                                                                        handleCreateNewCategory(
+                                                                            categorySearchTerm.trim()
+                                                                        );
+                                                                    }
+                                                                }
+                                                            }}
+                                                            placeholder="Search or type new category..."
+                                                            className="w-full pl-8 pr-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 dark:text-white"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="overflow-y-auto flex-1 p-1 space-y-0.5">
+                                                    {filteredCategories.map(
+                                                        (cat) => (
+                                                            <button
+                                                                key={cat.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setFormData(
+                                                                        (
+                                                                            prev
+                                                                        ) => ({
+                                                                            ...prev,
+                                                                            category:
+                                                                                cat.name,
+                                                                        })
+                                                                    );
+                                                                    setCategoryDropdownOpen(
+                                                                        false
+                                                                    );
+                                                                    setCategorySearchTerm(
+                                                                        ""
+                                                                    );
+                                                                }}
+                                                                className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors flex items-center justify-between ${formData.category.toLowerCase() ===
+                                                                    cat.name.toLowerCase()
+                                                                    ? "bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 font-medium"
+                                                                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                                                                    }`}
+                                                            >
+                                                                <span>
+                                                                    {cat.name}
+                                                                </span>
+                                                                {formData.category.toLowerCase() ===
+                                                                    cat.name.toLowerCase() && (
+                                                                        <Check
+                                                                            size={
+                                                                                14
+                                                                            }
+                                                                            className="text-teal-600 dark:text-teal-400"
+                                                                        />
+                                                                    )}
+                                                            </button>
+                                                        )
+                                                    )}
+
+                                                    {categorySearchTerm.trim()
+                                                        .length > 0 &&
+                                                        !categories.some(
+                                                            (c) =>
+                                                                c.name.toLowerCase() ===
+                                                                categorySearchTerm
+                                                                    .trim()
+                                                                    .toLowerCase()
+                                                        ) && (
+                                                            <button
+                                                                type="button"
+                                                                disabled={
+                                                                    isCreatingCategory
+                                                                }
+                                                                onClick={() =>
+                                                                    handleCreateNewCategory(
+                                                                        categorySearchTerm.trim()
+                                                                    )
+                                                                }
+                                                                className="w-full text-left px-3 py-2 text-sm rounded-md bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400 hover:bg-teal-100 dark:hover:bg-teal-900/40 font-medium flex items-center gap-1.5 transition-colors border-t border-dashed border-teal-200 dark:border-teal-800 mt-1"
+                                                            >
+                                                                {isCreatingCategory ? (
+                                                                    <Loader2
+                                                                        size={
+                                                                            14
+                                                                        }
+                                                                        className="animate-spin"
+                                                                    />
+                                                                ) : (
+                                                                    <Plus
+                                                                        size={
+                                                                            14
+                                                                        }
+                                                                    />
+                                                                )}
+                                                                <span>
+                                                                    Create
+                                                                    &quot;
+                                                                    {categorySearchTerm.trim()}
+                                                                    &quot;
+                                                                </span>
+                                                            </button>
+                                                        )}
+
+                                                    {filteredCategories.length ===
+                                                        0 &&
+                                                        !categorySearchTerm.trim() && (
+                                                            <div className="px-3 py-4 text-center text-xs text-gray-400 dark:text-gray-500">
+                                                                No categories
+                                                                yet. Type to
+                                                                create one.
+                                                            </div>
+                                                        )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium dark:text-gray-300">

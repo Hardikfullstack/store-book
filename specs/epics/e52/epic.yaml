@@ -1,62 +1,77 @@
 epic_id: e52
-title: "Web & DataConnect: Category Management, Dynamic Creatable Dropdown & Item Categorization"
+title: "Web & DataConnect: Business-Type Scoped Catalog, Multi-Store Category Sharing & Dynamic Dropdown"
 priority: P1
 status: complete
 target_version: v1.9.0
 description: |
-  Introduces a dedicated `Category` table in Firebase DataConnect (PostgreSQL) matching the `Item` table architecture.
-  Provides dynamic category retrieval, automated backfill of existing item categories, and a searchable, creatable
-  category dropdown in the Web Dashboard Item Modal (ItemsClient.tsx). Enables merchants to choose existing categories
-  or immediately create and assign new categories on-the-fly.
+  Introduces an Industry / Shop-Type Scoped Catalog (`businessType`) architecture in Firebase DataConnect (PostgreSQL)
+  and Web Dashboard. Categories are scoped and crowdsourced per `businessType` (e.g. medical, grocery, hardware, electrical)
+  rather than individual `storeId`, enabling multi-store businesses and peer merchants across stores to share categorized catalogs.
+  Provides mandatory `businessType` selection across 11 approved business verticals during store creation and dynamic category
+  management in ItemsClient.tsx.
 
 scope:
   in:
     - DataConnect Schema & Operations:
-        - Add `type Category @table` with `id: String!` (uuidV4), `storeId: String!`, `name: String!`, `isDeleted: Boolean!`, `updatedAt: Float!`.
-        - Add `GetCategories` query in `queries.gql` (scoped by `storeId` and `isDeleted: false`, sorted by name ASC).
-        - Add `SyncCategory` mutation in `mutations.gql` (`category_upsert`).
-    - Web Category State & Auto-Backfill:
-        - Fetch categories from `GetCategories` in `ItemsClient.tsx`.
-        - Extract existing distinct categories from current items and auto-seed/persist any missing categories into the `Category` table so legacy categories are seamlessly retained.
-    - Web Creatable Category Dropdown (ItemsClient.tsx):
-        - Replace plain text category input with an interactive Searchable & Creatable Category Dropdown.
-        - User can search and select an existing category.
-        - If the typed category does not exist, provide a "+ Create '[Category Name]'" action that instantly saves the category to the database and selects it for the item.
-        - Seamless keyboard navigation, outside click dismiss, and dark mode support.
+        - Update `type Category @table` with `businessType: String!` (default "general"), `name: String!`, `isDeleted: Boolean!`, `updatedAt: Float!`.
+        - Update `type Store @table` with `businessType: String` (default "general").
+        - Add `GetCategories($businessType: String!)` query in `queries.gql` scoped by `businessType`.
+        - Add `SyncCategory($id: String!, $businessType: String!, $name: String!, ...)` mutation in `mutations.gql`.
+        - Update `SyncStore` mutation to include `$businessType: String`.
+    - Web Business Types Central Registry (web/src/lib/businessTypes.ts):
+        - Define 11 approved business types: `general`, `medical`, `grocery`, `dairy_sweets`, `bakery`, `footwear`, `electronics`, `hardware`, `electrical`, `stationery`, `cosmetics`.
+    - Store Creation & Session (web/src/components/CreateStoreModal.tsx, web/src/lib/session.ts, web/src/app/actions.ts):
+        - Required `businessType` dropdown selector in `CreateStoreModal.tsx`.
+        - Persist `businessType` during `createStore` action.
+        - Load and resolve `businessType` for active store in `getSession()`.
+    - Web Creatable Category Dropdown (web/src/app/items/ItemsClient.tsx):
+        - Dynamically fetch categories scoped by the active store's `businessType`.
+        - On-the-fly category creation saves with `businessType` so all stores in that vertical share the new category.
+        - Searchable dropdown with keyboard navigation and dark mode support.
   out:
     - Android native Compose screens and SQLDelight Category migration (scoped for separate future mobile epic).
 
 architecture:
   dataconnect:
-    - name: "Category Table & Queries"
+    - name: "Category & Store Tables"
       files:
         - "dataconnect/schema/schema.gql"
         - "dataconnect/connector/queries.gql"
         - "dataconnect/connector/mutations.gql"
-      role: "Multi-tenant category persistence, retrieval, and upsert."
+      role: "Industry/businessType scoped category persistence, store vertical tagging, and retrieval."
   web_components:
+    - name: "CreateStoreModal & Session"
+      files:
+        - "web/src/components/CreateStoreModal.tsx"
+        - "web/src/lib/session.ts"
+        - "web/src/lib/businessTypes.ts"
+        - "web/src/app/actions.ts"
+      role: "Store creation with required businessType selection and session vertical resolution."
     - name: "ItemsClient"
       file: "web/src/app/items/ItemsClient.tsx"
-      role: "Item management client incorporating creatable category dropdown, dynamic category fetching, and on-the-fly creation."
+      role: "Item management client with vertical-scoped category fetching and on-the-fly creation."
 
 stories:
   - id: e52-s1
-    title: "DataConnect: Add Category Table, GetCategories Query & SyncCategory Mutation"
+    title: "DataConnect: Business-Type Category Schema & Operations"
     acceptance:
-      - "Category table defined in schema.gql with uuidV4 id, storeId, name, isDeleted, and updatedAt."
-      - "GetCategories query in queries.gql returns active categories for given storeId."
-      - "SyncCategory mutation in mutations.gql performs upsert for category records."
+      - "Category table defined in schema.gql with businessType column."
+      - "Store table updated with businessType column."
+      - "GetCategories query filters by businessType and isDeleted = false."
+      - "SyncCategory mutation upserts category with businessType."
 
   - id: e52-s2
-    title: "Web: Dynamic Category Retrieval & Existing Category Backfill"
+    title: "Web: Business Type Central Registry & Store Creation Modal"
     acceptance:
-      - "ItemsClient fetches categories on mount and whenever storeId changes."
-      - "Seamlessly collects any distinct categories from existing items and populates them into category state."
+      - "11 approved business types defined in web/src/lib/businessTypes.ts."
+      - "CreateStoreModal includes mandatory businessType dropdown."
+      - "createStore Server Action persists businessType to database."
+      - "session.ts resolves active store's businessType."
 
   - id: e52-s3
-    title: "Web: Searchable & Creatable Category Dropdown in Add/Edit Item Modal"
+    title: "Web: Dynamic Scoped Category Dropdown in Add/Edit Item Modal"
     acceptance:
-      - "Add/Edit item modal renders searchable dropdown displaying all available categories."
-      - "Typing filters the dropdown list."
-      - "If typed category is new, '+ Create [Name]' option appears."
-      - "Clicking '+ Create' saves new category via SyncCategory, updates state, and assigns to item."
+      - "ItemsClient fetches categories matching active store's businessType."
+      - "Creating a new category tags it with the store's businessType."
+      - "All stores with the same businessType share and see new categories."
+

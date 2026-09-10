@@ -19,6 +19,7 @@ export default async function ItemsPage() {
             canAccessCost={canAccessCost}
             canDeleteRecords={canDeleteRecords}
             storeId={session.storeId}
+            businessType={session.businessType || "general"}
             isPremium={isPremium}
         />
     );

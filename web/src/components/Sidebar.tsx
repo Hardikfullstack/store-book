@@ -6,6 +6,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useState } from 'react';
 import CreateStoreModal from '@/components/CreateStoreModal';
 import { resolvePermissions, ROLE_LABELS, hasRolePermission, PermissionSet } from '@/lib/roleMatrix';
+import { getBusinessTypeLabel } from '@/lib/businessTypes';
 
 // Route → Permission mapping used to build nav items dynamically
 const ROUTE_PERMISSIONS = [
@@ -36,10 +37,10 @@ export default function Sidebar({ session }: { session?: Record<string, unknown>
   const rawStoreId = (session as { storeId?: string } | undefined)?.storeId;
   const currentStoreId = typeof rawStoreId === 'string' ? rawStoreId : '';
   const stores: string[] = Array.isArray(session?.stores) ? session.stores : [];
-  const rawStoreDetails = (session as { storeDetails?: { id: string; name: string }[] } | undefined)?.storeDetails;
-  const storeList: { id: string; name: string }[] = Array.isArray(rawStoreDetails) && rawStoreDetails.length > 0
+  const rawStoreDetails = (session as { storeDetails?: { id: string; name: string; businessType?: string }[] } | undefined)?.storeDetails;
+  const storeList: { id: string; name: string; businessType?: string }[] = Array.isArray(rawStoreDetails) && rawStoreDetails.length > 0
     ? rawStoreDetails
-    : stores.map((sId, idx) => ({ id: sId, name: `Store ${idx + 1} (${sId.slice(0, 8)}…)` }));
+    : stores.map((sId, idx) => ({ id: sId, name: `Store ${idx + 1}` }));
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
@@ -126,7 +127,9 @@ export default function Sidebar({ session }: { session?: Record<string, unknown>
             onChange={(e) => handleStoreChange(e.target.value)}
           >
             {storeList.map((st) => (
-              <option key={st.id} value={st.id}>{st.name}</option>
+              <option key={st.id} value={st.id}>
+                {st.name} ({getBusinessTypeLabel(st.businessType)})
+              </option>
             ))}
             {storeList.length === 0 && currentStoreId && (
               <option value={currentStoreId}>My Primary Store</option>

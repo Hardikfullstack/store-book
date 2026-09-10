@@ -1,0 +1,87 @@
+epic_id: e54
+title: "Android: Business-Type Scoped Category Catalog, SQLDelight Category Table & Dynamic Compose UI"
+priority: P1
+status: defined
+target_version: v1.9.0
+description: |
+  Introduces the native Android POS implementation of the Industry / Shop-Type Scoped Catalog (`businessType`)
+  architecture matching the Web Dashboard (e52). Adds a dedicated `categories` table and queries in SQLDelight (`shared`),
+  KMP domain models and repository, offline-first two-way delta synchronization via `SyncWorker`, and Jetpack Compose
+  UI components including a dynamic creatable category dropdown in Add/Edit Item, category filter chips in Inventory,
+  and seamless offline creation and caching.
+
+scope:
+  in:
+    - SQLDelight & KMP Data Layer (`shared`):
+        - Add `categories` table in `StoreBook.sq` with columns: `id TEXT NOT NULL PRIMARY KEY`, `business_type TEXT NOT NULL`, `store_id TEXT`, `name TEXT NOT NULL`, `is_deleted INTEGER AS Boolean NOT NULL DEFAULT 0`, `is_synced INTEGER AS Boolean NOT NULL DEFAULT 0`, `updated_at INTEGER NOT NULL`.
+        - Add indexes: `idx_categories_business_type` and `idx_categories_name`.
+        - Add SQLDelight queries: `getCategoriesByBusinessType`, `getAllActiveCategories`, `getCategoryById`, `insertCategory`, `updateCategory`, `softDeleteCategory`, `getUnsyncedCategories`, and `markCategorySynced`.
+        - KMP domain models: `Category` data class with serialization support.
+        - `CategoryRepository` in `com.storebook.inventoryapp.shared.domain.repository` exposing Flow of categories and CRUD operations.
+    - Android Sync & Workers (`app/services` / `workers`):
+        - Update `SyncWorker` to pull remote delta categories from Firebase DataConnect `GetCategories(businessType)` using store's active `businessType`.
+        - Push local unsynced categories (`is_synced = 0`) via DataConnect `SyncCategory` mutation.
+        - Two-way conflict resolution using Last-Write-Wins (LWW) based on `updated_at`.
+    - Android Jetpack Compose UI (`app/src/main/java/com/storebook/inventoryapp/ui/`):
+        - Dynamic Creatable Category Dropdown in Add/Edit Item screen (`AddItemScreen.kt`, `EditItemScreen.kt` / `ItemFormSheet.kt`).
+        - Filter categories by the active store's `businessType`.
+        - Searchable category list with instantaneous "+ Create '[Name]'" action saving locally with `is_synced = 0`.
+        - Dynamic category filter chips in `InventoryScreen.kt` populated from local `CategoryRepository`.
+        - Category name resolution for Item list cards and POS sales catalog.
+  out:
+    - Web Dashboard implementation (completed in e52).
+    - Remote PostgreSQL DataConnect schema definition (completed in e52).
+
+architecture:
+  android_components:
+    - name: "CategorySelectionField & CreateCategoryDialog"
+      package: "com.storebook.inventoryapp.ui.items.components"
+      role: "Jetpack Compose searchable and creatable category dropdown with quick-add dialog and dark mode support."
+    - name: "InventoryScreen & CategoryFilterChips"
+      package: "com.storebook.inventoryapp.ui.inventory"
+      role: "Renders dynamic category filter chips scoped by active store's businessType."
+    - name: "ItemFormViewModel & InventoryViewModel"
+      package: "com.storebook.inventoryapp.ui.items"
+      role: "Exposes categories StateFlow, handles category creation, and binds category selection to item form."
+    - name: "CategoryRepository"
+      package: "com.storebook.inventoryapp.data.repository"
+      role: "Interacts with SQLDelight for reactive category queries, local persistence, and dirty state management."
+    - name: "SyncWorker"
+      package: "com.storebook.inventoryapp.workers"
+      role: "Handles offline-first category delta sync (pull by businessType, push dirty categories to DataConnect)."
+    - name: "StoreBook.sq (SQLDelight)"
+      module: "shared (KMP)"
+      file: "shared/src/commonMain/sqldelight/com/storebook/inventoryapp/shared/data/local/StoreBook.sq"
+      role: "Defines categories table schema, indexes, and transactional CRUD queries."
+
+stories:
+  - id: e54-s1
+    title: "KMP & SQLDelight: Add Categories Table, Queries & Domain Models"
+    acceptance:
+      - "categories table created in StoreBook.sq with id, business_type, store_id, name, is_deleted, is_synced, and updated_at."
+      - "Queries getCategoriesByBusinessType, insertCategory, updateCategory, getUnsyncedCategories compiled in SQLDelight."
+      - "Category domain model and CategoryRepository defined in shared KMP module."
+      - "JVM unit tests pass for category CRUD and businessType filtering."
+
+  - id: e54-s2
+    title: "Android Sync: Offline-First Category Delta Sync in SyncWorker"
+    acceptance:
+      - "SyncWorker pulls delta categories from DataConnect GetCategories using store's active businessType."
+      - "Unsynced local categories (is_synced = 0) pushed to DataConnect SyncCategory mutation."
+      - "Local records updated with is_synced = 1 upon successful upload."
+      - "Works seamlessly in offline mode, queuing changes until network is restored."
+
+  - id: e54-s3
+    title: "Android UI: Dynamic Creatable Category Dropdown in Add/Edit Item"
+    acceptance:
+      - "Add/Edit item screens render searchable category dropdown displaying categories for active store's businessType."
+      - "Typing non-existing category shows '+ Create [Category Name]' action."
+      - "Creating a new category immediately saves locally, assigns to item, and triggers sync."
+      - "Roborazzi snapshot tests verify visual appearance and dropdown behavior."
+
+  - id: e54-s4
+    title: "Android UI: Dynamic Category Filter Chips in Inventory Screen"
+    acceptance:
+      - "Inventory screen dynamically populates horizontal category filter chips from CategoryRepository."
+      - "Selecting a category filters inventory list accurately."
+      - "Item cards display resolved category name."

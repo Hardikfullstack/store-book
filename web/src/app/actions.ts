@@ -116,8 +116,9 @@ export async function switchStore(storeId: string) {
 
 // -- MIGRATED CRUD ACTIONS DELETED --
 
-export async function createStore(name: string) {
+export async function createStore(name: string, businessType: string = "general") {
     const sanitizedName = sanitizeInput(name);
+    const sanitizedBusinessType = sanitizeInput(businessType) || "general";
     const session = await getSession();
     if (!session) return { success: false, error: "Unauthorized" };
 
@@ -128,12 +129,21 @@ export async function createStore(name: string) {
         });
         const storeId = crypto.randomUUID();
 
-        await dc.executeGraphql(
-            `mutation CreateStore($id: String!, $name: String!) {
-        store_insert(data: { id: $id, name: $name, isActive: true })
-      }`,
-            { variables: { id: storeId, name: sanitizedName } },
-        );
+        try {
+            await dc.executeGraphql(
+                `mutation CreateStore($id: String!, $name: String!, $businessType: String) {
+            store_insert(data: { id: $id, name: $name, businessType: $businessType, isActive: true })
+          }`,
+                { variables: { id: storeId, name: sanitizedName, businessType: sanitizedBusinessType } },
+            );
+        } catch {
+            await dc.executeGraphql(
+                `mutation CreateStoreFallback($id: String!, $name: String!) {
+            store_insert(data: { id: $id, name: $name, isActive: true })
+          }`,
+                { variables: { id: storeId, name: sanitizedName } },
+            );
+        }
 
         const updatedStores = Array.from(new Set([...(session.stores || []), storeId]));
         await dc.executeGraphql(

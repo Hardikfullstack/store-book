@@ -66,23 +66,43 @@ export async function getSession() {
       activeStoreId = resolvedStores[0] || (userData?.storeId || '');
     }
 
-    // Fetch store metadata (names) for the user's stores or all stores for admin
-    let storeDetails: { id: string; name: string }[] = [];
+    // Fetch store metadata (names, businessType) for the user's stores or all stores for admin
+    let storeDetails: { id: string; name: string; businessType?: string }[] = [];
     try {
-      const storesRes = await dc.executeGraphql(
-        `query GetStoresForUser { stores { id, name } }`
-      );
-      const allStores = (storesRes.data as { stores?: { id: string; name?: string }[] })?.stores || [];
+      let allStores: { id: string; name?: string; businessType?: string }[] = [];
+      try {
+        const storesRes = await dc.executeGraphql(
+          `query GetStoresForUser { stores { id, name, businessType } }`
+        );
+        const data = storesRes.data as { stores?: { id: string; name?: string; businessType?: string }[] } | undefined;
+        if (data?.stores && data.stores.length > 0) {
+          allStores = data.stores;
+        } else {
+          throw new Error("Empty or failed businessType query");
+        }
+      } catch {
+        const fallbackRes = await dc.executeGraphql(
+          `query GetStoresForUserFallback { stores { id, name } }`
+        );
+        const fallbackData = fallbackRes.data as { stores?: { id: string; name?: string }[] } | undefined;
+        allStores = (fallbackData?.stores || []).map(s => ({
+          id: s.id,
+          name: s.name,
+          businessType: 'general'
+        }));
+      }
 
       if (role === 'admin') {
         storeDetails = allStores.map(s => ({
           id: s.id,
-          name: s.name?.trim() || `Store (${s.id.slice(0, 8)}…)`
+          name: s.name?.trim() || `Store ${s.id.slice(0, 8)}`,
+          businessType: s.businessType || 'general'
         }));
         if (storeDetails.length === 0 && resolvedStores.length > 0) {
           storeDetails = resolvedStores.map(sId => ({
             id: sId,
-            name: `Store (${sId.slice(0, 8)}…)`
+            name: `Store ${sId.slice(0, 8)}`,
+            businessType: 'general'
           }));
         }
       } else {
@@ -90,7 +110,8 @@ export async function getSession() {
           const matched = allStores.find(s => s.id === sId);
           return {
             id: sId,
-            name: matched?.name?.trim() || `Store (${sId.slice(0, 8)}…)`
+            name: matched?.name?.trim() || `Store ${sId.slice(0, 8)}`,
+            businessType: matched?.businessType || 'general'
           };
         });
       }
@@ -98,9 +119,13 @@ export async function getSession() {
       console.warn("Could not fetch store metadata for user stores:", err);
       storeDetails = resolvedStores.map(sId => ({
         id: sId,
-        name: `Store (${sId.slice(0, 8)}…)`
+        name: `Store ${sId.slice(0, 8)}`,
+        businessType: 'general'
       }));
     }
+
+    const activeStore = storeDetails.find(s => s.id === activeStoreId);
+    const activeBusinessType = activeStore?.businessType || 'general';
 
     const isPremium = userDoc.subscriptionPlan === 'pro' && userDoc.subscriptionStatus === 'active';
 
@@ -109,6 +134,7 @@ export async function getSession() {
       phone: decodedClaims.phone_number,
       role: role,
       storeId: activeStoreId,
+      businessType: activeBusinessType,
       stores: resolvedStores,
       storeDetails: storeDetails,
       docId: userDoc.id,
