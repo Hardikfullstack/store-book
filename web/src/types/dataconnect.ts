@@ -124,11 +124,12 @@ export interface DcUser {
 }
 
 // ---------------------------------------------------------------------------
-// Store — element of GetStoresPaginatedData["stores"]
+// Store — element of GetStoresPaginatedData["stores"] | Store table
 // ---------------------------------------------------------------------------
 export interface DcStore {
   id: string;
   name?: string | null;
+  businessType?: string | null;
   isActive?: boolean | null;
   isPremium?: boolean | null;
   subscriptionPlatform?: string | null;
@@ -155,7 +156,8 @@ export interface DcSupplier {
 // ---------------------------------------------------------------------------
 export interface DcCategory {
   id: string;
-  storeId: string;
+  businessType: string;
+  storeId?: string | null;
   name: string;
   isDeleted: boolean;
   updatedAt: number;

@@ -173,6 +173,7 @@ mutation UpdateUser(
 mutation SyncStore(
   $id: String!
   $name: String
+  $businessType: String
   $isActive: Boolean
   $isPremium: Boolean
   $subscriptionExpiresAt: Float
@@ -183,6 +184,7 @@ mutation SyncStore(
   store_upsert(data: {
     id: $id
     name: $name
+    businessType: $businessType
     isActive: $isActive
     isPremium: $isPremium
     subscriptionExpiresAt: $subscriptionExpiresAt
@@ -509,13 +511,15 @@ mutation SyncBusinessProfile(
 
 mutation SyncCategory(
   $id: String!
-  $storeId: String!
+  $businessType: String!
+  $storeId: String
   $name: String!
   $isDeleted: Boolean!
   $updatedAt: Float!
-) @auth(level: USER, insecureReason: "Multi-tenancy isolation is enforced by storeId") {
+) @auth(level: USER, insecureReason: "Industry catalog isolation is enforced by businessType") {
   category_upsert(data: {
     id: $id
+    businessType: $businessType
     storeId: $storeId
     name: $name
     isDeleted: $isDeleted

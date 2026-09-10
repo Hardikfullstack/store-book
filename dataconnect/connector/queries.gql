@@ -736,12 +736,13 @@ query GetBusinessProfile($storeId: String!) @auth(level: USER) {
   }
 }
 
-query GetCategories($storeId: String!) @auth(level: USER, insecureReason: "Multi-tenancy isolation is enforced by storeId") {
+query GetCategories($businessType: String!) @auth(level: USER, insecureReason: "Industry catalog isolation is enforced by businessType") {
   categories(
-    where: { storeId: { eq: $storeId }, isDeleted: { eq: false } }
+    where: { businessType: { eq: $businessType }, isDeleted: { eq: false } }
     orderBy: [{ name: ASC }]
   ) {
     id
+    businessType
     storeId
     name
     isDeleted

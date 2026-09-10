@@ -22,7 +22,8 @@ type Item @table {
 
 type Category @table {
   id: String! @col(name: "id") @default(expr: "uuidV4()")
-  storeId: String! @col(name: "store_id")
+  businessType: String! @col(name: "business_type") @default(value: "general")
+  storeId: String @col(name: "store_id")
   name: String!
   
   # Sync Columns
@@ -186,6 +187,7 @@ type User @table {
 type Store @table {
   id: String! @col(name: "id")
   name: String
+  businessType: String @col(name: "business_type") @default(value: "general")
   isActive: Boolean @col(name: "is_active") @default(value: true)
   isPremium: Boolean @col(name: "is_premium")
   subscriptionExpiresAt: Float @col(name: "subscription_expires_at")

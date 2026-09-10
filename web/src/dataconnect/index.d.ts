@@ -1975,7 +1975,8 @@ export interface Category_Key {
 export interface GetCategoriesData {
   categories: ({
     id: string;
-    storeId: string;
+    businessType: string;
+    storeId?: string | null;
     name: string;
     isDeleted: boolean;
     updatedAt: number;
@@ -1983,7 +1984,7 @@ export interface GetCategoriesData {
 }
 
 export interface GetCategoriesVariables {
-  storeId: string;
+  businessType: string;
 }
 
 export interface SyncCategoryData {
@@ -1992,7 +1993,8 @@ export interface SyncCategoryData {
 
 export interface SyncCategoryVariables {
   id: string;
-  storeId: string;
+  businessType: string;
+  storeId?: string | null;
   name: string;
   isDeleted: boolean;
   updatedAt: number;
