@@ -56,6 +56,7 @@ export type LocalItem = {
     sell_price: number;
     low_stock_threshold: number;
     category: string;
+    categoryId?: string | null;
     barcode: string;
     hsnCode: string;
     taxRate: number;
@@ -67,7 +68,7 @@ export type LocalItem = {
 };
 
 // Mapper from DataConnect camelCase to our local snake_case convention
-function mapDcToLocal(dcItem: { id: string; name: string; quantity: number; unit: string; buyPrice?: number; sellPrice: number; lowStockThreshold: number; category: string; photoPath?: string | null; hsnCode?: string | null; updatedAt: number; barcode?: string; taxRate?: number; batchLotNumber?: string; expiryDate?: string }): LocalItem {
+function mapDcToLocal(dcItem: { id: string; name: string; quantity: number; unit: string; buyPrice?: number; sellPrice: number; lowStockThreshold: number; category: string; categoryId?: string | null; photoPath?: string | null; hsnCode?: string | null; updatedAt: number; barcode?: string; taxRate?: number; batchLotNumber?: string; expiryDate?: string }): LocalItem {
     return {
         id: dcItem.id as string,
         name: dcItem.name as string,
@@ -77,6 +78,7 @@ function mapDcToLocal(dcItem: { id: string; name: string; quantity: number; unit
         sell_price: dcItem.sellPrice as number,
         low_stock_threshold: dcItem.lowStockThreshold as number,
         category: dcItem.category as string,
+        categoryId: (dcItem.categoryId ?? undefined) as string | undefined,
         barcode: (dcItem.barcode ?? "") as string,
         hsnCode: (dcItem.hsnCode ?? "") as string,
         taxRate: (dcItem.taxRate ?? 0) as number,
@@ -90,6 +92,7 @@ function mapDcToLocal(dcItem: { id: string; name: string; quantity: number; unit
 type ItemFormData = {
     name: string;
     category: string;
+    categoryId?: string;
     quantity: number;
     unit: UnitOption;
     buy_price: number;
@@ -119,6 +122,7 @@ function emptyFormData(): ItemFormData {
     return {
         name: "",
         category: "",
+        categoryId: "",
         quantity: 0,
         unit: "pcs",
         buy_price: 0,
@@ -192,6 +196,7 @@ export default function ItemsClient({
     const [searchQuery, setSearchQuery] = useState("");
     const [minPriceFilter, setMinPriceFilter] = useState("");
     const [maxPriceFilter, setMaxPriceFilter] = useState("");
+    const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("");
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const searchResultsKeyRef = useRef("");
 
@@ -293,7 +298,8 @@ export default function ItemsClient({
             !storeId ||
             debouncedSearch ||
             minPriceFilter ||
-            maxPriceFilter
+            maxPriceFilter ||
+            selectedCategoryFilter
         )
             return;
         const countKey = `count`;
@@ -317,6 +323,7 @@ export default function ItemsClient({
         debouncedSearch,
         minPriceFilter,
         maxPriceFilter,
+        selectedCategoryFilter,
     ]);
 
     // Fetch paginated items whenever page changes and poll regularly
@@ -327,21 +334,26 @@ export default function ItemsClient({
             setIsLoading(true);
             try {
                 const isSearching = debouncedSearch.length >= 3;
-                const isFiltering = minPriceFilter || maxPriceFilter;
+                const isFiltering =
+                    minPriceFilter ||
+                    maxPriceFilter ||
+                    Boolean(selectedCategoryFilter);
                 const needsFullFetch = isSearching || isFiltering;
-                const currentSearchKey = `${debouncedSearch}-${sortField}-${sortDirection}-${minPriceFilter}-${maxPriceFilter}`;
+                const currentSearchKey = `${debouncedSearch}-${sortField}-${sortDirection}-${minPriceFilter}-${maxPriceFilter}-${selectedCategoryFilter}`;
 
                 if (
                     needsFullFetch &&
                     searchResults.length > 0 &&
                     searchResultsKeyRef.current === currentSearchKey
                 ) {
+                    const start = (currentPage - 1) * pageSize;
+                    setItems(searchResults.slice(start, start + pageSize));
                     setIsLoading(false);
                     return;
                 }
 
                 const offset = (currentPage - 1) * pageSize;
-                const pageKey = `page-${currentPage}-${sortField}-${sortDirection}-${debouncedSearch}-${minPriceFilter}-${maxPriceFilter}`;
+                const pageKey = `page-${currentPage}-${sortField}-${sortDirection}-${debouncedSearch}-${minPriceFilter}-${maxPriceFilter}-${selectedCategoryFilter}`;
                 const needsServerFetch =
                     (fetchedPagesAtVersionRef.current.get(pageKey) ?? -1) <
                     dataVersion;
@@ -355,6 +367,8 @@ export default function ItemsClient({
                 } as GetActiveItemsVariables;
                 if (minPriceFilter) vars.minPrice = Number(minPriceFilter);
                 if (maxPriceFilter) vars.maxPrice = Number(maxPriceFilter);
+                if (selectedCategoryFilter)
+                    vars.categoryId = selectedCategoryFilter;
 
                 if (needsFullFetch) {
                     if (isSearching) vars.searchTerm = debouncedSearch;
@@ -384,7 +398,8 @@ export default function ItemsClient({
                     searchResultsKeyRef.current = currentSearchKey;
                     setSearchResults(updated);
                     setTotalItems(updated.length);
-                    setItems(updated.slice(0, pageSize));
+                    const start = (currentPage - 1) * pageSize;
+                    setItems(updated.slice(start, start + pageSize));
                 } else {
                     searchResultsKeyRef.current = "";
                     setSearchResults([]);
@@ -414,8 +429,11 @@ export default function ItemsClient({
         refreshTrigger,
         dataVersion,
         debouncedSearch,
+        sortField,
+        sortDirection,
         minPriceFilter,
         maxPriceFilter,
+        selectedCategoryFilter,
     ]);
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -441,7 +459,10 @@ export default function ItemsClient({
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
-        const isFiltering = minPriceFilter || maxPriceFilter;
+        const isFiltering =
+            minPriceFilter ||
+            maxPriceFilter ||
+            Boolean(selectedCategoryFilter);
         if ((debouncedSearch || isFiltering) && searchResults.length > 0) {
             const start = (page - 1) * pageSize;
             setItems(searchResults.slice(start, start + pageSize));
@@ -515,7 +536,11 @@ export default function ItemsClient({
                 (c) => c.name.toLowerCase() === trimmed.toLowerCase()
             );
             if (existing) {
-                setFormData((prev) => ({ ...prev, category: existing.name }));
+                setFormData((prev) => ({
+                    ...prev,
+                    category: existing.name,
+                    categoryId: existing.id,
+                }));
                 setCategoryDropdownOpen(false);
                 setCategorySearchTerm("");
                 return;
@@ -538,12 +563,20 @@ export default function ItemsClient({
                     (a, b) => a.name.localeCompare(b.name)
                 );
                 setCategories(updated);
-                setFormData((prev) => ({ ...prev, category: trimmed }));
+                setFormData((prev) => ({
+                    ...prev,
+                    category: trimmed,
+                    categoryId: newId,
+                }));
                 setCategoryDropdownOpen(false);
                 setCategorySearchTerm("");
             } catch (err) {
                 console.error("Failed to create new category:", err);
-                setFormData((prev) => ({ ...prev, category: trimmed }));
+                setFormData((prev) => ({
+                    ...prev,
+                    category: trimmed,
+                    categoryId: newId,
+                }));
                 setCategoryDropdownOpen(false);
             } finally {
                 setIsCreatingCategory(false);
@@ -608,6 +641,14 @@ export default function ItemsClient({
             };
             const isNewItem = !editingId;
             const id = editingId || crypto.randomUUID();
+
+            // Safe resolution for category and categoryId (category is optional; defaults cleanly)
+            const finalCategoryName = formData.category.trim() || "General";
+            const matchedCat = categories.find(
+                (c) => c.name.toLowerCase() === finalCategoryName.toLowerCase()
+            );
+            const resolvedCategoryId = formData.categoryId || matchedCat?.id || null;
+
             await syncItem(dataConnect, {
                 id,
                 storeId: storeId as string,
@@ -617,7 +658,8 @@ export default function ItemsClient({
                 buyPrice: formData.buy_price,
                 sellPrice: formData.sell_price,
                 lowStockThreshold: formData.low_stock_threshold,
-                category: formData.category,
+                category: finalCategoryName,
+                categoryId: resolvedCategoryId,
                 isDeleted: false,
                 updatedAt: Math.floor(Date.now() / 1000),
                 ...payload,
@@ -700,7 +742,7 @@ export default function ItemsClient({
 
             setShowModal(false);
             if (editingId) {
-                const updatedItem = {
+                const updatedItem: LocalItem = {
                     id,
                     name: formData.name,
                     quantity: formData.quantity,
@@ -708,8 +750,10 @@ export default function ItemsClient({
                     buy_price: formData.buy_price,
                     sell_price: formData.sell_price,
                     low_stock_threshold: formData.low_stock_threshold,
-                    category: formData.category,
+                    category: finalCategoryName,
+                    categoryId: resolvedCategoryId,
                     ...payload,
+                    updated_at: Math.floor(Date.now() / 1000),
                 };
                 setItems((prev) => {
                     const idx = prev.findIndex((i) => i.id === id);
@@ -732,9 +776,13 @@ export default function ItemsClient({
     };
 
     const handleEdit = (item: LocalItem) => {
+        const matchedCat = categories.find(
+            (c) => c.name.toLowerCase() === (item.category || "").toLowerCase()
+        );
         const next: ItemFormData = {
             name: item.name || "",
             category: item.category || "",
+            categoryId: item.categoryId || matchedCat?.id || "",
             quantity: Number(item.quantity) || 0,
             unit: (item.unit || "pcs") as UnitOption,
             buy_price: Number(item.buy_price) || 0,
@@ -860,9 +908,43 @@ export default function ItemsClient({
                             />
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-4">
-                            <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1">
-                                <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-sm shadow-sm h-[38px]">
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                    Category:
+                                </span>
+                                <select
+                                    aria-label="Filter by Category"
+                                    value={selectedCategoryFilter}
+                                    onChange={(e) => {
+                                        setSelectedCategoryFilter(
+                                            e.target.value,
+                                        );
+                                        setCurrentPage(1);
+                                        searchResultsKeyRef.current = "";
+                                    }}
+                                    className="bg-transparent border-none text-xs font-semibold text-gray-800 dark:text-gray-200 outline-none cursor-pointer focus:ring-0 pr-1 py-0.5"
+                                >
+                                    <option
+                                        value=""
+                                        className="text-gray-900 dark:text-white dark:bg-gray-800"
+                                    >
+                                        All Categories
+                                    </option>
+                                    {categories.map((cat) => (
+                                        <option
+                                            key={cat.id}
+                                            value={cat.id}
+                                            className="text-gray-900 dark:text-white dark:bg-gray-800"
+                                        >
+                                            {cat.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-sm shadow-sm h-[38px]">
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                     Price Range:
                                 </span>
                                 <input
@@ -873,7 +955,7 @@ export default function ItemsClient({
                                         setMinPriceFilter(e.target.value);
                                         setCurrentPage(1);
                                     }}
-                                    className="w-16 px-1 py-1 bg-transparent border-none text-sm text-gray-900 dark:text-white outline-none focus:ring-0"
+                                    className="w-14 px-1 py-0.5 bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0 placeholder-gray-400 dark:placeholder-gray-500"
                                 />
                                 <span className="text-gray-300 dark:text-gray-600">
                                     -
@@ -886,7 +968,7 @@ export default function ItemsClient({
                                         setMaxPriceFilter(e.target.value);
                                         setCurrentPage(1);
                                     }}
-                                    className="w-16 px-1 py-1 bg-transparent border-none text-sm text-gray-900 dark:text-white outline-none focus:ring-0"
+                                    className="w-14 px-1 py-0.5 bg-transparent border-none text-xs text-gray-900 dark:text-white outline-none focus:ring-0 placeholder-gray-400 dark:placeholder-gray-500"
                                 />
                             </div>
                         </div>
@@ -1150,6 +1232,8 @@ export default function ItemsClient({
                                                                             ...prev,
                                                                             category:
                                                                                 cat.name,
+                                                                            categoryId:
+                                                                                cat.id,
                                                                         })
                                                                     );
                                                                     setCategoryDropdownOpen(
@@ -1791,6 +1875,7 @@ export default function ItemsClient({
                     isOpen={showImportModal}
                     onClose={() => setShowImportModal(false)}
                     storeId={storeId}
+                    categories={categories}
                     onSuccess={(count) => {
                         invalidateAllPages();
                         setCurrentPage(1);

@@ -16,6 +16,7 @@ interface ImportCsvModalProps {
   isOpen: boolean;
   onClose: () => void;
   storeId: string;
+  categories?: { id: string; name: string }[];
   onSuccess: (importedCount: number) => void;
 }
 
@@ -23,6 +24,7 @@ export default function ImportCsvModal({
   isOpen,
   onClose,
   storeId,
+  categories = [],
   onSuccess
 }: ImportCsvModalProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -104,6 +106,12 @@ export default function ImportCsvModal({
       const item = validItems[i];
       try {
         const itemId = crypto.randomUUID();
+        const categoryName = item.category || 'General';
+        const matchedCat = categories.find(
+          c => c.name.toLowerCase() === categoryName.toLowerCase()
+        );
+        const categoryId = matchedCat?.id || null;
+
         await syncItem(dataConnect, {
           id: itemId,
           storeId,
@@ -113,7 +121,8 @@ export default function ImportCsvModal({
           buyPrice: item.buyPrice,
           sellPrice: item.sellPrice,
           lowStockThreshold: item.lowStockThreshold,
-          category: item.category || 'General',
+          category: categoryName,
+          categoryId,
           photoPath: '',
           barcode: '',
           hsnCode: item.hsnCode || '',
