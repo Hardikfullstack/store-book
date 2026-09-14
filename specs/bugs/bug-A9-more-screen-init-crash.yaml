@@ -1,0 +1,38 @@
+# Bug — More Screen Crash on Emulator (MoreViewModel Init)
+# ID: BUG-29
+
+id: bug-A9-more-screen-init-crash
+title: "More tab crashes on emulator — MoreViewModel init runs DB queries on main thread + no error isolation"
+severity: P0
+status: resolved
+reported: "2026-09-14"
+resolved_at: "2026-09-14"
+fix_ref: app/src/main/java/com/storebook/inventoryapp/ui/viewmodel/MoreViewModel.kt
+component: [MoreViewModel, MoreScreen, AppNavigation]
+
+root_cause: |
+  Three compounding issues in MoreViewModel init block cause crash on emulator/cold start:
+
+  1. loadData() (line 435) runs via viewModelScope.launch{} without explicit Dispatchers.IO —
+     coroutines may execute DB reads on the main dispatcher, triggering ANR/crash on emulator.
+
+  2. N+1 query pattern in loadData(): for every sale record, getSaleItems(s.id) is called inside
+     a .map{} block. A single corrupted/orphaned sale record crashes the entire load — no per-sale
+     error isolation.
+
+  3. fetchStoreNames() (line 399) calls StorebookConnectorConnector.instance without checking if
+     FirebaseAuth user is logged in. On emulator cold start or unauthenticated state, the connector
+     singleton may be uninitialized and throw NPE/IllegalStateException on the IO thread.
+
+fix: |
+  1. loadData() now runs on Dispatchers.IO explicitly.
+  2. Each sale record is wrapped in its own try/catch — corrupted records are logged and skipped,
+     not crash the entire load. Sales, expenses, and items are loaded in separate try/catch blocks
+     with fallback to emptyList().
+  3. fetchStoreNames() now checks FirebaseAuth.getInstance().currentUser?.uid first — if no user
+     is authenticated, loads cached store names from SharedPreferences and returns early instead
+     of calling Data Connect.
+
+affected_screens:
+  - MoreScreen (tab navigation)
+  - AppNavigation (More tab composable routing)

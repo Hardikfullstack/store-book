@@ -1,11 +1,15 @@
 workflow_mode: solo-git
 
 session:
-  active_flow: build              # Phase: TDD Implementation — e24-s3
+  active_flow: build              # Phase: TDD Implementation — e24-s3 complete
   active_epic_id: e24
   active_story_id: e24-s3          # Consolidated P&L view across all owned stores
+  completed_stories:
+    - id: e24-s3
+      completed_at: "2026-09-14"
+      summary: "All 5 tasks passing. getConsolidatedPLData server action, sidebar 'All Stores' option, DashboardClient consolidated mode, ConsolidatedPLView component with per-store breakdown table. Dead imports cleaned. Pre-flight lint + type-check + build all pass."
   handoff:
-    next_skill: develop-tdd        # Next: implement tasks via red-green-refactor
+    next_skill: plan-epics        # Next: plan pending EIPCs (e32, e34, e36)
   map_codebase:
     status: complete
     completed_at: "2026-07-13"

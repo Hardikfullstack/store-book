@@ -21,6 +21,14 @@ success_criteria:
   - "Inventory list scrolls at 60fps with 1000+ items loaded"
   - "Web dashboard scores 90+ on Lighthouse Performance audit"
 
+bugs_fixed:
+  - id: BUG-29
+    resolved_at: "2026-09-14"
+    summary: "MoreViewModel init crash — loadData on main thread, no error isolation, fetchStoreNames unauthenticated"
+  - id: BUG-30
+    resolved_at: "2026-09-14"
+    summary: "Release build OTP crash — R8 strips za.g2 reflection target for PhoneAuthProvider"
+
 stories:
   - id: e22-s1
     title: "Firebase Crashlytics integration verification + custom keys"

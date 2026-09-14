@@ -1,0 +1,39 @@
+# Bug — OTP Login Crash on Release Build (za.g2 Reflection Error)
+# ID: BUG-30
+
+id: bug-A10-otp-login-release-crash
+title: "OTP login crashes on release build — R8 strips Firebase Auth internal za.g2 class field"
+severity: P0
+status: resolved
+reported: "2026-09-14"
+resolved_at: "2026-09-14"
+fix_ref: app/proguard-rules.pro
+component: [AuthScreen, Firebase PhoneAuth, ProGuard/R8]
+
+root_cause: |
+  Release build has isMinifyEnabled=true and isShrinkResources=true (build.gradle.kts:42-43).
+  R8 obfuscates Google Play Services internal classes to za.** package names.
+  Firebase PhoneAuthProvider uses reflection at runtime to access a 'kind_' field on class za.g2.
+  Without a -keep rule, R8 strips both the class structure and field names, resulting in:
+
+    NullPointerException: Field kind_ of type Ljava/lang/String; not found in class Lza/g2;
+    java.lang.RuntimeException: Method #1 androidx.credentials.playservices.exceptions.Parcelables$ThrowableExtensionsKt.toSecurityException(Landroid/os/Bundle;)V threw an exception
+                                  at za.gd0.zza(za.java:6)
+        at za.ha0.create(za.java:4)
+
+  The app's proguard-rules.pro kept com.google.firebase.** and com.google.android.gms.** but did
+  NOT keep the obfuscated za.** internal classes PhoneAuth depends on via reflection.
+
+fix: |
+  Added to app/proguard-rules.pro:
+    -keep class za.** { *; }            — preserves obfuscated Google Play Services classes
+    -dontwarn za.**                     — suppresses missing warnings for za classes
+    -keepclassmembers class ** { * kind_; } — keeps the 'kind_' field PhoneAuth reflects into
+    -keepclassmembers enum * { *; }     — prevents enum field stripping by R8
+    -dontwarn com.google.android.gms.auth.** — suppresses auth internal warnings
+
+  Rule was inserted at line ~55 of proguard-rules.pro, before SQLDelight section.
+
+affected_screens:
+  - AuthScreen (login/OTP flow)
+  - AppNavigation (Routes.Auth routing)

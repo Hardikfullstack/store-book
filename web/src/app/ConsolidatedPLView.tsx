@@ -1,10 +1,8 @@
 "use client";
 
-import { ChevronDownIcon, Building2 } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { FormattedAmount } from "@/components/FormattedAmount";
 import type { ConsolidatedPLResult } from "@/types/dataconnect";
-import { useState } from "react";
-import { getConsolidatedPLData } from "./actions";
 
 interface ConsolidatedPLViewProps {
     data: ConsolidatedPLResult;
@@ -15,8 +13,6 @@ export default function ConsolidatedPLView({
     data,
     daysAgo,
 }: ConsolidatedPLViewProps) {
-    const [expanded, setExpanded] = useState(true);
-
     return (
         <div className="space-y-8">
             <div className="border-b border-gray-200 dark:border-gray-800 pb-6 space-y-8">

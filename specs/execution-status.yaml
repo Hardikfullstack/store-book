@@ -1,8 +1,8 @@
 # Execution Status — StoreBook
-last_updated: "2026-07-30"
+last_updated: "2026-09-14"
 
-active_flow: E24-S3
-phase: "Phase 4 - Build (implementation) - E24-S3 planning complete, awaiting implementation"
+active_flow: E24-EPIc-planning
+phase: "E24-S3 complete — all tasks passing. Ready for pending epic planning (e32, e34, e36 next)."
 
 epics_complete: [rp-a0, e01, e02, e03, e04, e09, e12, e18, e20]
 
@@ -206,3 +206,17 @@ next_steps:
       - Fixed "Add" button vertical stretch bug in UdhaarScreen.
       - Fixed AlphabetScrubber rendering in UdhaarScreen where alphabets were partially clipped (adjusted height/weight constraints).
       - Applied autoMarquee to various OutlinedTextField labels and placeholders across Sales and Inventory screens to gracefully handle long text strings without breaking layout.
+
+  - complete: "Crash Fixes — More Screen Init & Release OTP Login",
+    notes: |
+      BUG-29 (P0): MoreViewModel init crash on emulator. Three issues fixed in one commit:
+        (1) loadData() now runs on Dispatchers.IO — was running on default dispatcher causing
+             main thread DB queries on emulator.
+        (2) Per-sale error isolation — each sale wrapped in try/catch, corrupted records logged
+             and skipped with fallback to emptyList(). Same for expenses and items loads.
+        (3) fetchStoreNames() checks FirebaseAuth.currentUser?.uid first — returns cached prefs
+             if unauthenticated instead of calling uninitialized Data Connect instance.
+
+      BUG-30 (P0): OTP login crash on release build. R8 obfuscation strips za.g2 class field
+        accessed by Firebase PhoneAuthProvider via reflection. Fixed by adding -keep rules for
+        za.** package, kind_ field, and enum members to proguard-rules.pro.

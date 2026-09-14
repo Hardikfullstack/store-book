@@ -237,12 +237,30 @@ bugs:
     summary: "Android: Sales Analytics (Product, Customer, Timeline) loads from local SQL query instead of cloud API"
     fix: "Added reloadAfterSync() in SalesViewModel to trigger on-demand sync via WorkManager with network check and 12s wait before reloading local data. Wired into SalesAnalyticsScreen LaunchedEffect so analytics triggers sync on open, falling back to local data offline."
 
-total: 29
+  - id: BUG-29
+    file: bug-A9-more-screen-init-crash.yaml
+    severity: P0
+    status: resolved
+    reported: "2026-09-14"
+    resolved_at: "2026-09-14"
+    summary: "Android: More tab crashes on emulator — MoreViewModel init runs DB queries on main thread with no per-sale error isolation, and fetchStoreNames calls Data Connect when unauthenticated"
+    fix: "loadData() now runs on Dispatchers.IO. Each sale wrapped in per-record try/catch with log+skip. All three data loads (sales/expenses/items) isolated with emptyList() fallback. fetchStoreNames() checks FirebaseAuth uid first — returns cached prefs if unauthenticated instead of calling Data Connect."
+
+  - id: BUG-30
+    file: bug-A10-otp-login-release-crash.yaml
+    severity: P0
+    status: resolved
+    reported: "2026-09-14"
+    resolved_at: "2026-09-14"
+    summary: "Android: OTP login crashes on release build — R8 obfuscates za.g2 class, PhoneAuthProvider reflection fails on missing kind_ field"
+    fix: "Added -keep rules for za.**, kind_ field, and enum members to proguard-rules.pro. Added -dontwarn directives to suppress warnings."
+
+total: 31
 open: 0
-resolved: 29
+resolved: 31
 partial: 0
 deferred: 0
 by_severity:
-  P0: "11 resolved, 0 open"
+  P0: "13 resolved, 0 open"
   P1: "14 resolved, 0 open"
   P2: "4 resolved, 0 open"
