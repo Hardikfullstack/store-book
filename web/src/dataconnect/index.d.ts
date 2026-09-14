@@ -109,6 +109,7 @@ export interface GetActiveItemsData {
     sellPrice: number;
     lowStockThreshold: number;
     category: string;
+    categoryId?: string | null;
     photoPath?: string | null;
     hsnCode?: string | null;
     isDeleted: boolean;
@@ -121,6 +122,7 @@ export interface GetActiveItemsVariables {
   limit?: number | null;
   offset?: number | null;
   searchTerm?: string | null;
+  categoryId?: string | null;
   minPrice?: number | null;
   maxPrice?: number | null;
   orderByName?: OrderDirection | null;
@@ -655,6 +657,7 @@ export interface SyncItemVariables {
   sellPrice: number;
   lowStockThreshold: number;
   category: string;
+  categoryId?: string | null;
   photoPath?: string | null;
   barcode?: string | null;
   hsnCode?: string | null;
@@ -675,6 +678,7 @@ export interface SyncItemsData {
     sellPrice: number;
     lowStockThreshold: number;
     category: string;
+    categoryId?: string | null;
     photoPath?: string | null;
     hsnCode?: string | null;
     isDeleted: boolean;

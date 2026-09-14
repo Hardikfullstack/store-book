@@ -9,6 +9,7 @@ export interface InventoryItem {
   sellPrice?: number;
   lowStockThreshold?: number;
   category: string;
+  categoryId?: string | null;
   photoPath?: string | null;
   hsnCode?: string | null;
   barcode?: string | null;
@@ -18,6 +19,7 @@ export interface InventoryItem {
   isDeleted?: boolean | number;
   updatedAt?: number;
   // Legacy snake_case fields
+  category_id?: string | null;
   buy_price?: number;
   sell_price?: number;
   low_stock_threshold?: number;

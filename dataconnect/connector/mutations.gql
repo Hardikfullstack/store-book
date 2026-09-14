@@ -13,6 +13,7 @@ mutation SyncItem(
   $sellPrice: Float!
   $lowStockThreshold: Float!
   $category: String!
+  $categoryId: String
   $photoPath: String
   $barcode: String
   $hsnCode: String
@@ -32,6 +33,7 @@ mutation SyncItem(
     sellPrice: $sellPrice
     lowStockThreshold: $lowStockThreshold
     category: $category
+    categoryId: $categoryId
     photoPath: $photoPath
     barcode: $barcode
     hsnCode: $hsnCode

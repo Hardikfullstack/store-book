@@ -8,6 +8,7 @@ type Item @table {
   sellPrice: Float!
   lowStockThreshold: Float!
   category: String!
+  categoryId: String @col(name: "category_id")
   photoPath: String
   barcode: String
   hsnCode: String

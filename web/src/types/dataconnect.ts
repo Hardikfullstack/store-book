@@ -16,6 +16,7 @@ export interface DcItem {
   sellPrice: number;
   lowStockThreshold: number;
   category: string;
+  categoryId?: string | null;
   photoPath?: string | null;
   hsnCode?: string | null;
   isDeleted: boolean;

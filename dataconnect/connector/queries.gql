@@ -13,6 +13,7 @@ query SyncItems($storeId: String!, $lastSync: Float!) @auth(level: USER) {
     sellPrice
     lowStockThreshold
     category
+    categoryId
     photoPath
     barcode
     hsnCode
@@ -71,6 +72,7 @@ query GetActiveItems(
   $limit: Int
   $offset: Int
   $searchTerm: String
+  $categoryId: String
   $minPrice: Float
   $maxPrice: Float
   $orderByName: OrderDirection
@@ -85,6 +87,7 @@ query GetActiveItems(
       _and: [
         { storeId: { eq: $storeId } },
         { isDeleted: { eq: false } },
+        { categoryId: { eq: $categoryId } },
         { sellPrice: { ge: $minPrice, le: $maxPrice } },
         {
           _or: [
@@ -113,6 +116,7 @@ query GetActiveItems(
     sellPrice
     lowStockThreshold
     category
+    categoryId
     photoPath
     barcode
     hsnCode
