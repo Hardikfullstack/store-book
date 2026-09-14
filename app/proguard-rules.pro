@@ -53,6 +53,15 @@
 -keep class com.google.firebase.** { *; }
 -keep class com.google.android.gms.** { *; }
 
+# Firebase Auth PhoneAuth reflection fix (R8 obfuscates internal Google classes to za.**)
+-keep class za.** { *; }
+-dontwarn za.**
+-keepclassmembers class ** {
+    * kind_;
+}
+-keepclassmembers enum * { *; }
+-dontwarn com.google.android.gms.auth.**
+
 # --- SQLDelight (Auto-generated types) ---
 -keep class com.storebook.inventoryapp.db.** { *; }
 -dontwarn com.squareup.sqldelight.db.**

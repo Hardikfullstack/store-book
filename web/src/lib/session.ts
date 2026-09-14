@@ -35,6 +35,7 @@ export async function getSession() {
 
     const userData = userDoc;
     const activeStoreIdCookie = cookieStore.get('activeStoreId')?.value;
+    const isConsolidatedMode = activeStoreIdCookie === '__all_stores__';
 
     const role = userData?.role || 'owner';
 
@@ -124,7 +125,10 @@ export async function getSession() {
       }));
     }
 
-    const activeStore = storeDetails.find(s => s.id === activeStoreId);
+    let activeStore: { id: string; name: string; businessType?: string } | undefined;
+    if (!isConsolidatedMode) {
+        activeStore = storeDetails.find(s => s.id === activeStoreId);
+    }
     const activeBusinessType = activeStore?.businessType || 'general';
 
     const isPremium = userDoc.subscriptionPlan === 'pro' && userDoc.subscriptionStatus === 'active';
@@ -138,7 +142,8 @@ export async function getSession() {
       stores: resolvedStores,
       storeDetails: storeDetails,
       docId: userDoc.id,
-      isPremium: isPremium
+      isPremium: isPremium,
+      isConsolidatedMode: isConsolidatedMode
     };
   } catch (error) {
     console.error("Session verification failed:", error);

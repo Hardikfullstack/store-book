@@ -12,6 +12,7 @@ import {
     requirePermission,
     resolvePermissions,
 } from "@/lib/permissions";
+import type { ConsolidatedPLResult, ConsolidatedPLStoreData } from "@/types/dataconnect";
 
 export async function login(idToken: string) {
     const expiresIn = 60 * 60 * 24 * 5 * 1000;
@@ -961,6 +962,202 @@ export async function getUdhaarCustomerBalances(storeId: string): Promise<{
         console.error("getUdhaarCustomerBalances failed:", err);
         return { success: false, error: message };
     }
+}
+
+export async function getConsolidatedPLData(
+    storeIds: string[],
+    daysAgo: number = 30,
+): Promise<{
+    success: boolean;
+    data?: ConsolidatedPLResult;
+    error?: string;
+}> {
+    const session = await getSession();
+    if (!session) return { success: false, error: "Unauthorized" };
+
+    const allowedStores: string[] = Array.isArray(session.stores)
+        ? session.stores
+        : [];
+
+    // Validate each requested storeId against user's permissions
+    const authorizedStoreIds = storeIds.filter(
+        (sid) =>
+            session.role === "super_admin" ||
+            allowedStores.includes(sid),
+    );
+
+    if (authorizedStoreIds.length === 0) {
+        return {
+            success: false,
+            error: "No access to the requested stores",
+        };
+    }
+
+    try {
+        const dc = getDataConnect({
+            serviceId: "store-book",
+            location: "us-central1",
+        });
+        const cutoffTimestamp = Math.floor(
+            (Date.now() - daysAgo * 24 * 60 * 60 * 1000) / 1000,
+        );
+
+        // Fetch store metadata for names
+        let storeNames: Map<string, string> = new Map();
+        try {
+            const storesRes = await dc.executeGraphql(
+                `query GetStoresForUser { stores { id, name } }`,
+                {},
+            );
+            const data = storesRes.data as { stores?: { id: string; name?: string }[] } | undefined;
+            if (data?.stores) {
+                storeNames = new Map(
+                    data.stores.map((s) => [
+                        s.id,
+                        s.name?.trim() || `Store ${s.id.slice(0, 8)}`,
+                    ]),
+                );
+            }
+        } catch {
+            // Fallback: generate names from IDs
+            storeNames = new Map(
+                authorizedStoreIds.map((id) => [
+                    id,
+                    `Store ${id.slice(0, 8)}`,
+                ]),
+            );
+        }
+
+        // Fetch sales and expenses per store in parallel
+        const perStore: ConsolidatedPLStoreData[] = await Promise.all(
+            authorizedStoreIds.map(async (storeId) => {
+                let revenue = 0;
+                let expenses = 0;
+
+                try {
+                    // Fetch sales for this store within date range
+                    const salesRes = await dc.executeGraphql(
+                        `query GetActiveSales(
+                          $storeId: String!
+                          $type: String
+                          $startDate: Float
+                        ) {
+                          sales(
+                            where: {
+                              _and: [
+                                { storeId: { eq: $storeId } },
+                                { type: { eq: $type } },
+                                { isDeleted: { eq: false } },
+                                { timestamp: { ge: $startDate } }
+                              ]
+                            }
+                          ) {
+                            id
+                            totalAmount
+                          }
+                        }`,
+                        {
+                            variables: {
+                                storeId,
+                                type: "SALE",
+                                startDate: cutoffTimestamp,
+                            },
+                        },
+                    );
+
+                    const salesData = (salesRes.data as { sales?: Array<{ id: string; totalAmount?: number }> })?.sales || [];
+                    revenue = salesData.reduce(
+                        (acc, sale) => acc + (sale.totalAmount ?? 0),
+                        0,
+                    );
+
+                    // Fetch expenses for this store within date range
+                    const expensesRes = await dc.executeGraphql(
+                        `query GetActiveExpenses(
+                          $storeId: String!
+                          $startDate: Float
+                        ) {
+                          expenseEntries(
+                            where: {
+                              _and: [
+                                { storeId: { eq: $storeId } },
+                                { isDeleted: { eq: false } },
+                                { timestamp: { ge: $startDate } }
+                              ]
+                            }
+                          ) {
+                            id
+                            amount
+                          }
+                        }`,
+                        {
+                            variables: {
+                                storeId,
+                                startDate: cutoffTimestamp,
+                            },
+                        },
+                    );
+
+                    const expensesData = (expensesRes.data as { expenseEntries?: Array<{ id: string; amount?: number }> })?.expenseEntries || [];
+                    expenses = expensesData.reduce(
+                        (acc, exp) => acc + (exp.amount ?? 0),
+                        0,
+                    );
+                } catch (err) {
+                    console.warn(
+                        `Failed to fetch P&L data for store ${storeId}:`,
+                        err,
+                    );
+                    // Return zero values so other stores still render
+                }
+
+                return {
+                    storeId,
+                    storeName: storeNames.get(storeId) || `Store ${storeId.slice(0, 8)}`,
+                    revenue: Math.round((revenue + Number.EPSILON) * 100) / 100,
+                    expenses: Math.round((expenses + Number.EPSILON) * 100) / 100,
+                    profit: Math.round(
+                        ((revenue - expenses) + Number.EPSILON) * 100,
+                    ) / 100,
+                };
+            }),
+        );
+
+        const totalRevenue = perStore.reduce((s, p) => s + p.revenue, 0);
+        const totalExpenses = perStore.reduce((s, p) => s + p.expenses, 0);
+
+        return {
+            success: true,
+            data: {
+                consolidated: {
+                    totalRevenue: Math.round(
+                        (totalRevenue + Number.EPSILON) * 100,
+                    ) / 100,
+                    totalExpenses: Math.round(
+                        (totalExpenses + Number.EPSILON) * 100,
+                    ) / 100,
+                    netPL: Math.round(
+                        ((totalRevenue - totalExpenses) + Number.EPSILON) * 100,
+                    ) / 100,
+                },
+                perStore,
+                storesCount: perStore.length,
+            },
+        };
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("getConsolidatedPLData failed:", err);
+        return { success: false, error: message };
+    }
+}
+
+export async function switchToConsolidatedMode() {
+    const cookieStore = await cookies();
+    cookieStore.set("activeStoreId", "__all_stores__", {
+        path: "/",
+        maxAge: 2592000,
+        httpOnly: true,
+    });
 }
 
 export async function revalidateDashboard() {

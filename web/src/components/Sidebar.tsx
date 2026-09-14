@@ -67,8 +67,19 @@ export default function Sidebar({ session }: { session?: Record<string, unknown>
       if (typeof window !== 'undefined') {
         window.sessionStorage.clear();
       }
-      const { switchStore } = await import('@/app/actions');
-      await switchStore(targetValue);
+
+      if (targetValue === '__all_stores__') {
+        // Consolidated mode — try server action first, fallback to client cookie
+        try {
+          const { switchToConsolidatedMode } = await import('@/app/actions');
+          await switchToConsolidatedMode();
+        } catch {
+          document.cookie = 'activeStoreId=__all_stores__; path=/; max-age=2592000';
+        }
+      } else {
+        const { switchStore } = await import('@/app/actions');
+        await switchStore(targetValue);
+      }
       window.location.href = window.location.pathname;
     } catch (err) {
       console.error("Store switch error:", err);
@@ -126,6 +137,9 @@ export default function Sidebar({ session }: { session?: Record<string, unknown>
             value={currentStoreId || ''}
             onChange={(e) => handleStoreChange(e.target.value)}
           >
+            {storeList.length > 1 && (
+              <option value="__all_stores__">All Stores (Consolidated)</option>
+            )}
             {storeList.map((st) => (
               <option key={st.id} value={st.id}>
                 {st.name} ({getBusinessTypeLabel(st.businessType)})

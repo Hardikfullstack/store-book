@@ -30,6 +30,8 @@ import {
 } from "@/dataconnect";
 import { FormattedAmount } from "@/components/FormattedAmount";
 import SetupProgress from "@/components/SetupProgress";
+import ConsolidatedPLView from "./ConsolidatedPLView";
+import type { ConsolidatedPLResult } from "@/types/dataconnect";
 import {
     DcItem,
     DcSale,
@@ -96,12 +98,16 @@ export default function DashboardClient({
     isAdmin = false,
     storeId,
     isPremium,
+    isConsolidatedMode = false,
+    consolidatedPL,
 }: {
     initialStats: Stats;
     canAccessCost?: boolean;
     isAdmin?: boolean;
     storeId?: string;
     isPremium?: boolean;
+    isConsolidatedMode?: boolean;
+    consolidatedPL?: ConsolidatedPLResult | null;
 }) {
     const [stats, setStats] = useState<Stats>(initialStats);
     const [dateRange, setDateRange] = useState<
@@ -460,6 +466,19 @@ export default function DashboardClient({
             trend: "+2 new",
             trendUp: true,
         });
+    }
+
+    if (isConsolidatedMode && consolidatedPL) {
+        return (
+            <div className="space-y-6">
+                <SetupProgress
+                    open={isPreparing}
+                    title="Setting up your store"
+                    message="We are preparing your dashboard and syncing your data."
+                />
+                <ConsolidatedPLView data={consolidatedPL} daysAgo={30} />
+            </div>
+        );
     }
 
     return (

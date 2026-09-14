@@ -252,3 +252,24 @@ export interface ChartDatum {
   name: string;
   value: number;
 }
+
+// ---------------------------------------------------------------------------
+// E24-S3: Consolidated P&L types (shared for server + client boundaries)
+// ---------------------------------------------------------------------------
+export interface ConsolidatedPLStoreData {
+  storeId: string;
+  storeName: string;
+  revenue: number;
+  expenses: number;
+  profit: number;
+}
+
+export interface ConsolidatedPLResult {
+  consolidated: {
+    totalRevenue: number;
+    totalExpenses: number;
+    netPL: number;
+  };
+  perStore: ConsolidatedPLStoreData[];
+  storesCount: number;
+}

@@ -399,6 +399,17 @@ class MoreViewModel(
     private fun fetchStoreNames() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                val uid = FirebaseAuth.getInstance().currentUser?.uid
+                if (uid.isNullOrBlank()) {
+                    val cachedNames = mutableMapOf<String, String>()
+                    userStores.forEach { sId ->
+                        cachedNames[sId] =
+                            prefs.getString("business_name_$sId", "Store (${sId.take(8)})")
+                                ?: "Store (${sId.take(8)})"
+                    }
+                    _storeNames.value = cachedNames
+                    return@launch
+                }
                 val connector =
                     com.storebook.inventoryapp.dataconnect.StorebookConnectorConnector.instance
                 val newNames = mutableMapOf<String, String>()
@@ -427,55 +438,85 @@ class MoreViewModel(
                 _storeNames.value = newNames
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
+                android.util.Log.e("MoreVM", "fetchStoreNames failed", e)
             }
         }
     }
 
     private fun loadData() {
-        viewModelScope.launch {
-            _salesList.value =
-                salesRepository.getSalesByDateRange(0, Long.MAX_VALUE).map { s ->
-                    Sale(
-                        id = s.id,
-                        timestamp = s.timestamp,
-                        totalAmount = s.total_amount,
-                        discountAmount = s.discount_amount,
-                        customerName = s.customer_name,
-                        customerGstin = s.customer_gstin,
-                        businessGstin = s.business_gstin,
-                        customerAddress = s.customer_address,
-                        businessAddress = s.business_address,
-                        type = s.type,
-                        notes = s.notes,
-                        items =
-                            salesRepository.getSaleItems(s.id).map { saleItem ->
-                                com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
-                                    itemId = saleItem.item_id,
-                                    itemName = saleItem.item_name,
-                                    quantity = saleItem.quantity,
-                                    unit = saleItem.unit,
-                                    buyPrice = saleItem.buy_price,
-                                    sellPrice = saleItem.sell_price,
-                                    taxRate = saleItem.tax_rate ?: 0.0,
-                                    hsnCode = saleItem.hsn_code,
-                                )
-                            },
-                    )
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val sales = salesRepository.getSalesByDateRange(0, Long.MAX_VALUE)
+                val mappedSales = mutableListOf<Sale>()
+                for (s in sales) {
+                    try {
+                        mappedSales.add(
+                            Sale(
+                                id = s.id,
+                                timestamp = s.timestamp,
+                                totalAmount = s.total_amount,
+                                discountAmount = s.discount_amount,
+                                customerName = s.customer_name,
+                                customerGstin = s.customer_gstin,
+                                businessGstin = s.business_gstin,
+                                customerAddress = s.customer_address,
+                                businessAddress = s.business_address,
+                                type = s.type,
+                                notes = s.notes,
+                                items =
+                                    salesRepository.getSaleItems(s.id).map { saleItem ->
+                                        com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
+                                            itemId = saleItem.item_id,
+                                            itemName = saleItem.item_name,
+                                            quantity = saleItem.quantity,
+                                            unit = saleItem.unit,
+                                            buyPrice = saleItem.buy_price,
+                                            sellPrice = saleItem.sell_price,
+                                            taxRate = saleItem.tax_rate ?: 0.0,
+                                            hsnCode = saleItem.hsn_code,
+                                        )
+                                    },
+                            ),
+                        )
+                    } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
+                        android.util.Log.e("MoreVM", "Failed to load sale ${s.id}", e)
+                    }
                 }
-            _expensesList.value = expenseRepository.getAllExpenses()
-            _allItems.value =
-                inventoryRepository.getActiveItems().map { i ->
-                    Item(
-                        id = i.id,
-                        name = i.name,
-                        quantity = i.quantity,
-                        unit = i.unit,
-                        buyPrice = i.buy_price,
-                        sellPrice = i.sell_price,
-                        lowStockThreshold = i.low_stock_threshold,
-                        category = i.category,
-                    )
-                }
+                _salesList.value = mappedSales
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                android.util.Log.e("MoreVM", "loadData sales failed", e)
+                _salesList.value = emptyList()
+            }
+
+            try {
+                _expensesList.value = expenseRepository.getAllExpenses()
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                android.util.Log.e("MoreVM", "loadData expenses failed", e)
+                _expensesList.value = emptyList()
+            }
+
+            try {
+                _allItems.value =
+                    inventoryRepository.getActiveItems().map { i ->
+                        Item(
+                            id = i.id,
+                            name = i.name,
+                            quantity = i.quantity,
+                            unit = i.unit,
+                            buyPrice = i.buy_price,
+                            sellPrice = i.sell_price,
+                            lowStockThreshold = i.low_stock_threshold,
+                            category = i.category,
+                        )
+                    }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                android.util.Log.e("MoreVM", "loadData items failed", e)
+                _allItems.value = emptyList()
+            }
         }
     }
 
