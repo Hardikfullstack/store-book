@@ -1,0 +1,34 @@
+# Bug — Web Numeric Inputs: Received NaN for 'value' Attribute
+
+id: bug-web-nan-numeric-inputs
+title: "Clearing numeric form inputs sets NaN in component state, crashing React with 'Received NaN for the value attribute'"
+severity: P1
+status: resolved
+reported: "2026-09-17"
+resolved_at: "2026-09-17"
+component: [ItemsClient, UdhaarClient, ExpensesClient]
+
+root_cause: >
+  In web/src/app/items/ItemsClient.tsx, web/src/app/udhaar/UdhaarClient.tsx, and
+  web/src/app/expenses/ExpensesClient.tsx, numeric <input type="number"> controls
+  handle changes via `parseFloat(e.target.value)`. When a user backspaces or clears
+  the field, `e.target.value` is `""`. Since `parseFloat("")` evaluates to `NaN`,
+  `NaN` is written into the component's form state.
+
+  On subsequent render, React receives `value={NaN}` for the controlled input,
+  triggering:
+  "Warning: Received NaN for the 'value' attribute. If this is expected, cast the value to a string."
+  In Next.js development mode with Turbopack, this is surfaced as a blocking error
+  overlay / red "1 Issue" badge.
+
+fix_approach: >
+  1. Allow numeric form state fields to hold `number | ""` so clearing inputs sets `""` instead of `NaN`.
+  2. In `onChange`, check for empty string or NaN: `e.target.value === "" ? "" : (isNaN(parseFloat(e.target.value)) ? "" : parseFloat(e.target.value))`.
+  3. Ensure input `value` binding safely renders `""` when the state is empty or NaN.
+  4. On form submit, cast numeric values safely via `Number(...) || 0` before sending Data Connect mutations.
+  5. Remove `required` from optional `low_stock_threshold` so leaving it blank defaults safely to 0 without HTML form blocking.
+
+affected_screens:
+  - ItemsClient (Quantity, Low Stock Alert, Sell Price, Buy Price, Tax Rate)
+  - UdhaarClient (Amount)
+  - ExpensesClient (Amount)

@@ -204,10 +204,15 @@ export default function UdhaarClient({
     }
   };
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    customer_name: string;
+    type: string;
+    amount: number | '';
+    notes: string;
+  }>({
     customer_name: '',
     type: 'given',
-    amount: 0,
+    amount: '',
     notes: ''
   });
 
@@ -220,7 +225,7 @@ export default function UdhaarClient({
         id,
         storeId: storeId as string,
         customerName: formData.customer_name,
-        amount: formData.amount,
+        amount: Number(formData.amount) || 0,
         type: formData.type,
         timestamp: now,
         notes: formData.notes,
@@ -261,7 +266,7 @@ export default function UdhaarClient({
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Track credit given and taken.</p>
         </div>
         <button
-          onClick={() => { setFormData({ customer_name: '', type: 'given', amount: 0, notes: '' }); setShowModal(true); }}
+          onClick={() => { setFormData({ customer_name: '', type: 'given', amount: '', notes: '' }); setShowModal(true); }}
           className="btn-primary flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 shadow-blue-600/30"
         >
           <Plus size={18} />
@@ -444,7 +449,22 @@ export default function UdhaarClient({
                 </div>
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Amount</label>
-                  <input aria-label="number" required type="number" step="any" value={formData.amount} onChange={e => setFormData({ ...formData, amount: parseFloat(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                  <input
+                    aria-label="number"
+                    required
+                    type="number"
+                    step="any"
+                    placeholder="0.00"
+                    value={Number.isNaN(formData.amount) || formData.amount === '' ? '' : formData.amount}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setFormData({
+                        ...formData,
+                        amount: val === '' ? '' : (isNaN(parseFloat(val)) ? '' : parseFloat(val))
+                      });
+                    }}
+                    className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
+                  />
                 </div>
               </div>
               <div>

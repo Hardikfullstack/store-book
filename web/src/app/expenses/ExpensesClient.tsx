@@ -191,10 +191,15 @@ export default function ExpensesClient({
       setExpenses(searchResults.slice(start, start + pageSize));
     }
   };
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    type: string;
+    description: string;
+    amount: number | '';
+    supplier_name: string;
+  }>({
     type: 'supplies',
     description: '',
-    amount: 0,
+    amount: '',
     supplier_name: ''
   });
 
@@ -208,7 +213,7 @@ export default function ExpensesClient({
         storeId: storeId as string,
         type: formData.type,
         description: formData.description,
-        amount: formData.amount,
+        amount: Number(formData.amount) || 0,
         timestamp: now,
         supplierName: formData.supplier_name,
         isDeleted: false,
@@ -246,7 +251,7 @@ export default function ExpensesClient({
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Keep an eye on your business spending.</p>
         </div>
         <button
-          onClick={() => { setFormData({ type: 'supplies', description: '', amount: 0, supplier_name: '' }); setShowModal(true); }}
+          onClick={() => { setFormData({ type: 'supplies', description: '', amount: '', supplier_name: '' }); setShowModal(true); }}
           className="btn-primary flex items-center space-x-2 bg-orange-600 hover:bg-orange-700 shadow-orange-600/30"
         >
           <Plus size={18} />
@@ -398,7 +403,22 @@ export default function ExpensesClient({
                 </div>
                 <div>
                   <label className="block text-sm font-medium dark:text-gray-300">Amount</label>
-                  <input aria-label="number" required type="number" step="any" value={formData.amount} onChange={e => setFormData({ ...formData, amount: parseFloat(e.target.value) })} className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white" />
+                  <input
+                    aria-label="number"
+                    required
+                    type="number"
+                    step="any"
+                    placeholder="0.00"
+                    value={Number.isNaN(formData.amount) || formData.amount === '' ? '' : formData.amount}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setFormData({
+                        ...formData,
+                        amount: val === '' ? '' : (isNaN(parseFloat(val)) ? '' : parseFloat(val))
+                      });
+                    }}
+                    className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
+                  />
                 </div>
               </div>
               <div>

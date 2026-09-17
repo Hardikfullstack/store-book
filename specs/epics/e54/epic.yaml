@@ -14,19 +14,24 @@ scope:
   in:
     - SQLDelight & KMP Data Layer (`shared`):
         - Add `categories` table in `StoreBook.sq` with columns: `id TEXT NOT NULL PRIMARY KEY`, `business_type TEXT NOT NULL`, `store_id TEXT`, `name TEXT NOT NULL`, `is_deleted INTEGER AS Boolean NOT NULL DEFAULT 0`, `is_synced INTEGER AS Boolean NOT NULL DEFAULT 0`, `updated_at INTEGER NOT NULL`.
+        - Add `category_id TEXT` column to `items` table in `StoreBook.sq` to support dual fields (`category: String` display name + `categoryId: String?` relational UUID).
         - Add indexes: `idx_categories_business_type` and `idx_categories_name`.
         - Add SQLDelight queries: `getCategoriesByBusinessType`, `getAllActiveCategories`, `getCategoryById`, `insertCategory`, `updateCategory`, `softDeleteCategory`, `getUnsyncedCategories`, and `markCategorySynced`.
-        - KMP domain models: `Category` data class with serialization support.
+        - KMP domain models: `Category` data class with serialization support, and updated `Item` model with `categoryId: String?`.
         - `CategoryRepository` in `com.storebook.inventoryapp.shared.domain.repository` exposing Flow of categories and CRUD operations.
-    - Android Sync & Workers (`app/services` / `workers`):
-        - Update `SyncWorker` to pull remote delta categories from Firebase DataConnect `GetCategories(businessType)` using store's active `businessType`.
-        - Push local unsynced categories (`is_synced = 0`) via DataConnect `SyncCategory` mutation.
+    - Android DataConnect API Integration & Sync (`app/services` / `workers`):
+        - Direct API parity with Web: Call `GetCategories(businessType: $businessType)` query to fetch categories matching the active store's `businessType`.
+        - Call `SyncCategory` mutation on the fly when creating/syncing categories (same as Web).
+        - Call `GetActiveItems` query passing `categoryId: $categoryId` parameter to filter inventory directly from backend (same as Web).
+        - Update `SyncWorker` to pull remote delta categories and push local unsynced categories (`is_synced = 0`).
         - Two-way conflict resolution using Last-Write-Wins (LWW) based on `updated_at`.
+        - Push items with both `category` (display name) and `categoryId` (UUID) to `SyncItem` mutation.
     - Android Jetpack Compose UI (`app/src/main/java/com/storebook/inventoryapp/ui/`):
         - Dynamic Creatable Category Dropdown in Add/Edit Item screen (`AddItemScreen.kt`, `EditItemScreen.kt` / `ItemFormSheet.kt`).
+        - Whenever an item is created or edited, pass both `category` (name) and `categoryId` (UUID) to local storage and sync payloads (same as Web).
         - Filter categories by the active store's `businessType`.
-        - Searchable category list with instantaneous "+ Create '[Name]'" action saving locally with `is_synced = 0`.
-        - Dynamic category filter chips in `InventoryScreen.kt` populated from local `CategoryRepository`.
+        - Searchable category list with instantaneous "+ Create '[Name]'" action saving locally with `is_synced = 0` and calling `SyncCategory`.
+        - Dynamic category filter chips in `InventoryScreen.kt` populated from local `CategoryRepository` and querying items by `categoryId`.
         - Category name resolution for Item list cards and POS sales catalog.
   out:
     - Web Dashboard implementation (completed in e52).
@@ -59,8 +64,9 @@ stories:
     title: "KMP & SQLDelight: Add Categories Table, Queries & Domain Models"
     acceptance:
       - "categories table created in StoreBook.sq with id, business_type, store_id, name, is_deleted, is_synced, and updated_at."
+      - "category_id column added to items table in StoreBook.sq to support dual-field category storage."
       - "Queries getCategoriesByBusinessType, insertCategory, updateCategory, getUnsyncedCategories compiled in SQLDelight."
-      - "Category domain model and CategoryRepository defined in shared KMP module."
+      - "Category domain model and CategoryRepository defined in shared KMP module; Item model updated with categoryId: String?."
       - "JVM unit tests pass for category CRUD and businessType filtering."
 
   - id: e54-s2
@@ -69,14 +75,17 @@ stories:
       - "SyncWorker pulls delta categories from DataConnect GetCategories using store's active businessType."
       - "Unsynced local categories (is_synced = 0) pushed to DataConnect SyncCategory mutation."
       - "Local records updated with is_synced = 1 upon successful upload."
+      - "SyncWorker passes both category (name) and categoryId (UUID) when pushing item changes via SyncItem mutation."
       - "Works seamlessly in offline mode, queuing changes until network is restored."
 
   - id: e54-s3
     title: "Android UI: Dynamic Creatable Category Dropdown in Add/Edit Item"
     acceptance:
       - "Add/Edit item screens render searchable category dropdown displaying categories for active store's businessType."
+      - "Whenever creating or editing an item, pass both category (display name) and categoryId (UUID) to local database and sync payloads."
+      - "Category selection is optional; defaults cleanly if not selected."
       - "Typing non-existing category shows '+ Create [Category Name]' action."
-      - "Creating a new category immediately saves locally, assigns to item, and triggers sync."
+      - "Creating a new category immediately saves locally, assigns category + categoryId to item, and triggers sync."
       - "Roborazzi snapshot tests verify visual appearance and dropdown behavior."
 
   - id: e54-s4

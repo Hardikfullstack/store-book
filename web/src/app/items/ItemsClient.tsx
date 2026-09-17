@@ -93,15 +93,15 @@ type ItemFormData = {
     name: string;
     category: string;
     categoryId?: string;
-    quantity: number;
+    quantity: number | "";
     unit: UnitOption;
-    buy_price: number;
-    sell_price: number;
-    low_stock_threshold: number;
+    buy_price: number | "";
+    sell_price: number | "";
+    low_stock_threshold: number | "";
 
     barcode: string;
     hsnCode: string;
-    taxRate: number;
+    taxRate: number | "";
 
     batchLotNumber: string;
     expiryDate: string; // yyyy-mm-dd
@@ -123,14 +123,14 @@ function emptyFormData(): ItemFormData {
         name: "",
         category: "",
         categoryId: "",
-        quantity: 0,
+        quantity: "",
         unit: "pcs",
-        buy_price: 0,
-        sell_price: 0,
-        low_stock_threshold: 0,
+        buy_price: "",
+        sell_price: "",
+        low_stock_threshold: "",
         barcode: "",
         hsnCode: "",
-        taxRate: 0,
+        taxRate: "",
         batchLotNumber: "",
         expiryDate: "",
     };
@@ -628,10 +628,16 @@ export default function ItemsClient({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const quantity = Number(formData.quantity) || 0;
+            const buyPrice = Number(formData.buy_price) || 0;
+            const sellPrice = Number(formData.sell_price) || 0;
+            const lowStockThreshold = Number(formData.low_stock_threshold) || 0;
+            const taxRate = Number(formData.taxRate) || 0;
+
             const payload = {
                 barcode: formData.barcode || "",
                 hsnCode: formData.hsnCode || "",
-                taxRate: formData.taxRate || 0,
+                taxRate,
                 batchLotNumber: showAdvanced
                     ? formData.batchLotNumber
                     : originalItem?.batchLotNumber || "",
@@ -653,11 +659,11 @@ export default function ItemsClient({
                 id,
                 storeId: storeId as string,
                 name: formData.name,
-                quantity: formData.quantity,
+                quantity,
                 unit: formData.unit,
-                buyPrice: formData.buy_price,
-                sellPrice: formData.sell_price,
-                lowStockThreshold: formData.low_stock_threshold,
+                buyPrice,
+                sellPrice,
+                lowStockThreshold,
                 category: finalCategoryName,
                 categoryId: resolvedCategoryId,
                 isDeleted: false,
@@ -665,15 +671,14 @@ export default function ItemsClient({
                 ...payload,
             });
 
-            if (isNewItem && formData.quantity > 0) {
+            if (isNewItem && quantity > 0) {
                 const purchaseId = crypto.randomUUID();
-                const totalAmount =
-                    formData.quantity * (formData.buy_price || 0);
+                const totalAmount = quantity * buyPrice;
                 const targetSupplierId =
                     selectedSupplier?.id || CASH_SUPPLIER_ID;
                 const targetSupplierName =
                     selectedSupplier?.name || "Cash / Anonymous";
-                const taxAmount = totalAmount * ((payload.taxRate || 0) / 100);
+                const taxAmount = totalAmount * (taxRate / 100);
 
                 await syncPurchase(dataConnect, {
                     id: purchaseId,
@@ -695,9 +700,9 @@ export default function ItemsClient({
                     purchaseId: purchaseId,
                     itemId: id,
                     itemName: formData.name,
-                    quantity: formData.quantity,
+                    quantity,
                     unit: formData.unit || "pcs",
-                    buyPrice: formData.buy_price || 0,
+                    buyPrice,
                     isDeleted: false,
                     updatedAt: Math.floor(Date.now() / 1000),
                 });
@@ -711,8 +716,8 @@ export default function ItemsClient({
                         expiryDate: payload.expiryDate
                             ? new Date(payload.expiryDate).getTime()
                             : null,
-                        quantity: formData.quantity,
-                        costPrice: formData.buy_price || 0,
+                        quantity,
+                        costPrice: buyPrice,
                         timestamp: Date.now(),
                         notes: "Initial item batch",
                         isDeleted: false,
@@ -724,9 +729,9 @@ export default function ItemsClient({
             if (
                 editingId &&
                 originalItem &&
-                formData.quantity !== originalItem.quantity
+                quantity !== originalItem.quantity
             ) {
-                const delta = formData.quantity - originalItem.quantity;
+                const delta = quantity - originalItem.quantity;
                 await syncStockAdjustment(dataConnect, {
                     id: crypto.randomUUID(),
                     storeId: storeId as string,
@@ -745,11 +750,11 @@ export default function ItemsClient({
                 const updatedItem: LocalItem = {
                     id,
                     name: formData.name,
-                    quantity: formData.quantity,
+                    quantity,
                     unit: formData.unit,
-                    buy_price: formData.buy_price,
-                    sell_price: formData.sell_price,
-                    low_stock_threshold: formData.low_stock_threshold,
+                    buy_price: buyPrice,
+                    sell_price: sellPrice,
+                    low_stock_threshold: lowStockThreshold,
                     category: finalCategoryName,
                     categoryId: resolvedCategoryId,
                     ...payload,
@@ -845,7 +850,7 @@ export default function ItemsClient({
         setHsnToLookup(sanitized);
 
         const suggestedRate = lookupHSNGSTRate(sanitized);
-        if (suggestedRate !== null && formData.taxRate === 0) {
+        if (suggestedRate !== null && (formData.taxRate === 0 || formData.taxRate === "")) {
             setFormData({ ...formData, taxRate: suggestedRate });
         }
         setHsnSuggestedRate(suggestedRate);
@@ -1358,15 +1363,15 @@ export default function ItemsClient({
                                         required
                                         type="number"
                                         step="any"
-                                        value={formData.quantity}
-                                        onChange={(e) =>
+                                        placeholder="0"
+                                        value={Number.isNaN(formData.quantity) || formData.quantity === "" ? "" : formData.quantity}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
                                             setFormData({
                                                 ...formData,
-                                                quantity: parseFloat(
-                                                    e.target.value,
-                                                ),
-                                            })
-                                        }
+                                                quantity: val === "" ? "" : (isNaN(parseFloat(val)) ? "" : parseFloat(val)),
+                                            });
+                                        }}
                                         className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
                                     />
                                 </div>
@@ -1376,18 +1381,17 @@ export default function ItemsClient({
                                     </label>
                                     <input
                                         aria-label="number"
-                                        required
                                         type="number"
                                         step="any"
-                                        value={formData.low_stock_threshold}
-                                        onChange={(e) =>
+                                        placeholder="0"
+                                        value={Number.isNaN(formData.low_stock_threshold) || formData.low_stock_threshold === "" ? "" : formData.low_stock_threshold}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
                                             setFormData({
                                                 ...formData,
-                                                low_stock_threshold: parseFloat(
-                                                    e.target.value,
-                                                ),
-                                            })
-                                        }
+                                                low_stock_threshold: val === "" ? "" : (isNaN(parseFloat(val)) ? "" : parseFloat(val)),
+                                            });
+                                        }}
                                         className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
                                     />
                                 </div>
@@ -1552,17 +1556,14 @@ export default function ItemsClient({
                                             aria-label="number"
                                             type="number"
                                             step="0.01"
-                                            required
-                                            value={formData.buy_price || ""}
-                                            onChange={(e) =>
+                                            value={Number.isNaN(formData.buy_price) || formData.buy_price === "" ? "" : formData.buy_price}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
                                                 setFormData({
                                                     ...formData,
-                                                    buy_price:
-                                                        parseFloat(
-                                                            e.target.value,
-                                                        ) || 0,
-                                                })
-                                            }
+                                                    buy_price: val === "" ? "" : (isNaN(parseFloat(val)) ? "" : parseFloat(val)),
+                                                });
+                                            }}
                                             className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
                                             placeholder="0.00"
                                         />
@@ -1577,15 +1578,15 @@ export default function ItemsClient({
                                         required
                                         type="number"
                                         step="any"
-                                        value={formData.sell_price}
-                                        onChange={(e) =>
+                                        placeholder="0.00"
+                                        value={Number.isNaN(formData.sell_price) || formData.sell_price === "" ? "" : formData.sell_price}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
                                             setFormData({
                                                 ...formData,
-                                                sell_price: parseFloat(
-                                                    e.target.value,
-                                                ),
-                                            })
-                                        }
+                                                sell_price: val === "" ? "" : (isNaN(parseFloat(val)) ? "" : parseFloat(val)),
+                                            });
+                                        }}
                                         className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
                                     />
                                 </div>
@@ -1655,16 +1656,15 @@ export default function ItemsClient({
                                                 aria-label="number"
                                                 type="number"
                                                 step="any"
-                                                value={formData.taxRate}
-                                                onChange={(e) =>
+                                                placeholder="0"
+                                                value={Number.isNaN(formData.taxRate) || formData.taxRate === "" ? "" : formData.taxRate}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
                                                     setFormData({
                                                         ...formData,
-                                                        taxRate:
-                                                            parseFloat(
-                                                                e.target.value,
-                                                            ) || 0,
-                                                    })
-                                                }
+                                                        taxRate: val === "" ? "" : (isNaN(parseFloat(val)) ? "" : parseFloat(val)),
+                                                    });
+                                                }}
                                                 className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
                                             />
                                             {VALID_GST_RATES.length > 0 && (

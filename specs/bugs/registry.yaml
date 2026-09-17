@@ -255,12 +255,22 @@ bugs:
     summary: "Android: OTP login crashes on release build — R8 obfuscates za.g2 class, PhoneAuthProvider reflection fails on missing kind_ field"
     fix: "Added -keep rules for za.**, kind_ field, and enum members to proguard-rules.pro. Added -dontwarn directives to suppress warnings."
 
-total: 31
+  - id: BUG-31
+    file: bug-W5-nan-numeric-inputs.yaml
+    severity: P1
+    status: resolved
+    reported: "2026-09-17"
+    resolved_at: "2026-09-17"
+    summary: "Web: Clearing numeric form inputs sets NaN in state, triggering React 'Received NaN for the value attribute' error"
+    fix: "Allowed numeric fields to hold number | '' in form state, safe onChange parseFloat check avoiding NaN, safe value rendering fallback to '', and safe numeric conversion Number(...) || 0 on submit across ItemsClient, UdhaarClient, and ExpensesClient."
+
+total: 32
 open: 0
-resolved: 31
+resolved: 32
 partial: 0
 deferred: 0
 by_severity:
   P0: "13 resolved, 0 open"
-  P1: "14 resolved, 0 open"
+  P1: "15 resolved, 0 open"
   P2: "4 resolved, 0 open"
+
