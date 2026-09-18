@@ -25,6 +25,7 @@ export const cartSlice = createSlice({
   initialState,
   reducers: {
     addToCart: (state, action: PayloadAction<CartItem>) => {
+      if (action.payload.maxStock <= 0) return;
       const existingItem = state.items.find(i => i.id === action.payload.id);
       if (existingItem) {
         if (existingItem.quantity + action.payload.quantity <= action.payload.maxStock) {
@@ -33,13 +34,19 @@ export const cartSlice = createSlice({
           existingItem.quantity = action.payload.maxStock;
         }
       } else {
-        state.items.push(action.payload);
+        state.items.push({
+          ...action.payload,
+          quantity: Math.min(action.payload.quantity, action.payload.maxStock),
+        });
       }
     },
     updateQuantity: (state, action: PayloadAction<{id: string, quantity: number}>) => {
       const item = state.items.find(i => i.id === action.payload.id);
       if (item) {
-        item.quantity = action.payload.quantity;
+        const clampedQty = item.maxStock !== undefined && item.maxStock !== null
+          ? Math.min(item.maxStock, action.payload.quantity)
+          : action.payload.quantity;
+        item.quantity = Math.max(0, clampedQty);
       }
     },
     removeFromCart: (state, action: PayloadAction<string>) => {
