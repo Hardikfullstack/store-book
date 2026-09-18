@@ -264,13 +264,21 @@ bugs:
     summary: "Web: Clearing numeric form inputs sets NaN in state, triggering React 'Received NaN for the value attribute' error"
     fix: "Allowed numeric fields to hold number | '' in form state, safe onChange parseFloat check avoiding NaN, safe value rendering fallback to '', and safe numeric conversion Number(...) || 0 on submit across ItemsClient, UdhaarClient, and ExpensesClient."
 
-total: 32
-open: 0
+  - id: BUG-32
+    file: bug-W6-pos-cart-editable-quantity-stock-limit.yaml
+    severity: P1
+    status: open
+    reported: "2026-09-18"
+    summary: "Web POS: Cart quantity input is read-only preventing manual entry, and lacks stock limit validation"
+
+total: 33
+open: 1
 resolved: 32
 partial: 0
 deferred: 0
 by_severity:
   P0: "13 resolved, 0 open"
-  P1: "15 resolved, 0 open"
+  P1: "16 resolved, 1 open"
   P2: "4 resolved, 0 open"
+
 

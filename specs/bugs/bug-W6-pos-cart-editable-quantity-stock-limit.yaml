@@ -1,0 +1,37 @@
+# Bug — Web POS: Cart Quantity Input is Read-Only and Lacks Stock Limit Enforcement
+
+id: bug-web-pos-cart-editable-quantity-stock-limit
+title: "Web POS cart quantity input has readOnly attribute preventing manual entry, and lacks stock limit validation"
+severity: P1
+status: open
+reported: "2026-09-18"
+component: [SalesPOS.tsx, cartSlice.ts]
+
+root_cause: >
+  In `web/src/app/sales/SalesPOS.tsx` (lines 776-826), the cart item quantity `<input>` is marked with
+  the `readOnly` attribute and is missing an `onChange` handler. Users are unable to click or type into
+  the field to enter a manual quantity; they are forced to click the '+' or '-' buttons repeatedly.
+
+  Furthermore:
+  1. No stock limit enforcement existed for manual updates or incremental additions: users could click '+'
+     or enter values exceeding available inventory (`c.item.quantity` / `maxStock`).
+  2. In `cartSlice.ts`, `updateQuantity` did not clamp against `item.maxStock`.
+  3. Clicking an out-of-stock item (`item.quantity <= 0`) in the POS product grid did not block addition to the cart.
+
+fix_approach: >
+  1. In `SalesPOS.tsx`:
+     - Remove `readOnly` from the cart item quantity input.
+     - Implement a dedicated `CartQuantityInput` controlled component maintaining local text state, enabling
+       smooth user typing, unit suffix parsing ("kg", "kilo" for gram items), and validation on blur/Enter.
+     - Enforce available stock limits: if typed quantity exceeds available stock (`maxStock`), clamp to `maxStock`
+       and alert the user.
+     - In `handleAddToCart`, block adding items when `item.quantity <= 0` or when existing cart quantity equals or
+       exceeds available stock.
+     - In `handleUpdateQuantity`, prevent '+' from incrementing beyond available stock.
+     - In product cards, display visual "Out of stock" indicator when `item.quantity <= 0`.
+  2. In `cartSlice.ts`:
+     - In `updateQuantity`, clamp `item.quantity` to `item.maxStock` if `maxStock` is defined and > 0.
+     - In `addToCart`, do not add items if `maxStock <= 0`.
+
+affected_screens:
+  - Web POS Checkout / Sales page (`/sales` — Cart drawer)

@@ -1,0 +1,56 @@
+epic_id: e56
+title: "Web POS: Editable Cart Quantity Input & Available Stock Limit Enforcement"
+priority: P1
+status: in_progress
+target_version: v1.9.0
+bug_id: BUG-32
+description: |
+  Makes the POS cart quantity input directly editable so cashiers can type exact quantities manually
+  rather than clicking +/- repeatedly. Strictly enforces inventory stock limits so items can only be
+  added or adjusted up to their available stock levels, preventing overselling in the web POS.
+
+scope:
+  in:
+    - POS Cart Quantity Input (`web/src/app/sales/SalesPOS.tsx`):
+        - Remove `readOnly` from quantity `<input>`.
+        - Introduce controlled `CartQuantityInput` component with local text state for fluid typing.
+        - Support base unit parsing (e.g. typing '1kg' or '1 kilo' converts to 1000 for gram items).
+        - Validate on blur and Enter key press: clamp input to available stock (`maxStock`) and minimum increment.
+    - Stock Boundary Validation (`web/src/app/sales/SalesPOS.tsx` & `web/src/store/cartSlice.ts`):
+        - In `handleAddToCart`: block adding items with 0 stock (`item.quantity <= 0`) and cap additions when cart quantity reaches available stock.
+        - In `handleUpdateQuantity`: prevent '+' button from exceeding available stock.
+        - In `cartSlice.ts`: clamp `updateQuantity` to `item.maxStock`, and ensure `addToCart` does not add zero-stock items.
+        - In POS product grid: render clear "Out of stock" badge and disabled styling when `item.quantity <= 0`.
+  out:
+    - Backend / DataConnect schema or mutation modifications (none needed).
+    - Android app (already enforces stock limits in native POS).
+
+architecture:
+  web_components:
+    - name: "CartQuantityInput"
+      file: "web/src/app/sales/SalesPOS.tsx"
+      role: "Controlled input for cart quantities with local text state, unit conversion, and stock-clamping validation."
+    - name: "SalesPOS"
+      file: "web/src/app/sales/SalesPOS.tsx"
+      role: "POS checkout screen managing cart actions, stock checks, and catalog rendering."
+    - name: "cartSlice"
+      file: "web/src/store/cartSlice.ts"
+      role: "Redux store slice enforcing maxStock boundary on addToCart and updateQuantity."
+
+stories:
+  - id: e56-s1
+    title: "Web POS: Editable Cart Quantity Controlled Component"
+    acceptance:
+      - "Quantity input in POS cart is editable without readOnly restriction."
+      - "User can type manual numbers and decimals directly."
+      - "Pressing Enter or blurring the field commits the parsed number."
+      - "Gram items safely convert kg/kilo unit inputs (e.g., '1.5 kg' -> 1500g)."
+
+  - id: e56-s2
+    title: "Web POS: Available Stock Limit Enforcement"
+    acceptance:
+      - "Typing a quantity greater than available stock automatically caps the value to max available stock and notifies the user."
+      - "Clicking '+' cannot exceed available stock."
+      - "Out-of-stock items (quantity <= 0) cannot be added to cart and show 'Out of stock' indicator."
+      - "cartSlice clamps updates to maxStock."
+      - "npm run type-check and npm run lint pass with zero errors."

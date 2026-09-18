@@ -53,6 +53,83 @@ type Item = {
 type CartItem = {
     item: Item;
     quantity: number;
+};
+
+function getUnitIncrement(unit: string): number {
+    const u = (unit || "").toLowerCase();
+    if (u === "grams" || u === "ml") return 50;
+    if (u === "litre" || u === "l" || u === "kg") return 0.5;
+    return 1;
+}
+
+interface CartQuantityInputProps {
+    item: Item;
+    quantity: number;
+    maxStock: number;
+    onUpdate: (quantity: number) => void;
+}
+
+function CartQuantityInput({
+    item,
+    quantity,
+    maxStock,
+    onUpdate,
+}: CartQuantityInputProps) {
+    const [prevQuantity, setPrevQuantity] = useState(quantity);
+    const [localValue, setLocalValue] = useState(String(quantity));
+
+    if (quantity !== prevQuantity) {
+        setPrevQuantity(quantity);
+        setLocalValue(String(quantity));
+    }
+
+    const commitChange = () => {
+        const val = localValue.toLowerCase().trim();
+        let parsed = parseFloat(val);
+
+        if (isNaN(parsed) || parsed <= 0) {
+            setLocalValue(String(quantity));
+            return;
+        }
+
+        const isBaseGram = (item.unit || "").toLowerCase().startsWith("g");
+        if (isBaseGram && (val.includes("kg") || val.includes("kilo"))) {
+            parsed *= 1000;
+        }
+
+        const inc = getUnitIncrement(item.unit);
+        if (maxStock !== undefined && maxStock !== null && parsed > maxStock) {
+            alert(`Only ${maxStock} ${item.unit || "pcs"} available in stock.`);
+            parsed = maxStock;
+        }
+
+        if (parsed < inc) {
+            parsed = inc;
+        }
+
+        parsed = Math.round(parsed * 1000) / 1000;
+
+        setLocalValue(String(parsed));
+        if (parsed !== quantity) {
+            onUpdate(parsed);
+        }
+    };
+
+    return (
+        <input
+            aria-label="Quantity"
+            type="text"
+            value={localValue}
+            onChange={(e) => setLocalValue(e.target.value)}
+            onBlur={commitChange}
+            onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                    e.currentTarget.blur();
+                }
+            }}
+            className="w-16 text-sm font-bold text-center bg-transparent border-b border-dashed border-gray-400 dark:border-gray-600 focus:outline-none focus:border-teal-500 dark:text-white"
+        />
+    );
 }
 
 export default function SalesPOS({
@@ -153,14 +230,6 @@ export default function SalesPOS({
         return () =>
             document.removeEventListener("mousedown", handleClickOutside);
     }, []);
-
-    const getUnitIncrement = (unit: string) => {
-        console.log("unit", unit);
-        const u = (unit || "").toLowerCase();
-        if (u === "grams" || u === "ml") return 50;
-        if (u === "litre" || u === "l" || u === "kg") return 0.5;
-        return 1;
-    };
 
     useEffect(() => {
         let isMounted = true;
@@ -277,11 +346,23 @@ export default function SalesPOS({
     }, [items]);
 
     const handleAddToCart = (item: Item) => {
+        if (item.quantity <= 0) {
+            alert(`'${item.name}' is out of stock.`);
+            return;
+        }
+        const existing = cartState.find((c) => c.id === item.id);
+        const inc = getUnitIncrement(item.unit);
+        if (existing && existing.quantity >= item.quantity) {
+            alert(
+                `Cannot add more. Only ${item.quantity} ${item.unit || "pcs"} available in stock.`,
+            );
+            return;
+        }
         dispatch(
             addToCart({
                 id: item.id,
                 name: item.name,
-                quantity: getUnitIncrement(item.unit),
+                quantity: inc,
                 sell_price: item.sellPrice,
                 buy_price: item.buyPrice,
                 unit: item.unit || "pcs",
@@ -300,7 +381,14 @@ export default function SalesPOS({
     ) => {
         const item = cart.find((c) => c.item.id === itemId)?.item;
         const inc = item ? getUnitIncrement(item.unit) : 1;
-        const newQ = Math.max(inc, currentQty + delta * inc);
+        const maxStock = item?.quantity ?? Infinity;
+        if (delta > 0 && currentQty + delta * inc > maxStock) {
+            alert(
+                `Cannot exceed available stock (${maxStock} ${item?.unit || "pcs"}).`,
+            );
+            return;
+        }
+        const newQ = Math.max(inc, Math.min(maxStock, currentQty + delta * inc));
         dispatch(updateQuantity({ id: itemId, quantity: newQ }));
     };
 
@@ -682,34 +770,49 @@ export default function SalesPOS({
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
-                                    {filteredItems.map((item) => (
-                                        <div
-                                            role="button"
-                                            tabIndex={0}
-                                            key={item.id}
-                                            onClick={() =>
-                                                handleAddToCart(item)
-                                            }
-                                            className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 cursor-pointer hover:border-teal-500 hover:shadow-md transition-all active:scale-95 flex flex-col"
-                                        >
-                                            <div className="flex justify-between items-start mb-2">
-                                                <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                                                    {item.category || "Item"}
-                                                </span>
-                                                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                                    {item.quantity} {item.unit}
-                                                </span>
+                                    {filteredItems.map((item) => {
+                                        const isOutOfStock = item.quantity <= 0;
+                                        return (
+                                            <div
+                                                role="button"
+                                                tabIndex={0}
+                                                key={item.id}
+                                                onClick={() =>
+                                                    handleAddToCart(item)
+                                                }
+                                                className={`bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 transition-all flex flex-col ${
+                                                    isOutOfStock
+                                                        ? "opacity-60 cursor-not-allowed"
+                                                        : "cursor-pointer hover:border-teal-500 hover:shadow-md active:scale-95"
+                                                }`}
+                                            >
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                                                        {item.category || "Item"}
+                                                    </span>
+                                                    <span
+                                                        className={`text-xs font-medium ${
+                                                            isOutOfStock
+                                                                ? "text-red-500 font-bold"
+                                                                : "text-gray-500 dark:text-gray-400"
+                                                        }`}
+                                                    >
+                                                        {isOutOfStock
+                                                            ? "Out of stock"
+                                                            : `${item.quantity} ${item.unit}`}
+                                                    </span>
+                                                </div>
+                                                <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 mb-2 flex-1">
+                                                    {item.name}
+                                                </h3>
+                                                <div className="text-lg font-bold text-teal-600 dark:text-teal-400 mt-auto">
+                                                    <FormattedAmount
+                                                        amount={item.sellPrice}
+                                                    />
+                                                </div>
                                             </div>
-                                            <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 mb-2 flex-1">
-                                                {item.name}
-                                            </h3>
-                                            <div className="text-lg font-bold text-teal-600 dark:text-teal-400 mt-auto">
-                                                <FormattedAmount
-                                                    amount={item.sellPrice}
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -769,60 +872,28 @@ export default function SalesPOS({
                                                             -1,
                                                         )
                                                     }
-                                                    className="w-7 h-7 flex items-center justify-center bg-white dark:bg-gray-800 rounded shadow-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0"
+                                                    disabled={
+                                                        c.quantity <=
+                                                        getUnitIncrement(
+                                                            c.item.unit,
+                                                        )
+                                                    }
+                                                    className="w-7 h-7 flex items-center justify-center bg-white dark:bg-gray-800 rounded shadow-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                                                 >
                                                     <Minus size={14} />
                                                 </button>
-                                                <input
-                                                    aria-label="text"
-                                                    type="text"
-                                                    value={c.quantity}
-                                                    readOnly
-                                                    onBlur={(e) => {
-                                                        const val =
-                                                            e.target.value
-                                                                .toLowerCase()
-                                                                .trim();
-                                                        let parsed =
-                                                            parseFloat(val) ||
-                                                            0;
-                                                        if (parsed > 0) {
-                                                            const isBaseGram =
-                                                                c.item.unit
-                                                                    .toLowerCase()
-                                                                    .startsWith(
-                                                                        "g",
-                                                                    );
-                                                            if (
-                                                                isBaseGram &&
-                                                                (val.includes(
-                                                                    "kg",
-                                                                ) ||
-                                                                    val.includes(
-                                                                        "kilo",
-                                                                    ))
-                                                            )
-                                                                parsed *= 1000;
-                                                            dispatch(
-                                                                updateQuantity({
-                                                                    id: c.item
-                                                                        .id,
-                                                                    quantity:
-                                                                        parsed,
-                                                                }),
-                                                            );
-                                                        } else {
-                                                            e.target.value =
-                                                                String(
-                                                                    c.quantity,
-                                                                ); // reset
-                                                        }
+                                                <CartQuantityInput
+                                                    item={c.item}
+                                                    quantity={c.quantity}
+                                                    maxStock={c.item.quantity}
+                                                    onUpdate={(newQty) => {
+                                                        dispatch(
+                                                            updateQuantity({
+                                                                id: c.item.id,
+                                                                quantity: newQty,
+                                                            }),
+                                                        );
                                                     }}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter")
-                                                            e.currentTarget.blur();
-                                                    }}
-                                                    className="w-12 text-sm font-bold text-center bg-transparent border-b border-dashed border-gray-400 dark:border-gray-600 focus:outline-none focus:border-teal-500 dark:text-white"
                                                 />
                                                 <button
                                                     onClick={() =>
@@ -832,7 +903,11 @@ export default function SalesPOS({
                                                             1,
                                                         )
                                                     }
-                                                    className="w-7 h-7 flex items-center justify-center bg-white dark:bg-gray-800 rounded shadow-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0"
+                                                    disabled={
+                                                        c.quantity >=
+                                                        c.item.quantity
+                                                    }
+                                                    className="w-7 h-7 flex items-center justify-center bg-white dark:bg-gray-800 rounded shadow-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                                                 >
                                                     <Plus size={14} />
                                                 </button>

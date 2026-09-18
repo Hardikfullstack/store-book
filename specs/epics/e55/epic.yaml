@@ -1,0 +1,93 @@
+epic_id: e55
+title: "Android: Full Direct DataConnect API Migration (Removing Local SQL Queries for Direct Cloud Parity)"
+priority: P1
+status: defined
+target_version: v1.9.0
+description: |
+  Migrates the Android application's data layer from local SQLDelight SQLite queries to direct, real-time
+  Firebase Data Connect API queries and mutations, matching the Web Dashboard architecture. ViewModels across
+  Inventory, Udhaar, Expenses, Sales, and Suppliers will invoke the generated DataConnect Kotlin SDK directly,
+  providing immediate multi-terminal sync parity with Web and removing reliance on background SyncWorker push/pull.
+
+scope:
+  in:
+    - Android ViewModels (`app/src/main/java/com/storebook/inventoryapp/ui/viewmodel/`):
+        - InventoryViewModel: Query items directly via GetActiveItemsQuery and GetItemsCountQuery with pagination, search, and sorting. Execute SyncItemMutation and SoftDeleteItemMutation on create/edit/delete.
+        - UdhaarViewModel: Query customer credits directly via GetActiveUdhaarsQuery and GetUdhaarEntriesCountQuery. Execute SyncUdhaarMutation and SoftDeleteUdhaarMutation on transactions.
+        - ExpenseViewModel: Query expenses directly via GetActiveExpensesQuery and GetExpenseEntriesCountQuery. Execute SyncExpenseMutation and SoftDeleteExpenseMutation on create/delete.
+        - SalesViewModel: Query sales history and quotations via GetActiveSalesQuery and GetActiveSaleItemsQuery. Execute SyncSaleMutation and SyncSaleItemMutation during checkout.
+        - SupplierViewModel: Query suppliers directly via GetActiveSuppliersQuery and execute SyncSupplierMutation.
+        - DashboardViewModel: Aggregate business metrics directly via lightweight count and sum queries from DataConnect.
+    - Compose UI Feedback & Error Handling:
+        - Network loading states, progress indicators, and pull-to-refresh on all migrated screens.
+        - User-facing error handling (network timeout, offline alerts, retry buttons).
+    - Architecture & Sync Simplification:
+        - Real-time mutations executed immediately on user actions (instant cloud persistence).
+        - Deprecate / streamline background SyncWorker push/pull loops for migrated entities.
+  out:
+    - DataConnect GraphQL schema and queries (already defined and working in backend).
+    - Web Dashboard implementation (already API-driven).
+
+architecture:
+  android_components:
+    - name: "StorebookConnectorConnector"
+      package: "com.storebook.inventoryapp.dataconnect"
+      role: "Generated Firebase Data Connect Kotlin SDK client providing typed queries and mutations via StorebookConnectorConnector.instance."
+    - name: "InventoryViewModel"
+      package: "com.storebook.inventoryapp.ui.viewmodel"
+      role: "Calls GetActiveItemsQuery, handles item search/filter/pagination, and triggers SyncItemMutation."
+    - name: "UdhaarViewModel"
+      package: "com.storebook.inventoryapp.ui.viewmodel"
+      role: "Calls GetActiveUdhaarsQuery, aggregates customer balances, and triggers SyncUdhaarMutation."
+    - name: "ExpenseViewModel"
+      package: "com.storebook.inventoryapp.ui.viewmodel"
+      role: "Calls GetActiveExpensesQuery and triggers SyncExpenseMutation."
+    - name: "SalesViewModel"
+      package: "com.storebook.inventoryapp.ui.viewmodel"
+      role: "Calls GetActiveSalesQuery and triggers SyncSaleMutation + SyncSaleItemMutation on checkout."
+    - name: "SupplierViewModel"
+      package: "com.storebook.inventoryapp.ui.viewmodel"
+      role: "Calls GetActiveSuppliersQuery and triggers SyncSupplierMutation."
+
+stories:
+  - id: e55-s1
+    title: "Android: Inventory Module Direct DataConnect API Migration"
+    acceptance:
+      - "InventoryViewModel queries items via StorebookConnectorConnector.instance.getActiveItems passing storeId, search, and pagination."
+      - "Item creation and edits execute StorebookConnectorConnector.instance.syncItem directly over DataConnect."
+      - "Item deletion executes StorebookConnectorConnector.instance.softDeleteItem directly over DataConnect."
+      - "InventoryScreen displays loading shimmer/spinner during network fetch and surfaces error/retry on failure."
+      - "Roborazzi snapshots and ViewModel tests updated and passing."
+
+  - id: e55-s2
+    title: "Android: Udhaar Ledger Module Direct DataConnect API Migration"
+    acceptance:
+      - "UdhaarViewModel queries records via StorebookConnectorConnector.instance.getActiveUdhaars passing storeId and filters."
+      - "Customer balance calculations derive from fetched credit and payment entries."
+      - "Adding udhaar entries calls StorebookConnectorConnector.instance.syncUdhaar directly in real-time."
+      - "Deleting udhaar entries calls StorebookConnectorConnector.instance.softDeleteUdhaar directly."
+      - "UdhaarScreen displays loading state and pull-to-refresh."
+
+  - id: e55-s3
+    title: "Android: Expenses Module Direct DataConnect API Migration"
+    acceptance:
+      - "ExpenseViewModel queries expenses via StorebookConnectorConnector.instance.getActiveExpenses."
+      - "Adding an expense executes StorebookConnectorConnector.instance.syncExpense directly."
+      - "Deleting an expense executes StorebookConnectorConnector.instance.softDeleteExpense directly."
+      - "ExpensesScreen displays loading indicators and network error handling."
+
+  - id: e55-s4
+    title: "Android: Sales & POS History Direct DataConnect API Migration"
+    acceptance:
+      - "SalesViewModel queries sales history via StorebookConnectorConnector.instance.getActiveSales."
+      - "Sale items queried via StorebookConnectorConnector.instance.getActiveSaleItems."
+      - "POS checkout executes syncSale and syncSaleItem mutations directly over DataConnect."
+      - "SalesHistoryScreen and SalesAnalyticsScreen display network loading states."
+
+  - id: e55-s5
+    title: "Android: Suppliers & Dashboard Direct API Integration & SyncWorker Deprecation"
+    acceptance:
+      - "SupplierViewModel queries suppliers via StorebookConnectorConnector.instance.getActiveSuppliers."
+      - "DashboardViewModel aggregates metrics directly from DataConnect counts and queries."
+      - "Background sync loops for migrated entities in SyncWorker streamlined or retired."
+      - "Full test suite passes (assembleDebug, ktlintCheck)."
