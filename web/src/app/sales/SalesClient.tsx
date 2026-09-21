@@ -13,8 +13,6 @@ import {
 	Package,
 } from "lucide-react";
 import Pagination from "@/app/components/Pagination";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import ExportButtons from "@/app/ExportButtons";
 import { dataConnect } from "@/lib/firebase";
 import { executeQuery } from "firebase/data-connect";
@@ -25,8 +23,12 @@ import {
 	getSalesCountRef,
 	getActiveSaleItemsRef,
 	OrderDirection,
-	getSaleItemsBySaleId
+	getSaleItemsBySaleId,
+	getStore,
+	getBusinessProfile,
+	getActiveItems,
 } from "@/dataconnect";
+import { InvoicePdfGenerator } from "@/lib/InvoicePdfGenerator";
 import { FormattedAmount } from "@/components/FormattedAmount";
 import SalesPOS from "./SalesPOS";
 import DynamicTable, {
@@ -124,6 +126,48 @@ export default function SalesClient({
 	const searchResultsKeyRef = useRef("");
 	const [allStoreSaleItems, setAllStoreSaleItems] = useState<SaleItemRow[]>([]);
 	const [isLoadingSaleItems, setIsLoadingSaleItems] = useState(false);
+	const [storeInfo, setStoreInfo] = useState<{
+		name: string;
+		address: string;
+		gstin: string;
+	}>({ name: "", address: "", gstin: "" });
+	const itemsUnitMapRef = useRef<Map<string, string>>(new Map());
+
+	useEffect(() => {
+		if (!storeId) return;
+		let isMounted = true;
+		const loadStoreAndItems = async () => {
+			try {
+				const [storeRes, profileRes, itemsResp] = await Promise.all([
+					getStore(dataConnect, { id: storeId }).catch(() => null),
+					getBusinessProfile(dataConnect, { storeId }).catch(() => null),
+					getActiveItems(dataConnect, { storeId }).catch(() => null),
+				]);
+				if (!isMounted) return;
+				const sName = storeRes?.data?.store?.name;
+				const profile = profileRes?.data?.storeProfiles?.[0];
+				setStoreInfo({
+					name: (sName || "").trim(),
+					address: (profile?.address || "").trim(),
+					gstin: (profile?.gstin || "").trim(),
+				});
+				const itemsList = itemsResp?.data?.items || [];
+				const map = new Map<string, string>();
+				for (const it of itemsList) {
+					if (it.id && it.unit) {
+						map.set(it.id, it.unit);
+					}
+				}
+				itemsUnitMapRef.current = map;
+			} catch (e) {
+				console.error("Failed to prefetch store metadata:", e);
+			}
+		};
+		loadStoreAndItems();
+		return () => {
+			isMounted = false;
+		};
+	}, [storeId]);
 
 	const handleRowClick = async (sale: SaleRow) => {
 		setSelectedSale(sale);
@@ -649,69 +693,88 @@ export default function SalesClient({
 	};
 
 	const generateInvoice = async (sale: SaleRow) => {
-		await fetchSaleItems(sale.id);
-		const items = saleItemsMap[sale.id] || [];
+		try {
+			// 1. Fetch line items for this specific sale via getSaleItemsBySaleId
+			let saleItems: Array<{
+				id: string;
+				saleId: string;
+				itemId: string;
+				itemName: string;
+				quantity: number;
+				sellPrice: number;
+				buyPrice: number;
+				unit?: string;
+			}> = [];
 
-		const doc = new jsPDF();
+			try {
+				const resp = await getSaleItemsBySaleId(dataConnect, { saleId: sale.id });
+				saleItems = (resp.data?.saleItemDetails as unknown as typeof saleItems) || [];
+			} catch (err) {
+				console.error("Failed to fetch line items for invoice:", err);
+			}
 
-		// Header
-		doc.setFontSize(20);
-		doc.text("StoreBook Invoice", 14, 22);
+			// 2. Resolve store metadata
+			let storeName = storeInfo.name;
+			let storeAddress = storeInfo.address;
+			let storeGstin = storeInfo.gstin;
 
-		doc.setFontSize(10);
-		doc.setTextColor(100);
-		doc.text(
-			`Invoice ID: #INV-${(sale.cloud_id || sale.id).substring(0, 8)}`,
-			14,
-			30,
-		);
-		doc.text(
-			`Date: ${formatDate((sale.timestamp as number) || (sale.updated_at as number))}`,
-			14,
-			35,
-		);
-		doc.text(
-			`Customer: ${sale.customer_name || "Walk-in Customer"}`,
-			14,
-			40,
-		);
+			if ((!storeName || !storeGstin) && storeId) {
+				try {
+					const [storeRes, profileRes] = await Promise.all([
+						getStore(dataConnect, { id: storeId }).catch(() => null),
+						getBusinessProfile(dataConnect, { storeId }).catch(() => null),
+					]);
+					const sName = storeRes?.data?.store?.name;
+					if (sName && sName.trim()) storeName = sName.trim();
+					const profile = profileRes?.data?.storeProfiles?.[0];
+					if (profile?.address) storeAddress = profile.address.trim();
+					if (profile?.gstin) storeGstin = profile.gstin.trim();
+					setStoreInfo({ name: storeName, address: storeAddress, gstin: storeGstin });
+				} catch (_e) {
+					// fallback handled below
+				}
+			}
 
-		// Format amount for invoice with 2 decimals
-		const displayAmount = Number(sale.total_amount || 0).toFixed(2);
-
-		if (items.length > 0) {
-			autoTable(doc, {
-				startY: 50,
-				head: [["Item", "Qty", "Price", "Total"]],
-				body: items.map((item) => [
-					item.itemName?.substring(0, 30),
-					item.quantity || 0,
-					`Rs. ${(Number(item.sellPrice) || 0).toFixed(2)}`,
-					`Rs. ${(Number(item.quantity) * (Number(item.sellPrice) || 0)).toFixed(2)}`,
-				]),
-				theme: "striped",
-				headStyles: { fillColor: [13, 148, 136] },
+			const cartItems = saleItems.map((item) => {
+				const unit = item.unit || itemsUnitMapRef.current?.get(item.itemId) || "";
+				return {
+					item: {
+						id: item.itemId || item.id,
+						name: item.itemName,
+						unit: unit,
+						sellPrice: Number(item.sellPrice) || 0,
+						buyPrice: Number(item.buyPrice) || 0,
+					},
+					quantity: Number(item.quantity) || 1,
+				};
 			});
-		} else {
-			autoTable(doc, {
-				startY: 50,
-				head: [["Description", "Amount"]],
-				body: [[sale.notes || "Purchases", `Rs. ${displayAmount}`]],
-				theme: "striped",
-				headStyles: { fillColor: [13, 148, 136] },
-			});
+
+			const saleRecord = sale as Record<string, unknown>;
+			const rawTimestamp = Number(sale.timestamp || saleRecord.updated_at || sale.updatedAt || Date.now());
+			const saleData = {
+				id: sale.id,
+				timestamp: rawTimestamp,
+				totalAmount: Number(sale.total_amount ?? sale.totalAmount ?? 0),
+				discountAmount: Number(sale.discountAmount ?? 0),
+				customerName: (sale.customer_name || sale.customerName || "Cash Customer") as string,
+				customerAddress: (saleRecord.customer_address || saleRecord.customerAddress || "") as string,
+				customerGstin: (saleRecord.customer_gstin || saleRecord.customerGstin || "") as string,
+				businessName: (saleRecord.business_name || saleRecord.businessName || storeName || "StoreBook") as string,
+				businessAddress: (saleRecord.business_address || saleRecord.businessAddress || storeAddress || "") as string,
+				businessGstin: (saleRecord.business_gstin || saleRecord.businessGstin || storeGstin || "") as string,
+				type: String(sale.type || "SALE"),
+			};
+
+			InvoicePdfGenerator.generateInvoicePdf(
+				saleData,
+				cartItems,
+				storeName || "StoreBook",
+				storeAddress,
+				storeGstin
+			);
+		} catch (e) {
+			console.error("Failed to generate invoice:", e);
 		}
-
-		const finalY = (doc as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 50;
-		doc.setFontSize(12);
-		doc.setTextColor(0);
-		doc.text(`Total Amount: Rs. ${displayAmount}`, 14, finalY + 10);
-
-		doc.setFontSize(10);
-		doc.setTextColor(150);
-		doc.text("Thank you for your business!", 14, finalY + 30);
-
-		doc.save(`Invoice_${(sale.cloud_id || sale.id).substring(0, 8)}.pdf`);
 	};
 
 	return (

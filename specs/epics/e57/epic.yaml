@@ -1,0 +1,58 @@
+epic_id: e57
+title: "Web Sales Report: Mobile-Aligned A4 Tax Invoice PDF Generation & Line-Item Fetching"
+priority: P1
+status: complete
+target_version: v1.9.0
+description: |
+  Aligns the web sales report invoice generation with the mobile Android A4 Tax Invoice format.
+  Replaces the legacy fetchSaleItems/getActiveSaleItems query in SalesClient with direct
+  getSaleItemsBySaleId query on download click, resolves units from master catalog, and renders
+  a clean A4 tax invoice matching mobile design, typography, spacing, and summary breakdowns.
+
+scope:
+  in:
+    - SalesClient Invoice Action (`web/src/app/sales/SalesClient.tsx`):
+        - Replace `fetchSaleItems` call with direct `getSaleItemsBySaleId(dataConnect, { saleId: sale.id })`.
+        - Retrieve store profile and business metadata (`getStore`, `getBusinessProfile`) for store name, address, and GSTIN.
+        - Resolve item units from catalog (`getActiveItems`) by `itemId`.
+        - Format invoice dates as `dd MMM yyyy, hh:mm a` (e.g. "17 Sep 2026, 05:47 PM").
+    - Invoice PDF Generator (`web/src/lib/InvoicePdfGenerator.ts`):
+        - Implement Mobile A4 Tax Invoice layout:
+            - Left-aligned bold shop name header (24pt).
+            - Centered bold "TAX INVOICE" (or "QUOTATION / ESTIMATE") title (20pt).
+            - Invoice meta: "Invoice No: #{sale.id}" left, "Date: {date}" right.
+            - Customer meta: Customer Name, Address (if available), GSTIN (if available).
+            - Minimalist clean table: Item, Qty, Rate, Total columns with clean horizontal divider line.
+            - Items: Name, quantity with unit (e.g. "1.0 box", "1.0 packet"), Rate "Rs X", Total "Rs Y".
+            - Summary section: Subtotal, Discount (-Rs X if applicable), and bold Grand Total.
+            - Remove teal block headers, striping, and generic "Purchases" fallback when items exist.
+  out:
+    - Mobile app Android code modifications (mobile already generates this exact format).
+    - Database schema modifications.
+
+architecture:
+  web_components:
+    - name: "SalesClient"
+      file: "web/src/app/sales/SalesClient.tsx"
+      role: "Sales table and actions handler calling getSaleItemsBySaleId and triggering invoice PDF export."
+    - name: "InvoicePdfGenerator"
+      file: "web/src/lib/InvoicePdfGenerator.ts"
+      role: "PDF generator engine formatting A4 invoices to match mobile visual specifications."
+
+stories:
+  - id: e57-s1
+    title: "Direct Line-Item & Profile Fetching for Invoices"
+    acceptance:
+      - "Clicking Download Invoice fetches line items via getSaleItemsBySaleId for the specific saleId."
+      - "Store name, address, and GSTIN are retrieved from store profile with proper fallbacks."
+      - "Item units are mapped from master catalog or item record."
+
+  - id: e57-s2
+    title: "Mobile-Parity A4 Tax Invoice PDF Layout"
+    acceptance:
+      - "PDF uses standard A4 dimensions (595 x 842 pt) and matches mobile font sizes, margins, and alignments."
+      - "Header shows store name in bold 24pt, TAX INVOICE centered in bold 20pt."
+      - "Displays Invoice No and Date on the same horizontal band."
+      - "Table renders Item, Qty with units (e.g., 1.0 box), Rate, and Total with clean horizontal line separators."
+      - "Summary aligns right with Subtotal, Discount (if > 0), and Grand Total."
+      - "npm run type-check and npm run lint pass cleanly."
