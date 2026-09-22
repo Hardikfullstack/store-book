@@ -68,6 +68,11 @@ public data class SaleKey(
 )
 
 @kotlinx.serialization.Serializable
+public data class StockAdjustmentKey(
+    val id: String,
+)
+
+@kotlinx.serialization.Serializable
 public data class StoreKey(
     val id: String,
 )

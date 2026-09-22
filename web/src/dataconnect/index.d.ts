@@ -111,7 +111,11 @@ export interface GetActiveItemsData {
     category: string;
     categoryId?: string | null;
     photoPath?: string | null;
+    barcode?: string | null;
     hsnCode?: string | null;
+    taxRate?: number | null;
+    batchLotNumber?: string | null;
+    expiryDate?: string | null;
     isDeleted: boolean;
     updatedAt: number;
   } & Item_Key)[];
@@ -680,7 +684,11 @@ export interface SyncItemsData {
     category: string;
     categoryId?: string | null;
     photoPath?: string | null;
+    barcode?: string | null;
     hsnCode?: string | null;
+    taxRate?: number | null;
+    batchLotNumber?: string | null;
+    expiryDate?: string | null;
     isDeleted: boolean;
     updatedAt: number;
   } & Item_Key)[];

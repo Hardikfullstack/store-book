@@ -180,6 +180,8 @@ public interface GetActiveItemsQuery :
             val category: String,
             val photoPath: String?,
             val hsnCode: String?,
+            val batchLotNumber: String? = null,
+            val expiryDate: String? = null,
             val isDeleted: Boolean,
             val updatedAt: Double,
         )

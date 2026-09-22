@@ -184,3 +184,19 @@ data class InvoiceSettings(
         val showGstBreakdown: Boolean = true,
         val templateStyle: String = "STANDARD_GST",
 )
+
+/** Epic E34: Stock Adjustment audit record */
+@Serializable
+data class StockAdjustment(
+    val id: Long = 0,
+    val itemId: Long,
+    val itemName: String,
+    val reason: String,
+    val delta: Double,
+    val timestamp: Long,
+    val isDeleted: Int = 0,
+    val cloudId: String? = null,
+    val isSynced: Int = 0,
+    val updatedAt: Long = 0,
+)
+

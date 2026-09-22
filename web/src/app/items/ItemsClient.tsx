@@ -68,7 +68,7 @@ export type LocalItem = {
 };
 
 // Mapper from DataConnect camelCase to our local snake_case convention
-function mapDcToLocal(dcItem: { id: string; name: string; quantity: number; unit: string; buyPrice?: number; sellPrice: number; lowStockThreshold: number; category: string; categoryId?: string | null; photoPath?: string | null; hsnCode?: string | null; updatedAt: number; barcode?: string; taxRate?: number; batchLotNumber?: string; expiryDate?: string }): LocalItem {
+function mapDcToLocal(dcItem: { id: string; name: string; quantity: number; unit: string; buyPrice?: number; sellPrice: number; lowStockThreshold: number; category: string; categoryId?: string | null; photoPath?: string | null; hsnCode?: string | null; updatedAt: number; barcode?: string | null; taxRate?: number | null; batchLotNumber?: string | null; expiryDate?: string | null }): LocalItem {
     return {
         id: dcItem.id as string,
         name: dcItem.name as string,
@@ -638,12 +638,8 @@ export default function ItemsClient({
                 barcode: formData.barcode || "",
                 hsnCode: formData.hsnCode || "",
                 taxRate,
-                batchLotNumber: showAdvanced
-                    ? formData.batchLotNumber
-                    : originalItem?.batchLotNumber || "",
-                expiryDate: showAdvanced
-                    ? formData.expiryDate
-                    : originalItem?.expiryDate || "",
+                batchLotNumber: formData.batchLotNumber || "",
+                expiryDate: formData.expiryDate || "",
             };
             const isNewItem = !editingId;
             const id = editingId || crypto.randomUUID();
@@ -808,7 +804,6 @@ export default function ItemsClient({
         setAdjustmentReason("Count Correction");
 
         const shouldShow =
-            !!next.barcode ||
             !!next.hsnCode ||
             !!next.taxRate ||
             !!next.batchLotNumber ||
@@ -1148,6 +1143,26 @@ export default function ItemsClient({
                                         })
                                     }
                                     className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium dark:text-gray-300">
+                                    Barcode / QR Code
+                                </label>
+                                <input
+                                    aria-label="text"
+                                    type="text"
+                                    value={formData.barcode}
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            barcode: sanitizeInput(
+                                                e.target.value,
+                                            ),
+                                        })
+                                    }
+                                    className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white flex-grow"
+                                    placeholder="Scan or type barcode"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -1605,26 +1620,6 @@ export default function ItemsClient({
 
                             {showAdvanced && (
                                 <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium dark:text-gray-300">
-                                            Barcode / QR Code
-                                        </label>
-                                        <input
-                                            aria-label="text"
-                                            type="text"
-                                            value={formData.barcode}
-                                            onChange={(e) =>
-                                                setFormData({
-                                                    ...formData,
-                                                    barcode: sanitizeInput(
-                                                        e.target.value,
-                                                    ),
-                                                })
-                                            }
-                                            className="mt-1 w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-white flex-grow"
-                                            placeholder="Scan or type barcode"
-                                        />
-                                    </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium dark:text-gray-300">

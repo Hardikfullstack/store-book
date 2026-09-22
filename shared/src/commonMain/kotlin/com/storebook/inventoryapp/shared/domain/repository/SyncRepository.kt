@@ -10,6 +10,7 @@ import com.storebook.inventoryapp.shared.data.local.Suppliers
 import com.storebook.inventoryapp.shared.data.local.Purchases
 import com.storebook.inventoryapp.shared.data.local.Purchase_items
 import com.storebook.inventoryapp.shared.data.local.Item_batches
+import com.storebook.inventoryapp.shared.data.local.Stock_adjustments
 
 /**
  * RP-A0: SQLDelight sync repository.
@@ -101,6 +102,46 @@ class SyncRepository(
 
     suspend fun markItemBatchSynced(localId: Long, cloudId: String) =
         queries.markItemBatchSynced(cloudId, localId)
+
+    suspend fun getBatchesForItem(itemId: Long): List<Item_batches> =
+        queries.getBatchesForItem(itemId).executeAsList()
+
+    suspend fun insertItemBatch(
+        itemId: Long,
+        batchNumber: String?,
+        expiryDate: Long?,
+        quantity: Double,
+        costPrice: Double,
+        notes: String? = null,
+    ) {
+        val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+        queries.insertItemBatch(itemId, batchNumber, expiryDate, quantity, costPrice, timestamp, notes, timestamp)
+    }
+
+    // --- Stock Adjustments (Epic E34) ---
+    suspend fun getUnsyncedStockAdjustments(): List<Stock_adjustments> =
+        queries.getUnsyncedStockAdjustments().executeAsList()
+
+    suspend fun markStockAdjustmentSynced(localId: Long, cloudId: String) =
+        queries.markStockAdjustmentSynced(cloudId, localId)
+
+    suspend fun upsertStockAdjustmentRemote(
+        itemId: Long, itemName: String, reason: String, delta: Double,
+        timestamp: Long, isDeleted: Long, cloudId: String, updatedAt: Long,
+    ) {
+        database.transaction {
+            queries.upsertStockAdjustmentRemote(
+                itemId = itemId,
+                itemName = itemName,
+                reason = reason,
+                delta = delta,
+                timestamp = timestamp,
+                isDeleted = isDeleted,
+                cloudId = cloudId,
+                updatedAt = updatedAt,
+            )
+        }
+    }
 
     // ========================================================================
     // UPSERT REMOTE — assign a guaranteed-unique local id, then upsert by cloud_id
@@ -236,6 +277,7 @@ class SyncRepository(
         queries.clearPurchases()
         queries.clearPurchaseItems()
         queries.clearItemBatches()
+        queries.clearStockAdjustments()
     }
 
     // ========================================================================

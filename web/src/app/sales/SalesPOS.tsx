@@ -46,8 +46,10 @@ type Item = {
     is_deleted?: number;
     photoPath?: string | null;
     hsnCode?: string | null;
-    barcode?: string;
-    taxRate?: number;
+    barcode?: string | null;
+    taxRate?: number | null;
+    batchLotNumber?: string | null;
+    expiryDate?: string | null;
 };
 
 type CartItem = {
@@ -308,7 +310,7 @@ export default function SalesPOS({
                             buy_price: scannedItem.buyPrice,
                             unit: scannedItem.unit || "pcs",
                             maxStock: scannedItem.quantity,
-                            taxRate: scannedItem.taxRate,
+                            taxRate: scannedItem.taxRate ?? undefined,
                             hsnCode: scannedItem.hsnCode ?? undefined,
                         }),
                     );
@@ -367,7 +369,7 @@ export default function SalesPOS({
                 buy_price: item.buyPrice,
                 unit: item.unit || "pcs",
                 maxStock: item.quantity,
-                taxRate: item.taxRate,
+                taxRate: item.taxRate ?? undefined,
                 hsnCode: item.hsnCode ?? undefined,
             }),
         );

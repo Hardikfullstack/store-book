@@ -1,0 +1,37 @@
+# Bug — Web Items: Missing Batch/Expiry in GetActiveItems Query, Form Submit Drop, and Barcode Placement
+id: bug-web-item-batch-expiry-barcode-placement
+title: "Item batch/expiry values missing from GetActiveItems query, dropped on submit without advanced options open, and barcode field tucked under advanced options"
+severity: P2
+status: resolved
+reported: "2026-09-22"
+resolved_at: "2026-09-22"
+component: [ItemsClient.tsx, queries.gql, index.d.ts, dataconnect.ts]
+
+root_cause: >
+  1. In `dataconnect/connector/queries.gql`, the `GetActiveItems` (and `SyncItems`) GraphQL queries omitted
+     `batchLotNumber` and `expiryDate` from their return selection sets. Even though both fields exist in the
+     Postgres schema (`schema.gql`) and in `SyncItem` mutation (`mutations.gql`), Firebase Data Connect did not return
+     them to the client, causing `GetActiveItems` to return `undefined` for these attributes and `mapDcToLocal`
+     to set them to empty strings.
+  2. In `web/src/app/items/ItemsClient.tsx` (lines 641-646), `handleSubmit` conditionally evaluated
+     `batchLotNumber` and `expiryDate` using `showAdvanced ? formData.batchLotNumber : originalItem?.batchLotNumber || ""`.
+     When creating a new item without expanding the "Show Advanced Options" accordion, any entered batch/expiry
+     values were dropped and defaulted to empty strings.
+  3. The "Barcode / QR Code" input field was placed inside the collapsible "Show Advanced Options" section,
+     hindering quick barcode scanning during standard item creation and editing. Furthermore, `handleEdit`
+     would auto-expand the entire advanced options section solely if a barcode existed.
+
+fix_approach: >
+  1. Updated `dataconnect/connector/queries.gql` to include `batchLotNumber` and `expiryDate` in `GetActiveItems`
+     and `SyncItems` selection projections.
+  2. Updated `web/src/dataconnect/index.d.ts` and `web/src/types/dataconnect.ts` (`DcItem`, `GetActiveItemsData`,
+     `SyncItemsData`) to include `batchLotNumber`, `expiryDate`, `barcode`, and `taxRate`.
+  3. Updated `web/src/app/items/ItemsClient.tsx`:
+     - Saved `batchLotNumber: formData.batchLotNumber || ""` and `expiryDate: formData.expiryDate || ""` directly
+       in `handleSubmit` without requiring `showAdvanced` to be true.
+     - Moved the "Barcode / QR Code" field to the upper visible section of the item modal, positioned directly
+       below "Name".
+     - Removed `barcode` from the `showAdvanced` auto-expand condition in `handleEdit`.
+
+affected_screens:
+  - ItemsClient (`/items` — Add/Edit Item modal and items data table)

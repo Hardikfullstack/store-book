@@ -21,6 +21,25 @@ object DbMigrationCallback : AndroidSqliteDriver.Callback(StoreBookDatabase.Sche
         if (!columns.contains("hsn_code")) {
             holdable.execSQL("ALTER TABLE sale_items ADD COLUMN hsn_code TEXT")
         }
+
+        holdable.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS stock_adjustments (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              item_id INTEGER NOT NULL,
+              item_name TEXT NOT NULL,
+              reason TEXT NOT NULL,
+              delta REAL NOT NULL,
+              timestamp INTEGER NOT NULL,
+              is_deleted INTEGER NOT NULL DEFAULT 0,
+              cloud_id TEXT,
+              is_synced INTEGER NOT NULL DEFAULT 0,
+              updated_at INTEGER NOT NULL DEFAULT 0
+            )
+            """.trimIndent(),
+        )
+        holdable.execSQL("CREATE INDEX IF NOT EXISTS idx_stock_adjustments_timestamp ON stock_adjustments(timestamp)")
+        holdable.execSQL("CREATE INDEX IF NOT EXISTS idx_stock_adjustments_item_id ON stock_adjustments(item_id)")
     }
 
     override fun onDowngrade(

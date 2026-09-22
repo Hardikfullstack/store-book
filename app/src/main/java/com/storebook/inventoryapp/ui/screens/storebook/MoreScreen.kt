@@ -582,6 +582,23 @@ fun MoreScreen(
                                 Modifier.padding(horizontal = 16.dp),
                         )
 
+                        // Epic E34 — Stock Audit Report
+                        IconOptionRow(
+                            icon = Icons.Outlined.Inventory,
+                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            iconTint = MaterialTheme.colorScheme.primary,
+                            title = "Stock Audit Report",
+                            onClick = {
+                                navController.navigate(
+                                    Routes.StockAudit,
+                                )
+                            },
+                        )
+                        HorizontalDivider(
+                            modifier =
+                                Modifier.padding(horizontal = 16.dp),
+                        )
+
                         IconOptionRow(
                             icon = Icons.Outlined.RequestQuote,
                             iconBg = Emerald500.copy(alpha = 0.12f),

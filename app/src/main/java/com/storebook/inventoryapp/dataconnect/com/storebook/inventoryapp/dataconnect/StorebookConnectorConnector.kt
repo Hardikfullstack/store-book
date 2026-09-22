@@ -100,6 +100,10 @@ public interface StorebookConnectorConnector :
 
     public val syncSales: SyncSalesQuery
 
+    public val syncStockAdjustment: SyncStockAdjustmentMutation
+
+    public val syncStockAdjustments: SyncStockAdjustmentsQuery
+
     public val syncStore: SyncStoreMutation
 
     public val syncSupplier: SyncSupplierMutation
@@ -341,6 +345,14 @@ private class StorebookConnectorConnectorImpl(
 
     override val syncSales by lazy(LazyThreadSafetyMode.PUBLICATION) {
         SyncSalesQueryImpl(this)
+    }
+
+    override val syncStockAdjustment by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        SyncStockAdjustmentMutationImpl(this)
+    }
+
+    override val syncStockAdjustments by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        SyncStockAdjustmentsQueryImpl(this)
     }
 
     override val syncStore by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -1109,6 +1121,32 @@ private class SyncSalesQueryImpl(
         SyncSalesQuery.Companion.variablesSerializer,
     ),
     SyncSalesQuery
+
+private class SyncStockAdjustmentMutationImpl(
+    connector: StorebookConnectorConnector,
+) : StorebookConnectorConnectorGeneratedMutationImpl<
+        SyncStockAdjustmentMutation.Data,
+        SyncStockAdjustmentMutation.Variables,
+    >(
+        connector,
+        SyncStockAdjustmentMutation.Companion.operationName,
+        SyncStockAdjustmentMutation.Companion.dataDeserializer,
+        SyncStockAdjustmentMutation.Companion.variablesSerializer,
+    ),
+    SyncStockAdjustmentMutation
+
+private class SyncStockAdjustmentsQueryImpl(
+    connector: StorebookConnectorConnector,
+) : StorebookConnectorConnectorGeneratedQueryImpl<
+        SyncStockAdjustmentsQuery.Data,
+        SyncStockAdjustmentsQuery.Variables,
+    >(
+        connector,
+        SyncStockAdjustmentsQuery.Companion.operationName,
+        SyncStockAdjustmentsQuery.Companion.dataDeserializer,
+        SyncStockAdjustmentsQuery.Companion.variablesSerializer,
+    ),
+    SyncStockAdjustmentsQuery
 
 private class SyncStoreMutationImpl(
     connector: StorebookConnectorConnector,

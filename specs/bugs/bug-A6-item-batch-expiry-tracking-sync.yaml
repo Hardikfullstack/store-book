@@ -1,0 +1,35 @@
+# Bug — Android: Item Batch Number and Expiry Date Tracking, Editing, and Sync
+id: bug-android-item-batch-expiry-tracking-sync
+title: "Android: Item batch number and expiry date wiped on edit, discarded when advanced options closed, omitted from SyncWorker push, and omitted from near-expiry display"
+severity: P1
+status: resolved
+reported: "2026-09-22"
+resolved_at: "2026-09-22"
+component: [InventoryScreen.kt, InventoryViewModel.kt, SyncWorker.kt, SyncRepository.kt]
+
+root_cause: >
+  1. In `InventoryScreen.kt` (`openEditSheet`), `inputBatchNumber = ""` and `inputExpiryDateMs = null`
+     were hardcoded to empty on edit. Existing batch records for the item were never queried or loaded,
+     making it appear as though batch/expiry were never saved.
+  2. In `InventoryScreen.kt` (`PrimaryButton.onClick`), `batchNum` and `expiryMs` were forcefully evaluated
+     as `null` whenever `showAdvancedOptions` was false, discarding any entered batch/expiry data on save.
+  3. In `SyncWorker.kt`, `pushItems` and `retryPushItem` omitted `batchLotNumber` and `expiryDate` from the
+     `c.syncItem.execute` lambda, so batch and expiry details were never pushed to Cloud Data Connect.
+     Additionally, during `pull`, remote items with batch details were not recorded into local `item_batches`.
+  4. In `InventoryViewModel.kt`, `_nearExpiryItems` was initialized to an empty list and never populated in
+     `loadFilteredItems()`, leaving the "Near Expiry" tab permanently empty.
+
+fix_approach: >
+  1. Added `getLatestBatchForItem(itemId: Long)` to `InventoryViewModel` and `SyncRepository`.
+  2. In `InventoryScreen.kt` (`openEditSheet`), asynchronously fetched the item's latest batch and pre-populated
+     `inputBatchNumber` and `inputExpiryDateMs`, auto-expanding `showAdvancedOptions` if batch data is present.
+  3. In `InventoryScreen.kt` (`PrimaryButton.onClick`), stopped forcing `batchNum` and `expiryMs` to `null` when
+     `showAdvancedOptions` is false, preserving batch data across saves.
+  4. In `SyncWorker.kt`, queried the item's latest batch on push and set `batchLotNumber` and `expiryDate` (formatted
+     as YYYY-MM-DD); on pull, inserted remote batch and expiry details into `item_batches` via `SyncRepository`.
+  5. In `InventoryViewModel.kt` (`loadFilteredItems()`), populated `_nearExpiryItems` by querying
+     `batchRepository.getNearExpiryBatches(threshold)` and filtering active items.
+
+affected_screens:
+  - InventoryScreen (Add/Edit item sheet, Near Expiry tab filter)
+  - SyncWorker (background sync push and pull)

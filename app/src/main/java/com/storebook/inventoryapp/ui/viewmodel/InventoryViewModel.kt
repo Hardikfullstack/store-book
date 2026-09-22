@@ -17,6 +17,7 @@ import com.storebook.inventoryapp.shared.domain.models.Supplier
 import com.storebook.inventoryapp.shared.domain.repository.BatchRepository
 import com.storebook.inventoryapp.shared.domain.repository.InventoryRepository
 import com.storebook.inventoryapp.shared.domain.repository.PurchaseRepository
+import com.storebook.inventoryapp.shared.domain.repository.StockAdjustmentRepository
 import com.storebook.inventoryapp.shared.domain.repository.SupplierRepository
 import com.storebook.inventoryapp.utils.SecurityUtils
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +29,7 @@ class InventoryViewModel(
     private val supplierRepository: SupplierRepository,
     private val purchaseRepository: PurchaseRepository,
     private val batchRepository: BatchRepository,
+    private val stockAdjustmentRepository: StockAdjustmentRepository,
     private val context: Context,
 ) : ViewModel() {
     private val prefs = SecurityUtils.getEncryptedPrefs(context)
@@ -94,7 +96,32 @@ class InventoryViewModel(
                             hsnCode = i.hsn_code,
                             taxRate = i.tax_rate,
                             photoPath = i.photo_path,
+                            barcode = i.barcode,
                         )
+                    }
+                val threshold = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000)
+                val nearBatches = batchRepository.getNearExpiryBatches(threshold)
+                val nearItemIds = nearBatches.map { it.item_id }.toSet()
+                _nearExpiryItems.value =
+                    if (nearItemIds.isNotEmpty()) {
+                        inventoryRepository.getActiveItems().filter { it.id in nearItemIds }.map { i ->
+                            Item(
+                                id = i.id,
+                                name = i.name,
+                                quantity = i.quantity,
+                                unit = i.unit,
+                                buyPrice = i.buy_price,
+                                sellPrice = i.sell_price,
+                                lowStockThreshold = i.low_stock_threshold,
+                                category = i.category,
+                                hsnCode = i.hsn_code,
+                                taxRate = i.tax_rate,
+                                photoPath = i.photo_path,
+                                barcode = i.barcode,
+                            )
+                        }
+                    } else {
+                        emptyList()
                     }
                 _suppliers.value =
                     supplierRepository.getAllSuppliers().map { s ->
@@ -132,6 +159,7 @@ class InventoryViewModel(
                             hsnCode = i.hsn_code,
                             taxRate = i.tax_rate,
                             photoPath = i.photo_path,
+                            barcode = i.barcode,
                         )
                     }
             onResult(more)
@@ -182,6 +210,12 @@ class InventoryViewModel(
                 purchaseRepository
                     .insertPurchaseItem(id, item.itemId, item.itemName, item.quantity, item.unit, item.buyPrice)
                 inventoryRepository.updateItemStock(item.itemId, item.quantity)
+                stockAdjustmentRepository.insertStockAdjustment(
+                    itemId = item.itemId,
+                    itemName = item.itemName,
+                    reason = "Restock",
+                    delta = item.quantity,
+                )
             }
             loadFilteredItems()
             triggerSync()
@@ -206,6 +240,20 @@ class InventoryViewModel(
                     )
             onResult(id)
         }
+    }
+
+    suspend fun getLatestBatchForItem(itemId: Long): ItemBatch? {
+        val b = batchRepository.getBatchesForItem(itemId).firstOrNull() ?: return null
+        return ItemBatch(
+            id = b.id,
+            itemId = b.item_id,
+            batchNumber = b.batch_number,
+            expiryDate = b.expiry_date,
+            quantity = b.quantity,
+            costPrice = b.cost_price,
+            timestamp = b.timestamp,
+            notes = b.notes,
+        )
     }
 
     fun addItem(
@@ -260,7 +308,15 @@ class InventoryViewModel(
         supplierPhone: String?,
     ) {
         viewModelScope.launch {
+            val item = inventoryRepository.getItemById(itemId)
+            val itemName = item?.name ?: "Item #$itemId"
             inventoryRepository.updateItemStock(itemId, quantityToAdd)
+            stockAdjustmentRepository.insertStockAdjustment(
+                itemId = itemId,
+                itemName = itemName,
+                reason = "Restock",
+                delta = quantityToAdd,
+            )
             loadFilteredItems()
             triggerSync()
         }
@@ -279,8 +335,19 @@ class InventoryViewModel(
         barcode: String? = null,
         hsnCode: String? = null,
         taxRate: Double = 0.0,
+        adjustmentReason: String = "Count Correction",
     ) {
         viewModelScope.launch {
+            val existingItem = inventoryRepository.getItemById(id)
+            val delta = if (existingItem != null) quantity - existingItem.quantity else 0.0
+            if (delta != 0.0) {
+                stockAdjustmentRepository.insertStockAdjustment(
+                    itemId = id,
+                    itemName = name,
+                    reason = adjustmentReason,
+                    delta = delta,
+                )
+            }
             val item =
                 Item(
                     id = id,

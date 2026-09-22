@@ -840,3 +840,65 @@ VALUES(
     COALESCE(:showGstBreakdown, 1), :templateStyle,
     :cloudId, 1, :updatedAt
 );
+
+-- ============================================================================
+-- STOCK ADJUSTMENTS (Epic E34 — Stock Audit Module)
+-- ============================================================================
+CREATE TABLE stock_adjustments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_id INTEGER NOT NULL,
+  item_name TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  delta REAL NOT NULL,
+  timestamp INTEGER NOT NULL,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  cloud_id TEXT,
+  is_synced INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_stock_adjustments_timestamp ON stock_adjustments(timestamp);
+CREATE INDEX idx_stock_adjustments_item_id ON stock_adjustments(item_id);
+
+insertStockAdjustment:
+INSERT INTO stock_adjustments(item_id, item_name, reason, delta, timestamp, is_deleted, cloud_id, is_synced, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+getAllStockAdjustments:
+SELECT * FROM stock_adjustments WHERE is_deleted = 0 ORDER BY timestamp DESC;
+
+getStockAdjustmentsFiltered:
+SELECT * FROM stock_adjustments
+WHERE is_deleted = 0
+  AND (:search = '' OR item_name LIKE ('%' || :search || '%'))
+  AND (:reason = '' OR :reason = 'All Reasons' OR reason = :reason)
+  AND (:startDate = 0 OR timestamp >= :startDate)
+  AND (:endDate = 0 OR timestamp <= :endDate)
+ORDER BY timestamp DESC
+LIMIT :limit OFFSET :offset;
+
+getStockAdjustmentsFilteredCount:
+SELECT count(*) FROM stock_adjustments
+WHERE is_deleted = 0
+  AND (:search = '' OR item_name LIKE ('%' || :search || '%'))
+  AND (:reason = '' OR :reason = 'All Reasons' OR reason = :reason)
+  AND (:startDate = 0 OR timestamp >= :startDate)
+  AND (:endDate = 0 OR timestamp <= :endDate);
+
+getUnsyncedStockAdjustments:
+SELECT * FROM stock_adjustments WHERE is_synced = 0;
+
+markStockAdjustmentSynced:
+UPDATE stock_adjustments SET is_synced = 1, cloud_id = :cloudId WHERE id = :id;
+
+upsertStockAdjustmentRemote:
+INSERT OR REPLACE INTO stock_adjustments(
+  id, item_id, item_name, reason, delta, timestamp, is_deleted, cloud_id, is_synced, updated_at
+) VALUES (
+  COALESCE((SELECT id FROM stock_adjustments WHERE cloud_id = :cloudId LIMIT 1), (SELECT MAX(id) + 1 FROM stock_adjustments), 1),
+  :itemId, :itemName, :reason, :delta, :timestamp, :isDeleted, :cloudId, 1, :updatedAt
+);
+
+clearStockAdjustments:
+DELETE FROM stock_adjustments;
+

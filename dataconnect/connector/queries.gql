@@ -18,6 +18,8 @@ query SyncItems($storeId: String!, $lastSync: Float!) @auth(level: USER) {
     barcode
     hsnCode
     taxRate
+    batchLotNumber
+    expiryDate
     isDeleted
     updatedAt
   }
@@ -121,6 +123,8 @@ query GetActiveItems(
     barcode
     hsnCode
     taxRate
+    batchLotNumber
+    expiryDate
     isDeleted
     updatedAt
   }
@@ -157,6 +161,22 @@ query SyncExpenses($storeId: String!, $lastSync: Float!) @auth(level: USER) {
     updatedAt
   }
 }
+
+# Pull updated stock adjustments since last sync
+query SyncStockAdjustments($storeId: String!, $lastSync: Float!) @auth(level: USER) {
+  stockAdjustments(where: { storeId: { eq: $storeId }, updatedAt: { gt: $lastSync } }, limit: 10000) {
+    id
+    storeId
+    itemId
+    itemName
+    reason
+    delta
+    timestamp
+    isDeleted
+    updatedAt
+  }
+}
+
 
 query GetActiveSales(
   $storeId: String!

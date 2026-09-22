@@ -192,6 +192,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
     var inputBatchNumber by remember { mutableStateOf("") }
     var inputExpiryDateMs by remember { mutableStateOf<Long?>(null) }
     var showExpiryDatePicker by remember { mutableStateOf(false) }
+    var inputAdjustmentReason by remember { mutableStateOf("Count Correction") }
     var showAdvancedOptions by remember { mutableStateOf(false) }
     var nameError by remember { mutableStateOf(false) }
     var priceError by remember { mutableStateOf(false) }
@@ -332,6 +333,17 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         sellPriceError = false
         priceError = false
         showSheet = true
+
+        scope.launch {
+            val latestBatch = viewModel.getLatestBatchForItem(item.id)
+            if (latestBatch != null) {
+                inputBatchNumber = latestBatch.batchNumber ?: ""
+                inputExpiryDateMs = latestBatch.expiryDate
+                if (inputBatchNumber.isNotBlank() || inputExpiryDateMs != null) {
+                    showAdvancedOptions = true
+                }
+            }
+        }
     }
 
     fun performDelete(item: Item) {
@@ -1952,6 +1964,31 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                             )
                         }
 
+                        // Reason for stock adjustment when editing and qty differs
+                        AnimatedVisibility(
+                            visible = editingItem != null && inputQty.toDoubleOrNull() != null && inputQty.toDoubleOrNull() != editingItem?.quantity,
+                        ) {
+                            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                                Text(
+                                    "Reason for Stock Adjustment",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                val reasons = listOf("Count Correction", "Damage", "Expiry", "Loss")
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    items(reasons, key = { it }) { r ->
+                                        FilterChip(
+                                            label = r,
+                                            isSelected = inputAdjustmentReason == r,
+                                            onClick = { inputAdjustmentReason = r },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         // Unit picker chips
                         Column {
                             Text(
@@ -2374,18 +2411,8 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                         editingItem?.taxRate ?: 0.0
                                     }
                                 val barcode = inputBarcode.trim().takeIf { it.isNotBlank() }
-                                val batchNum =
-                                    if (showAdvancedOptions) {
-                                        inputBatchNumber.trim().takeIf { it.isNotBlank() }
-                                    } else {
-                                        null
-                                    }
-                                val expiryMs =
-                                    if (showAdvancedOptions) {
-                                        inputExpiryDateMs
-                                    } else {
-                                        null
-                                    }
+                                val batchNum = inputBatchNumber.trim().takeIf { it.isNotBlank() }
+                                val expiryMs = inputExpiryDateMs
 
                                 nameError = name.isBlank()
                                 buyPriceError =
@@ -2482,6 +2509,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                         barcode = barcode,
                                         hsnCode = hsn,
                                         taxRate = tax,
+                                        adjustmentReason = inputAdjustmentReason,
                                     )
                                     // Also log a batch if expiry info was provided during edit
                                     if (batchNum != null || expiryMs != null) {

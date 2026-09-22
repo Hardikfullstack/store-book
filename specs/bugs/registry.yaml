@@ -271,14 +271,33 @@ bugs:
     reported: "2026-09-18"
     summary: "Web POS: Cart quantity input is read-only preventing manual entry, and lacks stock limit validation"
 
-total: 33
+  - id: BUG-33
+    file: bug-W7-item-batch-expiry-barcode-placement.yaml
+    severity: P2
+    status: resolved
+    reported: "2026-09-22"
+    resolved_at: "2026-09-22"
+    summary: "Web: Item batch/expiry values missing from GetActiveItems query, dropped on submit without advanced options open, and barcode field tucked under advanced options"
+    fix: "Added batchLotNumber and expiryDate to GetActiveItems and SyncItems selection sets in queries.gql and TS SDK types. Ensured ItemsClient.tsx always submits batchLotNumber and expiryDate regardless of showAdvanced state. Moved Barcode/QR Code input to upper visible section below Name."
+
+  - id: BUG-34
+    file: bug-A6-item-batch-expiry-tracking-sync.yaml
+    severity: P1
+    status: resolved
+    reported: "2026-09-22"
+    resolved_at: "2026-09-22"
+    summary: "Android: Item batch number and expiry date wiped on edit, discarded when advanced options closed, omitted from SyncWorker push, and omitted from near-expiry display"
+    fix: "Added getLatestBatchForItem to InventoryViewModel and SyncRepository. Pre-populated inputBatchNumber and inputExpiryDateMs in openEditSheet with auto-expand of advanced options. Preserved batchLotNumber and expiryDate on save without forcing null when advanced options closed. Pushed and pulled batch details in SyncWorker. Populated _nearExpiryItems in InventoryViewModel."
+
+total: 35
 open: 1
-resolved: 32
+resolved: 34
 partial: 0
 deferred: 0
 by_severity:
   P0: "13 resolved, 0 open"
-  P1: "16 resolved, 1 open"
-  P2: "4 resolved, 0 open"
+  P1: "17 resolved, 1 open"
+  P2: "5 resolved, 0 open"
+
 
 

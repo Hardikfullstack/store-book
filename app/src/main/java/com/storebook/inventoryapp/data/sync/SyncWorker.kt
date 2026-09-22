@@ -128,6 +128,7 @@ class SyncWorker(
                         "UDHAAR" -> retryPushUdhaar(r, c, sid, entry.local_id.toString())
                         "SUPPLIER" -> retryPushSupplier(r, c, sid, entry.local_id.toString())
                         "PURCHASE" -> retryPushPurchase(r, c, sid, entry.local_id.toString())
+                        "STOCK_ADJUSTMENT" -> retryPushStockAdjustment(r, c, sid, entry.local_id.toString())
                         else ->
                             android.util.Log
                                 .d("SyncWorker", "Retry skipping unsupported entity: ${entry.entity_type}")
@@ -169,6 +170,7 @@ class SyncWorker(
             val items = r.getUnsyncedItems().filter { it.id.toString() == localId }
             if (items.isEmpty()) return // already synced or deleted
             val it = items[0]
+            val batch = r.getBatchesForItem(it.id).firstOrNull()
             val res =
                 c.syncItem
                     .execute(
@@ -176,9 +178,14 @@ class SyncWorker(
                         it.low_stock_threshold ?: 0.0, it.category ?: "", it.is_deleted == 1L, it.updated_at.toDouble(),
                     ) {
                         photoPath = it.photo_path
-                        ; barcode = it.barcode
-                        ; hsnCode = it.hsn_code
-                        ; taxRate = it.tax_rate
+                        barcode = it.barcode
+                        hsnCode = it.hsn_code
+                        taxRate = it.tax_rate
+                        batchLotNumber = batch?.batch_number
+                        expiryDate =
+                            batch?.expiry_date?.let { ms ->
+                                java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date(ms))
+                            }
                     }
             r.markItemSynced(it.id, res.data.key.id)
         }
@@ -261,6 +268,25 @@ class SyncWorker(
             r.markPurchaseSynced(p.id, res.data.key.id)
         }
 
+        private suspend fun retryPushStockAdjustment(
+            r: SyncRepository,
+            c: StorebookConnectorConnector,
+            s: String,
+            localId: String,
+        ) {
+            val adjustments = r.getUnsyncedStockAdjustments().filter { it.id.toString() == localId }
+            if (adjustments.isEmpty()) return
+            val sa = adjustments[0]
+            val remoteId = sa.cloud_id ?: java.util.UUID.randomUUID().toString()
+            val res =
+                c.syncStockAdjustment.execute(
+                    remoteId, s, sa.item_id.toString(), sanitize(sa.item_name),
+                    sa.reason, sa.delta, sa.timestamp.toDouble(), sa.is_deleted == 1L,
+                    sa.updated_at.toDouble(),
+                )
+            r.markStockAdjustmentSynced(sa.id, res.data.key.id)
+        }
+
         // ==========================================================================
         // PUSH PHASE — E01-S1: every mutation wrapped in try/catch + enqueue on fail
         // ==========================================================================
@@ -279,6 +305,7 @@ class SyncWorker(
             totalPushed += pushSuppliers(r, c, sid)
             totalPushed += pushPurchases(r, c, sid)
             totalPushed += pushPi(r, c, sid)
+            totalPushed += pushStockAdjustments(r, c, sid)
             return totalPushed
         }
 
@@ -290,6 +317,7 @@ class SyncWorker(
             var count = 0
             for (it in r.getUnsyncedItems()) {
                 try {
+                    val batch = r.getBatchesForItem(it.id).firstOrNull()
                     val res =
                         c.syncItem
                             .execute(
@@ -305,9 +333,16 @@ class SyncWorker(
                                     .toDouble(),
                             ) {
                                 photoPath = it.photo_path
-                                ; barcode = it.barcode
-                                ; hsnCode = it.hsn_code
-                                ; taxRate = it.tax_rate
+                                barcode = it.barcode
+                                hsnCode = it.hsn_code
+                                taxRate = it.tax_rate
+                                batchLotNumber = batch?.batch_number
+                                expiryDate =
+                                    batch?.expiry_date?.let { ms ->
+                                        java.text
+                                            .SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                                            .format(java.util.Date(ms))
+                                    }
                             }
                     r.markItemSynced(it.id, res.data.key.id)
                     count++
@@ -661,6 +696,55 @@ class SyncWorker(
             return count
         }
 
+        private suspend fun pushStockAdjustments(
+            r: SyncRepository,
+            c: StorebookConnectorConnector,
+            s: String,
+        ): Int {
+            var count = 0
+            for (sa in r.getUnsyncedStockAdjustments()) {
+                try {
+                    val remoteId = sa.cloud_id ?: java.util.UUID.randomUUID().toString()
+                    val res =
+                        c.syncStockAdjustment
+                            .execute(
+                                remoteId,
+                                s,
+                                sa.item_id.toString(),
+                                sanitize(sa.item_name),
+                                sa.reason,
+                                sa.delta,
+                                sa.timestamp.toDouble(),
+                                sa.is_deleted == 1L,
+                                sa.updated_at.toDouble(),
+                            )
+                    r.markStockAdjustmentSynced(sa.id, res.data.key.id)
+                    count++
+                    android.util.Log.d("SW", "E34 push stock_adjustment ${sa.id}")
+                } catch (e: Exception) {
+                    android.util.Log.e("SW", "E34 push stock_adjustment ${sa.id} FAILED", e)
+                    if (!isTransientException(e)) {
+                        android.util.Log.w("SW", "Non-transient error for stock_adjustment ${sa.id}, skipping retry")
+                        r.incrementFailedMutationCount()
+                        continue
+                    }
+                    try {
+                        r.enqueueSyncFailure(
+                            "STOCK_ADJUSTMENT",
+                            sa.id,
+                            null,
+                            RetryBackoffCalculator.nextRetryAtFromNow(0),
+                            "push_stockAdjustment: ${e.message ?: "unknown"}",
+                        )
+                        r.incrementFailedMutationCount()
+                    } catch (qe: Exception) {
+                        android.util.Log.e("SW", "Enqueue stock_adjustment fail", qe)
+                    }
+                }
+            }
+            return count
+        }
+
         // ==========================================================================
         // E01-S3: PULL PHASE — Last-Write-Wins conflict resolution
         // - Items, Suppliers, Purchases: remote.updatedAt >= local.updatedAt → accept
@@ -698,6 +782,36 @@ class SyncWorker(
                                 isDeleted = if (i.isDeleted) 1L else 0L, cloudId = i.id,
                                 updatedAt = i.updatedAt.toLong(),
                             )
+                        if (!i.batchLotNumber.isNullOrBlank() || !i.expiryDate.isNullOrBlank()) {
+                            val localItemId = r.resolveItemIdByCloudId(i.id)
+                            if (localItemId != null) {
+                                val expiryMs =
+                                    i.expiryDate?.let { dateStr ->
+                                        dateStr.toLongOrNull() ?: try {
+                                            java.text
+                                                .SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                                                .parse(dateStr)
+                                                ?.time
+                                        } catch (e: Exception) {
+                                            null
+                                        }
+                                    }
+                                val existingBatch = r.getBatchesForItem(localItemId).firstOrNull()
+                                if (existingBatch == null ||
+                                    existingBatch.batch_number != i.batchLotNumber ||
+                                    existingBatch.expiry_date != expiryMs
+                                ) {
+                                    r.insertItemBatch(
+                                        itemId = localItemId,
+                                        batchNumber = i.batchLotNumber,
+                                        expiryDate = expiryMs,
+                                        quantity = i.quantity,
+                                        costPrice = i.buyPrice,
+                                        notes = "Synced from cloud",
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 pulled += items.size
@@ -954,6 +1068,31 @@ class SyncWorker(
             } catch (e: Exception) {
                 android.util.Log.e("SW-Pull", "PurchaseItems pull failed: ${e.message}", e)
                 entityFailures["purchase_items_pull"] = e.message ?: "unknown"
+            }
+
+            // Stock Adjustments — always accept
+            try {
+                val sas =
+                    c.syncStockAdjustments
+                        .execute(sid, ls.toDouble())
+                        .data.stockAdjustments
+                for (sa in sas) {
+                    val localItemId = r.resolveItemIdByCloudId(sa.itemId) ?: sa.itemId.toLongOrNull() ?: 0L
+                    r.upsertStockAdjustmentRemote(
+                        itemId = localItemId,
+                        itemName = sanitize(sa.itemName),
+                        reason = sa.reason,
+                        delta = sa.delta,
+                        timestamp = sa.timestamp.toLong(),
+                        isDeleted = if (sa.isDeleted) 1L else 0L,
+                        cloudId = sa.id,
+                        updatedAt = sa.updatedAt.toLong(),
+                    )
+                }
+                pulled += sas.size
+            } catch (e: Exception) {
+                android.util.Log.e("SW-Pull", "StockAdjustments pull failed: ${e.message}", e)
+                entityFailures["stock_adjustments_pull"] = e.message ?: "unknown"
             }
 
             // Update last-sync timestamp

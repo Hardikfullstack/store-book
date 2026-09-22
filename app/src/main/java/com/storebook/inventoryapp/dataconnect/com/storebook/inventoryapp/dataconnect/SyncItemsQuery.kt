@@ -45,6 +45,8 @@ public interface SyncItemsQuery :
             val barcode: String?,
             val hsnCode: String?,
             val taxRate: Double?,
+            val batchLotNumber: String? = null,
+            val expiryDate: String? = null,
             val isDeleted: Boolean,
             val updatedAt: Double,
         )

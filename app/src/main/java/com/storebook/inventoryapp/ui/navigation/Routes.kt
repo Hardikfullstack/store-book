@@ -54,6 +54,9 @@ sealed class Routes(
     object PriceDriftReport : Routes("price_drift_report_screen")
 
     @Serializable
+    object StockAudit : Routes("stock_audit_screen")
+
+    @Serializable
     object PdfSettings : Routes("pdf_settings_screen")
 
     @Serializable

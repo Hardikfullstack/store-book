@@ -12,6 +12,7 @@ import com.storebook.inventoryapp.shared.domain.repository.ExpenseRepository
 import com.storebook.inventoryapp.shared.domain.repository.InventoryRepository
 import com.storebook.inventoryapp.shared.domain.repository.PurchaseRepository
 import com.storebook.inventoryapp.shared.domain.repository.SalesRepository
+import com.storebook.inventoryapp.shared.domain.repository.StockAdjustmentRepository
 import com.storebook.inventoryapp.shared.domain.repository.SupplierRepository
 import com.storebook.inventoryapp.shared.domain.repository.SyncRepository
 import com.storebook.inventoryapp.shared.domain.repository.SystemRepository
@@ -46,6 +47,7 @@ class AppViewModelFactory(
     private val systemRepository by lazy { SystemRepository(database) }
     private val syncRepository by lazy { SyncRepository(database) }
     private val invoiceSettingsRepository by lazy { InvoiceSettingsRepository(database) }
+    private val stockAdjustmentRepository by lazy { StockAdjustmentRepository(database) }
 
     // BP-3: Centralized sync status hub — shared across all ViewModels via the factory
     private val syncStatusViewModel by lazy { SyncStatusViewModel(context, syncRepository) }
@@ -62,6 +64,7 @@ class AppViewModelFactory(
                     supplierRepository,
                     purchaseRepository,
                     batchRepository,
+                    stockAdjustmentRepository,
                     context,
                 ) as T
             }
@@ -115,6 +118,9 @@ class AppViewModelFactory(
             }
             modelClass.isAssignableFrom(SyncStatusViewModel::class.java) -> {
                 syncStatusViewModel as T
+            }
+            modelClass.isAssignableFrom(StockAuditViewModel::class.java) -> {
+                StockAuditViewModel(stockAdjustmentRepository) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }

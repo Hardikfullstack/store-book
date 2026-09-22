@@ -86,6 +86,7 @@ import com.storebook.inventoryapp.ui.screens.storebook.MoreScreen
 import com.storebook.inventoryapp.ui.screens.storebook.PriceDriftReportScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SalesScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SplashScreen
+import com.storebook.inventoryapp.ui.screens.storebook.StockAuditScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SupplierLedgerScreen
 import com.storebook.inventoryapp.ui.screens.storebook.UdhaarScreen
 import com.storebook.inventoryapp.ui.screens.storebook.formatQty
@@ -158,6 +159,13 @@ fun AppNavigation() {
         )
 
     val moreViewModel: com.storebook.inventoryapp.ui.viewmodel.MoreViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel(
+            factory =
+                com.storebook.inventoryapp.ui.viewmodel
+                    .AppViewModelFactory(context),
+        )
+
+    val stockAuditViewModel: com.storebook.inventoryapp.ui.viewmodel.StockAuditViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel(
             factory =
                 com.storebook.inventoryapp.ui.viewmodel
@@ -879,6 +887,14 @@ fun AppNavigation() {
                 PriceDriftReportScreen(
                     navController = navController,
                     viewModel = salesViewModel,
+                )
+            }
+
+            // Epic E34 — Stock Audit Report
+            composable<Routes.StockAudit> {
+                StockAuditScreen(
+                    navController = navController,
+                    viewModel = stockAuditViewModel,
                 )
             }
 
