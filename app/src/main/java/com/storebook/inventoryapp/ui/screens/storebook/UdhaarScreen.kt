@@ -41,6 +41,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.Book
@@ -813,60 +814,118 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                 }
                             }
 
-                            // WhatsApp share icon
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(WhatsAppGreen.copy(alpha = 0.12f))
-                                        .clickable(onClickLabel = "Action") {
-                                            val template =
-                                                if (viewModel.businessName.isNotBlank() &&
-                                                    viewModel.businessName != "StoreBook Kirana"
-                                                ) {
-                                                    context.getString(
-                                                        R.string.udh_reminder_template_with_shop,
-                                                        customer.customerName,
-                                                        customer.netBalance,
-                                                        viewModel.businessName,
-                                                    )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                // Print PDF Statement icon
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primaryContainer)
+                                            .clickable(onClickLabel = "Print PDF Statement") {
+                                                val pdfFile =
+                                                    com.storebook.inventoryapp.utils.UdhaarPdfGenerator
+                                                        .generateUdhaarStatement(
+                                                            context,
+                                                            customer.customerName,
+                                                            customer.netBalance,
+                                                            ledgerEntries,
+                                                            viewModel.businessName,
+                                                        )
+                                                if (pdfFile != null) {
+                                                    com.storebook.inventoryapp.utils.ShareUtils
+                                                        .openPdf(context, pdfFile)
                                                 } else {
-                                                    context.getString(
-                                                        R.string.udh_reminder_template,
-                                                        customer.customerName,
-                                                        customer.netBalance,
-                                                    )
+                                                    android.widget.Toast
+                                                        .makeText(
+                                                            context,
+                                                            "Failed to generate statement PDF",
+                                                            android.widget.Toast.LENGTH_SHORT,
+                                                        ).show()
                                                 }
-                                            val pdfFile =
-                                                com.storebook.inventoryapp.utils.UdhaarPdfGenerator
-                                                    .generateUdhaarStatement(
-                                                        context,
-                                                        customer.customerName,
-                                                        customer.netBalance,
-                                                        ledgerEntries,
-                                                        viewModel.businessName,
-                                                    )
-                                            if (pdfFile != null) {
-                                                val uri =
-                                                    androidx.core.content.FileProvider.getUriForFile(
-                                                        context,
-                                                        "${context.packageName}.fileprovider",
-                                                        pdfFile,
-                                                    )
-                                                val intent =
-                                                    Intent(Intent.ACTION_SEND).apply {
-                                                        type = "application/pdf"
-                                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                                        putExtra(Intent.EXTRA_TEXT, template)
-                                                        setPackage("com.whatsapp")
-                                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Print,
+                                        contentDescription = "Print PDF Statement",
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+
+                                // WhatsApp share icon
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(WhatsAppGreen.copy(alpha = 0.12f))
+                                            .clickable(onClickLabel = "Action") {
+                                                val template =
+                                                    if (viewModel.businessName.isNotBlank() &&
+                                                        viewModel.businessName != "StoreBook Kirana"
+                                                    ) {
+                                                        context.getString(
+                                                            R.string.udh_reminder_template_with_shop,
+                                                            customer.customerName,
+                                                            customer.netBalance,
+                                                            viewModel.businessName,
+                                                        )
+                                                    } else {
+                                                        context.getString(
+                                                            R.string.udh_reminder_template,
+                                                            customer.customerName,
+                                                            customer.netBalance,
+                                                        )
                                                     }
-                                                try {
-                                                    context.startActivity(intent)
-                                                } catch (e: Exception) {
-                                                    if (e is kotlinx.coroutines.CancellationException) throw e
-                                                    // Fallback if WhatsApp is not installed
+                                                val pdfFile =
+                                                    com.storebook.inventoryapp.utils.UdhaarPdfGenerator
+                                                        .generateUdhaarStatement(
+                                                            context,
+                                                            customer.customerName,
+                                                            customer.netBalance,
+                                                            ledgerEntries,
+                                                            viewModel.businessName,
+                                                        )
+                                                if (pdfFile != null) {
+                                                    val uri =
+                                                        androidx.core.content.FileProvider.getUriForFile(
+                                                            context,
+                                                            "${context.packageName}.fileprovider",
+                                                            pdfFile,
+                                                        )
+                                                    val intent =
+                                                        Intent(Intent.ACTION_SEND).apply {
+                                                            type = "application/pdf"
+                                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                                            putExtra(Intent.EXTRA_TEXT, template)
+                                                            setPackage("com.whatsapp")
+                                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                        }
+                                                    try {
+                                                        context.startActivity(intent)
+                                                    } catch (e: Exception) {
+                                                        if (e is kotlinx.coroutines.CancellationException) throw e
+                                                        // Fallback if WhatsApp is not installed
+                                                        val fallbackIntent =
+                                                            Intent(Intent.ACTION_VIEW).apply {
+                                                                data =
+                                                                    Uri.parse(
+                                                                        "https://api.whatsapp.com/send?text=${
+                                                                            URLEncoder.encode(
+                                                                                template,
+                                                                                "UTF-8",
+                                                                            )
+                                                                        }",
+                                                                    )
+                                                            }
+                                                        context.startActivity(fallbackIntent)
+                                                    }
+                                                } else {
                                                     val fallbackIntent =
                                                         Intent(Intent.ACTION_VIEW).apply {
                                                             data =
@@ -881,30 +940,16 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                                         }
                                                     context.startActivity(fallbackIntent)
                                                 }
-                                            } else {
-                                                val fallbackIntent =
-                                                    Intent(Intent.ACTION_VIEW).apply {
-                                                        data =
-                                                            Uri.parse(
-                                                                "https://api.whatsapp.com/send?text=${
-                                                                    URLEncoder.encode(
-                                                                        template,
-                                                                        "UTF-8",
-                                                                    )
-                                                                }",
-                                                            )
-                                                    }
-                                                context.startActivity(fallbackIntent)
-                                            }
-                                        },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    Icons.Default.Share,
-                                    contentDescription = stringResource(R.string.ui_element_desc),
-                                    tint = WhatsAppGreen,
-                                    modifier = Modifier.size(20.dp),
-                                )
+                                            },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Default.Share,
+                                        contentDescription = stringResource(R.string.ui_element_desc),
+                                        tint = WhatsAppGreen,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
                             }
                         }
 

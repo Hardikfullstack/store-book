@@ -54,5 +54,18 @@ sealed class Routes(
     object PriceDriftReport : Routes("price_drift_report_screen")
 
     @Serializable
+    object PdfSettings : Routes("pdf_settings_screen")
+
+    @Serializable
+    data class InvoicePdfPreview(
+        val saleId: Long,
+    ) : Routes("invoice_pdf_preview_screen")
+
+    @Serializable
+    data class EstimatePdfPreview(
+        val estimateId: Long,
+    ) : Routes("estimate_pdf_preview_screen")
+
+    @Serializable
     object Splash : Routes("splash_screen")
 }

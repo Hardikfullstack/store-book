@@ -58,6 +58,35 @@ object ShareUtils {
         }
     }
 
+    fun sharePdfWhatsApp(
+        context: Context,
+        file: File,
+        phoneNumber: String?,
+        message: String?,
+    ) = try {
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val intent =
+            Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                setDataAndType(uri, "application/pdf")
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_TEXT, message)
+                clipData = android.content.ClipData.newRawUri("", uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        val resolvedActivity = context.packageManager.resolveActivity(intent, 0)
+        if (resolvedActivity == null) {
+            false
+        } else {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+            true
+        }
+    } catch (e: Exception) {
+        if (e is kotlinx.coroutines.CancellationException) throw e
+        false
+    }
+
     fun openFolder(
         context: Context,
         file: File,

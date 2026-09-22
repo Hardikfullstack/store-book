@@ -13,17 +13,19 @@ import storage from 'redux-persist/lib/storage'; // defaults to localStorage for
 import cartReducer from './cartSlice';
 import inventoryReducer from './inventorySlice';
 import udhaarReducer from './udhaarSlice';
+import pdfTemplateReducer from './pdfTemplateSlice';
 
 const persistConfig = {
   key: 'storebook-root',
   storage,
-  whitelist: ['cart', 'inventory', 'udhaar'],
+  whitelist: ['cart', 'inventory', 'udhaar', 'pdfTemplate'],
 };
 
 const rootReducer = combineReducers({
   cart: cartReducer,
   inventory: inventoryReducer,
   udhaar: udhaarReducer,
+  pdfTemplate: pdfTemplateReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

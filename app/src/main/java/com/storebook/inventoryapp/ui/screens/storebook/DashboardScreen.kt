@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.ModeNight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Warning
@@ -57,6 +58,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -1228,6 +1230,9 @@ fun DashboardScreen(
                                     ?: stringResource(id = R.string.customer_walk_in),
                             saleTime = saleTime,
                             profit = profit,
+                            onViewInvoice = {
+                                navController.navigate(Routes.InvoicePdfPreview(sale.id))
+                            },
                         )
                     }
                 }
@@ -1426,6 +1431,7 @@ fun SaleTimelineCard(
     customerName: String,
     saleTime: String,
     profit: Double,
+    onViewInvoice: () -> Unit = {},
 ) {
     var showPopup by remember { mutableStateOf(false) }
 
@@ -1466,40 +1472,53 @@ fun SaleTimelineCard(
                     maxLines = 1,
                     modifier = Modifier.autoMarquee(),
                 )
-                if (sale.items.size == 1) {
-                    val item = sale.items.first()
-                    val priceText = item.sellPrice.toRupeeWithDecimals()
+                if (sale.items.isNotEmpty()) {
+                    if (sale.items.size == 1) {
+                        val item = sale.items.first()
+                        val priceText = item.sellPrice.toRupeeWithDecimals()
+                        Text(
+                            text =
+                                "${item.itemName} (${item.quantity} ${item.unit} x $priceText)",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            modifier = Modifier.autoMarquee(),
+                        )
+                    } else {
+                        val firstItem = sale.items.first()
+                        val priceText = firstItem.sellPrice.toRupeeWithDecimals()
+                        Text(
+                            text =
+                                "${firstItem.itemName} (${firstItem.quantity} ${firstItem.unit} x $priceText) +${sale.items.size - 1} more",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            modifier =
+                                Modifier
+                                    .autoMarquee()
+                                    .clickable(onClickLabel = "Action") {
+                                        showPopup = true
+                                    },
+                        )
+                    }
+                } else {
+                    val priceText = sale.totalAmount.toRupeeWithDecimals()
                     Text(
-                        text =
-                            "${item.itemName} (${item.quantity} ${item.unit} x $priceText)",
+                        text = "Quick Cash Sale (1.0 pcs x $priceText)",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,
                         modifier = Modifier.autoMarquee(),
                     )
-                    Text(
-                        text = saleTime,
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    )
-                } else {
-                    Text(
-                        text = "${sale.items.size} items (View details)",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium,
-                        modifier =
-                            Modifier.clickable(onClickLabel = "Action") {
-                                showPopup = true
-                            },
-                    )
-                    Text(
-                        text = saleTime,
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    )
                 }
+                Text(
+                    text = saleTime,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                )
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
@@ -1521,6 +1540,15 @@ fun SaleTimelineCard(
                     fontWeight = FontWeight.Bold,
                     color = if (isLoss) Coral500 else Emerald500,
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+                IconButton(onClick = onViewInvoice, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        Icons.Default.Print,
+                        contentDescription = "View Invoice",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                    )
+                }
             }
         }
     }
@@ -1540,36 +1568,61 @@ fun SaleTimelineCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                 ) {
-                    sale.items.forEach { item ->
+                    if (sale.items.isEmpty()) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                                 Text(
-                                    text = item.itemName,
+                                    text = "Quick Cash Sale",
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 14.sp,
-                                    maxLines = 2,
-                                    overflow =
-                                        androidx.compose.ui.text.style.TextOverflow
-                                            .Ellipsis,
                                 )
                                 Text(
-                                    "${item.quantity} ${item.unit} x ${item.sellPrice.toRupeeWithDecimals()}",
+                                    "1.0 pcs x ${sale.totalAmount.toRupeeWithDecimals()}",
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                             Text(
-                                "${(item.quantity * item.sellPrice).toRupee()}",
+                                "${sale.totalAmount.toRupee()}",
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,
                             )
                         }
-                        androidx.compose.material3.HorizontalDivider(
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
+                    } else {
+                        sale.items.forEach { item ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                    Text(
+                                        text = item.itemName,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp,
+                                        maxLines = 2,
+                                        overflow =
+                                            androidx.compose.ui.text.style.TextOverflow
+                                                .Ellipsis,
+                                    )
+                                    Text(
+                                        "${item.quantity} ${item.unit} x ${item.sellPrice.toRupeeWithDecimals()}",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                Text(
+                                    "${(item.quantity * item.sellPrice).toRupee()}",
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                            androidx.compose.material3.HorizontalDivider(
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
                     }
                 }
             },

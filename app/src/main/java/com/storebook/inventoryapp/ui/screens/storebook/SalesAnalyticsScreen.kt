@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Card
@@ -69,6 +70,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.shared.domain.models.Sale
+import com.storebook.inventoryapp.ui.navigation.Routes
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.theme.primaryGradient
 import com.storebook.inventoryapp.ui.viewmodel.SalesViewModel
@@ -529,7 +531,11 @@ fun SalesAnalyticsScreen(
                     when (groupBy) {
                         GroupBy.DATE -> {
                             items(filteredItems.sortedByDescending { it.timestamp }) { item ->
-                                FlatLineItemCard(item, onShare = { viewModel.shareInvoice(context, item.saleId) })
+                                FlatLineItemCard(
+                                    item,
+                                    onShare = { viewModel.shareInvoice(context, item.saleId) },
+                                    onPrint = { navController.navigate(Routes.InvoicePdfPreview(item.saleId)) },
+                                )
                             }
                         }
                         GroupBy.PRODUCT -> {
@@ -546,6 +552,9 @@ fun SalesAnalyticsScreen(
                                     groupBy = groupBy,
                                     onShareItem = { saleId ->
                                         viewModel.shareInvoice(context, saleId)
+                                    },
+                                    onPrintItem = { saleId ->
+                                        navController.navigate(Routes.InvoicePdfPreview(saleId))
                                     },
                                 )
                             }
@@ -564,6 +573,9 @@ fun SalesAnalyticsScreen(
                                     groupBy = groupBy,
                                     onShareItem = { saleId ->
                                         viewModel.shareInvoice(context, saleId)
+                                    },
+                                    onPrintItem = { saleId ->
+                                        navController.navigate(Routes.InvoicePdfPreview(saleId))
                                     },
                                 )
                             }
@@ -692,6 +704,7 @@ fun SheetCheckboxOption(
 fun FlatLineItemCard(
     item: LineItem,
     onShare: () -> Unit,
+    onPrint: () -> Unit = {},
 ) {
     val dateFmt = remember { SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()) }
     Card(
@@ -724,6 +737,15 @@ fun FlatLineItemCard(
                         color = MaterialTheme.colorScheme.primary,
                         fontFamily = Poppins,
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    IconButton(onClick = onPrint, modifier = Modifier.size(24.dp)) {
+                        Icon(
+                            Icons.Filled.Print,
+                            contentDescription = "Preview PDF",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
                     Spacer(modifier = Modifier.width(4.dp))
                     IconButton(onClick = onShare, modifier = Modifier.size(24.dp)) {
                         Icon(
@@ -796,6 +818,7 @@ fun ExpandableGroupCard(
     items: List<LineItem>,
     groupBy: GroupBy,
     onShareItem: (Long) -> Unit,
+    onPrintItem: (Long) -> Unit = {},
 ) {
     var expanded by remember { mutableStateOf(false) }
     val totalRevenue = items.sumOf { it.revenue }
@@ -902,6 +925,18 @@ fun ExpandableGroupCard(
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary,
                                         )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        IconButton(
+                                            onClick = { onPrintItem(item.saleId) },
+                                            modifier = Modifier.size(20.dp),
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.Print,
+                                                contentDescription = "Preview PDF",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(14.dp),
+                                            )
+                                        }
                                         Spacer(modifier = Modifier.width(4.dp))
                                         IconButton(
                                             onClick = { onShareItem(item.saleId) },

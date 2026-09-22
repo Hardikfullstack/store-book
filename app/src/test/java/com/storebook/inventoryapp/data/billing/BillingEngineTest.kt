@@ -20,11 +20,11 @@ class BillingEngineTest {
                 lowStockThreshold = 2.0,
                 category = "cat",
             )
-        val cartItems = listOf(CartItem(item, 2))
+        val cartItems = listOf(CartItem(item, 2.0))
 
         val summary =
             BillingEngine.calculateInvoiceTaxes(
-                listOf(CartItem(item, 2)),
+                listOf(CartItem(item, 2.0)),
                 99999.0,
                 "",
                 "",
@@ -66,7 +66,7 @@ class BillingEngineTest {
 
         val summary =
             BillingEngine.calculateInvoiceTaxes(
-                listOf(CartItem(item, 1)),
+                listOf(CartItem(item, 1.0)),
                 0.0,
                 "27AADFU0935F1ZM",
                 "27AABCT1234C1ZX",
@@ -93,7 +93,7 @@ class BillingEngineTest {
 
         val summary =
             BillingEngine.calculateInvoiceTaxes(
-                listOf(CartItem(item, 1)),
+                listOf(CartItem(item, 1.0)),
                 0.0,
                 "27AAAAA0000A1Z3",
                 "06BBBBB0000B1Z4",
@@ -121,7 +121,7 @@ class BillingEngineTest {
 
         val summary =
             BillingEngine.calculateInvoiceTaxes(
-                listOf(CartItem(item, 1)),
+                listOf(CartItem(item, 1.0)),
                 0.0,
                 "27CCCCC0000C1Z5",
                 "27DDDDD0000D1Z5",
@@ -149,7 +149,7 @@ class BillingEngineTest {
 
         val summary =
             BillingEngine.calculateInvoiceTaxes(
-                listOf(CartItem(item, 1)),
+                listOf(CartItem(item, 1.0)),
                 0.0,
                 "",
                 "",
@@ -183,7 +183,7 @@ class BillingEngineTest {
                 category = "b",
             )
 
-        val cartItems = listOf(CartItem(item1, 2), CartItem(item2, 2))
+        val cartItems = listOf(CartItem(item1, 2.0), CartItem(item2, 2.0))
         val subTotal = (30 * 2 + 70 * 2).toDouble()
 
         val summary =
@@ -216,7 +216,7 @@ class BillingEngineTest {
 
         val summary =
             BillingEngine.calculateInvoiceTaxes(
-                listOf(CartItem(item, 3)),
+                listOf(CartItem(item, 3.0)),
                 50.0,
                 "",
                 "",
@@ -232,7 +232,7 @@ class BillingEngineTest {
             Item(
                 id = 5,
                 name = "Sugar",
-                quantity = 2,
+                quantity = 2.0,
                 unit = "PC",
                 buyPrice = 19.0,
                 sellPrice = 38.0,
@@ -242,7 +242,7 @@ class BillingEngineTest {
 
         val summary =
             BillingEngine.calculateInvoiceTaxes(
-                listOf(CartItem(item, 3)),
+                listOf(CartItem(item, 3.0)),
                 19.5,
                 "",
                 "",

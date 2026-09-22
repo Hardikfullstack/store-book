@@ -401,6 +401,41 @@ class SalesViewModel(
         }
     }
 
+    val pdfPreviewCartItems = mutableStateOf<List<CartItem>>(emptyList())
+    val pdfPreviewTotalAmount = mutableStateOf(0.0)
+
+    /** Load a single sale by ID and populate PDF preview cart items + total. */
+    fun loadSaleForPdf(id: Long) {
+        viewModelScope.launch {
+            val rawItems = salesRepository.getSaleItems(id)
+            val total = salesRepository.getSaleById(id)?.total_amount ?: 0.0
+
+            val cartItems =
+                rawItems.map { saleItem ->
+                    val actualItem =
+                        _allItems.value.find { it.id == saleItem.item_id }
+                            ?: Item(
+                                id = saleItem.item_id,
+                                name = saleItem.item_name,
+                                quantity = 0.0,
+                                unit = saleItem.unit,
+                                buyPrice = saleItem.buy_price,
+                                sellPrice = saleItem.sell_price,
+                                lowStockThreshold = 0.0,
+                                category = "Imported",
+                                taxRate = saleItem.tax_rate ?: 0.0,
+                                hsnCode = saleItem.hsn_code,
+                            )
+                    CartItem(item = actualItem, quantity = saleItem.quantity)
+                }
+
+            withContext(Dispatchers.Main) {
+                pdfPreviewCartItems.value = cartItems
+                pdfPreviewTotalAmount.value = total
+            }
+        }
+    }
+
     /** BUG-28: Trigger sync + reload local sales, with offline fallback. */
     fun reloadAfterSync(onReload: (List<Sale>) -> Unit = {}) {
         val monitor =

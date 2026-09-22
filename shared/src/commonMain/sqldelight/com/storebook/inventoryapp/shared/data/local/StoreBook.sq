@@ -780,3 +780,63 @@ SELECT id FROM sale_items WHERE cloud_id = :cloudId LIMIT 1;
 
 resolvePurchaseItemIdByCloudId:
 SELECT id FROM purchase_items WHERE cloud_id = :cloudId LIMIT 1;
+
+-- ============================================================================
+-- E56-S1: Invoice Settings — per-store branding and PDF template configuration
+-- ============================================================================
+CREATE TABLE invoice_settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id TEXT NOT NULL DEFAULT 'default',
+    shop_name TEXT,
+    shop_address TEXT,
+    shop_gstin TEXT,
+    logo_path TEXT,
+    accent_color TEXT,
+    header_text TEXT,
+    footer_text TEXT,
+    bank_details TEXT,
+    terms TEXT,
+    show_gst_breakdown INTEGER NOT NULL DEFAULT 1,
+    template_style TEXT NOT NULL DEFAULT 'STANDARD_GST',
+    cloud_id TEXT,
+    is_synced INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE UNIQUE INDEX idx_invoice_settings_store ON invoice_settings(store_id);
+
+getInvoiceSettingsByStoreId:
+SELECT * FROM invoice_settings WHERE store_id = :storeId LIMIT 1;
+
+insertOrUpdateInvoiceSettings:
+INSERT OR REPLACE INTO invoice_settings(
+    store_id, shop_name, shop_address, shop_gstin, logo_path, accent_color,
+    header_text, footer_text, bank_details, terms,
+    show_gst_breakdown, template_style, is_synced, updated_at
+) VALUES (
+    :storeId, :shopName, :shopAddress, :shopGstin, :logoPath, :accentColor,
+    :headerText, :footerText, :bankDetails, :terms,
+    COALESCE(:showGstBreakdown, 1), :templateStyle, 0, :updatedAt
+);
+
+getUnsyncedInvoiceSettings:
+SELECT * FROM invoice_settings WHERE is_synced = 0;
+
+markInvoiceSettingsSynced:
+UPDATE invoice_settings SET is_synced = 1, cloud_id = :cloudId WHERE id = :id;
+
+upsertInvoiceSettingsRemote:
+INSERT OR REPLACE INTO invoice_settings(
+    store_id, shop_name, shop_address, shop_gstin, logo_path, accent_color,
+    header_text, footer_text, bank_details, terms, show_gst_breakdown, template_style,
+    cloud_id, is_synced, updated_at)
+VALUES(
+    COALESCE(
+        (SELECT store_id FROM invoice_settings WHERE cloud_id = :cloudId LIMIT 1),
+        (SELECT store_id FROM invoice_settings WHERE store_id = :storeId LIMIT 1),
+        :storeId
+    ), :shopName, :shopAddress, :shopGstin, :logoPath, :accentColor,
+    :headerText, :footerText, :bankDetails, :terms,
+    COALESCE(:showGstBreakdown, 1), :templateStyle,
+    :cloudId, 1, :updatedAt
+);

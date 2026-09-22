@@ -1,8 +1,8 @@
 # Execution Status — StoreBook
-last_updated: "2026-09-14"
+last_updated: "2026-09-17"
 
-active_flow: E24-EPIc-planning
-phase: "E24-S3 complete — all tasks passing. Ready for pending epic planning (e32, e34, e36 next)."
+active_flow: E55-E56-gap-fixes
+phase: "E55/E56 code verified. Gaps remain — see E55/E56 entries below. Awaiting fix for pull sync, unit tests, native PDF rendering."
 
 epics_complete: [rp-a0, e01, e02, e03, e04, e09, e12, e18, e20]
 
@@ -220,3 +220,41 @@ next_steps:
       BUG-30 (P0): OTP login crash on release build. R8 obfuscation strips za.g2 class field
         accessed by Firebase PhoneAuthProvider via reflection. Fixed by adding -keep rules for
         za.** package, kind_ field, and enum members to proguard-rules.pro.
+
+  - in_progress: "E55 — Web Custom PDF Generation & Template Management",
+    notes: |
+      DataConnect schema (type InvoiceSettings @table, @unique on storeId), queries
+        (GetInvoiceSettings, SyncInvoiceSettings), and upsert mutation all implemented and verified.
+        SQLDelight invoice_settings table with 5 typed queries confirmed in StoreBook.sq:787-836.
+        KMP domain model InvoiceSettings dataclass at Models.kt:152-167.
+        InvoiceSettingsRepository (get, set, getUnsynced, markSynced) verified.
+        SyncWorker.pushInvoiceSettings works with transient/retry logic.
+        Web Redux pdfTemplateSlice + TemplateEditorClient with Firebase Storage logo upload — implemented.
+        InvoicePreview component with live iframe canvas, download/refresh — implemented.
+        InvoicePdfGenerator using @react-pdf/renderer — implemented.
+        Next.js /api/pdf/generate route handler — implemented.
+      GAPS:
+        (1) No pull sync in SyncWorker — remote template changes never propagate to device.
+             Add pullInvoiceSettings in the same pattern as other entities (see pushItems/pull loop).
+        (2) No unit tests for InvoicePdfGenerator (web), TemplateEditorClient (web), or
+             SyncWorker.pushInvoiceSettings (app). CodeGraph flagged all as ⚠️ no covering tests.
+        (3) WhatsApp/Email share integration on web (E55-S4 acceptance) not verified in sales/
+             estimates detail pages — only placeholder buttons exist.
+
+  - in_progress: "E56 — Android Offline PDF, Thermal Printing & Sharing",
+    notes: |
+      SQLDelight invoice_settings table + store_id index confirmed.
+        KMP InvoiceSettingsRepository with reactive get/set/unsynced methods — implemented.
+        SyncWorker.pushInvoiceSettings with backoff retry — implemented.
+        PdfSettingsScreen with branding fields, color picker, template style dropdown — implemented.
+        EstimatePdfPreviewScreen and InvoicePdfPreviewScreen with share/print/save actions — implemented.
+        EscPosPrinterService for thermal 58mm/80mm printers — implemented.
+      GAPS:
+        (1) Android preview screens use static Compose layouts (R.drawable.logo + text), NOT
+             rendering actual bytes from android.graphics.pdf.PdfDocument. E56-S2 acceptance
+             requires native PdfDocumentGenerator output, not a visual mock.
+        (2) Pull sync for invoice_settings missing in SyncWorker — remote template changes
+             won't overwrite stale local copy on device.
+        (3) No Roborazzi snapshot tests for PDF preview or settings screens — E56-S4
+             explicitly requires them as acceptance criterion.
+        (4) No JVM unit tests for EscPosPrinterService or PdfDocumentGenerator layout math.

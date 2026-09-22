@@ -10,7 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingCartCheckout
 import androidx.compose.material.icons.outlined.ReceiptLong
@@ -35,6 +35,7 @@ import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.shared.domain.models.CartItem
 import com.storebook.inventoryapp.shared.domain.models.Item
 import com.storebook.inventoryapp.shared.domain.models.Sale
+import com.storebook.inventoryapp.ui.navigation.Routes
 import com.storebook.inventoryapp.ui.theme.Coral500
 import com.storebook.inventoryapp.ui.theme.Emerald500
 import com.storebook.inventoryapp.ui.theme.primaryGradient
@@ -128,6 +129,9 @@ fun QuotationScreen(
                             sale = quote,
                             customerName = quote.customerName ?: "Walk-in Customer",
                             saleTime = quoteTime,
+                            onPreview = {
+                                navController.navigate(Routes.EstimatePdfPreview(quote.id))
+                            },
                             onConvert = {
                                 // E03-S4: Atomic conversion - preserves all line items + prices exactly
                                 viewModel.convertQuotation(quote.id) { newSaleId ->
@@ -181,6 +185,7 @@ fun QuotationCard(
     sale: Sale,
     customerName: String,
     saleTime: String,
+    onPreview: () -> Unit,
     onConvert: () -> Unit,
     onShare: () -> Unit,
 ) {
@@ -296,6 +301,15 @@ fun QuotationCard(
                 )
 
                 Row {
+                    IconButton(onClick = onPreview, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            Icons.Filled.Print,
+                            contentDescription = "Preview PDF",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
                     IconButton(onClick = onShare, modifier = Modifier.size(36.dp)) {
                         Icon(
                             Icons.Default.Share,

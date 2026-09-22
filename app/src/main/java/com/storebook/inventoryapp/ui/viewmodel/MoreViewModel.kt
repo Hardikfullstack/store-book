@@ -12,7 +12,9 @@ import com.storebook.inventoryapp.data.backup.BackupManager
 import com.storebook.inventoryapp.data.backup.RestoreStage
 import com.storebook.inventoryapp.data.play.PlayBillingManager
 import com.storebook.inventoryapp.dataconnect.*
+import com.storebook.inventoryapp.shared.data.local.InvoiceSettingsRepository
 import com.storebook.inventoryapp.shared.domain.models.ExpenseEntry
+import com.storebook.inventoryapp.shared.domain.models.InvoiceSettings
 import com.storebook.inventoryapp.shared.domain.models.Item
 import com.storebook.inventoryapp.shared.domain.models.Sale
 import com.storebook.inventoryapp.shared.domain.repository.ExpenseRepository
@@ -35,6 +37,7 @@ class MoreViewModel(
     private val inventoryRepository: InventoryRepository,
     private val systemRepository: SystemRepository,
     private val context: Context,
+    private val invoiceSettingsRepository: InvoiceSettingsRepository,
 ) : ViewModel() {
     private val prefs = SecurityUtils.getEncryptedPrefs(context)
 
@@ -100,6 +103,44 @@ class MoreViewModel(
     var isHapticFeedbackEnabled by mutableStateOf(prefs.getBoolean("haptic_feedback", true))
     var lowStockThreshold by
         mutableStateOf(prefs.getString("default_low_stock_threshold", "5") ?: "5")
+
+    // E56-S1: Invoice PDF template settings
+    var invoiceSettings by mutableStateOf(createDefaultInvoiceSettings())
+
+    private fun createDefaultInvoiceSettings(): InvoiceSettings =
+        InvoiceSettings(
+            id = 0,
+            storeId = activeStoreId,
+            shopName = businessName.takeIf { it.isNotBlank() },
+            shopAddress = businessAddress.takeIf { it.isNotBlank() },
+            shopGstin = businessGstin.takeIf { it.isNotBlank() },
+            logoPath = null,
+            accentColor = "#0F766E",
+            headerText = null,
+            footerText = null,
+            bankDetails = null,
+            terms = null,
+            showGstBreakdown = true,
+            templateStyle = "STANDARD_GST",
+        )
+
+    fun loadInvoiceSettings() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val settings = invoiceSettingsRepository.getInvoiceSettings(activeStoreId)
+            withContext(Dispatchers.Main) {
+                invoiceSettings = settings ?: createDefaultInvoiceSettings()
+            }
+        }
+    }
+
+    fun saveInvoiceSettings(settings: InvoiceSettings) {
+        viewModelScope.launch(Dispatchers.IO) {
+            invoiceSettingsRepository.setInvoiceSettings(settings)
+            withContext(Dispatchers.Main) {
+                invoiceSettings = settings
+            }
+        }
+    }
 
     // E20-S1: Cloud Backup state
     var backupProgress by mutableStateOf(-1) // -1 = idle, 0-99 = uploading, 100 = done

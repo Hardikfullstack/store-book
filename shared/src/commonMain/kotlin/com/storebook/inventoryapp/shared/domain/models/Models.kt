@@ -166,3 +166,21 @@ enum class PaymentMode {
             }
     }
 }
+
+/** E56-S1: per-store branding and PDF template configuration */
+@Serializable
+data class InvoiceSettings(
+        val id: Long = 0,
+        val storeId: String = "default",
+        val shopName: String? = null,
+        val shopAddress: String? = null,
+        val shopGstin: String? = null,
+        val logoPath: String? = null,
+        val accentColor: String? = null,
+        val headerText: String? = null,
+        val footerText: String? = null,
+        val bankDetails: String? = null,
+        val terms: String? = null,
+        val showGstBreakdown: Boolean = true,
+        val templateStyle: String = "STANDARD_GST",
+)

@@ -47,6 +47,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
@@ -900,6 +901,17 @@ fun MoreScreen(
                                 title = "GST Reports (GSTR-1)",
                                 onClick = {
                                     navController.navigate(Routes.GSTReport)
+                                },
+                            )
+                            IconOptionRow(
+                                icon = Icons.Filled.Print,
+                                iconBg =
+                                    MaterialTheme.colorScheme.primary
+                                        .copy(alpha = 0.12f),
+                                iconTint = MaterialTheme.colorScheme.primary,
+                                title = "Invoice & PDF Settings",
+                                onClick = {
+                                    navController.navigate(Routes.PdfSettings)
                                 },
                             )
                             IconOptionRow(

@@ -7,6 +7,7 @@ import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import com.storebook.inventoryapp.data.billing.BillingEngine
 import com.storebook.inventoryapp.shared.domain.models.CartItem
+import com.storebook.inventoryapp.shared.domain.models.InvoiceSettings
 import com.storebook.inventoryapp.shared.domain.models.Sale
 import java.io.File
 import java.io.FileOutputStream
@@ -22,16 +23,68 @@ object InvoicePdfGenerator {
         shopName: String,
         shopAddress: String,
         shopGstin: String,
+        settings: InvoiceSettings? = null,
     ): File? {
+        val resolvedSettings = resolveSettings(context, settings)
         val prefs =
             com.storebook.inventoryapp.utils.SecurityUtils
                 .getEncryptedPrefs(context)
         val isThermal = prefs.getBoolean("use_thermal_printer", false)
 
         return if (isThermal) {
-            generateThermalInvoice(context, sale, cartItems, shopName, shopAddress, shopGstin)
+            generateThermalInvoice(context, sale, cartItems, shopName, shopAddress, shopGstin, resolvedSettings)
         } else {
-            generateA4Invoice(context, sale, cartItems, shopName, shopAddress, shopGstin)
+            generateA4Invoice(context, sale, cartItems, shopName, shopAddress, shopGstin, resolvedSettings)
+        }
+    }
+
+    private fun resolveSettings(
+        context: Context,
+        settings: InvoiceSettings?,
+    ): InvoiceSettings? {
+        if (settings != null) return settings
+        return try {
+            val driver =
+                com.storebook.inventoryapp.shared.data
+                    .DatabaseDriverFactory(context, "default")
+                    .createDriver()
+            val database =
+                com.storebook.inventoryapp.shared.data.local
+                    .StoreBookDatabase(driver)
+            val repository =
+                com.storebook.inventoryapp.shared.data.local
+                    .InvoiceSettingsRepository(database)
+            repository.getInvoiceSettings("default")
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun loadLogoBitmap(
+        context: Context,
+        logoPath: String?,
+    ): android.graphics.Bitmap? {
+        if (logoPath.isNullOrBlank()) return null
+        return try {
+            when {
+                logoPath.startsWith("content://") || logoPath.startsWith("file://") -> {
+                    val uri = android.net.Uri.parse(logoPath)
+                    context.contentResolver.openInputStream(uri)?.use {
+                        android.graphics.BitmapFactory.decodeStream(it)
+                    }
+                }
+                else -> {
+                    val file = File(logoPath)
+                    if (file.exists() && file.length() > 0L) {
+                        android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                    } else {
+                        null
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
@@ -42,6 +95,7 @@ object InvoicePdfGenerator {
         shopName: String,
         shopAddress: String,
         shopGstin: String,
+        settings: InvoiceSettings? = null,
     ): File? {
         val document = PdfDocument()
 
@@ -63,27 +117,46 @@ object InvoicePdfGenerator {
                 typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
             }
 
-        var yPos = 20f
+        var yPos = 15f
         val leftMargin = 10f
         val rightMargin = 216f
+
+        val effectiveShopName = settings?.shopName?.takeIf { it.isNotBlank() } ?: shopName
+        val effectiveShopAddress = settings?.shopAddress?.takeIf { it.isNotBlank() } ?: shopAddress
+        val actualShopGstin = settings?.shopGstin?.takeIf { it.isNotBlank() } ?: (sale.businessGstin ?: shopGstin)
+
+        // Draw thermal logo if available
+        val logoBitmap = loadLogoBitmap(context, settings?.logoPath)
+        if (logoBitmap != null) {
+            try {
+                val maxW = 50
+                val maxH = 35
+                val aspect = logoBitmap.width.toFloat() / logoBitmap.height.toFloat()
+                val (w, h) = if (aspect > 1f) maxW to (maxW / aspect).toInt() else (maxH * aspect).toInt() to maxH
+                val scaled = android.graphics.Bitmap.createScaledBitmap(logoBitmap, w, h, true)
+                canvas.drawBitmap(scaled, (226f - w) / 2f, yPos, paint)
+                yPos += h + 5f
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
 
         // Shop Name
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         paint.textSize = 12f
-        canvas.drawText(shopName, leftMargin, yPos, paint)
+        canvas.drawText(effectiveShopName, leftMargin, yPos, paint)
         yPos += 15f
 
         // Shop Address & GSTIN
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         paint.textSize = 7f
-        if (shopAddress.isNotBlank()) {
-            val lines = shopAddress.split("\n")
+        if (effectiveShopAddress.isNotBlank()) {
+            val lines = effectiveShopAddress.split("\n")
             for (line in lines) {
                 canvas.drawText(line, leftMargin, yPos, paint)
                 yPos += 10f
             }
         }
-        val actualShopGstin = sale.businessGstin ?: shopGstin
         if (actualShopGstin.isNotBlank()) {
             canvas.drawText("GSTIN: $actualShopGstin", leftMargin, yPos, paint)
             yPos += 10f
@@ -279,6 +352,7 @@ object InvoicePdfGenerator {
         shopName: String,
         shopAddress: String,
         shopGstin: String,
+        settings: InvoiceSettings? = null,
     ): File? {
         val document = PdfDocument()
         val pageWidth = 595
@@ -299,25 +373,42 @@ object InvoicePdfGenerator {
 
         var yPos = 50f
 
+        val effectiveShopName = settings?.shopName?.takeIf { it.isNotBlank() } ?: shopName
+        val effectiveShopAddress = settings?.shopAddress?.takeIf { it.isNotBlank() } ?: shopAddress
+        val effectiveShopGstin = settings?.shopGstin?.takeIf { it.isNotBlank() } ?: (sale.businessGstin ?: shopGstin)
+
         // Draw header helper
         val drawHeader = {
+            val logoBitmap = loadLogoBitmap(context, settings?.logoPath)
+            if (logoBitmap != null) {
+                try {
+                    val maxW = 80
+                    val maxH = 60
+                    val aspect = logoBitmap.width.toFloat() / logoBitmap.height.toFloat()
+                    val (w, h) = if (aspect > 1f) maxW to (maxW / aspect).toInt() else (maxH * aspect).toInt() to maxH
+                    val scaled = android.graphics.Bitmap.createScaledBitmap(logoBitmap, w, h, true)
+                    canvas.drawBitmap(scaled, rightMargin - w, yPos, paint)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             paint.textSize = 24f
-            canvas.drawText(shopName, leftMargin, yPos, paint)
+            canvas.drawText(effectiveShopName, leftMargin, yPos, paint)
 
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
             paint.textSize = 12f
             yPos += 20f
-            if (shopAddress.isNotBlank()) {
-                val lines = shopAddress.split("\n")
+            if (effectiveShopAddress.isNotBlank()) {
+                val lines = effectiveShopAddress.split("\n")
                 for (line in lines) {
                     canvas.drawText(line, leftMargin, yPos, paint)
                     yPos += 15f
                 }
             }
-            val actualShopGstin = sale.businessGstin ?: shopGstin
-            if (actualShopGstin.isNotBlank()) {
-                canvas.drawText("GSTIN: $actualShopGstin", leftMargin, yPos, paint)
+            if (effectiveShopGstin.isNotBlank()) {
+                canvas.drawText("GSTIN: $effectiveShopGstin", leftMargin, yPos, paint)
                 yPos += 15f
             }
 
@@ -326,7 +417,9 @@ object InvoicePdfGenerator {
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             paint.textSize = 20f
             paint.textAlign = Paint.Align.CENTER
-            val titleText = if (sale.type == "ESTIMATE") "QUOTATION / ESTIMATE" else "TAX INVOICE"
+            val titleText =
+                settings?.headerText?.takeIf { it.isNotBlank() }
+                    ?: if (sale.type == "ESTIMATE") "QUOTATION / ESTIMATE" else "TAX INVOICE"
             canvas.drawText(titleText, pageWidth / 2f, yPos, paint)
             paint.textAlign = Paint.Align.LEFT
 
@@ -537,6 +630,42 @@ object InvoicePdfGenerator {
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         paint.textSize = 14f
         canvas.drawText("Grand Total: ${String.format("Rs %.2f", sale.totalAmount)}", rightMargin, yPos, paint)
+
+        yPos += 30f
+        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        paint.textSize = 10f
+
+        val bankStr = settings?.bankDetails?.takeIf { it.isNotBlank() }
+        if (!bankStr.isNullOrBlank()) {
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            canvas.drawText("Bank / Payment Details:", leftMargin, yPos, paint)
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            yPos += 14f
+            for (line in bankStr.split("\n")) {
+                canvas.drawText(line, leftMargin, yPos, paint)
+                yPos += 12f
+            }
+            yPos += 10f
+        }
+
+        val termsStr = settings?.terms?.takeIf { it.isNotBlank() }
+        if (!termsStr.isNullOrBlank()) {
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            canvas.drawText("Terms & Conditions:", leftMargin, yPos, paint)
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            yPos += 14f
+            for (line in termsStr.split("\n")) {
+                canvas.drawText(line, leftMargin, yPos, paint)
+                yPos += 12f
+            }
+            yPos += 10f
+        }
+
+        val footerStr = settings?.footerText?.takeIf { it.isNotBlank() } ?: "Thank you for your business!"
+        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
+        paint.textAlign = Paint.Align.CENTER
+        canvas.drawText(footerStr, pageWidth / 2f, yPos, paint)
+        paint.textAlign = Paint.Align.LEFT
 
         document.finishPage(page)
 

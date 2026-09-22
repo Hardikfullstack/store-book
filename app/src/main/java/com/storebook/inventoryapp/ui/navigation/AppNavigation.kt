@@ -881,6 +881,49 @@ fun AppNavigation() {
                     viewModel = salesViewModel,
                 )
             }
+
+            // E56-S1 — Invoice PDF Settings screen
+            composable<Routes.PdfSettings> {
+                com.storebook.inventoryapp.ui.settings.PdfSettingsScreen(
+                    initialSettings = moreViewModel.invoiceSettings,
+                    onBack = { navController.popBackStack() },
+                    onSave = moreViewModel::saveInvoiceSettings,
+                )
+            }
+
+            // E56-S2 — Invoice PDF Preview screen
+            composable<Routes.InvoicePdfPreview> { backStackEntry ->
+                val saleId = backStackEntry.arguments?.getLong("saleId", 0L) ?: 0L
+                androidx.compose.runtime.LaunchedEffect(saleId) {
+                    salesViewModel.loadSaleForPdf(saleId)
+                }
+                com.storebook.inventoryapp.ui.pdf.InvoicePdfPreviewScreen(
+                    saleId = saleId,
+                    cartItems = salesViewModel.pdfPreviewCartItems.value,
+                    totalAmount = salesViewModel.pdfPreviewTotalAmount.value,
+                    settings = moreViewModel.invoiceSettings,
+                    onBack = { navController.popBackStack() },
+                    onPrintThermal = {},
+                    onSaveFile = { },
+                )
+            }
+
+            // E56-S3 — Estimate PDF Preview screen
+            composable<Routes.EstimatePdfPreview> { backStackEntry ->
+                val estimateId = backStackEntry.arguments?.getLong("estimateId", 0L) ?: 0L
+                androidx.compose.runtime.LaunchedEffect(estimateId) {
+                    salesViewModel.loadSaleForPdf(estimateId)
+                }
+                com.storebook.inventoryapp.ui.pdf.EstimatePdfPreviewScreen(
+                    estimateId = estimateId,
+                    cartItems = salesViewModel.pdfPreviewCartItems.value,
+                    totalAmount = salesViewModel.pdfPreviewTotalAmount.value,
+                    settings = moreViewModel.invoiceSettings,
+                    onBack = { navController.popBackStack() },
+                    onPrintThermal = {},
+                    onSaveFile = { },
+                )
+            }
         }
     }
 }

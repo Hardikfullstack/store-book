@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.storebook.inventoryapp.R
+import com.storebook.inventoryapp.ui.navigation.Routes
 import com.storebook.inventoryapp.ui.viewmodel.SalesViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -198,6 +199,7 @@ fun SalesHistoryScreen(
                             customerName = sale.customerName ?: stringResource(id = R.string.customer_walk_in),
                             saleTime = saleTime,
                             profit = profit,
+                            onViewInvoice = { navController.navigate(Routes.InvoicePdfPreview(sale.id)) },
                         )
                     }
                 }

@@ -1,56 +1,82 @@
 epic_id: e56
-title: "Web POS: Editable Cart Quantity Input & Available Stock Limit Enforcement"
+title: "Android: Offline Custom PDF Generation, Thermal / Document Printing & Sharing for Estimates & Invoices"
 priority: P1
 status: in_progress
 target_version: v1.9.0
-bug_id: BUG-32
+depends_on: [e01, e02, e55]
+type: development
+verification_date: "2026-09-17"
+
 description: |
-  Makes the POS cart quantity input directly editable so cashiers can type exact quantities manually
-  rather than clicking +/- repeatedly. Strictly enforces inventory stock limits so items can only be
-  added or adjusted up to their available stock levels, preventing overselling in the web POS.
+  Introduces native Android offline-first custom PDF generation, thermal receipt (ESC/POS) printing, and document
+  sharing for Estimates (Quotations) and Tax Invoices in the StoreBook Android POS app. Store owners can render A4/A5 PDFs
+  and 2-inch/3-inch thermal bills locally without internet access, preview documents interactively in Jetpack Compose,
+  print to Bluetooth/USB printers, and share directly to customers via WhatsApp or System Share.
 
 scope:
   in:
-    - POS Cart Quantity Input (`web/src/app/sales/SalesPOS.tsx`):
-        - Remove `readOnly` from quantity `<input>`.
-        - Introduce controlled `CartQuantityInput` component with local text state for fluid typing.
-        - Support base unit parsing (e.g. typing '1kg' or '1 kilo' converts to 1000 for gram items).
-        - Validate on blur and Enter key press: clamp input to available stock (`maxStock`) and minimum increment.
-    - Stock Boundary Validation (`web/src/app/sales/SalesPOS.tsx` & `web/src/store/cartSlice.ts`):
-        - In `handleAddToCart`: block adding items with 0 stock (`item.quantity <= 0`) and cap additions when cart quantity reaches available stock.
-        - In `handleUpdateQuantity`: prevent '+' button from exceeding available stock.
-        - In `cartSlice.ts`: clamp `updateQuantity` to `item.maxStock`, and ensure `addToCart` does not add zero-stock items.
-        - In POS product grid: render clear "Out of stock" badge and disabled styling when `item.quantity <= 0`.
+    - KMP & Data Layer (`shared` & `app/data`):
+        - `invoice_settings` table in SQLDelight (`StoreBook.sq`) storing local branding settings, logo cache path, terms, and bank details.
+        - Offline-first delta sync in `SyncWorker` for invoice template settings between local SQLite and remote DataConnect.
+    - Android PDF & Thermal Printing Engine (`app/src/main/java/com/storebook/inventoryapp/pdf/` & `printing/`):
+        - Native Android PDF generator using `android.graphics.pdf.PdfDocument` and Canvas layout engine for A4/A5 documents.
+        - ESC/POS Thermal Printing engine for 58mm (2-inch) and 80mm (3-inch) Bluetooth and USB receipt printers.
+        - System `PrintManager` integration via custom `PrintDocumentAdapter`.
+    - Android Jetpack Compose UI (`app/src/main/java/com/storebook/inventoryapp/ui/pdf/` & `settings/`):
+        - `InvoicePdfPreviewScreen` and `EstimatePdfPreviewScreen` rendering native PDF page previews with zoom and page controls.
+        - `PdfSettingsScreen` allowing store owners to pick templates, toggle GST breakups, upload logo image from device, and set terms.
+        - One-tap quick actions: "Print Thermal", "Print A4", "Share PDF via WhatsApp", and "Download to Device".
   out:
-    - Backend / DataConnect schema or mutation modifications (none needed).
-    - Android app (already enforces stock limits in native POS).
+    - Web Dashboard template editor (handled in e55).
+    - Custom font file upload beyond system fonts (future enhancement).
 
 architecture:
-  web_components:
-    - name: "CartQuantityInput"
-      file: "web/src/app/sales/SalesPOS.tsx"
-      role: "Controlled input for cart quantities with local text state, unit conversion, and stock-clamping validation."
-    - name: "SalesPOS"
-      file: "web/src/app/sales/SalesPOS.tsx"
-      role: "POS checkout screen managing cart actions, stock checks, and catalog rendering."
-    - name: "cartSlice"
-      file: "web/src/store/cartSlice.ts"
-      role: "Redux store slice enforcing maxStock boundary on addToCart and updateQuantity."
+  android_components:
+    - name: "PdfDocumentGenerator"
+      package: "com.storebook.inventoryapp.pdf"
+      role: "Renders offline A4/A5 PDF documents using android.graphics.pdf.PdfDocument and Android Canvas drawing routines."
+    - name: "EscPosPrinterService"
+      package: "com.storebook.inventoryapp.printing"
+      role: "Formats and dispatches raw ESC/POS commands over Bluetooth/USB to 58mm/80mm thermal receipt printers."
+    - name: "InvoicePdfPreviewScreen & EstimatePdfPreviewScreen"
+      package: "com.storebook.inventoryapp.ui.pdf"
+      role: "Jetpack Compose UI for interactive document preview, printer selection, and direct WhatsApp sharing."
+    - name: "PdfSettingsViewModel & InvoiceSettingsRepository"
+      package: "com.storebook.inventoryapp.data.repository"
+      role: "Manages local PDF template options, logo image caching, and syncing with SQLDelight database."
+    - name: "StoreBook.sq (SQLDelight)"
+      module: "shared (KMP)"
+      file: "shared/src/commonMain/sqldelight/com/storebook/inventoryapp/shared/data/local/StoreBook.sq"
+      role: "Defines invoice_settings table schema, store branding fields, and SQL queries."
 
 stories:
   - id: e56-s1
-    title: "Web POS: Editable Cart Quantity Controlled Component"
+    title: "SQLDelight & KMP: Add Invoice Settings Table, Domain Model & Local Caching"
     acceptance:
-      - "Quantity input in POS cart is editable without readOnly restriction."
-      - "User can type manual numbers and decimals directly."
-      - "Pressing Enter or blurring the field commits the parsed number."
-      - "Gram items safely convert kg/kilo unit inputs (e.g., '1.5 kg' -> 1500g)."
+      - "Create invoice_settings table in StoreBook.sq with store_id, template_style, logo_path, accent_color, header_text, footer_text, bank_details, and terms."
+      - "Implement InvoiceSettingsRepository exposing reactive Flow of settings with local caching."
+      - "SyncWorker updated to synchronize invoice template settings between SQLite and DataConnect."
 
   - id: e56-s2
-    title: "Web POS: Available Stock Limit Enforcement"
+    title: "Android Native PDF Engine: Offline A4/A5 Document Rendering with Android Canvas"
     acceptance:
-      - "Typing a quantity greater than available stock automatically caps the value to max available stock and notifies the user."
-      - "Clicking '+' cannot exceed available stock."
-      - "Out-of-stock items (quantity <= 0) cannot be added to cart and show 'Out of stock' indicator."
-      - "cartSlice clamps updates to maxStock."
-      - "npm run type-check and npm run lint pass with zero errors."
+      - "Implement PdfDocumentGenerator using android.graphics.pdf.PdfDocument for offline page rendering."
+      - "Accurately format header logo, store GSTIN, customer details, line items, CGST/SGST/IGST breakdown, and UPI QR code."
+      - "Support document types: Quotation/Estimate vs. Tax Invoice."
+      - "Pass JVM/Android unit tests for layout calculation and page rendering."
+
+  - id: e56-s3
+    title: "Android Thermal Printing & System PrintManager Integration"
+    acceptance:
+      - "Implement ESC/POS encoder supporting 58mm (2-inch) and 80mm (3-inch) Bluetooth/USB thermal printers."
+      - "Integrate Android PrintManager with custom PrintDocumentAdapter for standard Wi-Fi/USB printing."
+      - "Include printer status detection (out of paper, printer disconnected) with friendly user toasts."
+
+  - id: e56-s4
+    title: "Android UI: Document Preview Screen, Quick WhatsApp Share & Settings UI"
+    acceptance:
+      - "Build InvoicePdfPreviewScreen and EstimatePdfPreviewScreen in Jetpack Compose with pinch-to-zoom preview."
+      - "Provide quick action bar: 'Share via WhatsApp', 'Print Thermal', 'Print PDF', 'Save File'."
+      - "Build PdfSettingsScreen for store owners to configure template style, logo, terms, and printer defaults."
+      - "Add Roborazzi snapshot test for PDF preview screen and settings UI."
+

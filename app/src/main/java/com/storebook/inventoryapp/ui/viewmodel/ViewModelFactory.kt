@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.storebook.inventoryapp.data.DbMigrationCallback
+import com.storebook.inventoryapp.shared.data.local.InvoiceSettingsRepository
 import com.storebook.inventoryapp.shared.data.local.StoreBookDatabase
 import com.storebook.inventoryapp.shared.domain.repository.BatchRepository
 import com.storebook.inventoryapp.shared.domain.repository.ExpenseRepository
@@ -44,6 +45,7 @@ class AppViewModelFactory(
     private val expenseRepository by lazy { ExpenseRepository(database) }
     private val systemRepository by lazy { SystemRepository(database) }
     private val syncRepository by lazy { SyncRepository(database) }
+    private val invoiceSettingsRepository by lazy { InvoiceSettingsRepository(database) }
 
     // BP-3: Centralized sync status hub — shared across all ViewModels via the factory
     private val syncStatusViewModel by lazy { SyncStatusViewModel(context, syncRepository) }
@@ -98,7 +100,18 @@ class AppViewModelFactory(
                 ExpenseViewModel(expenseRepository) as T
             }
             modelClass.isAssignableFrom(MoreViewModel::class.java) -> {
-                MoreViewModel(salesRepository, expenseRepository, inventoryRepository, systemRepository, context) as T
+                val vm =
+                    MoreViewModel(
+                        salesRepository,
+                        expenseRepository,
+                        inventoryRepository,
+                        systemRepository,
+                        context,
+                        invoiceSettingsRepository,
+                    )
+                // E56-S1: Load cached invoice settings on startup
+                vm.loadInvoiceSettings()
+                vm as T
             }
             modelClass.isAssignableFrom(SyncStatusViewModel::class.java) -> {
                 syncStatusViewModel as T

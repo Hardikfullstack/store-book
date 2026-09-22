@@ -1,93 +1,76 @@
 epic_id: e55
-title: "Android: Full Direct DataConnect API Migration (Removing Local SQL Queries for Direct Cloud Parity)"
+title: "Web: Custom PDF Generation & Template Management for Estimates & Invoices"
 priority: P1
-status: defined
+status: in_progress
 target_version: v1.9.0
+depends_on: [e04, e35]
+type: development
+verification_date: "2026-09-17"
+
 description: |
-  Migrates the Android application's data layer from local SQLDelight SQLite queries to direct, real-time
-  Firebase Data Connect API queries and mutations, matching the Web Dashboard architecture. ViewModels across
-  Inventory, Udhaar, Expenses, Sales, and Suppliers will invoke the generated DataConnect Kotlin SDK directly,
-  providing immediate multi-terminal sync parity with Web and removing reliance on background SyncWorker push/pull.
+  Enables store owners to customize, preview, and generate professional PDF estimates (quotations) and invoices
+  directly from the Next.js web dashboard. Provides a real-time invoice template editor with support for store logos,
+  custom color accents, GSTIN details, bank transfer/UPI QR codes, signatures, and terms. Integrates with DataConnect
+  for store-scoped data fetching and Firebase Storage for branding assets.
 
 scope:
   in:
-    - Android ViewModels (`app/src/main/java/com/storebook/inventoryapp/ui/viewmodel/`):
-        - InventoryViewModel: Query items directly via GetActiveItemsQuery and GetItemsCountQuery with pagination, search, and sorting. Execute SyncItemMutation and SoftDeleteItemMutation on create/edit/delete.
-        - UdhaarViewModel: Query customer credits directly via GetActiveUdhaarsQuery and GetUdhaarEntriesCountQuery. Execute SyncUdhaarMutation and SoftDeleteUdhaarMutation on transactions.
-        - ExpenseViewModel: Query expenses directly via GetActiveExpensesQuery and GetExpenseEntriesCountQuery. Execute SyncExpenseMutation and SoftDeleteExpenseMutation on create/delete.
-        - SalesViewModel: Query sales history and quotations via GetActiveSalesQuery and GetActiveSaleItemsQuery. Execute SyncSaleMutation and SyncSaleItemMutation during checkout.
-        - SupplierViewModel: Query suppliers directly via GetActiveSuppliersQuery and execute SyncSupplierMutation.
-        - DashboardViewModel: Aggregate business metrics directly via lightweight count and sum queries from DataConnect.
-    - Compose UI Feedback & Error Handling:
-        - Network loading states, progress indicators, and pull-to-refresh on all migrated screens.
-        - User-facing error handling (network timeout, offline alerts, retry buttons).
-    - Architecture & Sync Simplification:
-        - Real-time mutations executed immediately on user actions (instant cloud persistence).
-        - Deprecate / streamline background SyncWorker push/pull loops for migrated entities.
+    - Web Template Settings (`web/src/app/settings/invoice-templates/`):
+        - Visual template customization screen with template selector (Standard GST, Modern Minimalist, Thermal 80mm).
+        - Branding controls: Logo upload, accent color picker, header/footer text, bank details, terms & conditions, UPI ID.
+        - Redux state persistence (`pdfTemplate` slice) & sync with Firebase DataConnect / Firestore `invoice_settings`.
+    - Real-Time PDF Preview & Generation (`web/src/lib/pdf/`):
+        - Client-side rendering using `@react-pdf/renderer` or `pdf-lib` for instant live preview while editing.
+        - Next.js API route `/api/pdf/generate` for server-rendered PDF downloads and email attachments.
+        - Multi-tenancy enforcement: strictly scope queries by active `storeId`.
+    - Sales & Estimates Integration (`web/src/app/sales/`, `web/src/app/estimates/`):
+        - Action buttons on Sale Detail & Estimate Detail pages to "Download PDF", "Print Invoice", and "Send via WhatsApp/Email".
+        - Support for both Estimate (Quote) and Tax Invoice document modes with dynamic GST breakdown tables (CGST, SGST, IGST).
   out:
-    - DataConnect GraphQL schema and queries (already defined and working in backend).
-    - Web Dashboard implementation (already API-driven).
+    - Android native printing / ESC-POS printer integration (handled in e56).
+    - Payment gateway direct collection links inside PDF (future roadmap).
 
 architecture:
-  android_components:
-    - name: "StorebookConnectorConnector"
-      package: "com.storebook.inventoryapp.dataconnect"
-      role: "Generated Firebase Data Connect Kotlin SDK client providing typed queries and mutations via StorebookConnectorConnector.instance."
-    - name: "InventoryViewModel"
-      package: "com.storebook.inventoryapp.ui.viewmodel"
-      role: "Calls GetActiveItemsQuery, handles item search/filter/pagination, and triggers SyncItemMutation."
-    - name: "UdhaarViewModel"
-      package: "com.storebook.inventoryapp.ui.viewmodel"
-      role: "Calls GetActiveUdhaarsQuery, aggregates customer balances, and triggers SyncUdhaarMutation."
-    - name: "ExpenseViewModel"
-      package: "com.storebook.inventoryapp.ui.viewmodel"
-      role: "Calls GetActiveExpensesQuery and triggers SyncExpenseMutation."
-    - name: "SalesViewModel"
-      package: "com.storebook.inventoryapp.ui.viewmodel"
-      role: "Calls GetActiveSalesQuery and triggers SyncSaleMutation + SyncSaleItemMutation on checkout."
-    - name: "SupplierViewModel"
-      package: "com.storebook.inventoryapp.ui.viewmodel"
-      role: "Calls GetActiveSuppliersQuery and triggers SyncSupplierMutation."
+  web_components:
+    - name: "TemplateEditorClient & InvoicePreview"
+      path: "web/src/app/settings/invoice-templates/TemplateEditorClient.tsx"
+      role: "Interactive UI for configuring store branding, colors, fields, and rendering live PDF canvas preview."
+    - name: "pdfTemplateSlice"
+      path: "web/src/store/slices/pdfTemplateSlice.ts"
+      role: "Redux slice for template draft configuration, field toggles, and preset selection."
+    - name: "pdfGenerator Engine"
+      path: "web/src/lib/pdf/pdfGenerator.ts"
+      role: "Generates PDF documents using template schemas, substituting line items, tax totals, and customer details."
+    - name: "PDF Generation Route Handler"
+      path: "web/src/app/api/pdf/generate/route.ts"
+      role: "Server-side endpoint returning PDF streams for direct downloads and email dispatch."
 
 stories:
   - id: e55-s1
-    title: "Android: Inventory Module Direct DataConnect API Migration"
+    title: "Web Data & Settings: Store Invoice Template Configuration Schema & Redux Slice"
     acceptance:
-      - "InventoryViewModel queries items via StorebookConnectorConnector.instance.getActiveItems passing storeId, search, and pagination."
-      - "Item creation and edits execute StorebookConnectorConnector.instance.syncItem directly over DataConnect."
-      - "Item deletion executes StorebookConnectorConnector.instance.softDeleteItem directly over DataConnect."
-      - "InventoryScreen displays loading shimmer/spinner during network fetch and surfaces error/retry on failure."
-      - "Roborazzi snapshots and ViewModel tests updated and passing."
+      - "Define InvoiceSettings schema in DataConnect / Firestore including logoUrl, accentColor, showGst, bankDetails, and terms."
+      - "Create Redux pdfTemplate slice to store active store template options with local draft state management."
+      - "Store settings API integration complete with strict storeId multi-tenancy validation."
 
   - id: e55-s2
-    title: "Android: Udhaar Ledger Module Direct DataConnect API Migration"
+    title: "Web UI: Real-Time Interactive Template Customizer & Branding Editor"
     acceptance:
-      - "UdhaarViewModel queries records via StorebookConnectorConnector.instance.getActiveUdhaars passing storeId and filters."
-      - "Customer balance calculations derive from fetched credit and payment entries."
-      - "Adding udhaar entries calls StorebookConnectorConnector.instance.syncUdhaar directly in real-time."
-      - "Deleting udhaar entries calls StorebookConnectorConnector.instance.softDeleteUdhaar directly."
-      - "UdhaarScreen displays loading state and pull-to-refresh."
+      - "Build TemplateEditorClient screen in web dashboard under Settings > Invoice Templates."
+      - "Support uploading store logo and signature image to Firebase Storage."
+      - "Provide live real-time PDF canvas preview updating instantly as branding settings change."
 
   - id: e55-s3
-    title: "Android: Expenses Module Direct DataConnect API Migration"
+    title: "Web Rendering: Multi-Template PDF Builder (Estimate vs. Tax Invoice)"
     acceptance:
-      - "ExpenseViewModel queries expenses via StorebookConnectorConnector.instance.getActiveExpenses."
-      - "Adding an expense executes StorebookConnectorConnector.instance.syncExpense directly."
-      - "Deleting an expense executes StorebookConnectorConnector.instance.softDeleteExpense directly."
-      - "ExpensesScreen displays loading indicators and network error handling."
+      - "Implement PDF layout templates: Standard GST Invoice, Compact Thermal Receipt, and Estimate / Quotation."
+      - "Accurately compute and display line-item CGST/SGST/IGST tax breakdowns, discounts, and final total."
+      - "Render auto-generated UPI QR code from store bank details for fast customer payments."
 
   - id: e55-s4
-    title: "Android: Sales & POS History Direct DataConnect API Migration"
+    title: "Web Actions: Download, Direct Print & WhatsApp/Email Sharing for Sales & Estimates"
     acceptance:
-      - "SalesViewModel queries sales history via StorebookConnectorConnector.instance.getActiveSales."
-      - "Sale items queried via StorebookConnectorConnector.instance.getActiveSaleItems."
-      - "POS checkout executes syncSale and syncSaleItem mutations directly over DataConnect."
-      - "SalesHistoryScreen and SalesAnalyticsScreen display network loading states."
+      - "Add 'Generate PDF' and 'Print Invoice' buttons to Sale Detail and Estimate detail views."
+      - "Integrate Next.js route /api/pdf/generate to return downloadable PDF blobs."
+      - "Provide WhatsApp share trigger pre-filling customer mobile number with PDF link."
 
-  - id: e55-s5
-    title: "Android: Suppliers & Dashboard Direct API Integration & SyncWorker Deprecation"
-    acceptance:
-      - "SupplierViewModel queries suppliers via StorebookConnectorConnector.instance.getActiveSuppliers."
-      - "DashboardViewModel aggregates metrics directly from DataConnect counts and queries."
-      - "Background sync loops for migrated entities in SyncWorker streamlined or retired."
-      - "Full test suite passes (assembleDebug, ktlintCheck)."

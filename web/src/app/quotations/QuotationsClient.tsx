@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Share2 } from "lucide-react";
 import { Plus, Search, Trash2, Download, FileText } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -336,6 +337,13 @@ export default function QuotationsClient({
         }
     };
 
+    const shareWhatsApp = (quote: Record<string, unknown>) => {
+        const id = String(quote.id || "");
+        const total = Number(quote.total_amount || 0).toFixed(2);
+        const text = encodeURIComponent(`Estimate #${id.substring(0, 8)} — Total: Rs.${total}`);
+        window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
+    };
+
     const formatDate = (timestamp: number) => {
         if (!timestamp) return "-";
         return new Date(timestamp).toLocaleDateString("en-IN", {
@@ -610,6 +618,13 @@ export default function QuotationsClient({
                                 className:
                                     "text-emerald-500 hover:text-emerald-700 transition-colors",
                                 title: "Convert to Sale",
+                            },
+                            {
+                                icon: <Share2 size={16} />,
+                                onClick: (quote: Record<string, unknown>) => shareWhatsApp(quote),
+                                className:
+                                    "text-green-500 hover:text-green-700 transition-colors",
+                                title: "Share via WhatsApp",
                             },
                             {
                                 icon: <Download size={16} />,

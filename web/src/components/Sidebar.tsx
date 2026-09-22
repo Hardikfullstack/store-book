@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Users, Receipt, LogOut, Database, Store, Settings, BadgeCheck, LockKeyhole, History, ShoppingBag, Truck } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, Receipt, LogOut, Database, Store, Settings, BadgeCheck, LockKeyhole, History, ShoppingBag, Truck, Printer } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useState } from 'react';
 import CreateStoreModal from '@/components/CreateStoreModal';
@@ -185,6 +185,26 @@ export default function Sidebar({ session }: { session?: Record<string, unknown>
           >
             <Users size={20} className="text-gray-400 dark:text-gray-500 group-hover:text-teal-600" />
             <span>Manage Staff</span>
+          </Link>
+        </div>
+      )}
+
+      {/* Invoice Template Editor link — owner/manager only */}
+      {!isPlatformAdmin && (role === 'owner' || role === 'manager') && (
+        <div className="px-4 py-2">
+          <Link
+            href="/settings/invoice-templates/"
+            className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${pathname.startsWith('/settings/invoice-templates/')
+              ? 'bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400 font-medium'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+          >
+            <Printer size={20} className={
+              pathname.startsWith('/settings/invoice-templates/')
+                ? 'text-teal-600 dark:text-teal-400'
+                : 'text-gray-400 dark:text-gray-500 group-hover:text-teal-600 dark:group-hover:text-teal-400'
+            } />
+            <span>Invoice Templates</span>
           </Link>
         </div>
       )}
