@@ -292,7 +292,7 @@ epics:
   - id: e34
     title: App Stock Audit Module and Adjustments
     priority: P0
-    status: defined
+    status: complete
     story_count: 3
     target_version: v1.3.2
     type: development
