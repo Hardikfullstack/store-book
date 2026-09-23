@@ -55,7 +55,7 @@ class StockAuditViewModel(
                 val offset = ((page - 1) * pageSize).toLong()
 
                 val items = stockAdjustmentRepository.getStockAdjustmentsFiltered(
-                    search = search,
+                    searchQuery = search,
                     reason = reason,
                     startDate = start,
                     endDate = end,
@@ -63,12 +63,25 @@ class StockAuditViewModel(
                     offset = offset,
                 )
                 val count = stockAdjustmentRepository.getStockAdjustmentsFilteredCount(
-                    search = search,
+                    searchQuery = search,
                     reason = reason,
                     startDate = start,
                     endDate = end,
                 )
-                _adjustments.value = items
+                _adjustments.value = items.map {
+                    StockAdjustment(
+                        id = it.id,
+                        itemId = it.item_id,
+                        itemName = it.item_name,
+                        reason = it.reason,
+                        delta = it.delta,
+                        timestamp = it.timestamp,
+                        isDeleted = it.is_deleted.toInt(),
+                        cloudId = it.cloud_id,
+                        isSynced = it.is_synced.toInt(),
+                        updatedAt = it.updated_at,
+                    )
+                }
                 _totalCount.value = count
             } finally {
                 _isLoading.value = false

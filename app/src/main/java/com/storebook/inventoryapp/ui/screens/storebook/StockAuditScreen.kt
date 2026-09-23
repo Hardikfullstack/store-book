@@ -458,7 +458,7 @@ private fun StockAdjustmentCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = adjustment.item_name,
+                    text = adjustment.itemName,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp,
                     modifier = Modifier.weight(1f),
