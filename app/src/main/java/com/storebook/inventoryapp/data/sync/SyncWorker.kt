@@ -277,7 +277,10 @@ class SyncWorker(
             val adjustments = r.getUnsyncedStockAdjustments().filter { it.id.toString() == localId }
             if (adjustments.isEmpty()) return
             val sa = adjustments[0]
-            val remoteId = sa.cloud_id ?: java.util.UUID.randomUUID().toString()
+            val remoteId =
+                sa.cloud_id ?: java.util.UUID
+                    .randomUUID()
+                    .toString()
             val res =
                 c.syncStockAdjustment.execute(
                     remoteId, s, sa.item_id.toString(), sanitize(sa.item_name),
@@ -704,7 +707,10 @@ class SyncWorker(
             var count = 0
             for (sa in r.getUnsyncedStockAdjustments()) {
                 try {
-                    val remoteId = sa.cloud_id ?: java.util.UUID.randomUUID().toString()
+                    val remoteId =
+                        sa.cloud_id ?: java.util.UUID
+                            .randomUUID()
+                            .toString()
                     val res =
                         c.syncStockAdjustment
                             .execute(

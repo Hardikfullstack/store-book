@@ -13,7 +13,7 @@ trim_trailing_whitespace = true
 [*.kt]
 indent_size = 4
 ktlint_standard_constant-background-message = disabled
-max_line_length = 120
+max_line_length = 160
 ktlint_code_style = ktlint_official
 ktlint_standard_no_blank_line_in_rarrow_body = disabled
 ktlint_standard_filename = disabled

@@ -15,12 +15,10 @@ android {
 
     signingConfigs {
         create("release") {
-            if (rootProject.hasProperty("STORE_FILE")) {
-                storeFile = file(rootProject.property("STORE_FILE"))
-                storePassword = rootProject.property("STORE_PASSWORD") as String
-                keyAlias = rootProject.property("KEY_ALIAS") as String
-                keyPassword = rootProject.property("KEY_PASSWORD") as String
-            }
+            storeFile = rootProject.property("STORE_FILE")?.let { file(it) }
+            storePassword = rootProject.property("STORE_PASSWORD") as String
+            keyAlias = rootProject.property("KEY_ALIAS") as String
+            keyPassword = rootProject.property("KEY_PASSWORD") as String
         }
     }
 
@@ -47,6 +45,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            //noinspection WrongGradleMethod
             firebaseCrashlytics {
                 mappingFileUploadEnabled = true
             }
@@ -145,6 +144,7 @@ dependencies {
     // 6. Support Libraries
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.camera.camera2.pipe)
+    implementation(libs.androidx.material3)
 
     // 7. Debug / Test
     testImplementation(libs.junit)

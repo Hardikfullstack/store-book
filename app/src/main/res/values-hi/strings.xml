@@ -74,8 +74,8 @@
     <string name="udh_empty">कोई उधार रिकॉर्ड नहीं मिला।</string>
     <string name="udh_total_outstanding">कुल बकाया उधार राशि</string>
     <string name="udh_ledger_title">%1$s का उधार खाता</string>
-    <string name="udh_btn_give_credit">उधार दिया (+ उधार)</string>
-    <string name="udh_btn_receive_payment">पैसे मिले (- जमा)</string>
+    <string name="udh_btn_give_credit">उधार दिया</string>
+    <string name="udh_btn_receive_payment">पैसे मिले</string>
     <string name="udh_dialog_title">खाता प्रविष्टि जोड़ें</string>
     <string name="udh_amount_label">राशि (₹)</string>
     <string name="udh_outstanding_balance">बकाया राशि: ₹%1$.2f</string>

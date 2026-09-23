@@ -2,6 +2,7 @@
 
 package com.storebook.inventoryapp.ui.screens.storebook
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -36,16 +37,15 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.ModeNight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material.icons.outlined.CheckCircleOutline
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.WarningAmber
@@ -54,6 +54,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -72,6 +73,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -108,6 +110,93 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
+
+@Composable
+private fun DashboardSectionLabel(text: String) {
+    Text(
+        text = text.uppercase(),
+        fontSize = 10.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.8.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+    )
+}
+
+@Composable
+private fun SyncStatusBadge(
+    uiSyncStatus: com.storebook.inventoryapp.ui.viewmodel.UiSyncStatus, // adjust to your actual type
+    onRetry: () -> Unit,
+) {
+    val isSyncing = uiSyncStatus.isSyncing
+    val isFailed = uiSyncStatus.status == "FAILED"
+
+    val badgeColor by
+        animateColorAsState(
+            targetValue =
+                when {
+                    isSyncing -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
+                    uiSyncStatus.status in listOf("DONE", "IDLE") -> Color(0xFF4CAF50).copy(alpha = 0.22f)
+                    isFailed -> MaterialTheme.colorScheme.error.copy(alpha = 0.22f)
+                    else -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f)
+                },
+            label = "sync_badge_color",
+        )
+
+    val syncLabelText =
+        when (uiSyncStatus.status) {
+            "PUSHING" -> "Pushing"
+            "PULLING" -> "Pulling"
+            "DONE", "IDLE" -> "Synced"
+            "FAILED" -> if (uiSyncStatus.failedCount > 0) "Failed (${uiSyncStatus.failedCount})" else "Failed"
+            else -> "Idle"
+        }
+
+    Box(
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(badgeColor)
+                .clickable(
+                    enabled = isFailed,
+                    onClickLabel = "Retry sync",
+                ) { if (isFailed) onRetry() }
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            when {
+                isSyncing ->
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(11.dp),
+                        strokeWidth = 1.5.dp,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                    )
+                isFailed ->
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                    )
+                else ->
+                    Icon(
+                        Icons.Outlined.CheckCircleOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                    )
+            }
+            Text(
+                text = syncLabelText,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -326,103 +415,16 @@ fun DashboardScreen(
 
     Scaffold(
         topBar = {
-            // Modern gradient header with rounded bottom corners
             Box(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.primaryGradient)
                         .statusBarsPadding()
-                        .padding(horizontal = 24.dp, vertical = 22.dp),
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    // Top Row: Greeting and Avatar
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        // Greeting Row
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            val greetingIcon =
-                                when {
-                                    hourOfDay < 12 -> Icons.Filled.WbTwilight
-                                    hourOfDay < 17 -> Icons.Filled.WbSunny
-                                    else -> Icons.Filled.ModeNight
-                                }
-                            Icon(
-                                greetingIcon,
-                                contentDescription = stringResource(R.string.ui_element_desc),
-                                modifier = Modifier.size(15.dp),
-                                tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = "$greetingStr!",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
-                                fontWeight = FontWeight.Medium,
-                                letterSpacing = 0.2.sp,
-                            )
-                        }
-
-                        // Profile Avatar
-                        val auth =
-                            remember {
-                                com.google.firebase.auth.FirebaseAuth
-                                    .getInstance()
-                            }
-                        val currentUser = auth.currentUser
-                        val avatarLetter =
-                            remember(currentUser) {
-                                val phone = currentUser?.phoneNumber
-                                if (phone != null && phone.length > 3) {
-                                    val digits = phone.filter { it.isDigit() }
-                                    if (digits.isNotEmpty()) {
-                                        val mainNumber = if (digits.length >= 10) digits.takeLast(10) else digits
-                                        mainNumber.take(1).uppercase()
-                                    } else {
-                                        "S"
-                                    }
-                                } else {
-                                    "S"
-                                }
-                            }
-
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f))
-                                    .clickable(onClickLabel = "Action") {
-                                        if (currentUser == null) {
-                                            navController.navigate(Routes.Auth)
-                                        } else {
-                                            android.widget.Toast
-                                                .makeText(
-                                                    context,
-                                                    "Logged in: ${currentUser.phoneNumber}",
-                                                    android.widget.Toast.LENGTH_SHORT,
-                                                ).show()
-                                        }
-                                    },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = avatarLetter,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Middle Row: Title, PRO badge, Synced Badge
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Single row: Title + PRO badge  |  Sync status + Avatar
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -437,11 +439,10 @@ fun DashboardScreen(
                                 style =
                                     MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 24.sp,
+                                        fontSize = 20.sp,
                                     ),
                                 color = MaterialTheme.colorScheme.onPrimary,
                             )
-                            // Premium pill badge
                             Box(
                                 modifier =
                                     Modifier
@@ -450,96 +451,81 @@ fun DashboardScreen(
                                             if (viewModel.isPremiumUser) {
                                                 Gold400
                                             } else {
-                                                MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
+                                                MaterialTheme.colorScheme.onPrimary
+                                                    .copy(alpha = 0.15f)
                                             },
-                                        ).clickable(onClickLabel = "Action") {
+                                        ).clickable(onClickLabel = if (viewModel.isPremiumUser) "View Pro plan" else "Upgrade to Pro") {
                                             navController.navigate(Routes.PremiumPlans)
-                                        }.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        }.padding(horizontal = 9.dp, vertical = 3.dp),
                             ) {
                                 Text(
                                     text = if (viewModel.isPremiumUser) "★ PRO" else "FREE",
-                                    fontSize = 10.sp,
+                                    fontSize = 9.sp,
                                     fontWeight = FontWeight.Black,
-                                    color =
-                                        if (viewModel.isPremiumUser) {
-                                            Color(0xFF452E00)
-                                        } else {
-                                            MaterialTheme.colorScheme.onPrimary
-                                        },
+                                    color = if (viewModel.isPremiumUser) Color(0xFF452E00) else MaterialTheme.colorScheme.onPrimary,
                                 )
                             }
                         }
 
-                        val isSyncing = uiSyncStatus.isSyncing
-                        val syncBadgeColor =
-                            when {
-                                isSyncing -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                                uiSyncStatus.status in listOf("DONE") ->
-                                    androidx.compose.ui.graphics
-                                        .Color(0xFF4CAF50)
-                                        .copy(alpha = 0.18f)
-                                else -> MaterialTheme.colorScheme.error.copy(alpha = 0.18f)
-                            }
-                        val syncLabelText =
-                            when (uiSyncStatus.status) {
-                                "PUSHING" -> "Pushing…"
-                                "PULLING" -> "Pulling…"
-                                "DONE", "IDLE" -> "✓ Synced"
-                                "FAILED" ->
-                                    if (uiSyncStatus.failedCount >
-                                        0
-                                    ) {
-                                        "⚠ Failed · ${uiSyncStatus.failedCount}"
-                                    } else {
-                                        "Failed"
-                                    }
-                                else -> "⏸ Idle"
-                            }
-
-                        Box(
-                            modifier =
-                                Modifier
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(syncBadgeColor)
-                                    .clickable(onClickLabel = "Retry sync") {
-                                        viewModel.retrySync()
-                                    }.padding(horizontal = 10.dp, vertical = 4.dp),
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Icon(
-                                    if (isSyncing) {
-                                        Icons.Default.Notifications
-                                    } else if (uiSyncStatus.status == "FAILED") {
-                                        Icons.Default.Warning
+                            SyncStatusBadge(
+                                uiSyncStatus = uiSyncStatus,
+                                onRetry = { viewModel.retrySync() },
+                            )
+
+                            // Profile Avatar
+                            val auth =
+                                remember {
+                                    com.google.firebase.auth.FirebaseAuth
+                                        .getInstance()
+                                }
+                            val currentUser = auth.currentUser
+                            val avatarLetter =
+                                remember(currentUser) {
+                                    val phone = currentUser?.phoneNumber
+                                    if (phone != null && phone.length > 3) {
+                                        val digits = phone.filter { it.isDigit() }
+                                        if (digits.isNotEmpty()) {
+                                            val mainNumber = if (digits.length >= 10) digits.takeLast(10) else digits
+                                            mainNumber.take(1).uppercase()
+                                        } else {
+                                            "S"
+                                        }
                                     } else {
-                                        Icons.Outlined.CheckCircleOutline
-                                    },
-                                    contentDescription = "Sync status",
-                                    modifier = Modifier.size(12.dp),
-                                    tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                                )
+                                        "S"
+                                    }
+                                }
+
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(30.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f))
+                                        .border(1.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.25f), CircleShape)
+                                        .clickable(
+                                            onClickLabel = if (currentUser == null) "Sign in" else "View profile",
+                                        ) {
+                                            if (currentUser == null) {
+                                                navController.navigate(Routes.Auth)
+                                            } else {
+                                                navController.navigate(Routes.More)
+                                            }
+                                        },
+                                contentAlignment = Alignment.Center,
+                            ) {
                                 Text(
-                                    text = syncLabelText,
-                                    fontSize = 10.sp,
+                                    text = avatarLetter,
+                                    color = MaterialTheme.colorScheme.onPrimary,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                                    fontSize = 13.sp,
                                 )
                             }
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // Bottom Row: Subtitle
-                    Text(
-                        text = stringResource(id = R.string.dash_subtitle),
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                        fontWeight = FontWeight.Medium,
-                    )
                 }
             }
         },
@@ -558,14 +544,14 @@ fun DashboardScreen(
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp), // base rhythm for top-level blocks
             ) {
                 // Search or Sell Omnibox
                 item {
                     Box(
                         modifier =
-                            Modifier.fillMaxWidth().clickable(onClickLabel = "Action") {
+                            Modifier.fillMaxWidth().clickable(onClickLabel = "Search or scan to sell") {
                                 navController.navigate(Routes.Sales) {
                                     popUpTo<Routes.Dashboard> { saveState = true }
                                     launchSingleTop = true
@@ -586,26 +572,16 @@ fun DashboardScreen(
                             },
                             modifier = Modifier.fillMaxWidth(),
                             leadingIcon = {
-                                Icon(
-                                    Icons.Default.Search,
-                                    contentDescription =
-                                        stringResource(R.string.ui_element_desc),
-                                )
+                                Icon(Icons.Default.Search, contentDescription = stringResource(R.string.ui_element_desc))
                             },
                             enabled = false,
                             colors =
                                 OutlinedTextFieldDefaults.colors(
-                                    disabledContainerColor =
-                                        MaterialTheme.colorScheme.surface,
-                                    disabledTextColor =
-                                        MaterialTheme.colorScheme.onSurface,
-                                    disabledPlaceholderColor =
-                                        MaterialTheme.colorScheme.onSurfaceVariant,
-                                    disabledLeadingIconColor =
-                                        MaterialTheme.colorScheme.onSurfaceVariant,
-                                    disabledBorderColor =
-                                        MaterialTheme.colorScheme.outlineVariant
-                                            .copy(alpha = 0.3f),
+                                    disabledContainerColor = MaterialTheme.colorScheme.surface,
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    disabledBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                                 ),
                             shape = CircleShape,
                         )
@@ -620,29 +596,23 @@ fun DashboardScreen(
                                 Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(
-                                        MaterialTheme.colorScheme.error.copy(
-                                            alpha = 0.05f,
+                                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.05f))
+                                    .border(
+                                        1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                                        RoundedCornerShape(
+                                            16
+                                                .dp,
                                         ),
-                                    ).border(
-                                        1.dp,
-                                        MaterialTheme.colorScheme.error.copy(
-                                            alpha = 0.1f,
-                                        ),
-                                        RoundedCornerShape(16.dp),
                                     ),
                         ) {
-                            // Header
                             Row(
                                 modifier =
                                     Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                                        .clickable(onClickLabel = "Action") {
+                                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                                        .clickable(onClickLabel = "View all low stock items") {
                                             navController.navigate(Routes.Inventory) {
-                                                popUpTo<Routes.Dashboard> {
-                                                    saveState = true
-                                                }
+                                                popUpTo<Routes.Dashboard> { saveState = true }
                                                 launchSingleTop = true
                                                 restoreState = true
                                             }
@@ -651,93 +621,67 @@ fun DashboardScreen(
                             ) {
                                 Icon(
                                     Icons.Default.Warning,
-                                    contentDescription =
-                                        stringResource(R.string.ui_element_desc),
+                                    contentDescription = null,
                                     tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(18.dp),
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text =
-                                        stringResource(
-                                            id = R.string.dash_alert_banner,
-                                            lowStockItems.size,
-                                        ),
+                                    text = stringResource(id = R.string.dash_alert_banner, lowStockItems.size),
                                     color = MaterialTheme.colorScheme.error,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
                                     modifier = Modifier.weight(1f),
                                 )
-                                Text(
-                                    "View All",
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
+                                Text("View All", color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 Icon(
                                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    contentDescription =
-                                        stringResource(R.string.ui_element_desc),
+                                    contentDescription = null,
                                     tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(16.dp),
                                 )
                             }
 
-                            // Items list (up to 3)
-                            lowStockItems.take(3).forEach { item ->
-                                Row(
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .padding(
-                                                horizontal = 14.dp,
-                                                vertical = 8.dp,
-                                            ),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = item.name,
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 14.sp,
-                                            maxLines = 1,
-                                            overflow =
-                                                androidx.compose.ui.text.style.TextOverflow
-                                                    .Ellipsis,
-                                        )
-                                        Text(
-                                            "Stock: ${formatQty(item.quantity)} ${item.unit}",
-                                            fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.error,
-                                        )
-                                    }
-                                    androidx.compose.material3.Button(
-                                        onClick = { quickRefillItem = item },
-                                        colors =
-                                            ButtonDefaults.buttonColors(
-                                                containerColor =
-                                                    MaterialTheme.colorScheme.error,
-                                                contentColor =
-                                                    MaterialTheme.colorScheme
-                                                        .onError,
-                                            ),
-                                        contentPadding =
-                                            PaddingValues(
-                                                horizontal = 12.dp,
-                                                vertical = 4.dp,
-                                            ),
-                                        modifier = Modifier.height(28.dp),
+                            // Item rows — grouped in their own Column with consistent internal rhythm
+                            Column(
+                                modifier = Modifier.padding(horizontal = 14.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                lowStockItems.take(3).forEach { item ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        Text(
-                                            "Restock",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onError,
-                                        )
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = item.name,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 14.sp,
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            )
+                                            Text(
+                                                "Stock: ${formatQty(item.quantity)} ${item.unit}",
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.error,
+                                            )
+                                        }
+                                        androidx.compose.material3.Button(
+                                            onClick = { quickRefillItem = item },
+                                            colors =
+                                                ButtonDefaults.buttonColors(
+                                                    containerColor = MaterialTheme.colorScheme.error,
+                                                    contentColor = MaterialTheme.colorScheme.onError,
+                                                ),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                            modifier = Modifier.height(28.dp),
+                                        ) {
+                                            Text("Restock", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onError)
+                                        }
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
                         }
                     }
                 }
@@ -752,31 +696,25 @@ fun DashboardScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors =
-                                CardDefaults.cardColors(
-                                    containerColor =
-                                        MaterialTheme.colorScheme
-                                            .secondaryContainer,
-                                ),
+                                CardDefaults
+                                    .cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                             shape = RoundedCornerShape(16.dp),
                         ) {
                             Row(
-                                modifier = Modifier.padding(14.dp),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         Icons.Default.Notifications,
-                                        contentDescription =
-                                            stringResource(R.string.ui_element_desc),
+                                        contentDescription = null,
                                         tint = MaterialTheme.colorScheme.secondary,
                                         modifier = Modifier.size(20.dp),
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text =
-                                            stringResource(id = R.string.btn_undo) +
-                                                "? (${undoSecondsLeft}s)",
+                                        text = stringResource(id = R.string.btn_undo) + "? (${undoSecondsLeft}s)",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium,
                                     )
@@ -785,28 +723,21 @@ fun DashboardScreen(
                                     onClick = {
                                         salesViewModel.undoLastSale {
                                             android.widget.Toast
-                                                .makeText(
-                                                    context,
-                                                    context.getString(
-                                                        R.string.toast_undo_success,
-                                                    ),
-                                                    android.widget.Toast.LENGTH_SHORT,
-                                                ).show()
+                                                .makeText(context, context.getString(R.string.toast_undo_success), android.widget.Toast.LENGTH_SHORT)
+                                                .show()
                                         }
                                     },
                                     shape = RoundedCornerShape(10.dp),
-                                    contentPadding =
-                                        PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                                     colors =
-                                        ButtonDefaults.buttonColors(
-                                            containerColor =
-                                                MaterialTheme.colorScheme.primary,
-                                        ),
+                                        ButtonDefaults
+                                            .buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                 ) {
                                     Text(
-                                        stringResource(id = R.string.btn_undo),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
+                                        stringResource(id = R.string.btn_undo), fontWeight = FontWeight.Bold,
+                                        fontSize =
+                                            12
+                                                .sp,
                                     )
                                 }
                             }
@@ -816,7 +747,8 @@ fun DashboardScreen(
 
                 // Today's Summary Section
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                        // major-group rhythm
                         Text(
                             text = stringResource(id = R.string.dash_today_summary),
                             fontWeight = FontWeight.Bold,
@@ -824,66 +756,25 @@ fun DashboardScreen(
                             color = MaterialTheme.colorScheme.onBackground,
                         )
 
-                        // 2x2 Grid layout for stat cards to fit without scroll
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        if (viewModel.userRoleType.hasPermission(
+                                com.storebook.inventoryapp.ui.viewmodels.AppPermission.VIEW_FINANCIALS,
+                            )
                         ) {
-                            if (viewModel.userRoleType.hasPermission(
-                                    com.storebook.inventoryapp.ui.viewmodels.AppPermission
-                                        .VIEW_FINANCIALS,
-                                )
-                            ) {
-                                SparklineMetricCard(
-                                    title = "Net Sales (Last 7 Days)",
-                                    totalValue = last7DaysData.first.sum().toRupee(),
-                                    trendData = last7DaysData.first,
-                                    indicatorColor = salesIndicatorColor,
-                                    indicatorLabel = salesIndicatorLabel,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                                SparklineMetricCard(
-                                    title = "Purchases (Last 7 Days)",
-                                    totalValue = last7DaysData.second.sum().toRupee(),
-                                    trendData = last7DaysData.second,
-                                    indicatorColor = purchasesIndicatorColor,
-                                    indicatorLabel = purchasesIndicatorLabel,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                                SparklineMetricCard(
-                                    title = "Expenses (Last 7 Days)",
-                                    totalValue = last7DaysData.third.sum().toRupee(),
-                                    trendData = last7DaysData.third,
-                                    indicatorColor = expensesIndicatorColor,
-                                    indicatorLabel = expensesIndicatorLabel,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                                // E03-S3: Today's financial snapshot (from sale_items price
-                                // snapshots, accurate profit)
+                            // "Today" group — label tightly bound to its content
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                DashboardSectionLabel("Today")
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
                                     AnimatedMetricCard(
-                                        title =
-                                            stringResource(
-                                                id = R.string.dash_today_revenue,
-                                            ),
+                                        title = stringResource(id = R.string.dash_today_revenue),
                                         value = todayRevenue.toRupee(),
-                                        gradient =
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    Color(0xFF3B82F6),
-                                                    Color(0xFF1D4ED8),
-                                                ),
-                                            ),
+                                        gradient = Brush.linearGradient(listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8))),
                                         iconContent = {
                                             Icon(
                                                 Icons.Filled.Payments,
-                                                contentDescription =
-                                                    stringResource(
-                                                        R.string.ui_element_desc,
-                                                    ),
+                                                contentDescription = null,
                                                 tint = Color.White,
                                                 modifier = Modifier.size(22.dp),
                                             )
@@ -891,25 +782,13 @@ fun DashboardScreen(
                                         modifier = Modifier.weight(1f),
                                     )
                                     AnimatedMetricCard(
-                                        title =
-                                            stringResource(
-                                                id = R.string.dash_today_expenses,
-                                            ),
+                                        title = stringResource(id = R.string.dash_today_expenses),
                                         value = todayExpenses.toRupee(),
-                                        gradient =
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    Color(0xFFF97316),
-                                                    Color(0xFFC2410C),
-                                                ),
-                                            ),
+                                        gradient = Brush.linearGradient(listOf(Color(0xFF64748B), Color(0xFF334155))),
                                         iconContent = {
                                             Icon(
                                                 Icons.AutoMirrored.Filled.ReceiptLong,
-                                                contentDescription =
-                                                    stringResource(
-                                                        R.string.ui_element_desc,
-                                                    ),
+                                                contentDescription = null,
                                                 tint = Color.White,
                                                 modifier = Modifier.size(22.dp),
                                             )
@@ -917,39 +796,28 @@ fun DashboardScreen(
                                         modifier = Modifier.weight(1f),
                                     )
                                 }
-                                // Profit card on its own row (full width)
+
                                 if (viewModel.isPremiumUser) {
                                     AnimatedMetricCard(
                                         title = stringResource(id = R.string.dash_today_profit),
                                         value = todayProfit.toRupee(),
                                         gradient =
                                             if (todayProfit >= 0) {
-                                                Brush.linearGradient(
-                                                    listOf(
-                                                        Color(0xFF10B981),
-                                                        Color(0xFF047857),
-                                                    ),
-                                                )
+                                                Brush.linearGradient(listOf(Color(0xFF10B981), Color(0xFF047857)))
                                             } else {
-                                                Brush.linearGradient(
-                                                    listOf(
-                                                        Color(0xFFEF4444),
-                                                        Color(0xFFB91C1C),
-                                                    ),
-                                                )
+                                                Brush.linearGradient(listOf(Color(0xFFEF4444), Color(0xFFB91C1C)))
                                             },
                                         iconContent = {
                                             Icon(
                                                 imageVector =
-                                                    if (todayProfit >= 0) {
+                                                    if (todayProfit >=
+                                                        0
+                                                    ) {
                                                         Icons.AutoMirrored.Filled.TrendingUp
                                                     } else {
                                                         Icons.AutoMirrored.Filled.TrendingDown
                                                     },
-                                                contentDescription =
-                                                    stringResource(
-                                                        R.string.ui_element_desc,
-                                                    ),
+                                                contentDescription = null,
                                                 tint = Color.White,
                                                 modifier = Modifier.size(22.dp),
                                             )
@@ -963,17 +831,13 @@ fun DashboardScreen(
                                                 .fillMaxWidth()
                                                 .height(76.dp)
                                                 .clip(RoundedCornerShape(16.dp))
-                                                .background(
-                                                    MaterialTheme.colorScheme.surfaceVariant.copy(
-                                                        alpha = 0.3f,
-                                                    ),
-                                                ).border(
+                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                                .border(
                                                     1.dp,
-                                                    MaterialTheme.colorScheme.outlineVariant.copy(
-                                                        alpha = 0.4f,
-                                                    ),
+                                                    MaterialTheme.colorScheme.outlineVariant
+                                                        .copy(alpha = 0.4f),
                                                     RoundedCornerShape(16.dp),
-                                                ).clickable(onClickLabel = "Action") {
+                                                ).clickable(onClickLabel = "Upgrade to see today's profit") {
                                                     navController.navigate(Routes.PremiumPlans)
                                                 },
                                         contentAlignment = Alignment.Center,
@@ -988,15 +852,14 @@ fun DashboardScreen(
                                                         .size(42.dp)
                                                         .clip(CircleShape)
                                                         .background(
-                                                            MaterialTheme.colorScheme.primary.copy(
-                                                                alpha = 0.15f,
-                                                            ),
+                                                            MaterialTheme.colorScheme.primary
+                                                                .copy(alpha = 0.15f),
                                                         ),
                                                 contentAlignment = Alignment.Center,
                                             ) {
                                                 Icon(
                                                     imageVector = Icons.Filled.Lock,
-                                                    contentDescription = stringResource(R.string.ui_element_desc),
+                                                    contentDescription = null,
                                                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                                                     modifier = Modifier.size(20.dp),
                                                 )
@@ -1007,9 +870,8 @@ fun DashboardScreen(
                                                     fontSize = 11.5.sp,
                                                     fontWeight = FontWeight.SemiBold,
                                                     color =
-                                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                                            alpha = 0.7f,
-                                                        ),
+                                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                                            .copy(alpha = 0.7f),
                                                     maxLines = 1,
                                                 )
                                                 Spacer(modifier = Modifier.height(2.dp))
@@ -1025,6 +887,62 @@ fun DashboardScreen(
                                     }
                                 }
                             }
+
+                            // "Last 7 Days" group
+                            var showTrends by rememberSaveable { mutableStateOf(false) }
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .clickable(onClickLabel = "Toggle 7-day trends") {
+                                                showTrends = !showTrends
+                                            }.padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    DashboardSectionLabel("Last 7 Days")
+                                    Icon(
+                                        imageVector = if (showTrends) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                        contentDescription = if (showTrends) "Collapse" else "Expand",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                }
+                                AnimatedVisibility(visible = showTrends) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        SparklineMetricCard(
+                                            title = "Net Sales (Last 7 Days)",
+                                            totalValue = last7DaysData.first.sum().toRupee(),
+                                            trendData = last7DaysData.first,
+                                            indicatorColor = salesIndicatorColor,
+                                            indicatorLabel = salesIndicatorLabel,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                        SparklineMetricCard(
+                                            title = "Purchases (Last 7 Days)",
+                                            totalValue = last7DaysData.second.sum().toRupee(),
+                                            trendData = last7DaysData.second,
+                                            indicatorColor = purchasesIndicatorColor,
+                                            indicatorLabel = purchasesIndicatorLabel,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                        SparklineMetricCard(
+                                            title = "Expenses (Last 7 Days)",
+                                            totalValue = last7DaysData.third.sum().toRupee(),
+                                            trendData = last7DaysData.third,
+                                            indicatorColor = expensesIndicatorColor,
+                                            indicatorLabel = expensesIndicatorLabel,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // "Inventory Health" group
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            DashboardSectionLabel("Inventory Health")
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1032,67 +950,55 @@ fun DashboardScreen(
                                 AnimatedMetricCard(
                                     title = stringResource(id = R.string.dash_total_items),
                                     value = "${allItems.size}",
-                                    gradient =
-                                        Brush.linearGradient(
-                                            listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8)),
-                                        ),
+                                    gradient = Brush.linearGradient(listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8))),
                                     iconContent = {
                                         Icon(
                                             painter =
-                                                androidx.compose.ui.res.painterResource(
-                                                    id = R.drawable.ic_total_items,
-                                                ),
-                                            contentDescription =
-                                                stringResource(
-                                                    R.string.ui_element_desc,
-                                                ),
+                                                androidx.compose.ui.res
+                                                    .painterResource(id = R.drawable.ic_total_items),
+                                            contentDescription = null,
                                             tint = Color.White,
                                             modifier = Modifier.size(22.dp),
                                         )
                                     },
-                                    modifier = Modifier.weight(1f),
+                                    modifier =
+                                        Modifier.weight(1f).clickable(onClickLabel = "View all items") {
+                                            navController.navigate(Routes.Inventory)
+                                        },
                                 )
                                 AnimatedMetricCard(
                                     title = stringResource(id = R.string.dash_low_stock),
                                     value = "${lowStockItems.size}",
                                     gradient =
                                         if (lowStockItems.isNotEmpty()) {
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    Color(0xFFEF4444),
-                                                    Color(0xFFB91C1C),
-                                                ),
-                                            )
+                                            Brush.linearGradient(listOf(Color(0xFFEF4444), Color(0xFFB91C1C)))
                                         } else {
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    Color(0xFF10B981),
-                                                    Color(0xFF047857),
-                                                ),
-                                            )
+                                            Brush.linearGradient(listOf(Color(0xFF10B981), Color(0xFF047857)))
                                         },
                                     iconContent = {
                                         Icon(
-                                            imageVector =
-                                                if (lowStockItems.isNotEmpty()) {
-                                                    Icons.Outlined.WarningAmber
-                                                } else {
-                                                    Icons.Outlined.CheckCircleOutline
-                                                },
-                                            contentDescription =
-                                                stringResource(
-                                                    R.string.ui_element_desc,
-                                                ),
+                                            imageVector = if (lowStockItems.isNotEmpty()) Icons.Outlined.WarningAmber else Icons.Outlined.CheckCircleOutline,
+                                            contentDescription = null,
                                             tint = Color.White,
                                             modifier = Modifier.size(22.dp),
                                         )
                                     },
-                                    modifier = Modifier.weight(1f),
+                                    modifier =
+                                        Modifier.weight(1f).clickable(
+                                            onClickLabel = if (lowStockItems.isNotEmpty()) "View low stock items" else "View inventory",
+                                        ) {
+                                            navController.navigate(Routes.Inventory)
+                                        },
                                 )
                             }
                         }
                     }
                 }
+
+                // Extra breathing room before the primary action — this is the biggest semantic
+                // transition on the screen (read-only info → primary CTA), so it gets more than
+                // the base 12dp rhythm.
+                item { Spacer(modifier = Modifier.height(8.dp)) }
 
                 // Quick Sale CTA
                 item {
@@ -1103,7 +1009,7 @@ fun DashboardScreen(
                                 .height(56.dp)
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(MaterialTheme.primaryGradient)
-                                .clickable(onClickLabel = "Action") {
+                                .clickable(onClickLabel = "Record a new sale") {
                                     navController.navigate(Routes.Sales) {
                                         popUpTo<Routes.Dashboard> { saveState = true }
                                         launchSingleTop = true
@@ -1112,13 +1018,10 @@ fun DashboardScreen(
                                 },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                        ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                             Icon(
                                 Icons.Outlined.ShoppingCart,
-                                contentDescription = stringResource(R.string.ui_element_desc),
+                                contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(20.dp),
                             )
@@ -1134,6 +1037,8 @@ fun DashboardScreen(
                     }
                 }
 
+                item { Spacer(modifier = Modifier.height(8.dp)) } // action → list transition
+
                 // Recent Sales header
                 item {
                     Row(
@@ -1142,9 +1047,10 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = stringResource(id = R.string.dash_recent_sales),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
+                            text = stringResource(id = R.string.dash_recent_sales), fontWeight = FontWeight.Bold,
+                            fontSize =
+                                15
+                                    .sp,
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
@@ -1156,15 +1062,10 @@ fun DashboardScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             androidx.compose.material3.TextButton(
                                 onClick = { navController.navigate(Routes.SalesHistory) },
-                                contentPadding =
-                                    PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                                 modifier = Modifier.height(32.dp),
                             ) {
-                                Text(
-                                    text = stringResource(id = R.string.btn_view_all),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
+                                Text(text = stringResource(id = R.string.btn_view_all), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -1172,40 +1073,27 @@ fun DashboardScreen(
 
                 if (todaySales.isEmpty()) {
                     item {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().height(140.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
+                        Box(modifier = Modifier.fillMaxWidth().height(140.dp), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Box(
                                     modifier =
                                         Modifier
                                             .size(64.dp)
                                             .clip(CircleShape)
-                                            .background(
-                                                MaterialTheme.colorScheme.primary
-                                                    .copy(alpha = 0.08f),
-                                            ),
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.ShoppingCart,
-                                        contentDescription =
-                                            stringResource(R.string.ui_element_desc),
-                                        tint =
-                                            MaterialTheme.colorScheme.primary.copy(
-                                                alpha = 0.8f,
-                                            ),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                                         modifier = Modifier.size(32.dp),
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
                                     text = stringResource(id = R.string.dash_no_sales_today),
-                                    color =
-                                        MaterialTheme.colorScheme.onSurface.copy(
-                                            alpha = 0.45f,
-                                        ),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium,
                                     textAlign = TextAlign.Center,
@@ -1215,29 +1103,22 @@ fun DashboardScreen(
                     }
                 } else {
                     items(todaySales, key = { it.id }) { sale ->
-                        val saleTime =
-                            remember(sale.timestamp) { timeFmt.format(Date(sale.timestamp)) }
+                        val saleTime = remember(sale.timestamp) { timeFmt.format(Date(sale.timestamp)) }
                         val profit =
                             remember(sale) {
-                                sale.items.sumOf {
-                                    (it.sellPrice - it.buyPrice) * it.quantity
-                                } - sale.discountAmount
+                                sale.items.sumOf { (it.sellPrice - it.buyPrice) * it.quantity } - sale.discountAmount
                             }
                         SaleTimelineCard(
                             sale = sale,
-                            customerName =
-                                sale.customerName
-                                    ?: stringResource(id = R.string.customer_walk_in),
+                            customerName = sale.customerName ?: stringResource(id = R.string.customer_walk_in),
                             saleTime = saleTime,
                             profit = profit,
-                            onViewInvoice = {
-                                navController.navigate(Routes.InvoicePdfPreview(sale.id))
-                            },
+                            onViewInvoice = { navController.navigate(Routes.InvoicePdfPreview(sale.id)) },
                         )
                     }
                 }
 
-                item { Spacer(modifier = Modifier.height(16.dp)) }
+                item { Spacer(modifier = Modifier.height(20.dp)) } // bottom breathing room
             }
         }
     }
@@ -1437,21 +1318,21 @@ fun SaleTimelineCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border =
             BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Left accent dot
             Box(
                 modifier =
                     Modifier
-                        .size(40.dp)
+                        .size(32.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.primaryGradient),
                 contentAlignment = Alignment.Center,
@@ -1459,19 +1340,36 @@ fun SaleTimelineCard(
                 Text(
                     text = customerName.firstOrNull()?.uppercase() ?: "W",
                     fontWeight = FontWeight.Black,
-                    fontSize = 16.sp,
+                    fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = customerName,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    maxLines = 1,
-                    modifier = Modifier.autoMarquee(),
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = customerName,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        maxLines = 1,
+                        modifier =
+                            Modifier
+                                .weight(1f, fill = false)
+                                .autoMarquee(),
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    IconButton(
+                        onClick = onViewInvoice,
+                        modifier = Modifier.size(20.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Print,
+                            contentDescription = "View Invoice",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                        )
+                    }
+                }
                 if (sale.items.isNotEmpty()) {
                     if (sale.items.size == 1) {
                         val item = sale.items.first()
@@ -1479,7 +1377,7 @@ fun SaleTimelineCard(
                         Text(
                             text =
                                 "${item.itemName} (${item.quantity} ${item.unit} x $priceText)",
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
@@ -1491,7 +1389,7 @@ fun SaleTimelineCard(
                         Text(
                             text =
                                 "${firstItem.itemName} (${firstItem.quantity} ${firstItem.unit} x $priceText) +${sale.items.size - 1} more",
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
@@ -1507,7 +1405,7 @@ fun SaleTimelineCard(
                     val priceText = sale.totalAmount.toRupeeWithDecimals()
                     Text(
                         text = "Quick Cash Sale (1.0 pcs x $priceText)",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,
@@ -1516,15 +1414,16 @@ fun SaleTimelineCard(
                 }
                 Text(
                     text = saleTime,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 )
             }
+            Spacer(modifier = Modifier.width(4.dp))
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "${sale.totalAmount.toRupee()}",
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 16.sp,
+                    fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 val isLoss = profit < 0
@@ -1536,19 +1435,10 @@ fun SaleTimelineCard(
                         } else {
                             "+${profit.toRupee()} Profit"
                         },
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isLoss) Coral500 else Emerald500,
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                IconButton(onClick = onViewInvoice, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        Icons.Default.Print,
-                        contentDescription = "View Invoice",
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                    )
-                }
             }
         }
     }

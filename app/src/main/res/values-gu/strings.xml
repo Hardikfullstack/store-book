@@ -74,8 +74,8 @@
     <string name="udh_empty">કોઈ ઉધાર નોંધ મળી નથી.</string>
     <string name="udh_total_outstanding">કુલ બાકી ઉધાર રકમ</string>
     <string name="udh_ledger_title">%1$s નું ખાતું</string>
-    <string name="udh_btn_give_credit">ઉધાર આપ્યા (+ ઉધાર)</string>
-    <string name="udh_btn_receive_payment">પૈસા મળ્યા (- જમા)</string>
+    <string name="udh_btn_give_credit">ઉધાર આપ્યા</string>
+    <string name="udh_btn_receive_payment">પૈસા મળ્યા</string>
     <string name="udh_dialog_title">ખાતામાં એન્ટ્રી ઉમેરો</string>
     <string name="udh_amount_label">રકમ (₹)</string>
     <string name="udh_outstanding_balance">બાકી રકમ: ₹%1$.2f</string>

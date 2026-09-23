@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,7 +25,6 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Inventory
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -99,13 +97,14 @@ fun StockAuditScreen(
                 TextButton(onClick = {
                     val sel = dpState.selectedDateMillis
                     if (sel != null) {
-                        val cal = Calendar.getInstance().apply {
-                            timeInMillis = sel
-                            set(Calendar.HOUR_OF_DAY, 0)
-                            set(Calendar.MINUTE, 0)
-                            set(Calendar.SECOND, 0)
-                            set(Calendar.MILLISECOND, 0)
-                        }
+                        val cal =
+                            Calendar.getInstance().apply {
+                                timeInMillis = sel
+                                set(Calendar.HOUR_OF_DAY, 0)
+                                set(Calendar.MINUTE, 0)
+                                set(Calendar.SECOND, 0)
+                                set(Calendar.MILLISECOND, 0)
+                            }
                         viewModel.setDateRange(cal.timeInMillis, endDate)
                     }
                     showStartDatePicker = false
@@ -128,13 +127,14 @@ fun StockAuditScreen(
                 TextButton(onClick = {
                     val sel = dpState.selectedDateMillis
                     if (sel != null) {
-                        val cal = Calendar.getInstance().apply {
-                            timeInMillis = sel
-                            set(Calendar.HOUR_OF_DAY, 23)
-                            set(Calendar.MINUTE, 59)
-                            set(Calendar.SECOND, 59)
-                            set(Calendar.MILLISECOND, 999)
-                        }
+                        val cal =
+                            Calendar.getInstance().apply {
+                                timeInMillis = sel
+                                set(Calendar.HOUR_OF_DAY, 23)
+                                set(Calendar.MINUTE, 59)
+                                set(Calendar.SECOND, 59)
+                                set(Calendar.MILLISECOND, 999)
+                            }
                         viewModel.setDateRange(startDate, cal.timeInMillis)
                     }
                     showEndDatePicker = false
@@ -161,10 +161,11 @@ fun StockAuditScreen(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp),
         ) {
             // Subtitle
             Text(
@@ -178,12 +179,15 @@ fun StockAuditScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                colors =
+                    CardDefaults
+                        .cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     // Search bar
@@ -204,10 +208,11 @@ fun StockAuditScreen(
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        ),
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            ),
                     )
 
                     // Filters Row: Reason & Date
@@ -219,13 +224,19 @@ fun StockAuditScreen(
                         // Reason dropdown
                         Box(modifier = Modifier.weight(1f)) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                    .clickable { reasonDropdownExpanded = true }
-                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .border(
+                                            1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                            RoundedCornerShape(
+                                                8
+                                                    .dp,
+                                            ),
+                                        ).clickable { reasonDropdownExpanded = true }
+                                        .padding(horizontal = 10.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -259,27 +270,33 @@ fun StockAuditScreen(
 
                         // Date filter button
                         val hasDateFilter = startDate != null || endDate != null
-                        val dateLabel = if (!hasDateFilter) {
-                            "All Dates"
-                        } else {
-                            val s = startDate?.let { dateDisplayFmt.format(Date(it)) } ?: "Start"
-                            val e = endDate?.let { dateDisplayFmt.format(Date(it)) } ?: "End"
-                            "$s - $e"
-                        }
+                        val dateLabel =
+                            if (!hasDateFilter) {
+                                "All Dates"
+                            } else {
+                                val s = startDate?.let { dateDisplayFmt.format(Date(it)) } ?: "Start"
+                                val e = endDate?.let { dateDisplayFmt.format(Date(it)) } ?: "End"
+                                "$s - $e"
+                            }
                         Row(
-                            modifier = Modifier
-                                .weight(1.2f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surface)
-                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                .clickable {
-                                    if (hasDateFilter) {
-                                        viewModel.setDateRange(null, null)
-                                    } else {
-                                        showStartDatePicker = true
-                                    }
-                                }
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            modifier =
+                                Modifier
+                                    .weight(1.2f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .border(
+                                        1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                        RoundedCornerShape(
+                                            8
+                                                .dp,
+                                        ),
+                                    ).clickable {
+                                        if (hasDateFilter) {
+                                            viewModel.setDateRange(null, null)
+                                        } else {
+                                            showStartDatePicker = true
+                                        }
+                                    }.padding(horizontal = 10.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -335,9 +352,10 @@ fun StockAuditScreen(
 
             // Main Content Area
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
             ) {
                 if (isLoading) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -345,9 +363,10 @@ fun StockAuditScreen(
                     }
                 } else if (adjustments.isEmpty()) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Column(
@@ -393,9 +412,10 @@ fun StockAuditScreen(
             val endEntry = minOf(currentPage * pageSize, totalCount.toInt())
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -446,9 +466,10 @@ private fun StockAdjustmentCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             // Row 1: Item Name & Stock Delta
@@ -466,20 +487,22 @@ private fun StockAdjustmentCard(
 
                 val delta = adjustment.delta
                 val isPositive = delta > 0
-                val deltaText = if (delta % 1.0 == 0.0) {
-                    if (isPositive) "+${delta.toInt()}" else "${delta.toInt()}"
-                } else {
-                    if (isPositive) "+%.2f".format(delta) else "%.2f".format(delta)
-                }
+                val deltaText =
+                    if (delta % 1.0 == 0.0) {
+                        if (isPositive) "+${delta.toInt()}" else "${delta.toInt()}"
+                    } else {
+                        if (isPositive) "+%.2f".format(delta) else "%.2f".format(delta)
+                    }
 
                 val deltaTextColor = if (isPositive) Color(0xFF047857) else Color(0xFFB91C1C)
                 val deltaBgColor = if (isPositive) Color(0xFFD1FAE5) else Color(0xFFFEE2E2)
 
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(deltaBgColor)
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(deltaBgColor)
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
                 ) {
                     Text(
                         text = deltaText,
@@ -510,20 +533,22 @@ private fun StockAdjustmentCard(
 
 @Composable
 private fun ReasonBadge(reason: String) {
-    val (textColor, bgColor) = when (reason) {
-        "Damage" -> Color(0xFFB91C1C) to Color(0xFFFEE2E2)
-        "Expiry" -> Color(0xFFC2410C) to Color(0xFFFFEDD5)
-        "Loss" -> Color(0xFFBE123C) to Color(0xFFFFE4E6)
-        "Restock" -> Color(0xFF047857) to Color(0xFFD1FAE5)
-        "Count Correction" -> Color(0xFF1D4ED8) to Color(0xFFDBEAFE)
-        else -> Color(0xFF4B5563) to Color(0xFFF3F4F6)
-    }
+    val (textColor, bgColor) =
+        when (reason) {
+            "Damage" -> Color(0xFFB91C1C) to Color(0xFFFEE2E2)
+            "Expiry" -> Color(0xFFC2410C) to Color(0xFFFFEDD5)
+            "Loss" -> Color(0xFFBE123C) to Color(0xFFFFE4E6)
+            "Restock" -> Color(0xFF047857) to Color(0xFFD1FAE5)
+            "Count Correction" -> Color(0xFF1D4ED8) to Color(0xFFDBEAFE)
+            else -> Color(0xFF4B5563) to Color(0xFFF3F4F6)
+        }
 
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(bgColor)
-            .padding(horizontal = 8.dp, vertical = 2.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(bgColor)
+                .padding(horizontal = 8.dp, vertical = 2.dp),
     ) {
         Text(
             text = reason,

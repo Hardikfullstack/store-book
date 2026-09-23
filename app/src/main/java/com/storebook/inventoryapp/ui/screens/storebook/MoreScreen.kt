@@ -1,6 +1,7 @@
 @file:android.annotation.SuppressLint("LocalContextGetResourceValueCall")
 
 package com.storebook.inventoryapp.ui.screens.storebook
+
 import android.app.Activity
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -20,6 +21,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -51,8 +53,10 @@ import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.AssignmentInd
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FileDownload
@@ -84,6 +88,7 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -183,6 +188,10 @@ fun MoreScreen(
     var restockSupplier by remember { mutableStateOf("") }
     var restockPhone by remember { mutableStateOf("") }
 
+    val activeStoreName =
+        storeNames[viewModel.activeStoreId]
+            ?: viewModel.getStoreName(viewModel.activeStoreId)
+
     val csvFilePickerLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocument(),
@@ -195,12 +204,8 @@ fun MoreScreen(
                             android.widget.Toast
                                 .makeText(
                                     context,
-                                    context.getString(
-                                        R.string
-                                            .toast_csv_imported,
-                                    ),
-                                    android.widget.Toast
-                                        .LENGTH_SHORT,
+                                    context.getString(R.string.toast_csv_imported),
+                                    android.widget.Toast.LENGTH_SHORT,
                                 ).show()
                         },
                         onError = { err ->
@@ -208,8 +213,7 @@ fun MoreScreen(
                                 .makeText(
                                     context,
                                     err,
-                                    android.widget.Toast
-                                        .LENGTH_SHORT,
+                                    android.widget.Toast.LENGTH_SHORT,
                                 ).show()
                         },
                     )
@@ -229,12 +233,8 @@ fun MoreScreen(
                             android.widget.Toast
                                 .makeText(
                                     context,
-                                    context.getString(
-                                        R.string
-                                            .toast_csv_exported,
-                                    ),
-                                    android.widget.Toast
-                                        .LENGTH_SHORT,
+                                    context.getString(R.string.toast_csv_exported),
+                                    android.widget.Toast.LENGTH_SHORT,
                                 ).show()
                         },
                         onError = { err ->
@@ -242,8 +242,7 @@ fun MoreScreen(
                                 .makeText(
                                     context,
                                     err,
-                                    android.widget.Toast
-                                        .LENGTH_SHORT,
+                                    android.widget.Toast.LENGTH_SHORT,
                                 ).show()
                         },
                     )
@@ -257,99 +256,157 @@ fun MoreScreen(
                 Modifier
                     .fillMaxSize()
                     .padding(bottom = paddingValues.calculateBottomPadding()),
-            contentPadding = PaddingValues(bottom = 24.dp),
+            contentPadding = PaddingValues(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Gradient header with shop info
+            // ── Section 0: Header with Store Profile & Quick Switch ──
             item {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.tertiary,
-                                    ),
-                                ),
-                            ).padding(
-                                top =
-                                    paddingValues
-                                        .calculateTopPadding(),
-                            ).padding(
-                                horizontal = 20.dp,
-                                vertical = 20.dp,
-                            ),
+                Surface(
+                    shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    tonalElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(
+                                            MaterialTheme.colorScheme.primary,
+                                            MaterialTheme.colorScheme.tertiary,
+                                        ),
+                                    ),
+                                ).padding(
+                                    top = paddingValues.calculateTopPadding(),
+                                ).padding(horizontal = 20.dp, vertical = 22.dp),
                     ) {
-                        // Shop avatar
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(52.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        MaterialTheme.colorScheme.onPrimary
-                                            .copy(
-                                                alpha =
-                                                0.15f,
-                                            ),
-                                    ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_store),
-                                contentDescription = "Shop Icon",
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(30.dp),
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(14.dp))
                         Column {
-                            Text(
-                                text =
-                                    stringResource(
-                                        id =
-                                            R.string
-                                                .app_name,
-                                    ),
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 18.sp,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                            Text(
-                                text =
-                                    "${allItems.size} items · ${salesList.size} total sales",
-                                fontSize = 12.sp,
-                                color =
-                                    MaterialTheme.colorScheme.onPrimary
-                                        .copy(alpha = 0.7f),
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    // Shop Avatar Circle
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .size(54.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    MaterialTheme.colorScheme.onPrimary
+                                                        .copy(alpha = 0.2f),
+                                                ).border(
+                                                    1.5.dp,
+                                                    MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
+                                                    CircleShape,
+                                                ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_store),
+                                            contentDescription = "Shop Icon",
+                                            tint = MaterialTheme.colorScheme.onPrimary,
+                                            modifier = Modifier.size(30.dp),
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(14.dp))
+
+                                    Column {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = activeStoreName,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontSize = 19.sp,
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                maxLines = 1,
+                                                modifier = Modifier.weight(1f, fill = false),
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            // Role Badge
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
+                                            ) {
+                                                Text(
+                                                    text = if (viewModel.userRole == "staff") "STAFF" else "OWNER",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onPrimary,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(2.dp))
+
+                                        Text(
+                                            text = "${allItems.size} items · ${salesList.size} sales",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                                        )
+                                    }
+                                }
+
+                                // Quick Switch Store Button (if allowed)
+                                if (viewModel.userRoleType.hasPermission(AppPermission.MANAGE_BUSINESS_SETTINGS)) {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
+                                        modifier =
+                                            Modifier.clickable(onClickLabel = "Switch Store") {
+                                                activeModal = "SWITCH_STORE"
+                                                showSheet = true
+                                            },
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Icon(
+                                                Icons.Outlined.SwapHoriz,
+                                                contentDescription = "Switch Store",
+                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                "Switch",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            // Premium promo card
+            // ── Section 1: Premium Promo Card ──
             item {
                 Card(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(
-                                horizontal = 16.dp,
-                                vertical = 10.dp,
-                            ).clickable(onClickLabel = "Action") {
+                            .padding(horizontal = 16.dp)
+                            .clickable(onClickLabel = "Manage Subscription") {
                                 navController.navigate(Routes.PremiumPlans)
                             },
                     colors =
                         CardDefaults.cardColors(
-                            containerColor = Gold200.copy(alpha = 0.12f),
+                            containerColor = Gold200.copy(alpha = 0.15f),
                         ),
-                    shape = RoundedCornerShape(18.dp),
+                    border = BorderStroke(1.dp, Gold400.copy(alpha = 0.3f)),
+                    shape = RoundedCornerShape(20.dp),
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
@@ -360,17 +417,11 @@ fun MoreScreen(
                                 Modifier
                                     .size(46.dp)
                                     .clip(CircleShape)
-                                    .background(
-                                        Gold200.copy(
-                                            alpha = 0.3f,
-                                        ),
-                                    ),
+                                    .background(Gold200.copy(alpha = 0.35f)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                painter =
-                                    androidx.compose.ui.res
-                                        .painterResource(id = R.drawable.ic_star),
+                                painter = painterResource(id = R.drawable.ic_star),
                                 contentDescription = stringResource(R.string.ui_element_desc),
                                 tint = Gold400,
                                 modifier = Modifier.size(24.dp),
@@ -378,50 +429,42 @@ fun MoreScreen(
                         }
                         Spacer(modifier = Modifier.width(14.dp))
                         Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = if (viewModel.isPremiumUser) "Pro Subscription Active" else stringResource(R.string.more_pro_plans),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                if (viewModel.isPremiumUser) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Gold400,
+                                    ) {
+                                        Text(
+                                            "PRO",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color.Black,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                        )
+                                    }
+                                }
+                            }
                             Text(
                                 text =
-                                    if (viewModel
-                                            .isPremiumUser
-                                    ) {
-                                        "Manage Pro Subscription"
+                                    if (viewModel.isPremiumUser) {
+                                        "Manage your plan, multi-store & cloud features"
                                     } else {
-                                        stringResource(
-                                            id =
-                                                R
-                                                    .string
-                                                    .more_pro_plans,
-                                        )
-                                    },
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                                color = MaterialTheme.colorScheme.secondary,
-                            )
-                            Text(
-                                text =
-                                    if (viewModel
-                                            .isPremiumUser
-                                    ) {
-                                        "View your active plan details"
-                                    } else {
-                                        stringResource(
-                                            id =
-                                                R
-                                                    .string
-                                                    .more_pro_desc,
-                                        )
+                                        stringResource(R.string.more_pro_desc)
                                     },
                                 fontSize = 12.sp,
-                                color =
-                                    MaterialTheme.colorScheme.secondary
-                                        .copy(
-                                            alpha =
-                                            0.75f,
-                                        ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         Icon(
-                            Icons.AutoMirrored.Filled
-                                .KeyboardArrowRight,
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
                             contentDescription = stringResource(R.string.ui_element_desc),
                             tint = Gold400,
                         )
@@ -429,159 +472,71 @@ fun MoreScreen(
                 }
             }
 
-            // Settings options group
+            // ── Category 1: Reports & Business Intelligence ──
             item {
-                Card(
-                    modifier =
-                        Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                MaterialTheme.colorScheme.surface,
-                        ),
-                    shape = RoundedCornerShape(20.dp),
-                    elevation =
-                        CardDefaults.cardElevation(defaultElevation = 1.dp),
-                ) {
-                    Column {
-                        IconOptionRow(
-                            icon = Icons.Outlined.Language,
-                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                            iconTint = MaterialTheme.colorScheme.primary,
-                            title =
-                                stringResource(
-                                    id = R.string.more_language,
-                                ),
-                            trailing =
-                                when (currentLang) {
-                                    "hi" -> "हिंदी"
-                                    "gu" -> "ગુજ"
-                                    else -> "English"
-                                },
-                            onClick = {
-                                activeModal = "LANGUAGES"
-                                showSheet = true
-                            },
-                        )
-                        HorizontalDivider(
-                            modifier =
-                                Modifier.padding(horizontal = 16.dp),
-                        )
-                        IconOptionRow(
-                            icon = Icons.Outlined.Palette,
-                            iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
-                            iconTint = MaterialTheme.colorScheme.secondary,
-                            title = "App Theme",
-                            trailing = if (themeManager.isDarkMode.value) "Dark" else "Light",
-                            trailingIconRes =
-                                if (themeManager
-                                        .isDarkMode
-                                        .value
-                                ) {
-                                    R
-                                        .drawable
-                                        .ic_dark_mode
-                                } else {
-                                    R
-                                        .drawable
-                                        .ic_light_mode
-                                },
-                            onClick = {
-                                if (viewModel.isPremiumUser ||
-                                    viewModel.userRoleType
-                                        .hasPermission(
-                                            com
-                                                .storebook
-                                                .inventoryapp
-                                                .ui
-                                                .viewmodels
-                                                .AppPermission
-                                                .MANAGE_PREMIUM,
-                                        ) ||
-                                    viewModel.userRole == "staff"
-                                ) {
-                                    showThemeExpanded = !showThemeExpanded
-                                } else {
-                                    navController.navigate(Routes.PremiumPlans)
-                                }
-                            },
-                        )
-
-                        // ── Inline Theme Selector ────────────────────────
-                        AnimatedVisibility(
-                            visible = showThemeExpanded,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut(),
-                        ) {
-                            InlineThemeCard(
-                                isDarkMode = themeManager.isDarkMode.value,
-                                themeMode = themeManager.themeMode.value,
-                                isPremium = viewModel.isPremiumUser,
-                                onThemeSelected = { isDark ->
-                                    themeManager.setDarkMode(isDark)
-                                },
-                                onThemeModeSelected = { mode ->
-                                    themeManager.setThemeMode(mode)
-                                },
-                            )
-                        }
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                        )
-
-                        IconOptionRow(
-                            icon = Icons.Outlined.PieChart,
-                            iconBg = Emerald500.copy(alpha = 0.12f),
-                            iconTint = Emerald500,
-                            title =
-                                stringResource(
-                                    id =
-                                        R.string
-                                            .more_pnl_report,
-                                ),
-                            onClick = {
-                                activeModal = "REPORTS"
-                                showSheet = true
-                            },
-                        )
-                        HorizontalDivider(
-                            modifier =
-                                Modifier.padding(horizontal = 16.dp),
-                        )
-
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SectionHeader(
+                        title = "REPORTS & ANALYTICS",
+                        icon = Icons.Outlined.BarChart,
+                        accentColor = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MenuCard {
                         IconOptionRow(
                             icon = Icons.Outlined.Analytics,
                             iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                             iconTint = MaterialTheme.colorScheme.primary,
                             title = "Sales Analytics",
+                            subtitle = "Visual trends, top items & profit charts",
+                            onClick = { navController.navigate(Routes.SalesAnalytics) },
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        IconOptionRow(
+                            icon = Icons.Outlined.PieChart,
+                            iconBg = Emerald500.copy(alpha = 0.12f),
+                            iconTint = Emerald500,
+                            title = stringResource(id = R.string.more_pnl_report),
+                            subtitle = "Net revenue, costs & profit breakdown",
                             onClick = {
-                                navController.navigate(
-                                    Routes.SalesAnalytics,
-                                )
+                                activeModal = "REPORTS"
+                                showSheet = true
                             },
                         )
-                        HorizontalDivider(
-                            modifier =
-                                Modifier.padding(horizontal = 16.dp),
-                        )
-
-                        // E03-S1 — Price Snapshot Audit
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         IconOptionRow(
                             icon = Icons.Outlined.PieChart,
                             iconBg = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
                             iconTint = MaterialTheme.colorScheme.error,
                             title = "Price Drift Audit",
-                            onClick = {
-                                navController.navigate(
-                                    Routes.PriceDriftReport,
-                                )
-                            },
-                        )
-                        HorizontalDivider(
-                            modifier =
-                                Modifier.padding(horizontal = 16.dp),
+                            subtitle = "Track cost fluctuations & profit erosion",
+                            onClick = { navController.navigate(Routes.PriceDriftReport) },
                         )
 
+                        if (viewModel.userRoleType.hasPermission(AppPermission.MANAGE_BUSINESS_SETTINGS)) {
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                            IconOptionRow(
+                                icon = Icons.Outlined.Receipt,
+                                iconBg = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
+                                iconTint = MaterialTheme.colorScheme.tertiary,
+                                title = "GST Reports (GSTR-1)",
+                                subtitle = "Download monthly GST summary statements",
+                                onClick = { navController.navigate(Routes.GSTReport) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── Category 2: Store Operations & Tools ──
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SectionHeader(
+                        title = "OPERATIONS & BILLING",
+                        icon = Icons.Outlined.Receipt,
+                        accentColor = Emerald500,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MenuCard {
                         // Epic E34 — Stock Audit Report
                         IconOptionRow(
                             icon = Icons.Outlined.Inventory,
@@ -604,131 +559,75 @@ fun MoreScreen(
                             iconBg = Emerald500.copy(alpha = 0.12f),
                             iconTint = Emerald500,
                             title = "Quotations & Estimates",
-                            onClick = {
-                                navController.navigate(
-                                    Routes.Quotations,
-                                )
-                            },
+                            subtitle = "Create & send price quotes to customers",
+                            onClick = { navController.navigate(Routes.Quotations) },
                         )
-                        HorizontalDivider(
-                            modifier =
-                                Modifier.padding(horizontal = 16.dp),
-                        )
-
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         IconOptionRow(
                             icon = Icons.Outlined.AccountBalanceWallet,
                             iconBg = Coral500.copy(alpha = 0.12f),
                             iconTint = Coral500,
-                            title =
-                                stringResource(
-                                    id =
-                                        R.string
-                                            .more_expense_track,
-                                ),
+                            title = stringResource(id = R.string.more_expense_track),
+                            subtitle = "Log shop rent, electricity & overheads",
                             onClick = {
                                 activeModal = "EXPENSES"
                                 showSheet = true
                             },
                         )
-                        HorizontalDivider(
-                            modifier =
-                                Modifier.padding(horizontal = 16.dp),
-                        )
-
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         IconOptionRow(
                             icon = Icons.Outlined.Inventory,
-                            iconBg =
-                                MaterialTheme.colorScheme.primary
-                                    .copy(alpha = 0.12f),
+                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                             iconTint = MaterialTheme.colorScheme.primary,
-                            title =
-                                stringResource(
-                                    id =
-                                        R.string
-                                            .exp_restock_title,
-                                ),
+                            title = stringResource(id = R.string.exp_restock_title),
+                            subtitle = "Log fresh inventory arrivals & cost prices",
                             onClick = {
                                 activeModal = "RESTOCK"
                                 showSheet = true
                             },
                         )
-                        HorizontalDivider(
-                            modifier =
-                                Modifier.padding(horizontal = 16.dp),
-                        )
 
-                        IconOptionRow(
-                            icon = Icons.Outlined.FileDownload,
-                            iconBg =
-                                MaterialTheme.colorScheme.primary
-                                    .copy(alpha = 0.12f),
-                            iconTint = MaterialTheme.colorScheme.primary,
-                            title =
-                                stringResource(
-                                    id =
-                                        R.string
-                                            .more_csv_export,
-                                ),
-                            onClick = {
-                                csvExportLauncher.launch(
-                                    "StoreBook_Inventory_${System.currentTimeMillis() / 1000}.csv",
-                                )
-                            },
-                        )
-                        HorizontalDivider(
-                            modifier =
-                                Modifier.padding(horizontal = 16.dp),
-                        )
+                        if (viewModel.userRoleType.hasPermission(AppPermission.MANAGE_BUSINESS_SETTINGS)) {
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                            IconOptionRow(
+                                icon = Icons.Outlined.AssignmentInd,
+                                iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                                iconTint = MaterialTheme.colorScheme.secondary,
+                                title = "Supplier Ledger",
+                                subtitle = "Manage vendor balances & payables",
+                                onClick = { navController.navigate(Routes.SupplierLedger) },
+                            )
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                            IconOptionRow(
+                                icon = Icons.Filled.Print,
+                                iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                iconTint = MaterialTheme.colorScheme.primary,
+                                title = "Invoice & PDF Settings",
+                                subtitle = "Header branding, logo & thermal printer",
+                                onClick = { navController.navigate(Routes.PdfSettings) },
+                            )
+                        }
+                    }
+                }
+            }
 
-                        IconOptionRow(
-                            icon = Icons.Outlined.FileUpload,
-                            iconBg =
-                                MaterialTheme.colorScheme.primary
-                                    .copy(alpha = 0.12f),
-                            iconTint = MaterialTheme.colorScheme.primary,
-                            title =
-                                stringResource(
-                                    id =
-                                        R.string
-                                            .more_csv_import,
-                                ),
-                            onClick = {
-                                csvFilePickerLauncher.launch(
-                                    arrayOf(
-                                        "text/*",
-                                        "application/csv",
-                                        "text/csv",
-                                    ),
-                                )
-                            },
-                        )
-                        Text(
-                            text =
-                                "Format: ID,Item Name,Stock Quantity,Unit," +
-                                    "Buy Price,Sell Price,Alert Threshold,Category,HSN Code,Tax Rate",
-                            style =
-                                MaterialTheme.typography.bodySmall
-                                    .copy(fontSize = 10.sp),
-                            color =
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                                    .copy(alpha = 0.6f),
-                            modifier =
-                                Modifier
-                                    .padding(start = 54.dp, bottom = 8.dp, end = 16.dp),
-                        )
-                        HorizontalDivider(
-                            modifier =
-                                Modifier.padding(horizontal = 16.dp),
-                        )
-
-                        // ── E20-S1: Cloud Backup (visible to all roles) ─────────────
+            // ── Category 3: Cloud & Data Sync ──
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SectionHeader(
+                        title = "DATA & CLOUD BACKUP",
+                        icon = Icons.Outlined.CloudSync,
+                        accentColor = Color(0xFFEAB308),
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MenuCard {
+                        // Cloud Backup
                         IconOptionRow(
                             icon = Icons.Outlined.CloudSync,
-                            iconBg =
-                                MaterialTheme.colorScheme.primary
-                                    .copy(alpha = 0.12f),
+                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                             iconTint = MaterialTheme.colorScheme.primary,
                             title = "Cloud Backup",
+                            subtitle = "Sync inventory & ledger to Firebase cloud",
                             trailing = formatLastBackup(viewModel.lastBackupMillis),
                             onClick = {
                                 if (viewModel.backupProgress !in 0..99) {
@@ -737,23 +636,21 @@ fun MoreScreen(
                             },
                         )
 
-                        // Backup progress indicator (inline, shown when uploading)
-                        if (viewModel.backupProgress in 0..100 &&
-                            viewModel.backupProgress != -1
-                        ) {
+                        // Backup Progress Bar (inline)
+                        if (viewModel.backupProgress in 0..100 && viewModel.backupProgress != -1) {
                             val isDone = viewModel.backupProgress == 100
                             Column(
                                 modifier =
                                     Modifier.padding(
-                                        start = 54.dp,
-                                        bottom = 8.dp,
+                                        start = 58.dp,
+                                        bottom = 12.dp,
                                         end = 16.dp,
-                                        top = 4.dp,
+                                        top = 2.dp,
                                     ),
                             ) {
                                 androidx.compose.material3.LinearProgressIndicator(
                                     progress = { viewModel.backupProgress / 100f },
-                                    modifier = Modifier.fillMaxWidth().height(6.dp),
+                                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                                     color = MaterialTheme.colorScheme.primary,
                                 )
@@ -762,78 +659,57 @@ fun MoreScreen(
                                     text =
                                         when {
                                             isDone -> "\u2714 Backup complete"
-                                            viewModel.backupError != null ->
-                                                viewModel.backupError
-                                                    ?: ""
+                                            viewModel.backupError != null -> viewModel.backupError ?: ""
                                             else -> "Uploading ... ${viewModel.backupProgress}%"
                                         },
                                     style = MaterialTheme.typography.bodySmall,
-                                    color =
-                                        if (isDone) {
-                                            MaterialTheme
-                                                .colorScheme
-                                                .onSurface
-                                        } else {
-                                            MaterialTheme
-                                                .colorScheme
-                                                .onSurfaceVariant
-                                        },
-                                    modifier = Modifier.padding(start = 8.dp),
+                                    color = if (isDone) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                        )
 
-                        // ── E20-S2: Restore from Cloud (visible when backup exists) ───
+                        // Restore from Cloud
                         if (viewModel.restoreAvailable && viewModel.restoreProgress < 0) {
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                             IconOptionRow(
                                 icon = Icons.Outlined.Restore,
-                                iconBg =
-                                    MaterialTheme.colorScheme.secondary
-                                        .copy(alpha = 0.12f),
+                                iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
                                 iconTint = MaterialTheme.colorScheme.secondary,
                                 title = "Restore from Cloud",
+                                subtitle = "Replace local database with latest backup",
                                 trailing = formatLastBackup(viewModel.restoreTimestampMs),
                                 onClick = {
-                                    // Prompt via activeModal dialog
                                     activeModal = "RESTORE"
                                     showSheet = true
                                 },
                             )
                         }
 
-                        // Restore progress indicator (inline)
+                        // Restore Progress Bar (inline)
                         if (viewModel.restoreProgress in 0..100) {
                             val isDone = viewModel.restoreProgress == 100
                             Column(
                                 modifier =
                                     Modifier.padding(
-                                        start = 54.dp,
-                                        bottom = 8.dp,
+                                        start = 58.dp,
+                                        bottom = 12.dp,
                                         end = 16.dp,
-                                        top = 4.dp,
+                                        top = 2.dp,
                                     ),
                             ) {
                                 androidx.compose.material3.LinearProgressIndicator(
                                     progress = { viewModel.restoreProgress / 100f },
-                                    modifier = Modifier.fillMaxWidth().height(6.dp),
+                                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                                     color = MaterialTheme.colorScheme.secondary,
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text =
-                                        if (isDone &&
-                                            viewModel.restoreError == null
-                                        ) {
+                                        if (isDone && viewModel.restoreError == null) {
                                             "\u2714 ${viewModel.restoreStageMsg}"
                                         } else {
-                                            (
-                                                viewModel.restoreError
-                                                    ?: viewModel.restoreStageMsg
-                                            )
+                                            (viewModel.restoreError ?: viewModel.restoreStageMsg)
                                         },
                                     style = MaterialTheme.typography.bodySmall,
                                     color =
@@ -842,215 +718,220 @@ fun MoreScreen(
                                             isDone -> MaterialTheme.colorScheme.secondary
                                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                                         },
-                                    modifier = Modifier.padding(start = 8.dp),
                                 )
                             }
                         }
 
-                        HorizontalDivider(
-                            modifier =
-                                Modifier.padding(horizontal = 16.dp),
-                        )
-
-                        if (viewModel.userRoleType
-                                .hasPermission(
-                                    com
-                                        .storebook
-                                        .inventoryapp
-                                        .ui
-                                        .viewmodels
-                                        .AppPermission
-                                        .MANAGE_BUSINESS_SETTINGS,
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        IconOptionRow(
+                            icon = Icons.Outlined.FileDownload,
+                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            iconTint = MaterialTheme.colorScheme.primary,
+                            title = stringResource(id = R.string.more_csv_export),
+                            subtitle = "Save inventory catalog as CSV spreadsheet",
+                            onClick = {
+                                csvExportLauncher.launch(
+                                    "StoreBook_Inventory_${System.currentTimeMillis() / 1000}.csv",
                                 )
-                        ) {
+                            },
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        IconOptionRow(
+                            icon = Icons.Outlined.FileUpload,
+                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            iconTint = MaterialTheme.colorScheme.primary,
+                            title = stringResource(id = R.string.more_csv_import),
+                            subtitle = "Bulk add items from CSV file",
+                            onClick = {
+                                csvFilePickerLauncher.launch(
+                                    arrayOf("text/*", "application/csv", "text/csv"),
+                                )
+                            },
+                        )
+                        Text(
+                            text = "Format: ID,Item Name,Stock Quantity,Unit,Buy Price,Sell Price,Alert Threshold,Category,HSN Code,Tax Rate",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(start = 58.dp, bottom = 10.dp, end = 16.dp),
+                        )
+                    }
+                }
+            }
+
+            // ── Category 4: Store & System Preferences ──
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SectionHeader(
+                        title = "STORE & PREFERENCES",
+                        icon = Icons.Outlined.SettingsSuggest,
+                        accentColor = MaterialTheme.colorScheme.tertiary,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MenuCard {
+                        if (viewModel.userRoleType.hasPermission(AppPermission.MANAGE_BUSINESS_SETTINGS)) {
                             IconOptionRow(
                                 icon = Icons.Outlined.SettingsSuggest,
-                                iconBg =
-                                    MaterialTheme.colorScheme.tertiary
-                                        .copy(alpha = 0.12f),
+                                iconBg = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
                                 iconTint = MaterialTheme.colorScheme.tertiary,
                                 title = "Business Settings",
+                                subtitle = "Store name, GSTIN, currency & print layout",
                                 onClick = {
                                     activeModal = "BUSINESS"
                                     showSheet = true
                                 },
                             )
-                            HorizontalDivider(
-                                modifier =
-                                    Modifier.padding(horizontal = 16.dp),
-                            )
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                             IconOptionRow(
                                 icon = Icons.Outlined.GroupAdd,
-                                iconBg =
-                                    MaterialTheme.colorScheme.primary
-                                        .copy(alpha = 0.12f),
+                                iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                                 iconTint = MaterialTheme.colorScheme.primary,
                                 title = "Invite Staff",
-                                onClick = {
-                                    navController.navigate(Routes.InviteStaff)
-                                },
+                                subtitle = "Add team members & set staff permissions",
+                                onClick = { navController.navigate(Routes.InviteStaff) },
                             )
-                            HorizontalDivider(
-                                modifier =
-                                    Modifier.padding(horizontal = 16.dp),
-                            )
-                            IconOptionRow(
-                                icon = Icons.Outlined.AssignmentInd,
-                                iconBg =
-                                    MaterialTheme.colorScheme.secondary
-                                        .copy(alpha = 0.12f),
-                                iconTint = MaterialTheme.colorScheme.secondary,
-                                title = "Supplier Ledger",
-                                onClick = {
-                                    navController.navigate(Routes.SupplierLedger)
-                                },
-                            )
-                            HorizontalDivider(
-                                modifier =
-                                    Modifier.padding(horizontal = 16.dp),
-                            )
-                            IconOptionRow(
-                                icon = Icons.Outlined.Receipt,
-                                iconBg =
-                                    MaterialTheme.colorScheme.tertiary
-                                        .copy(alpha = 0.12f),
-                                iconTint = MaterialTheme.colorScheme.tertiary,
-                                title = "GST Reports (GSTR-1)",
-                                onClick = {
-                                    navController.navigate(Routes.GSTReport)
-                                },
-                            )
-                            IconOptionRow(
-                                icon = Icons.Filled.Print,
-                                iconBg =
-                                    MaterialTheme.colorScheme.primary
-                                        .copy(alpha = 0.12f),
-                                iconTint = MaterialTheme.colorScheme.primary,
-                                title = "Invoice & PDF Settings",
-                                onClick = {
-                                    navController.navigate(Routes.PdfSettings)
-                                },
-                            )
-                            IconOptionRow(
-                                icon = Icons.Outlined.SwapHoriz,
-                                iconBg =
-                                    MaterialTheme.colorScheme.secondary
-                                        .copy(alpha = 0.12f),
-                                iconTint = MaterialTheme.colorScheme.secondary,
-                                title = "Switch Store",
-                                onClick = {
-                                    activeModal = "SWITCH_STORE"
-                                    showSheet = true
-                                },
-                            )
-                            HorizontalDivider(
-                                modifier =
-                                    Modifier.padding(horizontal = 16.dp),
-                            )
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         }
 
-                        if (currentUser == null) {
-                            IconOptionRow(
-                                icon = Icons.Outlined.CloudSync,
-                                iconBg =
-                                    Color(0xFFEAB308)
-                                        .copy(
-                                            alpha =
-                                            0.12f,
-                                        ),
-                                iconTint = Color(0xFFEAB308),
-                                title =
-                                    stringResource(
-                                        id =
-                                            R.string
-                                                .more_cloud_sync,
-                                    ),
-                                onClick = {
-                                    navController.navigate(
-                                        Routes.Auth,
-                                    )
+                        // Language Selector
+                        IconOptionRow(
+                            icon = Icons.Outlined.Language,
+                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            iconTint = MaterialTheme.colorScheme.primary,
+                            title = stringResource(id = R.string.more_language),
+                            subtitle = "Change app UI language",
+                            trailing =
+                                when (currentLang) {
+                                    "hi" -> "हिंदी"
+                                    "gu" -> "ગુજરાતી"
+                                    else -> "English"
                                 },
-                            )
-                        } else {
-                            IconOptionRow(
-                                icon =
-                                    Icons.AutoMirrored.Outlined
-                                        .ExitToApp,
-                                iconBg =
-                                    MaterialTheme.colorScheme.error
-                                        .copy(
-                                            alpha =
-                                            0.12f,
-                                        ),
-                                iconTint = MaterialTheme.colorScheme.error,
-                                title = "Logout",
-                                onClick = {
-                                    showLogoutConfirmation = true
-                                },
-                            )
-                        }
-                        HorizontalDivider(
-                            modifier =
-                                Modifier.padding(horizontal = 16.dp),
+                            onClick = {
+                                activeModal = "LANGUAGES"
+                                showSheet = true
+                            },
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                        // App Theme Selector
+                        IconOptionRow(
+                            icon = Icons.Outlined.Palette,
+                            iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                            iconTint = MaterialTheme.colorScheme.secondary,
+                            title = "App Theme & Accent Color",
+                            subtitle = "Dark/Light mode & custom color palettes",
+                            trailing = if (themeManager.isDarkMode.value) "Dark" else "Light",
+                            trailingIconRes = if (themeManager.isDarkMode.value) R.drawable.ic_dark_mode else R.drawable.ic_light_mode,
+                            onClick = {
+                                if (viewModel.isPremiumUser ||
+                                    viewModel.userRoleType.hasPermission(AppPermission.MANAGE_PREMIUM) ||
+                                    viewModel.userRole == "staff"
+                                ) {
+                                    showThemeExpanded = !showThemeExpanded
+                                } else {
+                                    navController.navigate(Routes.PremiumPlans)
+                                }
+                            },
                         )
 
+                        // Inline Theme Selector Content
+                        AnimatedVisibility(
+                            visible = showThemeExpanded,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut(),
+                        ) {
+                            InlineThemeCard(
+                                isDarkMode = themeManager.isDarkMode.value,
+                                themeMode = themeManager.themeMode.value,
+                                isPremium = viewModel.isPremiumUser,
+                                onThemeSelected = { isDark ->
+                                    themeManager.setDarkMode(isDark)
+                                },
+                                onThemeModeSelected = { mode ->
+                                    themeManager.setThemeMode(mode)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── Category 5: Account & Maintenance (Danger Zone) ──
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SectionHeader(
+                        title = "ACCOUNT & MAINTENANCE",
+                        icon = Icons.Outlined.AdminPanelSettings,
+                        accentColor = MaterialTheme.colorScheme.error,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MenuCard {
                         IconOptionRow(
                             icon = Icons.Outlined.Storage,
-                            iconBg =
-                                MaterialTheme.colorScheme.error
-                                    .copy(alpha = 0.12f),
+                            iconBg = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
                             iconTint = MaterialTheme.colorScheme.error,
                             title = "Seed Dummy Data",
+                            subtitle = "Populate test catalog, sales & customers",
                             onClick = {
                                 viewModel.seedDummyData()
                                 android.widget.Toast
                                     .makeText(
                                         context,
                                         "Dummy data injected",
-                                        android.widget.Toast
-                                            .LENGTH_SHORT,
+                                        android.widget.Toast.LENGTH_SHORT,
                                     ).show()
                             },
                         )
-                        HorizontalDivider(
-                            modifier =
-                                Modifier.padding(horizontal = 16.dp),
-                        )
-
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         IconOptionRow(
                             icon = Icons.Outlined.DeleteOutline,
-                            iconBg =
-                                MaterialTheme.colorScheme.error
-                                    .copy(alpha = 0.12f),
+                            iconBg = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
                             iconTint = MaterialTheme.colorScheme.error,
                             title = "Clear Local Data",
-                            onClick = {
-                                showClearDataDialog = true
-                            },
+                            subtitle = "Delete local database from this device",
+                            onClick = { showClearDataDialog = true },
                         )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                        if (currentUser == null) {
+                            IconOptionRow(
+                                icon = Icons.Outlined.CloudSync,
+                                iconBg = Color(0xFFEAB308).copy(alpha = 0.12f),
+                                iconTint = Color(0xFFEAB308),
+                                title = stringResource(id = R.string.more_cloud_sync),
+                                subtitle = "Sign in to enable multi-device sync",
+                                onClick = { navController.navigate(Routes.Auth) },
+                            )
+                        } else {
+                            IconOptionRow(
+                                icon = Icons.AutoMirrored.Outlined.ExitToApp,
+                                iconBg = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
+                                iconTint = MaterialTheme.colorScheme.error,
+                                title = "Logout",
+                                subtitle = "Sign out of your store account",
+                                onClick = { showLogoutConfirmation = true },
+                            )
+                        }
                     }
                 }
             }
 
-            // Version footer
+            // ── Footer: Version Tag ──
             item {
                 Box(
-                    modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         "StoreBook v1.0 · Made for भारत 🇮🇳",
                         fontSize = 11.sp,
-                        color =
-                            MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = 0.35f,
-                            ),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                         textAlign = TextAlign.Center,
                     )
                 }
             }
         }
 
+        // ── Dialogs ──
         if (showUpgradeDialog) {
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { showUpgradeDialog = false },
@@ -1059,9 +940,7 @@ fun MoreScreen(
                         Icons.Default.Star,
                         contentDescription = stringResource(R.string.ui_element_desc),
                         tint = Gold400,
-                        modifier =
-                            Modifier
-                                .size(36.dp),
+                        modifier = Modifier.size(36.dp),
                     )
                 },
                 title = {
@@ -1075,7 +954,7 @@ fun MoreScreen(
                     )
                 },
                 confirmButton = {
-                    androidx.compose.material3.Button(
+                    Button(
                         onClick = {
                             showUpgradeDialog = false
                             navController.navigate(Routes.PremiumPlans)
@@ -1094,12 +973,12 @@ fun MoreScreen(
                     }
                 },
                 dismissButton = {
-                    androidx.compose.material3
-                        .TextButton(onClick = {
-                            showUpgradeDialog = false
-                        }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Maybe Later", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                    androidx.compose.material3.TextButton(
+                        onClick = { showUpgradeDialog = false },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Maybe Later", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 },
                 containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(20.dp),
@@ -1114,9 +993,7 @@ fun MoreScreen(
                         Icons.AutoMirrored.Outlined.ExitToApp,
                         contentDescription = stringResource(R.string.ui_element_desc),
                         tint = MaterialTheme.colorScheme.error,
-                        modifier =
-                            Modifier
-                                .size(36.dp),
+                        modifier = Modifier.size(36.dp),
                     )
                 },
                 title = {
@@ -1138,7 +1015,7 @@ fun MoreScreen(
                     }
                 },
                 confirmButton = {
-                    androidx.compose.material3.Button(
+                    Button(
                         onClick = {
                             showLogoutConfirmation = false
                             auth.signOut()
@@ -1166,15 +1043,12 @@ fun MoreScreen(
                     }
                 },
                 dismissButton = {
-                    androidx.compose.material3
-                        .TextButton(
-                            onClick = { showLogoutConfirmation = false },
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth(),
-                        ) {
-                            Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                    androidx.compose.material3.TextButton(
+                        onClick = { showLogoutConfirmation = false },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 },
                 containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(20.dp),
@@ -1189,9 +1063,7 @@ fun MoreScreen(
                         Icons.Outlined.Restore,
                         contentDescription = stringResource(R.string.ui_element_desc),
                         tint = MaterialTheme.colorScheme.error,
-                        modifier =
-                            Modifier
-                                .size(36.dp),
+                        modifier = Modifier.size(36.dp),
                     )
                 },
                 title = {
@@ -1205,7 +1077,7 @@ fun MoreScreen(
                     )
                 },
                 confirmButton = {
-                    androidx.compose.material3.Button(
+                    Button(
                         onClick = {
                             showClearDataDialog = false
                             viewModel.clearAllLocalData {}
@@ -1230,15 +1102,12 @@ fun MoreScreen(
                     }
                 },
                 dismissButton = {
-                    androidx.compose.material3
-                        .TextButton(
-                            onClick = { showClearDataDialog = false },
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth(),
-                        ) {
-                            Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                    androidx.compose.material3.TextButton(
+                        onClick = { showClearDataDialog = false },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 },
                 containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(20.dp),
@@ -1259,47 +1128,30 @@ fun MoreScreen(
                             currentLang = currentLang,
                             onLanguageSelected = { lang ->
                                 scope.launch {
-                                    languageManager
-                                        .saveLanguage(lang)
+                                    languageManager.saveLanguage(lang)
                                     showSheet = false
                                     try {
-                                        AppCompatDelegate
-                                            .setApplicationLocales(
-                                                LocaleListCompat
-                                                    .forLanguageTags(
-                                                        lang,
-                                                    ),
-                                            )
+                                        AppCompatDelegate.setApplicationLocales(
+                                            LocaleListCompat.forLanguageTags(lang),
+                                        )
                                     } catch (e: Exception) {
                                         if (e is kotlinx.coroutines.CancellationException) throw e
                                         activity?.let {
                                             it.recreate()
-                                            if (Build.VERSION
-                                                    .SDK_INT >=
-                                                Build.VERSION_CODES
-                                                    .UPSIDE_DOWN_CAKE
-                                            ) {
-                                                it
-                                                    .overrideActivityTransition(
-                                                        Activity.OVERRIDE_TRANSITION_OPEN,
-                                                        0,
-                                                        0,
-                                                    )
-                                                it
-                                                    .overrideActivityTransition(
-                                                        Activity.OVERRIDE_TRANSITION_CLOSE,
-                                                        0,
-                                                        0,
-                                                    )
-                                            } else {
-                                                @Suppress(
-                                                    "DEPRECATION",
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                                it.overrideActivityTransition(
+                                                    Activity.OVERRIDE_TRANSITION_OPEN,
+                                                    0,
+                                                    0,
                                                 )
-                                                it
-                                                    .overridePendingTransition(
-                                                        0,
-                                                        0,
-                                                    )
+                                                it.overrideActivityTransition(
+                                                    Activity.OVERRIDE_TRANSITION_CLOSE,
+                                                    0,
+                                                    0,
+                                                )
+                                            } else {
+                                                @Suppress("DEPRECATION")
+                                                it.overridePendingTransition(0, 0)
                                             }
                                         }
                                     }
@@ -1307,7 +1159,7 @@ fun MoreScreen(
                             },
                         )
                     }
-                    "THEME" -> { /* Handled inline — no longer uses sheet */ }
+                    "THEME" -> { /* Handled inline */ }
                     "EXPENSES" -> {
                         ExpenseSheetContent(
                             expenseAmount = expenseAmount,
@@ -1315,31 +1167,20 @@ fun MoreScreen(
                             expenseDesc = expenseDesc,
                             onDescChange = { expenseDesc = it },
                             onSave = {
-                                val amt =
-                                    expenseAmount
-                                        .toDoubleOrNull()
-                                if (amt != null &&
-                                    expenseDesc
-                                        .isNotBlank()
-                                ) {
-                                    viewModel
-                                        .logOverheadExpense(
-                                            expenseDesc,
-                                            amt,
-                                        )
+                                val amt = expenseAmount.toDoubleOrNull()
+                                if (amt != null && expenseDesc.isNotBlank()) {
+                                    viewModel.logOverheadExpense(
+                                        expenseDesc,
+                                        amt,
+                                    )
                                     expenseAmount = ""
                                     expenseDesc = ""
                                     showSheet = false
                                     android.widget.Toast
                                         .makeText(
                                             context,
-                                            context.getString(
-                                                R.string
-                                                    .exp_toast_logged,
-                                            ),
-                                            android.widget
-                                                .Toast
-                                                .LENGTH_SHORT,
+                                            context.getString(R.string.exp_toast_logged),
+                                            android.widget.Toast.LENGTH_SHORT,
                                         ).show()
                                 }
                             },
@@ -1366,15 +1207,9 @@ fun MoreScreen(
                             onPhoneChange = { restockPhone = it },
                             onSave = {
                                 val id = selectedItemId
-                                val qty =
-                                    restockQty.toDoubleOrNull()
-                                val cost =
-                                    restockCostPrice
-                                        .toDoubleOrNull()
-                                if (id != null &&
-                                    qty != null &&
-                                    cost != null
-                                ) {
+                                val qty = restockQty.toDoubleOrNull()
+                                val cost = restockCostPrice.toDoubleOrNull()
+                                if (id != null && qty != null && cost != null) {
                                     viewModel.logRestockItem(
                                         id,
                                         qty,
@@ -1391,13 +1226,8 @@ fun MoreScreen(
                                     android.widget.Toast
                                         .makeText(
                                             context,
-                                            context.getString(
-                                                R.string
-                                                    .exp_toast_logged,
-                                            ),
-                                            android.widget
-                                                .Toast
-                                                .LENGTH_SHORT,
+                                            context.getString(R.string.exp_toast_logged),
+                                            android.widget.Toast.LENGTH_SHORT,
                                         ).show()
                                 }
                             },
@@ -1414,20 +1244,10 @@ fun MoreScreen(
                         )
                     }
                     "BUSINESS" -> {
-                        var nameInput by remember {
-                            mutableStateOf(viewModel.businessName)
-                        }
-                        var gstinInput by remember {
-                            mutableStateOf(viewModel.businessGstin)
-                        }
-                        var gstinError by remember {
-                            mutableStateOf<String?>(null)
-                        }
-                        var addressInput by remember {
-                            mutableStateOf(
-                                viewModel.businessAddress,
-                            )
-                        }
+                        var nameInput by remember { mutableStateOf(viewModel.businessName) }
+                        var gstinInput by remember { mutableStateOf(viewModel.businessGstin) }
+                        var gstinError by remember { mutableStateOf<String?>(null) }
+                        var addressInput by remember { mutableStateOf(viewModel.businessAddress) }
                         val focusRequesterGstin = remember { FocusRequester() }
                         val focusRequesterAddress = remember { FocusRequester() }
                         val focusManager = LocalFocusManager.current
@@ -1435,14 +1255,10 @@ fun MoreScreen(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .verticalScroll(
-                                        rememberScrollState(),
-                                    ).padding(
-                                        horizontal = 24.dp,
-                                        vertical = 16.dp,
-                                    ).padding(bottom = 32.dp),
-                            verticalArrangement =
-                                Arrangement.spacedBy(16.dp),
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                                    .padding(bottom = 32.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
                             Text(
                                 "Business Settings",
@@ -1455,17 +1271,11 @@ fun MoreScreen(
                                 label = {
                                     Text(
                                         "Store Owner's Name",
-                                        modifier =
-                                            androidx.compose.ui.Modifier
-                                                .autoMarquee(),
+                                        modifier = Modifier.autoMarquee(),
                                     )
                                 },
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                                keyboardActions =
-                                    KeyboardActions(onNext = {
-                                        focusRequesterGstin
-                                            .requestFocus()
-                                    }),
+                                keyboardActions = KeyboardActions(onNext = { focusRequesterGstin.requestFocus() }),
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
@@ -1475,9 +1285,7 @@ fun MoreScreen(
                                 onValueChange = {
                                     gstinInput = it
                                     if (it.trim().length == 15) {
-                                        when (
-                                            val res = GSTINValidator.validate(it)
-                                        ) {
+                                        when (val res = GSTINValidator.validate(it)) {
                                             is ValidationResult.Valid -> {
                                                 gstinError = null
                                                 res.stateName?.let { state ->
@@ -1508,57 +1316,33 @@ fun MoreScreen(
                                 label = {
                                     Text(
                                         "Store Owner's GSTIN",
-                                        modifier =
-                                            androidx.compose.ui.Modifier
-                                                .autoMarquee(),
+                                        modifier = Modifier.autoMarquee(),
                                     )
                                 },
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                                keyboardActions =
-                                    KeyboardActions(onNext = {
-                                        focusRequesterAddress
-                                            .requestFocus()
-                                    }),
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .focusRequester(focusRequesterGstin),
+                                keyboardActions = KeyboardActions(onNext = { focusRequesterAddress.requestFocus() }),
+                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterGstin),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                             )
                             OutlinedTextField(
                                 value = addressInput,
-                                onValueChange = {
-                                    addressInput = it
-                                },
+                                onValueChange = { addressInput = it },
                                 label = {
                                     Text(
                                         "Store Owner's Address",
-                                        modifier =
-                                            androidx.compose.ui.Modifier
-                                                .autoMarquee(),
+                                        modifier = Modifier.autoMarquee(),
                                     )
                                 },
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                                keyboardActions =
-                                    KeyboardActions(onDone = {
-                                        focusManager
-                                            .clearFocus()
-                                    }),
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .focusRequester(focusRequesterAddress),
+                                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterAddress),
                                 minLines = 2,
                                 maxLines = 4,
                                 shape = RoundedCornerShape(12.dp),
                             )
-                            var currencyInput by remember {
-                                mutableStateOf(viewModel.businessCurrency)
-                            }
-                            var showCurrencyDropdown by remember {
-                                mutableStateOf(false)
-                            }
+                            var currencyInput by remember { mutableStateOf(viewModel.businessCurrency) }
+                            var showCurrencyDropdown by remember { mutableStateOf(false) }
                             Box(modifier = Modifier.fillMaxWidth()) {
                                 OutlinedTextField(
                                     value =
@@ -1576,9 +1360,7 @@ fun MoreScreen(
                                     label = {
                                         Text(
                                             "Business Currency",
-                                            modifier =
-                                                androidx.compose.ui.Modifier
-                                                    .autoMarquee(),
+                                            modifier = Modifier.autoMarquee(),
                                         )
                                     },
                                     modifier = Modifier.fillMaxWidth(),
@@ -1589,8 +1371,7 @@ fun MoreScreen(
                                         Modifier
                                             .matchParentSize()
                                             .clickable(onClickLabel = "Action") {
-                                                showCurrencyDropdown =
-                                                    true
+                                                showCurrencyDropdown = true
                                             },
                                 )
                                 DropdownMenu(
@@ -1630,24 +1411,20 @@ fun MoreScreen(
                                     Modifier
                                         .fillMaxWidth()
                                         .clickable(onClickLabel = "Action") {
-                                            useThermalPrinter =
-                                                !useThermalPrinter
+                                            useThermalPrinter = !useThermalPrinter
                                         }.padding(vertical = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        "Use Thermal Printer Format", fontWeight = FontWeight.SemiBold,
-                                        fontSize =
-                                            14
-                                                .sp,
+                                        "Use Thermal Printer Format",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp,
                                     )
                                     Text(
                                         "Generate 3-inch receipts instead of A4 invoices",
-                                        fontSize =
-                                            11
-                                                .sp,
+                                        fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
@@ -1661,24 +1438,20 @@ fun MoreScreen(
                                     Modifier
                                         .fillMaxWidth()
                                         .clickable(onClickLabel = "Action") {
-                                            useHapticFeedback =
-                                                !useHapticFeedback
+                                            useHapticFeedback = !useHapticFeedback
                                         }.padding(vertical = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        "Enable Haptic Feedback", fontWeight = FontWeight.SemiBold,
-                                        fontSize =
-                                            14
-                                                .sp,
+                                        "Enable Haptic Feedback",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp,
                                     )
                                     Text(
                                         "Provide tactile vibration on item additions/updates",
-                                        fontSize =
-                                            11
-                                                .sp,
+                                        fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
@@ -1706,46 +1479,24 @@ fun MoreScreen(
                                         .edit()
                                         .putBoolean("use_thermal_printer", useThermalPrinter)
                                         .apply()
-                                    viewModel
-                                        .updateHapticFeedbackEnabled(useHapticFeedback)
-                                    viewModel
-                                        .updateBusinessName(
-                                            nameInput,
-                                        )
-                                    viewModel
-                                        .updateBusinessGstin(
-                                            trimmedGstin,
-                                        )
-                                    viewModel
-                                        .updateBusinessAddress(
-                                            addressInput,
-                                        )
-                                    viewModel
-                                        .updateBusinessCurrency(
-                                            currencyInput,
-                                        )
+                                    viewModel.updateHapticFeedbackEnabled(useHapticFeedback)
+                                    viewModel.updateBusinessName(nameInput)
+                                    viewModel.updateBusinessGstin(trimmedGstin)
+                                    viewModel.updateBusinessAddress(addressInput)
+                                    viewModel.updateBusinessCurrency(currencyInput)
                                     showSheet = false
                                     android.widget.Toast
                                         .makeText(
                                             context,
                                             "Settings saved",
-                                            android.widget
-                                                .Toast
-                                                .LENGTH_SHORT,
+                                            android.widget.Toast.LENGTH_SHORT,
                                         ).show()
                                 },
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(52.dp),
+                                modifier = Modifier.fillMaxWidth().height(52.dp),
                                 shape = RoundedCornerShape(14.dp),
                             ) {
                                 Text(
-                                    stringResource(
-                                        id =
-                                            R.string
-                                                .btn_save,
-                                    ),
+                                    stringResource(id = R.string.btn_save),
                                     fontWeight = FontWeight.Bold,
                                 )
                             }
@@ -1757,10 +1508,8 @@ fun MoreScreen(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .padding(
-                                        horizontal = 24.dp,
-                                        vertical = 16.dp,
-                                    ).padding(bottom = 32.dp),
+                                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                                    .padding(bottom = 32.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
                             Text(
@@ -1769,8 +1518,7 @@ fun MoreScreen(
                                 fontWeight = FontWeight.Bold,
                             )
                             Text(
-                                text =
-                                    "Current Store: ${storeNames[viewModel.activeStoreId] ?: viewModel.getStoreName(viewModel.activeStoreId)}",
+                                text = "Current Store: $activeStoreName",
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.primary,
                             )
@@ -1783,14 +1531,11 @@ fun MoreScreen(
                                         modifier =
                                             Modifier
                                                 .fillMaxWidth()
-                                                .clickable(onClickLabel = "Action") {
+                                                .clickable(onClickLabel = "Switch Store") {
                                                     showSheet = false
                                                     isSyncing = true
                                                     syncMessage = "Switching to $storeName..."
-                                                    viewModel.switchStore(sId, onProgress = {
-                                                        progress,
-                                                        msg,
-                                                        ->
+                                                    viewModel.switchStore(sId, onProgress = { progress, msg ->
                                                         syncProgress = progress
                                                         syncMessage = msg
                                                     }, onComplete = {
@@ -1798,21 +1543,17 @@ fun MoreScreen(
                                                             .makeText(
                                                                 context,
                                                                 context
-                                                                    .getString(
-                                                                        R.string.toast_switched_store,
-                                                                        storeName,
-                                                                    ),
+                                                                    .getString(R.string.toast_switched_store, storeName),
                                                                 android.widget.Toast.LENGTH_SHORT,
                                                             ).show()
                                                         (context as? androidx.activity.ComponentActivity)
                                                             ?.viewModelStore
                                                             ?.clear()
                                                         val intent =
-                                                            android.content
-                                                                .Intent(
-                                                                    context,
-                                                                    com.storebook.inventoryapp.MainActivity::class.java,
-                                                                )
+                                                            android.content.Intent(
+                                                                context,
+                                                                com.storebook.inventoryapp.MainActivity::class.java,
+                                                            )
                                                         intent.flags =
                                                             android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
                                                             android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -1823,9 +1564,7 @@ fun MoreScreen(
                                         colors =
                                             CardDefaults.cardColors(
                                                 containerColor =
-                                                    if (sId ==
-                                                        viewModel.activeStoreId
-                                                    ) {
+                                                    if (sId == viewModel.activeStoreId) {
                                                         MaterialTheme.colorScheme.primary
                                                     } else {
                                                         MaterialTheme.colorScheme.surfaceVariant
@@ -1834,11 +1573,11 @@ fun MoreScreen(
                                         shape = RoundedCornerShape(12.dp),
                                     ) {
                                         Text(
-                                            storeName, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold,
+                                            storeName,
+                                            modifier = Modifier.padding(16.dp),
+                                            fontWeight = FontWeight.Bold,
                                             color =
-                                                if (sId ==
-                                                    viewModel.activeStoreId
-                                                ) {
+                                                if (sId == viewModel.activeStoreId) {
                                                     MaterialTheme.colorScheme.onPrimary
                                                 } else {
                                                     MaterialTheme.colorScheme.onSurfaceVariant
@@ -1854,9 +1593,7 @@ fun MoreScreen(
                                 label = {
                                     Text(
                                         "Or enter Store Name to create",
-                                        modifier =
-                                            androidx.compose.ui.Modifier
-                                                .autoMarquee(),
+                                        modifier = Modifier.autoMarquee(),
                                     )
                                 },
                                 modifier = Modifier.fillMaxWidth(),
@@ -1866,49 +1603,44 @@ fun MoreScreen(
                             PrimaryButton(
                                 onClick = {
                                     if (newStoreNameInput.isNotBlank()) {
-                                        if (!viewModel.isPremiumUser &&
-                                            viewModel.userStores.size >= 2
-                                        ) {
+                                        if (!viewModel.isPremiumUser && viewModel.userStores.size >= 2) {
                                             showUpgradeDialog = true
                                         } else {
                                             showSheet = false
                                             isSyncing = true
-                                            syncMessage =
-                                                "Creating ${newStoreNameInput.trim()}..."
-                                            viewModel
-                                                .createLocalStore(newStoreNameInput.trim(), onProgress = {
-                                                    progress,
-                                                    msg,
-                                                    ->
-                                                    syncProgress = progress
-                                                    syncMessage = msg
-                                                }, onComplete = {
-                                                    android.widget.Toast
-                                                        .makeText(
-                                                            context,
-                                                            context
-                                                                .getString(
-                                                                    R.string.toast_switched_store,
-                                                                    newStoreNameInput
-                                                                        .trim(),
-                                                                ),
-                                                            android.widget.Toast.LENGTH_SHORT,
-                                                        ).show()
-                                                    (context as? androidx.activity.ComponentActivity)
-                                                        ?.viewModelStore
-                                                        ?.clear()
-                                                    val intent =
-                                                        android.content
-                                                            .Intent(
-                                                                context,
-                                                                com.storebook.inventoryapp.MainActivity::class.java,
-                                                            )
-                                                    intent.flags =
-                                                        android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
-                                                        android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                                    context.startActivity(intent)
-                                                    (context as? android.app.Activity)?.finish()
-                                                })
+                                            syncMessage = "Creating ${newStoreNameInput.trim()}..."
+                                            viewModel.createLocalStore(newStoreNameInput.trim(), onProgress = {
+                                                progress,
+                                                msg,
+                                                ->
+                                                syncProgress = progress
+                                                syncMessage = msg
+                                            }, onComplete = {
+                                                android.widget.Toast
+                                                    .makeText(
+                                                        context,
+                                                        context
+                                                            .getString(
+                                                                R.string.toast_switched_store,
+                                                                newStoreNameInput
+                                                                    .trim(),
+                                                            ),
+                                                        android.widget.Toast.LENGTH_SHORT,
+                                                    ).show()
+                                                (context as? androidx.activity.ComponentActivity)
+                                                    ?.viewModelStore
+                                                    ?.clear()
+                                                val intent =
+                                                    android.content.Intent(
+                                                        context,
+                                                        com.storebook.inventoryapp.MainActivity::class.java,
+                                                    )
+                                                intent.flags =
+                                                    android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                                                    android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                                context.startActivity(intent)
+                                                (context as? android.app.Activity)?.finish()
+                                            })
                                         }
                                     }
                                 },
@@ -1919,8 +1651,6 @@ fun MoreScreen(
                             }
                         }
                     }
-
-                    // ── E20-S2: Restore from cloud confirmation ───
                     "RESTORE" -> {
                         Column(
                             modifier =
@@ -1940,14 +1670,9 @@ fun MoreScreen(
                             Card(
                                 colors =
                                     CardDefaults.cardColors(
-                                        containerColor =
-                                            MaterialTheme.colorScheme.errorContainer
-                                                .copy(alpha = 0.3f),
+                                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
                                     ),
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                                 shape = RoundedCornerShape(12.dp),
                             ) {
                                 Text(
@@ -2018,20 +1743,17 @@ fun MoreScreen(
                 androidx.compose.ui.window
                     .DialogProperties(usePlatformDefaultWidth = false),
         ) {
-            androidx.compose.material3.Surface(
+            Surface(
                 color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.fillMaxSize(),
             ) {
                 Column(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(32.dp),
+                    modifier = Modifier.fillMaxSize().padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    androidx.compose.material3.Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.Sync,
+                    Icon(
+                        imageVector = Icons.Default.Sync,
                         contentDescription = "Syncing",
                         modifier = Modifier.size(80.dp),
                         tint = MaterialTheme.colorScheme.primary,
@@ -2043,7 +1765,7 @@ fun MoreScreen(
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
                         color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        textAlign = TextAlign.Center,
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -2051,11 +1773,10 @@ fun MoreScreen(
                     val animatedProgress by androidx.compose.animation.core.animateFloatAsState(
                         targetValue = syncProgress / 100f,
                         animationSpec =
-                            androidx.compose.animation.core
-                                .tween(
-                                    durationMillis = 500,
-                                    easing = androidx.compose.animation.core.LinearOutSlowInEasing,
-                                ),
+                            tween(
+                                durationMillis = 500,
+                                easing = androidx.compose.animation.core.LinearOutSlowInEasing,
+                            ),
                         label = "syncProgress",
                     )
 
@@ -2086,12 +1807,53 @@ fun MoreScreen(
     }
 }
 
+/** Section Header for visual categorization of setting cards */
+@Composable
+fun SectionHeader(
+    title: String,
+    icon: ImageVector,
+    accentColor: Color,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 2.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = accentColor,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = title,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            letterSpacing = 0.8.sp,
+        )
+    }
+}
+
+/** Rounded menu card wrapper for grouped options */
+@Composable
+fun MenuCard(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        content = content,
+    )
+}
+
 @Composable
 fun IconOptionRow(
     icon: ImageVector,
     iconBg: Color,
     iconTint: Color,
     title: String,
+    subtitle: String? = null,
     trailing: String? = null,
     trailingIconRes: Int? = null,
     onClick: () -> Unit,
@@ -2111,11 +1873,10 @@ fun IconOptionRow(
                     Modifier
                         .size(42.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                        ).border(
+                        .background(iconBg)
+                        .border(
                             width = 1.dp,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            color = iconTint.copy(alpha = 0.2f),
                             shape = RoundedCornerShape(12.dp),
                         ),
                 contentAlignment = Alignment.Center,
@@ -2123,19 +1884,26 @@ fun IconOptionRow(
                 Icon(
                     imageVector = icon,
                     contentDescription = stringResource(R.string.ui_element_desc),
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = iconTint,
                     modifier = Modifier.size(22.dp),
                 )
             }
             Spacer(modifier = Modifier.width(14.dp))
-            Text(text = title, fontWeight = FontWeight.Medium, fontSize = 15.sp)
+            Column {
+                Text(text = title, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    )
+                }
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (trailingIconRes != null) {
                 Icon(
-                    painter =
-                        androidx.compose.ui.res
-                            .painterResource(id = trailingIconRes),
+                    painter = painterResource(id = trailingIconRes),
                     contentDescription = stringResource(R.string.ui_element_desc),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp),
@@ -2143,13 +1911,19 @@ fun IconOptionRow(
                 Spacer(modifier = Modifier.width(4.dp))
             }
             if (trailing != null) {
-                Text(
-                    text = trailing,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(end = 4.dp),
-                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                ) {
+                    Text(
+                        text = trailing,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -2230,19 +2004,13 @@ fun LanguageOptionCard(
                     if (active) {
                         MaterialTheme.colorScheme.primary
                     } else {
-                        MaterialTheme.colorScheme.surfaceVariant.copy(
-                            alpha = 0.5f,
-                        )
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     },
                 contentColor =
                     if (active) {
-                        MaterialTheme
-                            .colorScheme
-                            .onPrimary
+                        MaterialTheme.colorScheme.onPrimary
                     } else {
-                        MaterialTheme
-                            .colorScheme
-                            .onSurfaceVariant
+                        MaterialTheme.colorScheme.onSurfaceVariant
                     },
             ),
     ) {
@@ -2253,9 +2021,7 @@ fun LanguageOptionCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    painter =
-                        androidx.compose.ui.res
-                            .painterResource(id = iconRes),
+                    painter = painterResource(id = iconRes),
                     contentDescription = stringResource(R.string.ui_element_desc),
                     tint = androidx.compose.material3.LocalContentColor.current,
                     modifier = Modifier.size(24.dp),
@@ -2269,9 +2035,7 @@ fun LanguageOptionCard(
                         Modifier
                             .size(24.dp)
                             .clip(CircleShape)
-                            .background(
-                                MaterialTheme.colorScheme.primary,
-                            ),
+                            .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -2288,9 +2052,7 @@ fun LanguageOptionCard(
 
 /** Format last backup timestamp into a human-readable string. "Never" if no backup exists. */
 fun formatLastBackup(timestampMs: Long): String =
-    if (timestampMs ==
-        0L
-    ) {
+    if (timestampMs == 0L) {
         "Never"
     } else {
         SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()).format(Date(timestampMs))
@@ -2304,23 +2066,15 @@ fun InlineThemeCard(
     onThemeSelected: (Boolean) -> Unit,
     onThemeModeSelected: (AppThemeMode) -> Unit,
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val palettes =
         listOf(
             Triple(AppThemeMode.INK_BLUE, com.storebook.inventoryapp.ui.theme.InkBlue700, "Sapphire Blue"),
             Triple(AppThemeMode.FOREST_GREEN, com.storebook.inventoryapp.ui.theme.ForestGreen700, "Emerald Jade"),
             Triple(AppThemeMode.SUNSET_ORANGE, com.storebook.inventoryapp.ui.theme.SunsetOrange700, "Sunset Amber"),
-            Triple(
-                AppThemeMode.AMETHYST_PURPLE,
-                com.storebook.inventoryapp.ui.theme.AmethystPurple700,
-                "Royal Amethyst",
-            ),
+            Triple(AppThemeMode.AMETHYST_PURPLE, com.storebook.inventoryapp.ui.theme.AmethystPurple700, "Royal Amethyst"),
             Triple(AppThemeMode.CRIMSON_RUBY, com.storebook.inventoryapp.ui.theme.CrimsonRuby700, "Crimson Ruby"),
-            Triple(
-                AppThemeMode.CHARCOAL_OBSIDIAN,
-                com.storebook.inventoryapp.ui.theme.CharcoalObsidian700,
-                "Charcoal Obsidian",
-            ),
+            Triple(AppThemeMode.CHARCOAL_OBSIDIAN, com.storebook.inventoryapp.ui.theme.CharcoalObsidian700, "Charcoal Obsidian"),
         )
 
     Card(
@@ -2366,11 +2120,7 @@ fun InlineThemeCard(
                         animationSpec = tween(200), label = "mode_bg",
                     )
                     val textColor by animateColorAsState(
-                        if (selected) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
+                        if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                         animationSpec = tween(200), label = "mode_text",
                     )
                     Box(
@@ -2388,14 +2138,14 @@ fun InlineThemeCard(
                             horizontalArrangement = Arrangement.Center,
                         ) {
                             Icon(
-                                painter = painterResource(id = emoji as Int),
+                                painter = painterResource(id = emoji),
                                 contentDescription = stringResource(R.string.ui_element_desc),
                                 tint = textColor,
                                 modifier = Modifier.size(16.dp),
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = label as String,
+                                text = label,
                                 fontSize = 13.sp,
                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                                 color = textColor,
@@ -2433,7 +2183,7 @@ fun InlineThemeCard(
                             animationSpec = tween(250), label = "ring_$name",
                         )
                         val interactionSource =
-                            androidx.compose.runtime.remember {
+                            remember {
                                 androidx.compose.foundation.interaction
                                     .MutableInteractionSource()
                             }
@@ -2477,10 +2227,7 @@ fun InlineThemeCard(
                                             imageVector = Icons.Default.Star,
                                             contentDescription = stringResource(R.string.ui_element_desc),
                                             tint = MaterialTheme.colorScheme.onPrimary,
-                                            modifier =
-                                                Modifier
-                                                    .size(16.dp)
-                                                    .align(Alignment.Center),
+                                            modifier = Modifier.size(16.dp).align(Alignment.Center),
                                         )
                                     } else if (isLocked) {
                                         Box(
@@ -2533,10 +2280,7 @@ fun InlineThemeCard(
                             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                             contentDescription = "More colors available",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier =
-                                Modifier
-                                    .padding(end = 4.dp, bottom = 22.dp)
-                                    .size(22.dp),
+                            modifier = Modifier.padding(end = 4.dp, bottom = 22.dp).size(22.dp),
                         )
                     }
                 }
@@ -2553,7 +2297,6 @@ fun ThemeSheetContent(
     onThemeSelected: (Boolean) -> Unit,
     onThemeModeSelected: (AppThemeMode) -> Unit,
 ) {
-    // Legacy — delegates to inline card for backward compat
     InlineThemeCard(isDarkMode, themeMode, isPremium, onThemeSelected, onThemeModeSelected)
 }
 
@@ -2592,9 +2335,7 @@ fun ExpenseSheetContent(
                 label = {
                     Text(
                         stringResource(id = R.string.exp_amount_label),
-                        modifier =
-                            androidx.compose.ui.Modifier
-                                .autoMarquee(),
+                        modifier = Modifier.autoMarquee(),
                     )
                 },
                 keyboardOptions =
@@ -2613,9 +2354,7 @@ fun ExpenseSheetContent(
                 label = {
                     Text(
                         stringResource(id = R.string.exp_desc_label),
-                        modifier =
-                            androidx.compose.ui.Modifier
-                                .autoMarquee(),
+                        modifier = Modifier.autoMarquee(),
                     )
                 },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -2647,12 +2386,7 @@ fun ExpenseSheetContent(
                     modifier = Modifier.fillMaxWidth(),
                     colors =
                         CardDefaults.cardColors(
-                            containerColor =
-                                MaterialTheme.colorScheme
-                                    .surfaceVariant
-                                    .copy(
-                                        alpha = 0.5f,
-                                    ),
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         ),
                     shape = RoundedCornerShape(12.dp),
                 ) {
@@ -2668,16 +2402,9 @@ fun ExpenseSheetContent(
                                 fontSize = 13.sp,
                             )
                             Text(
-                                dateFmt.format(
-                                    Date(entry.timestamp),
-                                ),
+                                dateFmt.format(Date(entry.timestamp)),
                                 fontSize = 11.sp,
-                                color =
-                                    MaterialTheme.colorScheme
-                                        .onSurface
-                                        .copy(
-                                            alpha = 0.45f,
-                                        ),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                             )
                         }
                         Text(
@@ -2768,9 +2495,7 @@ fun ReportsSheetContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector =
-                            if (netProfit >=
-                                0
-                            ) {
+                            if (netProfit >= 0) {
                                 Icons.AutoMirrored.Filled.TrendingUp
                             } else {
                                 Icons.AutoMirrored.Filled.TrendingDown
@@ -2782,9 +2507,7 @@ fun ReportsSheetContent(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text =
-                            if (netProfit >=
-                                0
-                            ) {
+                            if (netProfit >= 0) {
                                 stringResource(id = R.string.rep_net_profit_label)
                             } else {
                                 stringResource(id = R.string.rep_net_loss_label)
@@ -2873,22 +2596,10 @@ fun RestockSheetContent(
     onPhoneChange: (String) -> Unit,
     onSave: () -> Unit,
 ) {
-    val focusRequesterCost =
-        remember {
-            androidx.compose.ui.focus
-                .FocusRequester()
-        }
-    val focusRequesterSupplier =
-        remember {
-            androidx.compose.ui.focus
-                .FocusRequester()
-        }
-    val focusRequesterPhone =
-        remember {
-            androidx.compose.ui.focus
-                .FocusRequester()
-        }
-    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    val focusRequesterCost = remember { FocusRequester() }
+    val focusRequesterSupplier = remember { FocusRequester() }
+    val focusRequesterPhone = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
 
     Column(
         modifier =
@@ -2921,9 +2632,7 @@ fun RestockSheetContent(
                 label = {
                     Text(
                         stringResource(id = R.string.more_stock_item),
-                        modifier =
-                            androidx.compose.ui.Modifier
-                                .autoMarquee(),
+                        modifier = Modifier.autoMarquee(),
                     )
                 },
                 trailingIcon = {
@@ -2962,20 +2671,15 @@ fun RestockSheetContent(
                 label = {
                     Text(
                         stringResource(id = R.string.exp_restock_qty),
-                        modifier =
-                            androidx.compose.ui.Modifier
-                                .autoMarquee(),
+                        modifier = Modifier.autoMarquee(),
                     )
                 },
                 keyboardOptions =
                     KeyboardOptions(
                         keyboardType = KeyboardType.Number,
-                        imeAction = androidx.compose.ui.text.input.ImeAction.Next,
+                        imeAction = ImeAction.Next,
                     ),
-                keyboardActions =
-                    androidx.compose.foundation.text.KeyboardActions(
-                        onNext = { focusRequesterCost.requestFocus() },
-                    ),
+                keyboardActions = KeyboardActions(onNext = { focusRequesterCost.requestFocus() }),
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
@@ -2986,20 +2690,15 @@ fun RestockSheetContent(
                 label = {
                     Text(
                         stringResource(id = R.string.exp_cost_price),
-                        modifier =
-                            androidx.compose.ui.Modifier
-                                .autoMarquee(),
+                        modifier = Modifier.autoMarquee(),
                     )
                 },
                 keyboardOptions =
                     KeyboardOptions(
                         keyboardType = KeyboardType.Number,
-                        imeAction = androidx.compose.ui.text.input.ImeAction.Next,
+                        imeAction = ImeAction.Next,
                     ),
-                keyboardActions =
-                    androidx.compose.foundation.text.KeyboardActions(
-                        onNext = { focusRequesterSupplier.requestFocus() },
-                    ),
+                keyboardActions = KeyboardActions(onNext = { focusRequesterSupplier.requestFocus() }),
                 modifier = Modifier.weight(1f).focusRequester(focusRequesterCost),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
@@ -3012,16 +2711,11 @@ fun RestockSheetContent(
             label = {
                 Text(
                     stringResource(id = R.string.exp_supplier_label),
-                    modifier =
-                        androidx.compose.ui.Modifier
-                            .autoMarquee(),
+                    modifier = Modifier.autoMarquee(),
                 )
             },
-            keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Next),
-            keyboardActions =
-                androidx.compose.foundation.text.KeyboardActions(
-                    onNext = { focusRequesterPhone.requestFocus() },
-                ),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusRequesterPhone.requestFocus() }),
             modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterSupplier),
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
@@ -3032,20 +2726,15 @@ fun RestockSheetContent(
             label = {
                 Text(
                     stringResource(id = R.string.exp_supplier_phone),
-                    modifier =
-                        androidx.compose.ui.Modifier
-                            .autoMarquee(),
+                    modifier = Modifier.autoMarquee(),
                 )
             },
             keyboardOptions =
                 KeyboardOptions(
                     keyboardType = KeyboardType.Phone,
-                    imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                    imeAction = ImeAction.Done,
                 ),
-            keyboardActions =
-                androidx.compose.foundation.text.KeyboardActions(
-                    onDone = { focusManager.clearFocus() },
-                ),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
             modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterPhone),
             singleLine = true,
             shape = RoundedCornerShape(12.dp),

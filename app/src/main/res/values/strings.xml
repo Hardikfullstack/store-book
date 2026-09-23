@@ -46,7 +46,7 @@
     <string name="inv_err_duplicate_name">An item with this name already exists.</string>
     <string name="inv_delete_confirm_title">Delete Item?</string>
     <string name="inv_delete_confirm_desc">Are you sure you want to delete this item? It will be held for recovery for 7 days.</string>
-    
+
     <!-- Units -->
     <string name="unit_pcs">pcs</string>
     <string name="unit_kg">kg</string>
@@ -88,8 +88,8 @@
     <string name="udh_empty">No credit records found.</string>
     <string name="udh_total_outstanding">Total Outstanding Credit</string>
     <string name="udh_ledger_title">%1$s\'s Credit Ledger</string>
-    <string name="udh_btn_give_credit">Give Credit (+ उधार)</string>
-    <string name="udh_btn_receive_payment">Receive Payment (- जमा)</string>
+    <string name="udh_btn_give_credit">Give Credit</string>
+    <string name="udh_btn_receive_payment">Receive Payment</string>
     <string name="udh_dialog_title">Add Ledger Entry</string>
     <string name="udh_amount_label">Amount (₹)</string>
     <string name="udh_outstanding_balance">Outstanding Balance: ₹%1$.2f</string>
@@ -118,7 +118,7 @@
     <string name="more_csv_import">Import Inventory from CSV</string>
     <string name="more_pnl_report">Profit &amp; Loss Reports</string>
     <string name="more_expense_track">Shop Expenses Logger</string>
-    
+
     <!-- P&L Reports -->
     <string name="rep_title">Business Report</string>
     <string name="rep_revenue">Total Revenue: ₹%1$.2f</string>
@@ -186,7 +186,7 @@
     <string name="auth_toast_otp_sent">OTP Sent</string>
     <string name="auth_toast_verification_failed">Verification Failed: %1$s</string>
     <string name="auth_toast_auth_failed">Authentication failed</string>
-    
+
     <string name="more_cloud_sync">Cloud Backup &amp; Sync</string>
     <string name="btn_ok">OK</string>
     <string name="btn_close">Close</string>

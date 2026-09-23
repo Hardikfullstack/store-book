@@ -5,6 +5,10 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,6 +19,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,11 +43,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoneyOff
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Inventory
@@ -64,6 +71,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -143,6 +151,31 @@ object FutureSelectableDates : SelectableDates {
                 .get(java.util.Calendar.YEAR)
 }
 
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text = text.uppercase(),
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.8.sp,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+    )
+}
+
+@Composable
+private fun ErrorText(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Outlined.WarningAmber,
+            contentDescription = null,
+            modifier = Modifier.size(12.dp),
+            tint = MaterialTheme.colorScheme.error,
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = text, fontSize = 11.sp)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 fun InventoryScreen(viewModel: InventoryViewModel) {
@@ -160,6 +193,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
     var displayedItems by remember { mutableStateOf<List<Item>>(emptyList()) }
     var filterMode by rememberSaveable { mutableStateOf("All") } // "All" or "NearExpiry"
     var hasMoreItems by remember { mutableStateOf(true) }
+    var shouldScrollToTop by remember { mutableStateOf(false) }
     var isLoadingMore by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
@@ -243,6 +277,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
             .distinctUntilChanged()
             .collect { _ ->
                 hasMoreItems = true
+                shouldScrollToTop = true
                 val actualSortBy = sortBy + if (sortDescending) "_DESC" else "_ASC"
                 viewModel.loadFilteredItems(searchQ, selectedCategory, actualSortBy)
             }
@@ -253,6 +288,10 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         displayedItems = if (filterMode == "NearExpiry") nearExpiryItems else filteredItems
         // NearExpiry view shows all items, no pagination
         hasMoreItems = filterMode != "NearExpiry" && displayedItems.size >= PAGE_SIZE
+        if (shouldScrollToTop) {
+            listState.scrollToItem(0)
+            shouldScrollToTop = false
+        }
     }
 
     // ── Infinite scroll trigger — load next page when near bottom ─────────────
@@ -436,26 +475,77 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
 
         AlertDialog(
             containerColor = MaterialTheme.colorScheme.surface,
-            onDismissRequest = { quickRefillItem = null },
+            onDismissRequest = { if (!isQuickRefillSubmitting) quickRefillItem = null },
             title = {
-                Text(
-                    text = "Refill Stock: ${refillItem.name}",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                )
+                Column {
+                    Text(
+                        text = "Refill Stock",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = refillItem.name,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        modifier = Modifier.autoMarquee(),
+                    )
+                }
             },
             text = {
                 Column(
                     modifier =
-                        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 480.dp)
+                            .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    Text(
-                        text =
-                            "Current Stock: ${formatQty(refillItem.quantity)} ${refillItem.unit}",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    // Current → New stock preview strip
+                    val addedQtyVal = addQtyInput.toDoubleOrNull() ?: 0.0
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column {
+                            Text(
+                                text = "Current",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = "${formatQty(refillItem.quantity)} ${refillItem.unit}",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "After refill",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = "${formatQty(refillItem.quantity + addedQtyVal)} ${refillItem.unit}",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
 
                     OutlinedTextField(
                         value = addQtyInput,
@@ -469,10 +559,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                             )
                         },
                         keyboardOptions =
-                            KeyboardOptions(
-                                keyboardType = KeyboardType.Decimal,
-                                imeAction = ImeAction.Next,
-                            ),
+                            KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                         keyboardActions =
                             KeyboardActions(
                                 onNext = {
@@ -488,16 +575,13 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                         shape = RoundedCornerShape(16.dp),
                         colors =
                             OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor =
-                                    MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor =
-                                    MaterialTheme.colorScheme.outline,
-                                focusedLabelColor =
-                                    MaterialTheme.colorScheme.primary,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary,
                             ),
                     )
 
-                    // Presets
+                    // Presets — now show a checked state when they match the current input
                     val presets =
                         if (refillItem.unit in listOf("pcs", "dozen", "box", "packet")) {
                             listOf(5, 10, 50, 100)
@@ -508,17 +592,8 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                         items(presets, key = { it }) { preset ->
                             FilterChip(
                                 label = "+$preset",
-                                isSelected = false,
-                                onClick = {
-                                    val currentVal = addQtyInput.toDoubleOrNull() ?: 0.0
-                                    val formatted =
-                                        if ((currentVal + preset) % 1.0 == 0.0) {
-                                            (currentVal + preset).toInt().toString()
-                                        } else {
-                                            (currentVal + preset).toString()
-                                        }
-                                    addQtyInput = formatted
-                                },
+                                isSelected = addQtyInput.toDoubleOrNull() == preset.toDouble(),
+                                onClick = { addQtyInput = preset.toString() },
                             )
                         }
                     }
@@ -535,33 +610,40 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                             .autoMarquee(),
                                 )
                             },
+                            prefix = { Text("₹ ") },
                             keyboardOptions =
-                                KeyboardOptions(
-                                    keyboardType = KeyboardType.Decimal,
-                                    imeAction = ImeAction.Next,
-                                ),
-                            keyboardActions =
-                                KeyboardActions(
-                                    onNext = {
-                                        focusRequesterSupplier.requestFocus()
-                                    },
-                                ),
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(focusRequesterBuyPrice),
+                                KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                            keyboardActions = KeyboardActions(onNext = { focusRequesterSupplier.requestFocus() }),
+                            modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterBuyPrice),
                             singleLine = true,
                             shape = RoundedCornerShape(16.dp),
                             colors =
                                 OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor =
-                                        MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor =
-                                        MaterialTheme.colorScheme.outline,
-                                    focusedLabelColor =
-                                        MaterialTheme.colorScheme.primary,
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
                                 ),
                         )
+
+                        // Live total cost of this refill
+                        val buyPriceVal = buyPriceInput.toDoubleOrNull()
+                        if (addedQtyVal > 0 && buyPriceVal != null && buyPriceVal >= 0) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    text = "Total cost",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = "₹${"%.2f".format(addedQtyVal * buyPriceVal)}",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                        }
                     }
 
                     // Supplier Selector
@@ -575,7 +657,9 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                         Box(modifier = Modifier.fillMaxWidth()) {
                             OutlinedTextField(
                                 value =
-                                    if (selectedSupplier != null) {
+                                    if (selectedSupplier !=
+                                        null
+                                    ) {
                                         selectedSupplier?.name ?: "N/A"
                                     } else {
                                         supplierSearchText
@@ -593,50 +677,51 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                                 .autoMarquee(),
                                     )
                                 },
-                                keyboardOptions =
-                                    KeyboardOptions(imeAction = ImeAction.Done),
-                                keyboardActions =
-                                    KeyboardActions(
-                                        onDone = { focusManager.clearFocus() },
-                                    ),
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .focusRequester(focusRequesterSupplier),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterSupplier),
                                 singleLine = true,
+                                leadingIcon =
+                                    if (selectedSupplier != null) {
+                                        {
+                                            Icon(
+                                                Icons.Default.CheckCircle,
+                                                contentDescription = null,
+                                                tint = Emerald500,
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                        }
+                                    } else {
+                                        null
+                                    },
                                 trailingIcon = {
-                                    TextButton(
-                                        onClick = {
-                                            showSupplierDropdown = !showSupplierDropdown
-                                        },
-                                    ) { Text("Select") }
+                                    IconButton(onClick = { showSupplierDropdown = !showSupplierDropdown }) {
+                                        Icon(
+                                            if (showSupplierDropdown) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                            contentDescription = "Toggle supplier list",
+                                        )
+                                    }
                                 },
                                 shape = RoundedCornerShape(16.dp),
                                 colors =
                                     OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor =
-                                            MaterialTheme.colorScheme.primary,
-                                        unfocusedBorderColor =
-                                            MaterialTheme.colorScheme.outline,
-                                        focusedLabelColor =
-                                            MaterialTheme.colorScheme.primary,
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                        focusedLabelColor = MaterialTheme.colorScheme.primary,
                                     ),
                             )
 
                             DropdownMenu(
                                 expanded =
                                     showSupplierDropdown &&
-                                        (
-                                            filteredSuppliers.isNotEmpty() ||
-                                                supplierSearchText.isNotBlank()
-                                        ),
+                                        (filteredSuppliers.isNotEmpty() || supplierSearchText.isNotBlank()),
                                 onDismissRequest = { showSupplierDropdown = false },
                                 properties = PopupProperties(focusable = false),
-                                modifier =
-                                    Modifier.fillMaxWidth(0.8f).heightIn(max = 200.dp),
+                                modifier = Modifier.fillMaxWidth(0.85f).heightIn(max = 200.dp),
                             ) {
                                 DropdownMenuItem(
                                     text = { Text("Cash Purchase / No Supplier") },
+                                    leadingIcon = { Icon(Icons.Default.MoneyOff, contentDescription = null) },
                                     onClick = {
                                         selectedSupplier = null
                                         supplierSearchText = ""
@@ -656,17 +741,11 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                 }
 
                                 if (supplierSearchText.isNotBlank() &&
-                                    filteredSuppliers.none {
-                                        it.name.equals(
-                                            supplierSearchText,
-                                            ignoreCase = true,
-                                        )
-                                    }
+                                    filteredSuppliers.none { it.name.equals(supplierSearchText, ignoreCase = true) }
                                 ) {
                                     DropdownMenuItem(
-                                        text = {
-                                            Text("Create supplier: \"$supplierSearchText\"")
-                                        },
+                                        text = { Text("Create supplier: \"$supplierSearchText\"") },
+                                        leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
                                         onClick = {
                                             viewModel.addSupplier(
                                                 name = supplierSearchText,
@@ -674,11 +753,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                                 gstin = null,
                                                 address = null,
                                             ) { newId ->
-                                                selectedSupplier =
-                                                    Supplier(
-                                                        id = newId,
-                                                        name = supplierSearchText,
-                                                    )
+                                                selectedSupplier = Supplier(id = newId, name = supplierSearchText)
                                             }
                                             showSupplierDropdown = false
                                         },
@@ -688,147 +763,147 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    // Batch & Expiry — collapsed by default to reduce clutter in a "quick" refill flow
+                    var showBatchSection by remember {
+                        mutableStateOf(refillBatchNumber.isNotBlank() || refillExpiryDateMs != null)
+                    }
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable(onClickLabel = "Toggle batch and expiry fields") {
+                                    showBatchSection = !showBatchSection
+                                }.padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = "Batch & Expiry (Optional)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Icon(
+                            imageVector = if (showBatchSection) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
 
-                    Text(
-                        text = "Batch & Expiry Tracking (Optional)",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    AnimatedVisibility(visible = showBatchSection) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(
+                                value = refillBatchNumber,
+                                onValueChange = { refillBatchNumber = it },
+                                label = {
+                                    Text(
+                                        "Batch / Lot Number",
+                                        modifier =
+                                            androidx.compose.ui.Modifier
+                                                .autoMarquee(),
+                                    )
+                                },
+                                placeholder = {
+                                    Text(
+                                        "e.g. MFG-2024-B1",
+                                        modifier =
+                                            androidx.compose.ui.Modifier
+                                                .autoMarquee(),
+                                    )
+                                },
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(16.dp),
+                                colors =
+                                    OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                            )
 
-                    OutlinedTextField(
-                        value = refillBatchNumber,
-                        onValueChange = { refillBatchNumber = it },
-                        label = {
-                            Text(
-                                "Batch / Lot Number",
-                                modifier =
-                                    androidx.compose.ui.Modifier
-                                        .autoMarquee(),
-                            )
-                        },
-                        placeholder = {
-                            Text(
-                                "e.g. MFG-2024-B1",
-                                modifier =
-                                    androidx.compose.ui.Modifier
-                                        .autoMarquee(),
-                            )
-                        },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
-                        colors =
-                            OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            ),
-                    )
-
-                    OutlinedTextField(
-                        value =
-                            refillExpiryDateMs?.let {
-                                java.text
-                                    .SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
-                                    .format(java.util.Date(it))
-                            }
-                                ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = {
-                            Text(
-                                "Expiry Date",
-                                modifier =
-                                    androidx.compose.ui.Modifier
-                                        .autoMarquee(),
-                            )
-                        },
-                        placeholder = {
-                            Text(
-                                "Tap calendar icon to set",
-                                modifier =
-                                    androidx.compose.ui.Modifier
-                                        .autoMarquee(),
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = false,
-                        shape = RoundedCornerShape(16.dp),
-                        colors =
-                            OutlinedTextFieldDefaults.colors(
-                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                            ),
-                        trailingIcon = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (refillExpiryDateMs != null) {
-                                    TextButton(onClick = {
-                                        refillExpiryDateMs = null
-                                    }) {
-                                        Text(
-                                            "Clear",
-                                            fontSize =
-                                                11
-                                                    .sp,
-                                        )
+                            OutlinedTextField(
+                                value =
+                                    refillExpiryDateMs?.let {
+                                        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(it))
+                                    } ?: "",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = {
+                                    Text(
+                                        "Expiry Date",
+                                        modifier =
+                                            androidx.compose.ui.Modifier
+                                                .autoMarquee(),
+                                    )
+                                },
+                                placeholder = {
+                                    Text(
+                                        "Tap calendar icon to set",
+                                        modifier =
+                                            androidx.compose.ui.Modifier
+                                                .autoMarquee(),
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = false,
+                                shape = RoundedCornerShape(16.dp),
+                                colors =
+                                    OutlinedTextFieldDefaults.colors(
+                                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                    ),
+                                trailingIcon = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (refillExpiryDateMs != null) {
+                                            TextButton(onClick = { refillExpiryDateMs = null }) {
+                                                Text("Clear", fontSize = 11.sp)
+                                            }
+                                        }
+                                        IconButton(onClick = { showRefillDatePicker = true }) {
+                                            Icon(Icons.Default.CalendarToday, contentDescription = "Pick Expiry Date")
+                                        }
                                     }
-                                }
-                                IconButton(onClick = { showRefillDatePicker = true }) {
-                                    Icon(Icons.Default.CalendarToday, contentDescription = "Pick Expiry Date")
-                                }
-                            }
-                        },
-                    )
+                                },
+                            )
+                        }
+                    }
                 }
             },
             confirmButton = {
+                val addedQtyCheck = addQtyInput.toDoubleOrNull()
+                val buyPriceCheck =
+                    if (viewModel.userRole == "staff") refillItem.buyPrice else buyPriceInput.toDoubleOrNull()
+                val isValid =
+                    addedQtyCheck != null && addedQtyCheck > 0.0 && buyPriceCheck != null && buyPriceCheck >= 0.0
+
                 PrimaryButton(
-                    enabled = !isQuickRefillSubmitting,
+                    enabled = !isQuickRefillSubmitting && isValid,
                     onClick = {
                         if (isQuickRefillSubmitting) return@PrimaryButton
                         val addedQty = addQtyInput.toDoubleOrNull()
                         val finalBuyPrice =
-                            if (viewModel.userRole == "staff") {
-                                refillItem.buyPrice
-                            } else {
-                                buyPriceInput.toDoubleOrNull()
-                            }
+                            if (viewModel.userRole == "staff") refillItem.buyPrice else buyPriceInput.toDoubleOrNull()
 
                         if (addedQty == null || addedQty.isNaN() || addedQty <= 0.0) {
-                            android.widget.Toast
-                                .makeText(
-                                    context,
-                                    "Please enter a valid positive quantity",
-                                    android.widget.Toast.LENGTH_SHORT,
-                                ).show()
+                            Toast.makeText(context, "Please enter a valid positive quantity", Toast.LENGTH_SHORT).show()
                             return@PrimaryButton
                         }
                         if (finalBuyPrice == null || finalBuyPrice < 0.0) {
-                            android.widget.Toast
-                                .makeText(
-                                    context,
-                                    "Please enter a valid buy price",
-                                    android.widget.Toast.LENGTH_SHORT,
-                                ).show()
+                            Toast.makeText(context, "Please enter a valid buy price", Toast.LENGTH_SHORT).show()
                             return@PrimaryButton
                         }
                         if (addedQty > 0) {
                             val purchase =
                                 Purchase(
                                     supplierId = selectedSupplier?.id ?: 0L,
-                                    supplierName =
-                                        selectedSupplier?.name
-                                            ?: "Cash / Anonymous",
+                                    supplierName = selectedSupplier?.name ?: "Cash / Anonymous",
                                     totalAmount = addedQty * finalBuyPrice,
-                                    taxAmount =
-                                        addedQty *
-                                            finalBuyPrice *
-                                            (refillItem.taxRate / 100.0),
+                                    taxAmount = (addedQty * finalBuyPrice) * (refillItem.taxRate / 100.0),
                                     type = "BILL",
                                     timestamp = System.currentTimeMillis(),
                                     notes = "Refill stock for ${refillItem.name}",
@@ -837,8 +912,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                             PurchaseItemDetail(
                                                 purchaseId = 0L,
                                                 itemId = refillItem.id,
-                                                itemName =
-                                                    refillItem.name,
+                                                itemName = refillItem.name,
                                                 quantity = addedQty,
                                                 unit = refillItem.unit,
                                                 buyPrice = finalBuyPrice,
@@ -847,19 +921,11 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                 )
                             isQuickRefillSubmitting = true
                             viewModel.addPurchase(purchase) {
-                                // Log a batch record if batch number or expiry is provided
-                                if (refillBatchNumber.isNotBlank() ||
-                                    refillExpiryDateMs != null
-                                ) {
+                                if (refillBatchNumber.isNotBlank() || refillExpiryDateMs != null) {
                                     viewModel.addItemBatch(
                                         ItemBatch(
                                             itemId = refillItem.id,
-                                            batchNumber =
-                                                refillBatchNumber
-                                                    .trim()
-                                                    .takeIf {
-                                                        it.isNotBlank()
-                                                    },
+                                            batchNumber = refillBatchNumber.trim().takeIf { it.isNotBlank() },
                                             expiryDate = refillExpiryDateMs,
                                             quantity = addedQty,
                                             costPrice = finalBuyPrice,
@@ -868,19 +934,26 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                         ),
                                     )
                                 }
-                                android.widget.Toast
-                                    .makeText(
-                                        context,
-                                        "Stock refilled & purchase logged!",
-                                        android.widget.Toast.LENGTH_SHORT,
-                                    ).show()
+                                Toast.makeText(context, "Stock refilled & purchase logged!", Toast.LENGTH_SHORT).show()
                                 quickRefillItem = null
                             }
                         } else {
                             quickRefillItem = null
                         }
                     },
-                ) { Text(if (isQuickRefillSubmitting) "Adding..." else "Add Stock") }
+                ) {
+                    if (isQuickRefillSubmitting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Adding...")
+                    } else {
+                        Text("Add Stock")
+                    }
+                }
             },
             dismissButton = {
                 TextButton(
@@ -990,7 +1063,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Search Bar — debounced via LaunchedEffect above
                 OutlinedTextField(
@@ -999,105 +1072,112 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                     placeholder = {
                         Text(
                             stringResource(id = R.string.inv_search_hint),
-                            modifier =
-                                androidx.compose.ui.Modifier
-                                    .autoMarquee(),
+                            fontSize = 14.sp,
+                            modifier = Modifier.autoMarquee(),
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp),
                     leadingIcon = {
                         Icon(
                             Icons.Default.Search,
-                            contentDescription =
-                                stringResource(R.string.ui_element_desc),
+                            contentDescription = stringResource(R.string.ui_element_desc),
+                            modifier = Modifier.size(20.dp),
                         )
                     },
                     trailingIcon = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(end = 8.dp),
+                            modifier = Modifier.padding(end = 4.dp),
                         ) {
-                            if (isLoadingItems) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
+                            AnimatedVisibility(visible = isLoadingItems) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                }
                             }
-                            if (searchQ.isNotEmpty()) {
-                                IconButton(onClick = { searchQ = "" }) {
+                            AnimatedVisibility(
+                                visible = searchQ.isNotEmpty(),
+                                enter = fadeIn() + scaleIn(),
+                                exit = fadeOut() + scaleOut(),
+                            ) {
+                                IconButton(
+                                    onClick = { searchQ = "" },
+                                    modifier = Modifier.size(32.dp),
+                                ) {
                                     Icon(
                                         Icons.Rounded.Cancel,
-                                        contentDescription = "Clear",
+                                        contentDescription = "Clear search",
                                         tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(18.dp),
                                     )
                                 }
                             }
+
+                            val isFilterActive = selectedCategory != "All" || filterMode != "All"
                             Box(
                                 modifier =
                                     Modifier
+                                        .padding(start = 2.dp)
                                         .clip(CircleShape)
                                         .background(
-                                            if (selectedCategory != "All" ||
-                                                filterMode !=
-                                                "All"
-                                            ) {
-                                                MaterialTheme
-                                                    .colorScheme
-                                                    .onPrimary
-                                                    .copy(
-                                                        alpha = 0.2f,
-                                                    )
+                                            if (isFilterActive) {
+                                                MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
                                             } else {
                                                 Color.Transparent
                                             },
-                                        ).clickable(onClickLabel = "Action") {
+                                        ).clickable(onClickLabel = "Open filters") {
                                             showFilterSheet = true
                                         }.padding(6.dp),
                             ) {
-                                Icon(
-                                    Icons.Default.FilterList,
-                                    contentDescription = "Filters",
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(24.dp),
-                                )
+                                Box {
+                                    Icon(
+                                        Icons.Default.FilterList,
+                                        contentDescription =
+                                            if (isFilterActive) "Filters (active)" else "Filters",
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                    if (isFilterActive) {
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .size(6.dp)
+                                                    .align(Alignment.TopEnd)
+                                                    .clip(CircleShape)
+                                                    .background(Coral500),
+                                        )
+                                    }
+                                }
                             }
                         }
                     },
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions =
+                        KeyboardActions(
+                            onSearch = { focusManager.clearFocus() },
+                        ),
                     colors =
                         OutlinedTextFieldDefaults.colors(
                             focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                            unfocusedTextColor =
-                                MaterialTheme.colorScheme.onPrimary,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
-                            focusedBorderColor =
-                                MaterialTheme.colorScheme.onPrimary.copy(
-                                    alpha = 0.8f,
-                                ),
-                            unfocusedBorderColor =
-                                MaterialTheme.colorScheme.onPrimary.copy(
-                                    alpha = 0.6f,
-                                ),
-                            focusedLeadingIconColor =
-                                MaterialTheme.colorScheme.onPrimary.copy(
-                                    alpha = 0.9f,
-                                ),
-                            unfocusedLeadingIconColor =
-                                MaterialTheme.colorScheme.onPrimary.copy(
-                                    alpha = 0.7f,
-                                ),
-                            focusedPlaceholderColor =
-                                MaterialTheme.colorScheme.onPrimary.copy(
-                                    alpha = 0.8f,
-                                ),
-                            unfocusedPlaceholderColor =
-                                MaterialTheme.colorScheme.onPrimary.copy(
-                                    alpha = 0.7f,
-                                ),
+                            focusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                            focusedLeadingIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                            unfocusedLeadingIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                            focusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                            unfocusedPlaceholderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                             cursorColor = MaterialTheme.colorScheme.onPrimary,
                         ),
                 )
@@ -1804,123 +1884,115 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                 .fillMaxWidth()
                                 .verticalScroll(rememberScrollState())
                                 .imePadding()
-                                .padding(horizontal = 24.dp, vertical = 8.dp)
+                                .padding(horizontal = 20.dp, vertical = 8.dp)
                                 .padding(bottom = 32.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
                     ) {
                         LaunchedEffect(Unit) { focusRequesterName.requestFocus() }
 
-                        Text(
-                            text =
-                                if (editingItem == null) {
-                                    stringResource(id = R.string.inv_add_title)
-                                } else {
-                                    stringResource(id = R.string.inv_edit_title)
-                                },
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-
-                        OutlinedTextField(
-                            value = inputName,
-                            onValueChange = {
-                                inputName = it
-                                nameError = false
-                            },
-                            label = {
-                                Text(
-                                    stringResource(id = R.string.inv_name_label),
-                                    modifier =
-                                        androidx.compose.ui.Modifier
-                                            .autoMarquee(),
-                                )
-                            },
-                            modifier =
-                                Modifier.fillMaxWidth().focusRequester(focusRequesterName),
-                            singleLine = true,
-                            isError = nameError,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                            keyboardActions =
-                                KeyboardActions(
-                                    onNext = { focusRequesterQty.requestFocus() },
-                                ),
-                            supportingText =
-                                if (nameError) {
-                                    {
-                                        Text(
-                                            stringResource(
-                                                id = R.string.inv_err_empty_name,
-                                            ),
-                                        )
-                                    }
-                                } else {
-                                    null
-                                },
-                        )
-
-                        // Barcode field with scan button
-                        OutlinedTextField(
-                            value = inputBarcode,
-                            onValueChange = { inputBarcode = it },
-                            label = {
-                                Text(
-                                    "Barcode (Optional)",
-                                    modifier =
-                                        androidx.compose.ui.Modifier
-                                            .autoMarquee(),
-                                )
-                            },
-                            placeholder = {
-                                Text(
-                                    "e.g. 890123456789",
-                                    modifier =
-                                        androidx.compose.ui.Modifier
-                                            .autoMarquee(),
-                                )
-                            },
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                            keyboardActions =
-                                KeyboardActions(
-                                    onNext = { focusRequesterQty.requestFocus() },
-                                ),
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(focusRequesterBarcode),
-                            singleLine = true,
-                            trailingIcon = {
-                                IconButton(onClick = {
-                                    barcodeScanner
-                                        .startScan()
-                                        .addOnSuccessListener { barcode ->
-                                            val code = barcode.rawValue
-                                            if (!code.isNullOrBlank()) {
-                                                inputBarcode = code
-                                                Toast
-                                                    .makeText(
-                                                        context,
-                                                        "Scanned: $code",
-                                                        Toast.LENGTH_SHORT,
-                                                    ).show()
-                                            }
-                                        }.addOnFailureListener { e: Exception ->
-                                            Toast
-                                                .makeText(
-                                                    context,
-                                                    "Scan failed: ${e.message}",
-                                                    Toast.LENGTH_SHORT,
-                                                ).show()
-                                        }
-                                }) {
-                                    Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan Barcode")
-                                }
-                            },
-                        )
-
+                        // ── Header: title + explicit close button ─────────────────────────
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            Text(
+                                text =
+                                    if (editingItem == null) {
+                                        stringResource(id = R.string.inv_add_title)
+                                    } else {
+                                        stringResource(id = R.string.inv_edit_title)
+                                    },
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            IconButton(onClick = { showSheet = false }) {
+                                Icon(Icons.Default.Close, contentDescription = "Close")
+                            }
+                        }
+
+                        // ── Section: Basic Details ─────────────────────────────────────────
+                        SectionLabel("Basic Details")
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(
+                                value = inputName,
+                                onValueChange = {
+                                    inputName = it
+                                    nameError = false
+                                },
+                                label = {
+                                    Text(
+                                        stringResource(id = R.string.inv_name_label),
+                                        modifier =
+                                            androidx.compose.ui.Modifier
+                                                .autoMarquee(),
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterName),
+                                singleLine = true,
+                                isError = nameError,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                                keyboardActions = KeyboardActions(onNext = { focusRequesterQty.requestFocus() }),
+                                supportingText =
+                                    if (nameError) {
+                                        { ErrorText(stringResource(id = R.string.inv_err_empty_name)) }
+                                    } else {
+                                        null
+                                    },
+                            )
+
+                            OutlinedTextField(
+                                value = inputBarcode,
+                                onValueChange = { inputBarcode = it },
+                                label = {
+                                    Text(
+                                        "Barcode (Optional)",
+                                        modifier =
+                                            androidx.compose.ui.Modifier
+                                                .autoMarquee(),
+                                    )
+                                },
+                                placeholder = {
+                                    Text(
+                                        "e.g. 890123456789",
+                                        modifier =
+                                            androidx.compose.ui.Modifier
+                                                .autoMarquee(),
+                                    )
+                                },
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                                keyboardActions = KeyboardActions(onNext = { focusRequesterQty.requestFocus() }),
+                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterBarcode),
+                                singleLine = true,
+                                trailingIcon = {
+                                    IconButton(onClick = {
+                                        barcodeScanner
+                                            .startScan()
+                                            .addOnSuccessListener { barcode ->
+                                                val code = barcode.rawValue
+                                                if (!code.isNullOrBlank()) {
+                                                    inputBarcode = code
+                                                    Toast.makeText(context, "Scanned: $code", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }.addOnFailureListener { e: Exception ->
+                                                Toast
+                                                    .makeText(context, "Scan failed: ${e.message}", Toast.LENGTH_SHORT)
+                                                    .show()
+                                            }
+                                    }) {
+                                        Icon(
+                                            Icons.Default.QrCodeScanner,
+                                            contentDescription = "Scan Barcode",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
+                                },
+                            )
+                        }
+
+                        // ── Section: Stock ───────────────────────────────────────────────
+                        SectionLabel("Stock")
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             OutlinedTextField(
                                 value = inputQty,
                                 onValueChange = {
@@ -1936,11 +2008,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                     )
                                 },
                                 suffix = { Text(inputUnit) },
-                                keyboardOptions =
-                                    KeyboardOptions(
-                                        keyboardType = KeyboardType.Decimal,
-                                        imeAction = ImeAction.Next,
-                                    ),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                                 keyboardActions =
                                     KeyboardActions(
                                         onNext = {
@@ -1951,441 +2019,439 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                             }
                                         },
                                     ),
-                                modifier =
-                                    Modifier.weight(1f).focusRequester(focusRequesterQty),
+                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterQty),
                                 singleLine = true,
                                 isError = qtyError,
                                 supportingText =
                                     if (qtyError) {
-                                        { Text(stringResource(id = R.string.inv_err_qty)) }
+                                        { ErrorText(stringResource(id = R.string.inv_err_qty)) }
                                     } else {
                                         null
                                     },
                             )
-                        }
 
-                        // Reason for stock adjustment when editing and qty differs
-                        AnimatedVisibility(
-                            visible = editingItem != null && inputQty.toDoubleOrNull() != null && inputQty.toDoubleOrNull() != editingItem?.quantity,
-                        ) {
-                            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                            // Reason for stock adjustment when editing and qty differs
+                            AnimatedVisibility(
+                                visible =
+                                    editingItem != null &&
+                                        inputQty.toDoubleOrNull() != null &&
+                                        inputQty.toDoubleOrNull() != editingItem?.quantity,
+                            ) {
+                                Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                                    Text(
+                                        "Reason for Stock Adjustment",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    val reasons = listOf("Count Correction", "Damage", "Expiry", "Loss")
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        items(reasons, key = { it }) { r ->
+                                            FilterChip(
+                                                label = r,
+                                                isSelected = inputAdjustmentReason == r,
+                                                onClick = { inputAdjustmentReason = r },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Unit picker chips
+                            Column {
                                 Text(
-                                    "Reason for Stock Adjustment",
+                                    stringResource(id = R.string.inv_unit_label),
                                     fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
-                                val reasons = listOf("Count Correction", "Damage", "Expiry", "Loss")
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    items(reasons, key = { it }) { r ->
+                                    items(unitsList, key = { it }) { u ->
                                         FilterChip(
-                                            label = r,
-                                            isSelected = inputAdjustmentReason == r,
-                                            onClick = { inputAdjustmentReason = r },
+                                            label = u,
+                                            isSelected = inputUnit == u,
+                                            onClick = { inputUnit = u },
                                         )
                                     }
                                 }
                             }
+
+                            OutlinedTextField(
+                                value = inputThreshold,
+                                onValueChange = { inputThreshold = it },
+                                label = {
+                                    Text(
+                                        stringResource(id = R.string.inv_threshold_label),
+                                        modifier =
+                                            androidx.compose.ui.Modifier
+                                                .autoMarquee(),
+                                    )
+                                },
+                                suffix = { Text(inputUnit) },
+                                supportingText = {
+                                    Text(
+                                        "Alert shown when stock falls to or below this",
+                                        fontSize =
+                                            11
+                                                .sp,
+                                    )
+                                },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                                keyboardActions =
+                                    KeyboardActions(
+                                        onNext = {
+                                            if (showAdvancedOptions) {
+                                                focusRequesterHsn.requestFocus()
+                                            } else {
+                                                focusManager
+                                                    .clearFocus()
+                                            }
+                                        },
+                                    ),
+                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterThreshold),
+                                singleLine = true,
+                            )
                         }
 
-                        // Unit picker chips
-                        Column {
-                            Text(
-                                stringResource(id = R.string.inv_unit_label),
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(unitsList, key = { it }) { u ->
-                                    FilterChip(
-                                        label = u,
-                                        isSelected = inputUnit == u,
-                                        onClick = { inputUnit = u },
+                        // ── Section: Pricing ─────────────────────────────────────────────
+                        SectionLabel("Pricing")
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                if (viewModel.userRole != "staff") {
+                                    OutlinedTextField(
+                                        value = inputBuyPrice,
+                                        onValueChange = {
+                                            inputBuyPrice = it
+                                            buyPriceError = false
+                                        },
+                                        label = {
+                                            Text(
+                                                stringResource(id = R.string.inv_buy_price_label),
+                                                modifier =
+                                                    androidx.compose.ui.Modifier
+                                                        .autoMarquee(),
+                                            )
+                                        },
+                                        prefix = { Text("₹ ") },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                                        keyboardActions =
+                                            KeyboardActions(onNext = {
+                                                focusRequesterSellPrice
+                                                    .requestFocus()
+                                            }),
+                                        modifier = Modifier.weight(1f).focusRequester(focusRequesterBuyPrice),
+                                        singleLine = true,
+                                        isError = buyPriceError,
+                                        supportingText =
+                                            if (buyPriceError) {
+                                                { ErrorText("Enter valid buy price") }
+                                            } else {
+                                                null
+                                            },
                                     )
                                 }
-                            }
-                        }
-
-                        // Buy + Sell price
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            if (viewModel.userRole != "staff") {
                                 OutlinedTextField(
-                                    value = inputBuyPrice,
+                                    value = inputSellPrice,
                                     onValueChange = {
-                                        inputBuyPrice = it
-                                        buyPriceError = false
+                                        inputSellPrice = it
+                                        sellPriceError = false
                                     },
                                     label = {
                                         Text(
-                                            stringResource(id = R.string.inv_buy_price_label),
+                                            stringResource(id = R.string.inv_sell_price_label),
                                             modifier =
                                                 androidx.compose.ui.Modifier
                                                     .autoMarquee(),
                                         )
                                     },
                                     prefix = { Text("₹ ") },
-                                    keyboardOptions =
-                                        KeyboardOptions(
-                                            keyboardType = KeyboardType.Decimal,
-                                            imeAction = ImeAction.Next,
-                                        ),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                                     keyboardActions =
-                                        KeyboardActions(
-                                            onNext = {
-                                                focusRequesterSellPrice.requestFocus()
-                                            },
-                                        ),
-                                    modifier =
-                                        Modifier
-                                            .weight(1f)
-                                            .focusRequester(focusRequesterBuyPrice),
+                                        KeyboardActions(onNext = {
+                                            focusRequesterThreshold.requestFocus()
+                                        }),
+                                    modifier = Modifier.weight(1f).focusRequester(focusRequesterSellPrice),
                                     singleLine = true,
-                                    isError = buyPriceError,
+                                    isError = sellPriceError,
                                     supportingText =
-                                        if (buyPriceError) {
-                                            { Text("Enter valid buy price") }
+                                        if (sellPriceError) {
+                                            { ErrorText("Enter valid sell price") }
                                         } else {
                                             null
                                         },
                                 )
                             }
-                            OutlinedTextField(
-                                value = inputSellPrice,
-                                onValueChange = {
-                                    inputSellPrice = it
-                                    sellPriceError = false
-                                },
-                                label = {
-                                    Text(
-                                        stringResource(id = R.string.inv_sell_price_label),
+
+                            // Live margin preview — pure UI feedback, no side effects
+                            if (viewModel.userRole != "staff") {
+                                val buyVal = inputBuyPrice.toDoubleOrNull()
+                                val sellVal = inputSellPrice.toDoubleOrNull()
+                                if (buyVal != null && sellVal != null && buyVal > 0) {
+                                    val marginPct = ((sellVal - buyVal) / buyVal * 100).toInt()
+                                    val profitPerUnit = sellVal - buyVal
+                                    val marginColor =
+                                        when {
+                                            marginPct < 0 -> MaterialTheme.colorScheme.error
+                                            marginPct < 15 -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                            else -> Emerald500
+                                        }
+                                    Row(
                                         modifier =
-                                            androidx.compose.ui.Modifier
-                                                .autoMarquee(),
-                                    )
-                                },
-                                prefix = { Text("₹ ") },
-                                keyboardOptions =
-                                    KeyboardOptions(
-                                        keyboardType = KeyboardType.Decimal,
-                                        imeAction = ImeAction.Next,
-                                    ),
-                                keyboardActions =
-                                    KeyboardActions(
-                                        onNext = {
-                                            focusRequesterThreshold.requestFocus()
-                                        },
-                                    ),
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(marginColor.copy(alpha = 0.1f))
+                                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            text = if (marginPct < 0) "Selling at a loss" else "Margin on this item",
+                                            fontSize = 12.sp,
+                                            color = marginColor,
+                                        )
+                                        Text(
+                                            text =
+                                                "${if (marginPct >= 0) "+" else ""}$marginPct% (₹${"%.2f".format(profitPerUnit)}/$inputUnit)",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = marginColor,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // ── Advanced options: expandable card, not a bare row ─────────────
+                        val chevronRotation by
+                            androidx.compose.animation.core.animateFloatAsState(
+                                targetValue = if (showAdvancedOptions) 180f else 0f,
+                                label = "chevron_rotation",
+                            )
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                        ) {
+                            Row(
                                 modifier =
                                     Modifier
-                                        .weight(1f)
-                                        .focusRequester(focusRequesterSellPrice),
-                                singleLine = true,
-                                isError = sellPriceError,
-                                supportingText =
-                                    if (sellPriceError) {
-                                        { Text("Enter valid sell price") }
-                                    } else {
-                                        null
-                                    },
-                            )
-                        }
-
-                        OutlinedTextField(
-                            value = inputThreshold,
-                            onValueChange = { inputThreshold = it },
-                            label = {
+                                        .fillMaxWidth()
+                                        .clickable(onClickLabel = "Toggle advanced options") {
+                                            showAdvancedOptions = !showAdvancedOptions
+                                        }.padding(horizontal = 12.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
                                 Text(
-                                    stringResource(id = R.string.inv_threshold_label),
-                                    modifier =
-                                        androidx.compose.ui.Modifier
-                                            .autoMarquee(),
+                                    text = "Advanced (HSN, Tax, Batch & Expiry)",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary,
                                 )
-                            },
-                            suffix = { Text(inputUnit) },
-                            keyboardOptions =
-                                KeyboardOptions(
-                                    keyboardType = KeyboardType.Decimal,
-                                    imeAction = ImeAction.Next,
-                                ),
-                            keyboardActions =
-                                KeyboardActions(
-                                    onNext = {
-                                        if (showAdvancedOptions) {
-                                            focusRequesterHsn.requestFocus()
-                                        } else {
-                                            focusManager.clearFocus()
-                                        }
-                                    },
-                                ),
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(focusRequesterThreshold),
-                            singleLine = true,
-                        )
-
-                        // Advanced Options Accordion Toggle
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable(onClickLabel = "Action") {
-                                        showAdvancedOptions = !showAdvancedOptions
-                                    }.padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text(
-                                text =
-                                    if (showAdvancedOptions) {
-                                        "Hide Advanced Options"
-                                    } else {
-                                        "Show Advanced Options (HSN, Tax, Batch)"
-                                    },
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                            Icon(
-                                imageVector =
-                                    if (showAdvancedOptions) {
-                                        Icons.Default.KeyboardArrowUp
-                                    } else {
-                                        Icons.Default.KeyboardArrowDown
-                                    },
-                                contentDescription = stringResource(R.string.ui_element_desc),
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-
-                        val sheetDateFormatter =
-                            remember {
-                                SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = if (showAdvancedOptions) "Collapse" else "Expand",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.rotate(chevronRotation),
+                                )
                             }
 
-                        // Expiry Date Picker for Add/Edit sheet
-                        if (showExpiryDatePicker) {
-                            val dpState =
-                                rememberDatePickerState(
-                                    initialSelectedDateMillis =
-                                        inputExpiryDateMs
-                                            ?: System.currentTimeMillis(),
-                                    selectableDates = FutureSelectableDates,
-                                )
-                            DatePickerDialog(
-                                onDismissRequest = { showExpiryDatePicker = false },
-                                confirmButton = {
-                                    TextButton(
-                                        onClick = {
-                                            val selected = dpState.selectedDateMillis
-                                            if (selected != null &&
-                                                selected <
-                                                System.currentTimeMillis() -
-                                                24 *
-                                                60 *
-                                                60 *
-                                                1000
-                                            ) {
-                                                android.widget.Toast
-                                                    .makeText(
-                                                        context,
-                                                        "Expiry date cannot be in the past",
-                                                        android.widget.Toast
-                                                            .LENGTH_SHORT,
-                                                    ).show()
-                                            } else {
-                                                inputExpiryDateMs = selected
-                                                showExpiryDatePicker = false
-                                            }
-                                        },
-                                    ) { Text("OK") }
-                                },
-                                dismissButton = {
-                                    TextButton(onClick = { showExpiryDatePicker = false }) {
-                                        Text("Cancel")
-                                    }
-                                },
-                            ) { DatePicker(state = dpState) }
-                        }
+                            val sheetDateFormatter = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
 
-                        AnimatedVisibility(visible = showAdvancedOptions) {
-                            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                // Taxes & HSN
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                ) {
-                                    OutlinedTextField(
-                                        value = inputHsnCode,
-                                        onValueChange = { newValue ->
-                                            inputHsnCode = newValue
-                                            val rate =
-                                                com.storebook.inventoryapp.utils.HsnTaxLookup
-                                                    .getTaxRate(newValue)
-                                            if (rate != null) {
-                                                inputTaxRate =
-                                                    if (rate % 1.0 == 0.0) rate.toInt().toString() else rate.toString()
-                                            } else if (newValue.isBlank()) {
-                                                inputTaxRate = "0"
-                                            }
-                                        },
-                                        label = {
-                                            Text(
-                                                "HSN/SAC Code",
-                                                modifier =
-                                                    androidx.compose.ui.Modifier
-                                                        .autoMarquee(),
-                                            )
-                                        },
-                                        keyboardOptions =
-                                            KeyboardOptions(imeAction = ImeAction.Next),
-                                        keyboardActions =
-                                            KeyboardActions(
-                                                onNext = {
-                                                    focusRequesterTax.requestFocus()
-                                                },
-                                            ),
-                                        modifier =
-                                            Modifier
-                                                .weight(1f)
-                                                .focusRequester(focusRequesterHsn),
-                                        singleLine = true,
+                            if (showExpiryDatePicker) {
+                                val dpState =
+                                    rememberDatePickerState(
+                                        initialSelectedDateMillis = inputExpiryDateMs ?: System.currentTimeMillis(),
+                                        selectableDates = FutureSelectableDates,
                                     )
-                                    OutlinedTextField(
-                                        value = inputTaxRate,
-                                        onValueChange = { inputTaxRate = it },
-                                        label = {
-                                            Text(
-                                                "Tax Rate (%)",
-                                                modifier =
-                                                    androidx.compose.ui.Modifier
-                                                        .autoMarquee(),
-                                            )
-                                        },
-                                        suffix = { Text("%") },
-                                        keyboardOptions =
-                                            KeyboardOptions(
-                                                keyboardType = KeyboardType.Decimal,
-                                                imeAction = ImeAction.Next,
-                                            ),
-                                        keyboardActions =
-                                            KeyboardActions(
-                                                onNext = {
-                                                    focusRequesterBatch.requestFocus()
-                                                },
-                                            ),
-                                        modifier =
-                                            Modifier
-                                                .weight(1f)
-                                                .focusRequester(focusRequesterTax),
-                                        singleLine = true,
-                                    )
-                                }
-
-                                Text(
-                                    text = "Batch & Expiry Tracking (Optional)",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-
-                                OutlinedTextField(
-                                    value = inputBatchNumber,
-                                    onValueChange = { inputBatchNumber = it },
-                                    label = {
-                                        Text(
-                                            "Batch / Lot Number",
-                                            modifier =
-                                                androidx.compose.ui.Modifier
-                                                    .autoMarquee(),
-                                        )
+                                DatePickerDialog(
+                                    onDismissRequest = { showExpiryDatePicker = false },
+                                    confirmButton = {
+                                        TextButton(
+                                            onClick = {
+                                                val selected = dpState.selectedDateMillis
+                                                if (selected != null &&
+                                                    selected < System.currentTimeMillis() - 24 * 60 * 60 * 1000
+                                                ) {
+                                                    Toast
+                                                        .makeText(context, "Expiry date cannot be in the past", Toast.LENGTH_SHORT)
+                                                        .show()
+                                                } else {
+                                                    inputExpiryDateMs = selected
+                                                    showExpiryDatePicker = false
+                                                }
+                                            },
+                                        ) { Text("OK") }
                                     },
-                                    placeholder = {
-                                        Text(
-                                            "e.g. MFG-2024-B1",
-                                            modifier =
-                                                androidx.compose.ui.Modifier
-                                                    .autoMarquee(),
-                                        )
+                                    dismissButton = {
+                                        TextButton(onClick = { showExpiryDatePicker = false }) { Text("Cancel") }
                                     },
-                                    keyboardOptions =
-                                        KeyboardOptions(imeAction = ImeAction.Done),
-                                    keyboardActions =
-                                        KeyboardActions(
-                                            onDone = { focusManager.clearFocus() },
-                                        ),
+                                ) { DatePicker(state = dpState) }
+                            }
+
+                            AnimatedVisibility(visible = showAdvancedOptions) {
+                                Column(
                                     modifier =
                                         Modifier
-                                            .fillMaxWidth()
-                                            .focusRequester(focusRequesterBatch),
-                                    singleLine = true,
-                                )
-
-                                OutlinedTextField(
-                                    value =
-                                        inputExpiryDateMs?.let {
-                                            sheetDateFormatter.format(Date(it))
-                                        }
-                                            ?: "",
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    label = {
-                                        Text(
-                                            "Expiry Date",
-                                            modifier =
-                                                androidx.compose.ui.Modifier
-                                                    .autoMarquee(),
-                                        )
-                                    },
-                                    placeholder = {
-                                        Text(
-                                            "Tap calendar icon to set",
-                                            modifier =
-                                                androidx.compose.ui.Modifier
-                                                    .autoMarquee(),
-                                        )
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    enabled = false,
-                                    colors =
-                                        androidx.compose.material3.OutlinedTextFieldDefaults
-                                            .colors(
-                                                disabledTextColor =
-                                                    MaterialTheme.colorScheme
-                                                        .onSurface,
-                                                disabledLabelColor =
-                                                    MaterialTheme.colorScheme
-                                                        .onSurfaceVariant,
-                                                disabledBorderColor =
-                                                    MaterialTheme.colorScheme
-                                                        .outline,
-                                            ),
-                                    trailingIcon = {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            if (inputExpiryDateMs != null) {
-                                                TextButton(
-                                                    onClick = { inputExpiryDateMs = null },
-                                                ) { Text("Clear", fontSize = 11.sp) }
-                                            }
-                                            IconButton(
-                                                onClick = { showExpiryDatePicker = true },
-                                            ) {
-                                                Icon(
-                                                    Icons.Default.CalendarToday,
-                                                    contentDescription = "Pick Expiry Date",
+                                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                                            .padding(bottom = 12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    ) {
+                                        OutlinedTextField(
+                                            value = inputHsnCode,
+                                            onValueChange = { newValue ->
+                                                inputHsnCode = newValue
+                                                val rate =
+                                                    com.storebook.inventoryapp.utils.HsnTaxLookup
+                                                        .getTaxRate(newValue)
+                                                if (rate != null) {
+                                                    inputTaxRate =
+                                                        if (rate % 1.0 ==
+                                                            0.0
+                                                        ) {
+                                                            rate.toInt().toString()
+                                                        } else {
+                                                            rate.toString()
+                                                        }
+                                                } else if (newValue.isBlank()) {
+                                                    inputTaxRate = "0"
+                                                }
+                                            },
+                                            label = {
+                                                Text(
+                                                    "HSN/SAC Code",
+                                                    modifier =
+                                                        androidx.compose.ui.Modifier
+                                                            .autoMarquee(),
                                                 )
+                                            },
+                                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                                            keyboardActions =
+                                                KeyboardActions(onNext = {
+                                                    focusRequesterTax
+                                                        .requestFocus()
+                                                }),
+                                            modifier = Modifier.weight(1f).focusRequester(focusRequesterHsn),
+                                            singleLine = true,
+                                        )
+                                        OutlinedTextField(
+                                            value = inputTaxRate,
+                                            onValueChange = { inputTaxRate = it },
+                                            label = {
+                                                Text(
+                                                    "Tax Rate (%)",
+                                                    modifier =
+                                                        androidx.compose.ui.Modifier
+                                                            .autoMarquee(),
+                                                )
+                                            },
+                                            suffix = { Text("%") },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                                            keyboardActions =
+                                                KeyboardActions(onNext = {
+                                                    focusRequesterBatch
+                                                        .requestFocus()
+                                                }),
+                                            modifier = Modifier.weight(1f).focusRequester(focusRequesterTax),
+                                            singleLine = true,
+                                        )
+                                    }
+
+                                    HorizontalDivider(
+                                        color =
+                                            MaterialTheme.colorScheme.outlineVariant
+                                                .copy(alpha = 0.4f),
+                                    )
+
+                                    Text(
+                                        text = "Batch & Expiry Tracking (Optional)",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+
+                                    OutlinedTextField(
+                                        value = inputBatchNumber,
+                                        onValueChange = { inputBatchNumber = it },
+                                        label = {
+                                            Text(
+                                                "Batch / Lot Number",
+                                                modifier =
+                                                    androidx.compose.ui.Modifier
+                                                        .autoMarquee(),
+                                            )
+                                        },
+                                        placeholder = {
+                                            Text(
+                                                "e.g. MFG-2024-B1",
+                                                modifier =
+                                                    androidx.compose.ui.Modifier
+                                                        .autoMarquee(),
+                                            )
+                                        },
+                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterBatch),
+                                        singleLine = true,
+                                    )
+
+                                    OutlinedTextField(
+                                        value = inputExpiryDateMs?.let { sheetDateFormatter.format(Date(it)) } ?: "",
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = {
+                                            Text(
+                                                "Expiry Date",
+                                                modifier =
+                                                    androidx.compose.ui.Modifier
+                                                        .autoMarquee(),
+                                            )
+                                        },
+                                        placeholder = {
+                                            Text(
+                                                "Tap calendar icon to set",
+                                                modifier =
+                                                    androidx.compose.ui.Modifier
+                                                        .autoMarquee(),
+                                            )
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        enabled = false,
+                                        colors =
+                                            androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                            ),
+                                        trailingIcon = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                if (inputExpiryDateMs != null) {
+                                                    TextButton(onClick = { inputExpiryDateMs = null }) {
+                                                        Text("Clear", fontSize = 11.sp)
+                                                    }
+                                                }
+                                                IconButton(onClick = { showExpiryDatePicker = true }) {
+                                                    Icon(Icons.Default.CalendarToday, contentDescription = "Pick Expiry Date")
+                                                }
                                             }
-                                        }
-                                    },
-                                )
+                                        },
+                                    )
+                                }
                             }
                         }
 
+                        // ── Save button — unchanged logic ──────────────────────────────────
                         PrimaryButton(
                             onClick = {
                                 val name = inputName.trim()
@@ -2411,70 +2477,48 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                         editingItem?.taxRate ?: 0.0
                                     }
                                 val barcode = inputBarcode.trim().takeIf { it.isNotBlank() }
-                                val batchNum = inputBatchNumber.trim().takeIf { it.isNotBlank() }
-                                val expiryMs = inputExpiryDateMs
+                                val batchNum =
+                                    if (showAdvancedOptions) {
+                                        inputBatchNumber.trim().takeIf { it.isNotBlank() }
+                                    } else {
+                                        null
+                                    }
+                                val expiryMs = if (showAdvancedOptions) inputExpiryDateMs else null
 
                                 nameError = name.isBlank()
-                                buyPriceError =
-                                    viewModel.userRole != "staff" &&
-                                    (buy == null || buy < 0.0)
+                                buyPriceError = viewModel.userRole != "staff" && (buy == null || buy < 0.0)
                                 sellPriceError = sell == null || sell <= 0.0
                                 qtyError = qty == null || qty < 0.0
 
                                 if (nameError || qtyError || buyPriceError || sellPriceError) {
                                     return@PrimaryButton
                                 }
-                                priceError =
-                                    buy == null ||
-                                    sell == null ||
-                                    buy < 0.0 ||
-                                    sell <= 0.0
-                                if (nameError ||
-                                    qtyError ||
-                                    priceError ||
-                                    buyPriceError ||
-                                    sellPriceError
-                                ) {
+                                priceError = buy == null || sell == null || buy < 0.0 || sell <= 0.0
+                                if (nameError || qtyError || priceError || buyPriceError || sellPriceError) {
                                     return@PrimaryButton
                                 }
 
-                                // BUG-04 FIX: Guard against null state on rotation / race condition
                                 val safeQty =
-                                    qty
-                                        ?: run {
-                                            Toast.makeText(context, "Quantity required", Toast.LENGTH_SHORT).show()
-                                            return@PrimaryButton
-                                        }
+                                    qty ?: run {
+                                        Toast.makeText(context, "Quantity required", Toast.LENGTH_SHORT).show()
+                                        return@PrimaryButton
+                                    }
                                 val safeBuy =
-                                    buy
-                                        ?: run {
-                                            Toast.makeText(context, "Buy price required", Toast.LENGTH_SHORT).show()
-                                            return@PrimaryButton
-                                        }
+                                    buy ?: run {
+                                        Toast.makeText(context, "Buy price required", Toast.LENGTH_SHORT).show()
+                                        return@PrimaryButton
+                                    }
                                 val safeSell =
-                                    sell
-                                        ?: run {
-                                            Toast
-                                                .makeText(context, "Sell price required", Toast.LENGTH_SHORT)
-                                                .show()
-                                            return@PrimaryButton
-                                        }
+                                    sell ?: run {
+                                        Toast.makeText(context, "Sell price required", Toast.LENGTH_SHORT).show()
+                                        return@PrimaryButton
+                                    }
 
                                 if (editingItem == null) {
                                     viewModel.addItem(
-                                        name,
-                                        safeQty,
-                                        inputUnit,
-                                        safeBuy,
-                                        safeSell,
-                                        threshold,
-                                        inputCategory,
-                                        barcode = barcode,
-                                        hsnCode = hsn,
-                                        taxRate = tax,
+                                        name, safeQty, inputUnit, safeBuy, safeSell, threshold, inputCategory,
+                                        barcode = barcode, hsnCode = hsn, taxRate = tax,
                                     ) { newItemId ->
-                                        // Log a batch record if batch or expiry info was
-                                        // provided
                                         if (batchNum != null || expiryMs != null) {
                                             viewModel.addItemBatch(
                                                 ItemBatch(
@@ -2483,8 +2527,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                                     expiryDate = expiryMs,
                                                     quantity = safeQty,
                                                     costPrice = safeBuy,
-                                                    timestamp =
-                                                        System.currentTimeMillis(),
+                                                    timestamp = System.currentTimeMillis(),
                                                     notes = "Initial stock batch",
                                                 ),
                                             )
@@ -2492,37 +2535,23 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                     }
                                 } else {
                                     viewModel.updateItem(
-                                        editingItem?.id
-                                            ?: run {
-                                                Toast
-                                                    .makeText(context, "Invalid item", Toast.LENGTH_SHORT)
-                                                    .show()
-                                                return@PrimaryButton
-                                            },
-                                        name,
-                                        safeQty,
-                                        inputUnit,
-                                        safeBuy,
-                                        safeSell,
-                                        threshold,
-                                        inputCategory,
-                                        barcode = barcode,
-                                        hsnCode = hsn,
-                                        taxRate = tax,
-                                        adjustmentReason = inputAdjustmentReason,
+                                        editingItem?.id ?: run {
+                                            Toast.makeText(context, "Invalid item", Toast.LENGTH_SHORT).show()
+                                            return@PrimaryButton
+                                        },
+                                        name, safeQty, inputUnit, safeBuy, safeSell, threshold, inputCategory,
+                                        barcode = barcode, hsnCode = hsn, taxRate = tax, adjustmentReason = inputAdjustmentReason,
                                     )
-                                    // Also log a batch if expiry info was provided during edit
                                     if (batchNum != null || expiryMs != null) {
                                         viewModel.addItemBatch(
                                             ItemBatch(
                                                 itemId =
-                                                    editingItem?.id
-                                                        ?: run {
-                                                            Toast
-                                                                .makeText(context, "Invalid item", Toast.LENGTH_SHORT)
-                                                                .show()
-                                                            return@PrimaryButton
-                                                        },
+                                                    editingItem?.id ?: run {
+                                                        Toast
+                                                            .makeText(context, "Invalid item", Toast.LENGTH_SHORT)
+                                                            .show()
+                                                        return@PrimaryButton
+                                                    },
                                                 batchNumber = batchNum,
                                                 expiryDate = expiryMs,
                                                 quantity = qty,
@@ -2534,25 +2563,44 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                     }
                                 }
                                 showSheet = false
-                                android.widget.Toast
-                                    .makeText(
-                                        context,
-                                        context.getString(R.string.inv_save_success),
-                                        android.widget.Toast.LENGTH_SHORT,
-                                    ).show()
+                                Toast
+                                    .makeText(context, context.getString(R.string.inv_save_success), Toast.LENGTH_SHORT)
+                                    .show()
                             },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(14.dp),
                         ) {
-                            Text(
-                                stringResource(id = R.string.btn_save),
-                                fontWeight = FontWeight.Bold,
-                            )
+                            Text(stringResource(id = R.string.btn_save), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
         }
+    }
+}
+
+// ── Price Column ─────────────────────────────────────────────────────────────────
+
+@Composable
+private fun PriceColumn(
+    label: String,
+    value: String,
+    valueColor: Color,
+    alignEnd: Boolean = false,
+) {
+    Column(horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start) {
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = valueColor,
+            maxLines = 1,
+        )
     }
 }
 
@@ -2578,224 +2626,180 @@ fun InventoryItemCard(
     val lowStockBtnText =
         if (isDarkTheme) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.error
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Action") { onClick() },
-        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Open item details") { onClick() },
+        shape = RoundedCornerShape(16.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor =
-                    if (isLowStock) {
-                        if (isDarkTheme) {
-                            Color(0xFF8F2A2A)
-                        } else {
-                            MaterialTheme.colorScheme.error
-                        }
-                    } else {
-                        MaterialTheme.colorScheme.surface
-                    },
+                containerColor = MaterialTheme.colorScheme.surface,
             ),
         border =
-            if (isLowStock) {
-                null
-            } else {
-                BorderStroke(
-                    width = 1.dp,
-                    color =
-                        MaterialTheme.colorScheme.outlineVariant.copy(
-                            alpha = 0.4f,
-                        ),
-                )
-            },
-        elevation =
-            CardDefaults.cardElevation(defaultElevation = if (isLowStock) 2.dp else 0.dp),
+            BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+            ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-        ) {
-            // Row 1: Name, Category badge, Quantity
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+        Row(modifier = Modifier.fillMaxWidth()) {
+            // Left accent stripe — signals low stock without drowning the card in red
+            Box(
+                modifier =
+                    Modifier
+                        .width(4.dp)
+                        .fillMaxHeight()
+                        .background(
+                            if (isLowStock) MaterialTheme.colorScheme.error else Color.Transparent,
+                        ),
+            )
+
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(14.dp),
             ) {
+                // Row 1: Name + category, quantity + low-stock indicator
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top,
                 ) {
-                    Text(
-                        text = item.name,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = if (isLowStock) lowStockTextColor else Color.Unspecified,
-                        maxLines = 1,
-                        modifier = Modifier.weight(1f, fill = false).autoMarquee(),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    // Category Badge
-                    Box(
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(
-                                    if (isLowStock) {
-                                        lowStockBadgeBg
-                                    } else {
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    },
-                                ).padding(horizontal = 8.dp, vertical = 2.dp),
-                    ) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = item.category,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            text = item.name,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            maxLines = 1,
+                            modifier = Modifier.autoMarquee(),
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(
+                            modifier =
+                                Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .padding(horizontal = 7.dp, vertical = 2.dp),
+                        ) {
+                            Text(
+                                text = item.category,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "${formatQty(item.quantity)} ${item.unit}",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 16.sp,
                             color =
                                 if (isLowStock) {
-                                    lowStockBadgeText
+                                    MaterialTheme.colorScheme.error
                                 } else {
-                                    MaterialTheme.colorScheme.primary
+                                    MaterialTheme.colorScheme.onSurface
                                 },
-                            maxLines = 1,
                         )
-                    }
-                }
-                Text(
-                    text = "${formatQty(item.quantity)} ${item.unit}",
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 16.sp,
-                    color =
                         if (isLowStock) {
-                            lowStockTextColor
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Row 2: Buy Price and Sell Price
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                val labelColor =
-                    if (isLowStock) {
-                        lowStockLabelColor
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Outlined.WarningAmber,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = "Low stock",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                        }
                     }
-                val sellValueColor =
-                    if (isLowStock) lowStockTextColor else MaterialTheme.colorScheme.primary
+                }
 
-                Column {
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Row 2: Buy | Sell | Margin — three-column layout, single scan line
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
                     if (userRole != "staff") {
-                        Text(text = "Buy Price", fontSize = 11.sp, color = labelColor)
-                        Text(
-                            text =
-                                stringResource(
-                                    id = R.string.inv_buy_prefix,
-                                    item.buyPrice.toRupee(),
-                                ),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = if (isLowStock) lowStockTextColor else Color.Unspecified,
+                        PriceColumn(
+                            label = "Buy",
+                            value = stringResource(id = R.string.inv_buy_prefix, item.buyPrice.toRupee()),
+                            valueColor = MaterialTheme.colorScheme.onSurface,
                         )
                     }
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(text = "Sell Price", fontSize = 11.sp, color = labelColor)
-                    Text(
-                        text =
-                            stringResource(
-                                id = R.string.inv_sell_prefix,
-                                item.sellPrice.toRupee(),
-                            ),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = sellValueColor,
+                    PriceColumn(
+                        label = "Sell",
+                        value = stringResource(id = R.string.inv_sell_prefix, item.sellPrice.toRupee()),
+                        valueColor = MaterialTheme.colorScheme.primary,
+                        alignEnd = userRole == "staff",
                     )
-                }
-            }
-
-            if (userRole != "staff") {
-                Spacer(modifier = Modifier.height(8.dp))
-                // Row 3: Profit / Margin
-                val margin =
-                    if (item.buyPrice > 0) {
-                        ((item.sellPrice - item.buyPrice) / item.buyPrice * 100).toInt()
-                    } else {
-                        0
-                    }
-                val marginStr =
-                    if (margin > 0) {
-                        "+$margin%"
-                    } else if (margin < 0) {
-                        "$margin%"
-                    } else {
-                        "0%"
-                    }
-                val profitAbs = (item.sellPrice - item.buyPrice)
-                val marginColor =
-                    if (isLowStock) {
-                        lowStockTextColor
-                    } else {
-                        (
+                    if (userRole != "staff") {
+                        val margin =
+                            if (item.buyPrice > 0) {
+                                ((item.sellPrice - item.buyPrice) / item.buyPrice * 100).toInt()
+                            } else {
+                                0
+                            }
+                        val marginStr = if (margin > 0) "+$margin%" else "$margin%"
+                        val profitAbs = item.sellPrice - item.buyPrice
+                        val marginColor =
                             if (margin >= 15) {
                                 Emerald500
                             } else {
                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             }
+
+                        PriceColumn(
+                            label = "Margin",
+                            value = "$marginStr (${profitAbs.toRupee()})",
+                            valueColor = marginColor,
+                            alignEnd = true,
                         )
                     }
+                }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                Spacer(modifier = Modifier.height(12.dp))
+
+                androidx.compose.material3.Button(
+                    onClick = onRefillClick,
+                    modifier = Modifier.fillMaxWidth().height(40.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors =
+                        androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor =
+                                if (isLowStock) {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                },
+                            contentColor =
+                                if (isLowStock) {
+                                    MaterialTheme.colorScheme.onError
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
+                        ),
+                    contentPadding = PaddingValues(0.dp),
                 ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Profit/ Margin",
-                        fontSize = 11.sp,
-                        color =
-                            if (isLowStock) {
-                                lowStockLabelColor
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                    )
-                    Text(
-                        text = "$marginStr / ${profitAbs.toRupee()} Per ${item.unit}",
-                        fontSize = 12.sp,
+                        text = if (isLowStock) "Restock Now" else "Add Stock",
                         fontWeight = FontWeight.Bold,
-                        color = marginColor,
+                        fontSize = 13.sp,
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Add Stock PrimaryButton(Full width)
-            androidx.compose.material3.Button(
-                onClick = onRefillClick,
-                modifier = Modifier.fillMaxWidth().height(40.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors =
-                    androidx.compose.material3.ButtonDefaults.buttonColors(
-                        containerColor =
-                            if (isLowStock) {
-                                lowStockBtnBg
-                            } else {
-                                MaterialTheme.colorScheme.primaryContainer
-                            },
-                        contentColor =
-                            if (isLowStock) {
-                                lowStockBtnText
-                            } else {
-                                MaterialTheme.colorScheme.primary
-                            },
-                    ),
-                contentPadding = PaddingValues(0.dp),
-            ) { Text(text = "Add Stock", fontWeight = FontWeight.Bold, fontSize = 13.sp) }
         }
     }
 }

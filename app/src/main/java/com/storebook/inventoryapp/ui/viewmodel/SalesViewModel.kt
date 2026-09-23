@@ -358,9 +358,7 @@ class SalesViewModel(
         }
     }
 
-    private suspend fun mapToSaleWithItems(
-        sales: List<com.storebook.inventoryapp.shared.data.local.Sales>,
-    ): List<Sale> {
+    private suspend fun mapToSaleWithItems(sales: List<com.storebook.inventoryapp.shared.data.local.Sales>): List<Sale> {
         if (sales.isEmpty()) return emptyList()
 
         val saleIds = sales.map { it.id }

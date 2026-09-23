@@ -11,27 +11,40 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoneyOff
+import androidx.compose.material.icons.filled.NewReleases
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.Home
@@ -40,12 +53,16 @@ import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
@@ -58,6 +75,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -69,6 +87,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -80,6 +99,7 @@ import com.storebook.inventoryapp.MainActivity
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.ui.screens.auth.AuthScreen
 import com.storebook.inventoryapp.ui.screens.storebook.DashboardScreen
+import com.storebook.inventoryapp.ui.screens.storebook.FilterChip
 import com.storebook.inventoryapp.ui.screens.storebook.GSTReportScreen
 import com.storebook.inventoryapp.ui.screens.storebook.InventoryScreen
 import com.storebook.inventoryapp.ui.screens.storebook.MoreScreen
@@ -90,6 +110,7 @@ import com.storebook.inventoryapp.ui.screens.storebook.StockAuditScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SupplierLedgerScreen
 import com.storebook.inventoryapp.ui.screens.storebook.UdhaarScreen
 import com.storebook.inventoryapp.ui.screens.storebook.formatQty
+import com.storebook.inventoryapp.ui.theme.Emerald500
 import com.storebook.inventoryapp.ui.theme.Poppins
 import com.storebook.inventoryapp.ui.theme.PrimaryButton
 import com.storebook.inventoryapp.utils.autoMarquee
@@ -102,6 +123,56 @@ data class BottomNavTab(
     val selectedIcon: ImageVector,
     val labelRes: Int,
 )
+
+@Composable
+private fun DirectionOption(
+    modifier: Modifier = Modifier,
+    selected: Boolean,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    color: Color,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    if (selected) {
+                        color.copy(alpha = 0.12f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                            .copy(alpha = 0.4f)
+                    },
+                ).border(
+                    width = if (selected) 1.5.dp else 1.dp,
+                    color = if (selected) color else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(12.dp),
+                ).clickable(onClickLabel = "Select $title") { onClick() }
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (selected) color else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = title,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (selected) color else MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = subtitle,
+            fontSize = 10.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
 
 @Composable
 fun AppNavigation() {
@@ -246,6 +317,10 @@ fun AppNavigation() {
     // Quick Expense dialog state
     var showQuickExpense by remember { mutableStateOf(false) }
     var quickExpenseAmount by remember { mutableStateOf("") }
+    var quickExpenseAmountError by remember { mutableStateOf(false) }
+    var quickExpenseDescError by remember { mutableStateOf(false) }
+    var isQuickExpenseSubmitting by remember { mutableStateOf(false) }
+
     var quickExpenseDesc by remember { mutableStateOf("") }
 
     val focusRequesterDesc = remember { FocusRequester() }
@@ -256,10 +331,16 @@ fun AppNavigation() {
     var showQuickSale by remember { mutableStateOf(false) }
     var quickSaleAmount by remember { mutableStateOf("") }
     var quickSaleCustomer by remember { mutableStateOf("") }
+    var quickSaleAmountError by remember { mutableStateOf(false) }
+    var isQuickSaleSubmitting by remember { mutableStateOf(false) }
     var quickSaleCustomerExpanded by remember { mutableStateOf(false) }
 
     // Quick Restock state
     var showQuickRestock by remember { mutableStateOf(false) }
+    var quickRestockNameError by remember { mutableStateOf(false) }
+    var quickRestockQtyError by remember { mutableStateOf(false) }
+    var quickRestockPriceError by remember { mutableStateOf(false) }
+    var isQuickRestockSubmitting by remember { mutableStateOf(false) }
     var quickRestockName by remember { mutableStateOf("") }
     var quickRestockQty by remember { mutableStateOf("") }
     var quickRestockPrice by remember { mutableStateOf("") }
@@ -272,6 +353,9 @@ fun AppNavigation() {
     var quickPartyAmount by remember { mutableStateOf("") }
     var quickPartyType by remember { mutableStateOf("CREDIT") }
     var quickPartyNameExpanded by remember { mutableStateOf(false) }
+    var quickPartyNameError by remember { mutableStateOf(false) }
+    var quickPartyAmountError by remember { mutableStateOf(false) }
+    var isQuickPartySubmitting by remember { mutableStateOf(false) }
 
     val customerSuggestions by salesViewModel.customerSuggestions.collectAsState()
     val allItems by salesViewModel.allItems.collectAsState()
@@ -279,33 +363,102 @@ fun AppNavigation() {
     // Quick Expense mini-dialog
     if (showQuickExpense) {
         androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showQuickExpense = false },
+            onDismissRequest = { if (!isQuickExpenseSubmitting) showQuickExpense = false },
             containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Log Expense", style = MaterialTheme.typography.titleMedium) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    androidx.compose.material3.OutlinedTextField(
-                        value = quickExpenseAmount,
-                        onValueChange = { quickExpenseAmount = it },
-                        label = {
-                            Text(
-                                "Amount (₹)",
-                                modifier =
-                                    androidx.compose.ui.Modifier
-                                        .autoMarquee(),
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    // Amount — hero input, consistent with the Quick Cash Sale dialog
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f))
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = "Expense Amount",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        androidx.compose.material3.OutlinedTextField(
+                            value = quickExpenseAmount,
+                            onValueChange = {
+                                quickExpenseAmount = it
+                                quickExpenseAmountError = false
+                            },
+                            placeholder = {
+                                Text(
+                                    "0",
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            },
+                            prefix = { Text("₹", fontSize = 22.sp, fontWeight = FontWeight.Bold) },
+                            textStyle =
+                                LocalTextStyle.current.copy(
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center,
+                                ),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            isError = quickExpenseAmountError,
+                            keyboardOptions =
+                                androidx.compose.foundation.text.KeyboardOptions(
+                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                                    imeAction = ImeAction.Next,
+                                ),
+                            keyboardActions = KeyboardActions(onNext = { focusRequesterDesc.requestFocus() }),
+                            colors =
+                                OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = Color.Transparent,
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedContainerColor = Color.Transparent,
+                                ),
+                            supportingText =
+                                if (quickExpenseAmountError) {
+                                    {
+                                        Text(
+                                            "Enter a valid amount",
+                                            fontSize = 11.sp,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                } else {
+                                    null
+                                },
+                        )
+                    }
+
+                    // Common expense categories — fills description with one tap
+                    val commonExpenses = listOf("Rent", "Electricity", "Staff Wages", "Transport", "Maintenance")
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(commonExpenses, key = { it }) { label ->
+                            FilterChip(
+                                label = label,
+                                isSelected = quickExpenseDesc == label,
+                                onClick = {
+                                    quickExpenseDesc = label
+                                    quickExpenseDescError = false
+                                },
                             )
-                        },
-                        singleLine = true,
-                        keyboardOptions =
-                            androidx.compose.foundation.text.KeyboardOptions(
-                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
-                                imeAction = ImeAction.Next,
-                            ),
-                        keyboardActions = KeyboardActions(onNext = { focusRequesterDesc.requestFocus() }),
-                    )
+                        }
+                    }
+
                     androidx.compose.material3.OutlinedTextField(
                         value = quickExpenseDesc,
-                        onValueChange = { quickExpenseDesc = it },
+                        onValueChange = {
+                            quickExpenseDesc = it
+                            quickExpenseDescError = false
+                        },
                         label = {
                             Text(
                                 "Description",
@@ -314,52 +467,181 @@ fun AppNavigation() {
                                         .autoMarquee(),
                             )
                         },
+                        placeholder = {
+                            Text(
+                                "e.g. Shop rent for September",
+                                modifier =
+                                    androidx.compose.ui.Modifier
+                                        .autoMarquee(),
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterDesc),
                         singleLine = true,
+                        isError = quickExpenseDescError,
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Receipt,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
                         keyboardOptions =
                             androidx.compose.foundation.text
                                 .KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                        modifier =
-                            androidx.compose.ui.Modifier
-                                .focusRequester(focusRequesterDesc),
+                        supportingText =
+                            if (quickExpenseDescError) {
+                                { Text("Enter a description", fontSize = 11.sp) }
+                            } else {
+                                null
+                            },
                     )
                 }
             },
             confirmButton = {
-                PrimaryButton(onClick = {
-                    val amt = quickExpenseAmount.toDoubleOrNull()
-                    if (amt != null && quickExpenseDesc.isNotBlank()) {
+                PrimaryButton(
+                    enabled = !isQuickExpenseSubmitting,
+                    onClick = {
+                        val amt = quickExpenseAmount.toDoubleOrNull()
+                        quickExpenseAmountError = amt == null || amt <= 0.0
+                        quickExpenseDescError = quickExpenseDesc.isBlank()
+
+                        if (quickExpenseAmountError || quickExpenseDescError) return@PrimaryButton
+
+                        isQuickExpenseSubmitting = true
                         expenseViewModel.addExpense(
                             type = "OVERHEAD",
-                            amount = amt,
+                            amount = amt!!,
                             notes = quickExpenseDesc.trim(),
                         )
+                        isQuickExpenseSubmitting = false
                         quickExpenseAmount = ""
                         quickExpenseDesc = ""
                         showQuickExpense = false
+                    },
+                ) {
+                    if (isQuickExpenseSubmitting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Saving...")
+                    } else {
+                        Text("Log Expense")
                     }
-                }) { Text("Save") }
+                }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showQuickExpense = false }) { Text("Cancel") }
+                androidx.compose.material3.TextButton(
+                    enabled = !isQuickExpenseSubmitting,
+                    onClick = { showQuickExpense = false },
+                ) { Text("Cancel") }
             },
         )
     }
 
     if (showQuickSale) {
         androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showQuickSale = false },
+            onDismissRequest = { if (!isQuickSaleSubmitting) showQuickSale = false },
             containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Quick Cash Sale", style = MaterialTheme.typography.titleMedium) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    androidx.compose.foundation.layout.BoxWithConstraints {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    // Amount — the hero input, large and centered like a calculator display
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = "Amount Received",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        androidx.compose.material3.OutlinedTextField(
+                            value = quickSaleAmount,
+                            onValueChange = {
+                                quickSaleAmount = it
+                                quickSaleAmountError = false
+                            },
+                            placeholder = {
+                                Text(
+                                    "0",
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            },
+                            prefix = { Text("₹", fontSize = 22.sp, fontWeight = FontWeight.Bold) },
+                            textStyle =
+                                LocalTextStyle.current.copy(
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center,
+                                ),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            isError = quickSaleAmountError,
+                            keyboardOptions =
+                                androidx.compose.foundation.text.KeyboardOptions(
+                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                                ),
+                            colors =
+                                OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = Color.Transparent,
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedContainerColor = Color.Transparent,
+                                ),
+                            supportingText =
+                                if (quickSaleAmountError) {
+                                    {
+                                        Text(
+                                            "Enter a valid amount", fontSize = 11.sp, textAlign = TextAlign.Center,
+                                            modifier =
+                                                Modifier
+                                                    .fillMaxWidth(),
+                                        )
+                                    }
+                                } else {
+                                    null
+                                },
+                        )
+                    }
+
+                    // Quick amount presets — common cash sale values
+                    val presets = listOf(50, 100, 200, 500)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(presets, key = { it }) { preset ->
+                            FilterChip(
+                                label = "₹$preset",
+                                isSelected = quickSaleAmount.toDoubleOrNull() == preset.toDouble(),
+                                onClick = {
+                                    quickSaleAmount = preset.toString()
+                                    quickSaleAmountError = false
+                                },
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    // Customer — optional, visually secondary
+                    androidx.compose.foundation.layout.BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                         val boxWidth = maxWidth
                         androidx.compose.material3.OutlinedTextField(
                             value = quickSaleCustomer,
                             onValueChange = {
                                 quickSaleCustomer = it
-                                salesViewModel.customerSuggestions.value
                                 quickSaleCustomerExpanded = it.isNotBlank()
                             },
                             label = {
@@ -370,7 +652,16 @@ fun AppNavigation() {
                                             .autoMarquee(),
                                 )
                             },
+                            modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
                         )
                         com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
                             modifier = Modifier.width(boxWidth),
@@ -386,28 +677,17 @@ fun AppNavigation() {
                             avatarTextColor = MaterialTheme.colorScheme.onPrimary,
                         )
                     }
-                    androidx.compose.material3.OutlinedTextField(
-                        value = quickSaleAmount,
-                        onValueChange = { quickSaleAmount = it },
-                        label = {
-                            Text(
-                                "Total Amount (₹)",
-                                modifier =
-                                    androidx.compose.ui.Modifier
-                                        .autoMarquee(),
-                            )
-                        },
-                        singleLine = true,
-                        keyboardOptions =
-                            androidx.compose.foundation.text
-                                .KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
-                    )
                 }
             },
             confirmButton = {
-                PrimaryButton(onClick = {
-                    val amt = quickSaleAmount.toDoubleOrNull()
-                    if (amt != null && amt > 0) {
+                PrimaryButton(
+                    enabled = !isQuickSaleSubmitting,
+                    onClick = {
+                        val amt = quickSaleAmount.toDoubleOrNull()
+                        quickSaleAmountError = amt == null || amt <= 0.0
+                        if (quickSaleAmountError) return@PrimaryButton
+
+                        isQuickSaleSubmitting = true
                         salesViewModel.clearCart()
                         val dummyItem =
                             com.storebook.inventoryapp.shared.domain.models.Item(
@@ -416,7 +696,7 @@ fun AppNavigation() {
                                 quantity = 0.0,
                                 unit = "pcs",
                                 buyPrice = 0.0,
-                                sellPrice = amt,
+                                sellPrice = amt!!,
                                 lowStockThreshold = 0.0,
                                 category = "General",
                             )
@@ -424,27 +704,44 @@ fun AppNavigation() {
                         if (quickSaleCustomer.isNotBlank()) {
                             salesViewModel.cartCustomerName = quickSaleCustomer.trim()
                         }
-                        salesViewModel.checkout(paymentMode = "Cash", type = "SALE") { _, _ -> }
-                        quickSaleCustomer = ""
-                        quickSaleAmount = ""
-                        showQuickSale = false
+                        salesViewModel.checkout(paymentMode = "Cash", type = "SALE") { _, _ ->
+                            isQuickSaleSubmitting = false
+                            quickSaleCustomer = ""
+                            quickSaleAmount = ""
+                            showQuickSale = false
+                        }
+                    },
+                ) {
+                    if (isQuickSaleSubmitting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Saving...")
+                    } else {
+                        Text("Complete Sale")
                     }
-                }) { Text("Save") }
+                }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showQuickSale = false }) { Text("Cancel") }
+                androidx.compose.material3.TextButton(
+                    enabled = !isQuickSaleSubmitting,
+                    onClick = { showQuickSale = false },
+                ) { Text("Cancel") }
             },
         )
     }
 
     if (showQuickRestock) {
         androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showQuickRestock = false },
+            onDismissRequest = { if (!isQuickRestockSubmitting) showQuickRestock = false },
             containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text("Quick Add Item", style = MaterialTheme.typography.titleMedium) },
+            title = { Text("Quick Add / Restock", style = MaterialTheme.typography.titleMedium) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    androidx.compose.foundation.layout.BoxWithConstraints {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    androidx.compose.foundation.layout.BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                         val boxWidth = maxWidth
                         androidx.compose.material3.OutlinedTextField(
                             value = quickRestockName,
@@ -452,6 +749,7 @@ fun AppNavigation() {
                                 quickRestockName = it
                                 selectedRestockItemId = null
                                 quickRestockNameExpanded = it.isNotBlank()
+                                quickRestockNameError = false
                             },
                             label = {
                                 Text(
@@ -461,7 +759,28 @@ fun AppNavigation() {
                                             .autoMarquee(),
                                 )
                             },
+                            modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
+                            isError = quickRestockNameError,
+                            leadingIcon =
+                                if (selectedRestockItemId != null) {
+                                    {
+                                        Icon(
+                                            Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = Emerald500,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                    }
+                                } else {
+                                    null
+                                },
+                            supportingText =
+                                if (quickRestockNameError) {
+                                    { Text("Enter an item name", fontSize = 11.sp) }
+                                } else {
+                                    null
+                                },
                         )
                         val filteredItems =
                             allItems
@@ -476,80 +795,215 @@ fun AppNavigation() {
                             onSuggestionSelected = { item ->
                                 quickRestockName = item.name
                                 selectedRestockItemId = item.id
-                                quickRestockPrice = item.sellPrice.toString()
+                                quickRestockPrice = item.buyPrice.toString()
                                 quickRestockNameExpanded = false
                             },
                             avatarColor = MaterialTheme.colorScheme.secondary,
                             avatarTextColor = MaterialTheme.colorScheme.onSecondary,
                             additionalContent = { item ->
                                 Text(
-                                    text =
-                                        "Stock: ${formatQty(item.quantity)} ${item.unit} · ${item.sellPrice.toRupee()}",
+                                    text = "Stock: ${formatQty(item.quantity)} ${item.unit} · ${item.sellPrice.toRupee()}",
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             },
                         )
                     }
-                    androidx.compose.material3.OutlinedTextField(
-                        value = quickRestockQty,
-                        onValueChange = { quickRestockQty = it },
-                        label = {
-                            Text(
-                                "Stock Quantity",
-                                modifier =
-                                    androidx.compose.ui.Modifier
-                                        .autoMarquee(),
-                            )
-                        },
-                        singleLine = true,
-                        keyboardOptions =
-                            androidx.compose.foundation.text
-                                .KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
-                    )
-                    androidx.compose.material3.OutlinedTextField(
-                        value = quickRestockPrice,
-                        onValueChange = { quickRestockPrice = it },
-                        label = {
-                            Text(
-                                "Sale Price (₹)",
-                                modifier =
-                                    androidx.compose.ui.Modifier
-                                        .autoMarquee(),
-                            )
-                        },
-                        singleLine = true,
-                        keyboardOptions =
-                            androidx.compose.foundation.text
-                                .KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
-                    )
+
+                    // Mode indicator — makes the ambiguous "what happens on save" explicit
+                    val isRestockMode = selectedRestockItemId != null
+                    Row(
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (isRestockMode) {
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                    },
+                                ).padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = if (isRestockMode) Icons.Default.Add else Icons.Default.NewReleases,
+                            contentDescription = null,
+                            tint = if (isRestockMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text =
+                                if (isRestockMode) {
+                                    "Restocking existing item — quantity will be added to current stock"
+                                } else {
+                                    "New item will be created"
+                                },
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isRestockMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        androidx.compose.material3.OutlinedTextField(
+                            value = quickRestockQty,
+                            onValueChange = {
+                                quickRestockQty = it
+                                quickRestockQtyError = false
+                            },
+                            label = {
+                                Text(
+                                    if (isRestockMode) "Add Quantity" else "Stock Quantity",
+                                    modifier =
+                                        androidx.compose.ui.Modifier
+                                            .autoMarquee(),
+                                )
+                            },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            isError = quickRestockQtyError,
+                            keyboardOptions =
+                                androidx.compose.foundation.text.KeyboardOptions(
+                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                                ),
+                            supportingText =
+                                if (quickRestockQtyError) {
+                                    { Text("Required", fontSize = 11.sp) }
+                                } else {
+                                    null
+                                },
+                        )
+                        androidx.compose.material3.OutlinedTextField(
+                            value = quickRestockPrice,
+                            onValueChange = {
+                                quickRestockPrice = it
+                                quickRestockPriceError = false
+                            },
+                            label = {
+                                Text(
+                                    if (isRestockMode) "Buy Price (₹/unit)" else "Cost Price (₹)",
+                                    modifier =
+                                        androidx.compose.ui.Modifier
+                                            .autoMarquee(),
+                                )
+                            },
+                            prefix = { Text("₹ ") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            isError = quickRestockPriceError,
+                            keyboardOptions =
+                                androidx.compose.foundation.text.KeyboardOptions(
+                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                                ),
+                            supportingText =
+                                if (quickRestockPriceError) {
+                                    { Text("Required", fontSize = 11.sp) }
+                                } else {
+                                    null
+                                },
+                        )
+                    }
+
+                    // Live preview so the ambiguous "what will happen" is fully transparent
+                    val qtyVal = quickRestockQty.toDoubleOrNull()
+                    val priceVal = quickRestockPrice.toDoubleOrNull()
+                    if (qtyVal != null && qtyVal > 0 && priceVal != null && priceVal > 0) {
+                        val selectedItem = allItems.find { it.id == selectedRestockItemId }
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            if (isRestockMode && selectedItem != null) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text("New stock level", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        "${formatQty(selectedItem.quantity + qtyVal)} ${selectedItem.unit}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text("Sale price (auto, 20% markup)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        (priceVal * 1.2).toRupee(),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text("Total cost", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("₹${"%.2f".format(qtyVal * priceVal)}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
             },
             confirmButton = {
-                PrimaryButton(onClick = {
-                    val qty = quickRestockQty.toDoubleOrNull() ?: 0.0
-                    val cost = quickRestockPrice.toDoubleOrNull() ?: 0.0
-                    if (quickRestockName.isNotBlank() && cost > 0.0) {
+                PrimaryButton(
+                    enabled = !isQuickRestockSubmitting,
+                    onClick = {
+                        val qty = quickRestockQty.toDoubleOrNull()
+                        val cost = quickRestockPrice.toDoubleOrNull()
+
+                        quickRestockNameError = quickRestockName.isBlank()
+                        quickRestockQtyError = qty == null || qty <= 0.0
+                        quickRestockPriceError = cost == null || cost <= 0.0
+
+                        if (quickRestockNameError || quickRestockQtyError || quickRestockPriceError) {
+                            return@PrimaryButton
+                        }
+
+                        val safeQty = qty!!
+                        val safeCost = cost!!
+                        isQuickRestockSubmitting = true
+
                         val currentId = selectedRestockItemId
                         if (currentId != null) {
                             scope.launch {
                                 inventoryViewModel.restockItem(
                                     itemId = currentId,
-                                    quantityToAdd = qty,
-                                    costPrice = cost,
+                                    quantityToAdd = safeQty,
+                                    costPrice = safeCost,
                                     supplierName = null,
                                     supplierPhone = null,
                                 )
                                 inventoryViewModel.loadFilteredItems()
+                                isQuickRestockSubmitting = false
+                                quickRestockName = ""
+                                quickRestockQty = ""
+                                quickRestockPrice = ""
+                                selectedRestockItemId = null
+                                showQuickRestock = false
                             }
                         } else {
                             scope.launch {
                                 inventoryViewModel.addItem(
                                     name = quickRestockName.trim(),
-                                    quantity = qty,
+                                    quantity = safeQty,
                                     unit = "pcs",
-                                    buyPrice = cost,
-                                    sellPrice = cost * 1.2,
+                                    buyPrice = safeCost,
+                                    sellPrice = safeCost * 1.2,
                                     threshold = 5.0,
                                     category = "Uncategorized",
                                     hsnCode = null,
@@ -557,37 +1011,54 @@ fun AppNavigation() {
                                     onResult = {},
                                 )
                                 inventoryViewModel.loadFilteredItems()
+                                isQuickRestockSubmitting = false
+                                quickRestockName = ""
+                                quickRestockQty = ""
+                                quickRestockPrice = ""
+                                selectedRestockItemId = null
+                                showQuickRestock = false
                             }
                         }
-                        quickRestockName = ""
-                        quickRestockQty = ""
-                        quickRestockPrice = ""
-                        selectedRestockItemId = null
-                        showQuickRestock = false
+                    },
+                ) {
+                    if (isQuickRestockSubmitting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Saving...")
+                    } else {
+                        Text("Save")
                     }
-                }) { Text("Save") }
+                }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showQuickRestock = false }) { Text("Cancel") }
+                androidx.compose.material3.TextButton(
+                    enabled = !isQuickRestockSubmitting,
+                    onClick = { showQuickRestock = false },
+                ) { Text("Cancel") }
             },
         )
     }
 
     if (showQuickParty) {
         androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showQuickParty = false },
+            onDismissRequest = { if (!isQuickPartySubmitting) showQuickParty = false },
             containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Log Party Balance", style = MaterialTheme.typography.titleMedium) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    androidx.compose.foundation.layout.BoxWithConstraints {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    // Party name with autocomplete
+                    androidx.compose.foundation.layout.BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                         val boxWidth = maxWidth
                         androidx.compose.material3.OutlinedTextField(
                             value = quickPartyName,
                             onValueChange = {
                                 quickPartyName = it
-                                salesViewModel.customerSuggestions.value
                                 quickPartyNameExpanded = it.isNotBlank()
+                                quickPartyNameError = false
                             },
                             label = {
                                 Text(
@@ -597,7 +1068,23 @@ fun AppNavigation() {
                                             .autoMarquee(),
                                 )
                             },
+                            modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
+                            isError = quickPartyNameError,
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
+                            supportingText =
+                                if (quickPartyNameError) {
+                                    { Text("Enter a party name", fontSize = 11.sp) }
+                                } else {
+                                    null
+                                },
                         )
                         com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown(
                             modifier = Modifier.width(boxWidth),
@@ -615,64 +1102,171 @@ fun AppNavigation() {
                             avatarTextColor = com.storebook.inventoryapp.ui.theme.Coral500,
                         )
                     }
-                    androidx.compose.material3.OutlinedTextField(
-                        value = quickPartyAmount,
-                        onValueChange = { quickPartyAmount = it },
-                        label = {
-                            Text(
-                                "Amount (₹)",
-                                modifier =
-                                    androidx.compose.ui.Modifier
-                                        .autoMarquee(),
-                            )
-                        },
-                        singleLine = true,
-                        keyboardOptions =
-                            androidx.compose.foundation.text
-                                .KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
-                    )
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        androidx.compose.material3.FilterChip(
-                            selected = quickPartyType == "CREDIT",
-                            onClick = { quickPartyType = "CREDIT" },
-                            label = {
-                                Text(
-                                    "Given (Due)",
-                                    modifier =
-                                        androidx.compose.ui.Modifier
-                                            .autoMarquee(),
-                                )
-                            },
+
+                    // Direction toggle — the highest-stakes choice in this form, so it's large,
+                    // color-coded, and impossible to miss or mis-tap
+                    Column {
+                        Text(
+                            text = "Transaction Type",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Spacer(Modifier.width(8.dp))
-                        androidx.compose.material3.FilterChip(
-                            selected = quickPartyType == "PAYMENT",
-                            onClick = { quickPartyType = "PAYMENT" },
-                            label = {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            DirectionOption(
+                                modifier = Modifier.weight(1f),
+                                selected = quickPartyType == "CREDIT",
+                                icon = Icons.AutoMirrored.Filled.ArrowForward,
+                                title = "Given",
+                                subtitle = "They owe you",
+                                color = MaterialTheme.colorScheme.error,
+                                onClick = { quickPartyType = "CREDIT" },
+                            )
+                            DirectionOption(
+                                modifier = Modifier.weight(1f),
+                                selected = quickPartyType == "PAYMENT",
+                                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                                title = "Got",
+                                subtitle = "You owe them",
+                                color = Emerald500,
+                                onClick = { quickPartyType = "PAYMENT" },
+                            )
+                        }
+                    }
+
+                    // Amount — styled and tinted to match the selected direction for reinforcement
+                    val directionColor = if (quickPartyType == "CREDIT") MaterialTheme.colorScheme.error else Emerald500
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(directionColor.copy(alpha = 0.08f))
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = if (quickPartyType == "CREDIT") "Amount Given" else "Amount Received",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        androidx.compose.material3.OutlinedTextField(
+                            value = quickPartyAmount,
+                            onValueChange = {
+                                quickPartyAmount = it
+                                quickPartyAmountError = false
+                            },
+                            placeholder = {
                                 Text(
-                                    "Got (Advance)",
-                                    modifier =
-                                        androidx.compose.ui.Modifier
-                                            .autoMarquee(),
+                                    "0",
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth(),
                                 )
                             },
+                            prefix = {
+                                Text("₹", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = directionColor)
+                            },
+                            textStyle =
+                                LocalTextStyle.current.copy(
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center,
+                                    color = directionColor,
+                                ),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            isError = quickPartyAmountError,
+                            keyboardOptions =
+                                androidx.compose.foundation.text.KeyboardOptions(
+                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                                ),
+                            colors =
+                                OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = Color.Transparent,
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedContainerColor = Color.Transparent,
+                                ),
+                            supportingText =
+                                if (quickPartyAmountError) {
+                                    {
+                                        Text(
+                                            "Enter a valid amount",
+                                            fontSize = 11.sp,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                } else {
+                                    null
+                                },
+                        )
+                    }
+
+                    // Plain-language confirmation line — removes any remaining ambiguity before saving
+                    if (quickPartyName.isNotBlank() &&
+                        quickPartyAmount.toDoubleOrNull() != null &&
+                        quickPartyAmount.toDoubleOrNull()!! > 0
+                    ) {
+                        val amt = quickPartyAmount.toDoubleOrNull() ?: 0.0
+                        Text(
+                            text =
+                                if (quickPartyType == "CREDIT") {
+                                    "${quickPartyName.trim()} now owes you ₹${"%.2f".format(amt)} more"
+                                } else {
+                                    "You now owe ${quickPartyName.trim()} ₹${"%.2f".format(amt)} less"
+                                },
+                            fontSize = 12.sp,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }
             },
             confirmButton = {
-                PrimaryButton(onClick = {
-                    val amt = quickPartyAmount.toDoubleOrNull()
-                    if (amt != null && quickPartyName.isNotBlank()) {
-                        udhaarViewModel.recordUdhaarEntry(quickPartyName.trim(), amt, quickPartyType, "Quick Entry")
+                PrimaryButton(
+                    enabled = !isQuickPartySubmitting,
+                    onClick = {
+                        val amt = quickPartyAmount.toDoubleOrNull()
+                        quickPartyNameError = quickPartyName.isBlank()
+                        quickPartyAmountError = amt == null || amt <= 0.0
+
+                        if (quickPartyNameError || quickPartyAmountError) return@PrimaryButton
+
+                        isQuickPartySubmitting = true
+                        udhaarViewModel.recordUdhaarEntry(quickPartyName.trim(), amt!!, quickPartyType, "Quick Entry")
+                        isQuickPartySubmitting = false
                         quickPartyName = ""
                         quickPartyAmount = ""
                         showQuickParty = false
+                    },
+                ) {
+                    if (isQuickPartySubmitting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Saving...")
+                    } else {
+                        Text("Save Entry")
                     }
-                }) { Text("Save") }
+                }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showQuickParty = false }) { Text("Cancel") }
+                androidx.compose.material3.TextButton(
+                    enabled = !isQuickPartySubmitting,
+                    onClick = { showQuickParty = false },
+                ) { Text("Cancel") }
             },
         )
     }

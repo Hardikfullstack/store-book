@@ -3,7 +3,12 @@
 package com.storebook.inventoryapp.ui.screens.storebook
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,14 +42,19 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material3.BottomSheetDefaults
@@ -52,13 +62,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -106,6 +119,98 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
+@Composable
+private fun LedgerStat(
+    label: String,
+    value: String,
+    valueColor: Color = Color.Unspecified,
+    alignEnd: Boolean = false,
+) {
+    Column(horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start) {
+        Text(label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = valueColor, maxLines = 1)
+    }
+}
+
+@Composable
+private fun LedgerEntryCard(
+    entry: com.storebook.inventoryapp.shared.domain.models.UdhaarEntry, // adjust to your actual entry type
+    dateFmt: java.text.DateFormat,
+) {
+    val dateStr = dateFmt.format(Date(entry.timestamp))
+    val isCredit = entry.type == "CREDIT"
+    val accentColor = if (isCredit) Coral500 else Emerald500
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (isCredit) {
+                        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
+                    } else {
+                        MaterialTheme.colorScheme.secondaryContainer
+                            .copy(alpha = 0.25f)
+                    },
+            ),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                // Directional icon instead of a plain color bar — quicker to parse at a glance
+                Box(
+                    modifier =
+                        Modifier
+                            .size(30.dp)
+                            .clip(CircleShape)
+                            .background(accentColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = if (isCredit) Icons.AutoMirrored.Filled.ArrowForward else Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(15.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (isCredit) "Credit Given (उधार दिया)" else "Payment Received (जमा किया)",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = accentColor,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                    val notes = entry.notes
+                    if (!notes.isNullOrBlank()) {
+                        Text(
+                            notes,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                    }
+                    Text(dateStr, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                }
+            }
+            Text(
+                text = entry.amount.toRupee(),
+                fontWeight = FontWeight.Black,
+                fontSize = 15.sp,
+                color = accentColor,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UdhaarScreen(viewModel: UdhaarViewModel) {
@@ -118,6 +223,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
             detailedBals.associateBy { it.customerName }
         }
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
 
     var searchQ by remember { mutableStateOf("") }
@@ -126,6 +232,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
 
     // Dialog state
     var showDialog by remember { mutableStateOf(false) }
+    var isSubmitting by remember { mutableStateOf(false) }
     var dialogType by remember { mutableStateOf("CREDIT") }
     var inputAmount by remember { mutableStateOf("") }
     var inputNotes by remember { mutableStateOf("") }
@@ -176,126 +283,161 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                         .fillMaxWidth()
                         .background(MaterialTheme.primaryGradient)
                         .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(id = R.string.udh_title),
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                        Text(
-                            text = "Customer Credit Ledger",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                        )
-                    }
-                    androidx.compose.material3.Button(
-                        onClick = {
-                            selectedCustomer = null
-                            inputCustomerName = ""
-                            inputAmount = ""
-                            inputNotes = ""
-                            dialogType = "CREDIT"
-                            showDialog = true
-                        },
-                        modifier = Modifier.height(36.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.onPrimary,
-                                contentColor = MaterialTheme.colorScheme.primary,
-                            ),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                    ) {
-                        Icon(
-                            Icons.Default.Add, contentDescription = stringResource(R.string.ui_element_desc),
-                            modifier =
-                                Modifier
-                                    .size(16.dp),
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(id = R.string.btn_add), fontWeight = FontWeight.Bold)
-                    }
-                }
+                // Title row — no ambiguous "+ Add" button anymore
+                Text(
+                    text = stringResource(id = R.string.udh_title),
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+                Text(
+                    text = "Customer Credit Ledger",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
+                )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Total outstanding premium card
+                // Total outstanding card — now also houses the two primary actions,
+                // so this one surface does identity + summary + action instead of three separate blocks
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        ),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                 ) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(38.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        painter =
+                                            androidx.compose.ui.res
+                                                .painterResource(id = R.drawable.ic_rupee),
+                                        contentDescription = null,
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = stringResource(id = R.string.udh_total_outstanding),
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                        fontWeight = FontWeight.SemiBold,
+                                        letterSpacing = 0.1.sp,
+                                    )
+                                    Text(
+                                        text = totalOutstanding.toRupee(),
+                                        fontSize = 19.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontFamily = Poppins,
+                                    )
+                                }
+                            }
                             Box(
                                 modifier =
                                     Modifier
-                                        .size(42.dp)
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)),
-                                contentAlignment = Alignment.Center,
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.08f))
+                                        .padding(horizontal = 9.dp, vertical = 5.dp),
                             ) {
-                                Icon(
-                                    painter =
-                                        androidx.compose.ui.res
-                                            .painterResource(id = R.drawable.ic_rupee),
-                                    contentDescription = stringResource(R.string.ui_element_desc),
-                                    tint = Color.Unspecified,
-                                    modifier = Modifier.size(28.dp),
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(14.dp))
-                            Column {
                                 Text(
-                                    text = stringResource(id = R.string.udh_total_outstanding),
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                                    fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 0.1.sp,
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "${totalOutstanding.toRupee()}",
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.ExtraBold,
+                                    text = "${balances.size} ${if (balances.size == 1) "Customer" else "Customers"}",
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    fontFamily = Poppins,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
                                 )
                             }
                         }
-                        Box(
-                            modifier =
-                                Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.primaryGradient)
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Two explicit actions — replaces the ambiguous generic "+ Add" button
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Text(
-                                text = "${balances.size} ${if (balances.size == 1) "Customer" else "Customers"}",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
+                            androidx.compose.material3.Button(
+                                onClick = {
+                                    selectedCustomer = null
+                                    inputCustomerName = ""
+                                    inputAmount = ""
+                                    inputNotes = ""
+                                    dialogType = "CREDIT"
+                                    showDialog = true
+                                },
+                                modifier = Modifier.weight(1f).height(38.dp),
+                                shape = RoundedCornerShape(11.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null,
+                                    modifier =
+                                        Modifier
+                                            .size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onError,
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    stringResource(id = R.string.udh_btn_give_credit),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onError,
+                                    maxLines = 1,
+                                )
+                            }
+                            androidx.compose.material3.Button(
+                                onClick = {
+                                    selectedCustomer = null
+                                    inputCustomerName = ""
+                                    inputAmount = ""
+                                    inputNotes = ""
+                                    dialogType = "PAYMENT"
+                                    showDialog = true
+                                },
+                                modifier = Modifier.weight(1f).height(38.dp),
+                                shape = RoundedCornerShape(11.dp),
+                                colors =
+                                    ButtonDefaults.buttonColors(
+                                        containerColor =
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                                .copy(alpha = 0.12f),
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    ),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null,
+                                    modifier =
+                                        Modifier
+                                            .size(14.dp),
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    stringResource(id = R.string.udh_btn_receive_payment),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                )
+                            }
                         }
                     }
                 }
@@ -307,29 +449,41 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                     onValueChange = { searchQ = it },
                     placeholder = {
                         Text(
-                            stringResource(id = R.string.udh_search_hint),
+                            stringResource(id = R.string.udh_search_hint), fontSize = 14.sp,
                             modifier =
-                                androidx.compose.ui.Modifier
+                                Modifier
                                     .autoMarquee(),
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.ui_element_desc))
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                        )
                     },
                     trailingIcon = {
-                        if (searchQ.isNotEmpty()) {
-                            IconButton(onClick = { searchQ = "" }) {
+                        AnimatedVisibility(
+                            visible = searchQ.isNotEmpty(),
+                            enter = fadeIn() + scaleIn(),
+                            exit = fadeOut() + scaleOut(),
+                        ) {
+                            IconButton(onClick = { searchQ = "" }, modifier = Modifier.size(32.dp)) {
                                 Icon(
                                     Icons.Rounded.Cancel,
-                                    contentDescription = "Clear",
+                                    contentDescription = "Clear search",
                                     tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(18.dp),
                                 )
                             }
                         }
                     },
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                     colors =
                         androidx.compose.material3.OutlinedTextFieldDefaults.colors(
                             focusedTextColor = MaterialTheme.colorScheme.onPrimary,
@@ -696,136 +850,45 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .fillMaxHeight(0.88f)
+                                .fillMaxHeight(0.9f)
                                 .padding(horizontal = 20.dp)
-                                .padding(bottom = 32.dp),
+                                .padding(bottom = 24.dp),
                     ) {
-                        // Header row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                // Avatar circle
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .size(44.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.primaryGradient),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        customer.customerName.firstOrNull()?.uppercase() ?: "?",
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 18.sp,
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = customer.customerName,
-                                        fontSize = 17.sp,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-
-                                    // E03-S2: Show Total Outstanding + Total Paid + Current Balance breakdown
-                                    val detail = detailLookup[customer.customerName]
-                                    if (detail != null) {
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.fillMaxWidth(),
-                                        ) {
-                                            // Total Outstanding
-                                            Column {
-                                                Text(
-                                                    "Outstanding",
-                                                    fontSize = 10.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                )
-                                                Text(
-                                                    detail.totalOutstanding.toRupee(),
-                                                    fontSize = 13.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                )
-                                            }
-                                            // Total Paid
-                                            Column {
-                                                Text(
-                                                    "Paid",
-                                                    fontSize = 10.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                )
-                                                Text(
-                                                    detail.totalPaid.toRupee(),
-                                                    fontSize = 13.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.secondary,
-                                                )
-                                            }
-                                            // Current Balance
-                                            Column {
-                                                Text(
-                                                    "Balance",
-                                                    fontSize = 10.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                )
-                                                val isZero = kotlin.math.abs(detail.currentBalance) < 0.01
-                                                Text(
-                                                    text =
-                                                        if (isZero) {
-                                                            "₹0 Settled"
-                                                        } else {
-                                                            detail.currentBalance.toRupee()
-                                                        },
-                                                    fontSize = 13.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color =
-                                                        when {
-                                                            isZero -> MaterialTheme.colorScheme.onSurfaceVariant
-                                                            detail.currentBalance > 0 -> MaterialTheme.colorScheme.error
-                                                            else -> MaterialTheme.colorScheme.secondary
-                                                        },
-                                                )
-                                            }
-                                        }
-                                    } else {
-                                        val isZero = kotlin.math.abs(customer.netBalance) < 0.01
-                                        Text(
-                                            text =
-                                                if (isZero) {
-                                                    "₹0 Settled"
-                                                } else {
-                                                    "${customer.netBalance.toRupee()} outstanding"
-                                                },
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color =
-                                                when {
-                                                    isZero -> MaterialTheme.colorScheme.onSurfaceVariant
-                                                    customer.netBalance > 0 -> MaterialTheme.colorScheme.error
-                                                    else -> MaterialTheme.colorScheme.secondary
-                                                },
-                                        )
-                                    }
-                                }
-                            }
-
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                        // Identity row
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.primaryGradient),
+                                contentAlignment = Alignment.Center,
                             ) {
-                                // Print PDF Statement icon
+                                Text(
+                                    customer.customerName.firstOrNull()?.uppercase() ?: "?",
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 18.sp,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = customer.customerName,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f).autoMarquee(),
+                            )
+
+                            // Print + Share — trailing, icon-only but with a shared circular tray background
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Box(
                                     modifier =
                                         Modifier
-                                            .size(40.dp)
+                                            .size(38.dp)
                                             .clip(CircleShape)
                                             .background(MaterialTheme.colorScheme.primaryContainer)
-                                            .clickable(onClickLabel = "Print PDF Statement") {
+                                            .clickable(onClickLabel = "Print PDF statement") {
                                                 val pdfFile =
                                                     com.storebook.inventoryapp.utils.UdhaarPdfGenerator
                                                         .generateUdhaarStatement(
@@ -840,31 +903,26 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                                         .openPdf(context, pdfFile)
                                                 } else {
                                                     android.widget.Toast
-                                                        .makeText(
-                                                            context,
-                                                            "Failed to generate statement PDF",
-                                                            android.widget.Toast.LENGTH_SHORT,
-                                                        ).show()
+                                                        .makeText(context, "Failed to generate statement PDF", android.widget.Toast.LENGTH_SHORT)
+                                                        .show()
                                                 }
                                             },
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Icon(
                                         Icons.Filled.Print,
-                                        contentDescription = "Print PDF Statement",
+                                        contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.size(20.dp),
+                                        modifier = Modifier.size(18.dp),
                                     )
                                 }
-
-                                // WhatsApp share icon
                                 Box(
                                     modifier =
                                         Modifier
-                                            .size(40.dp)
+                                            .size(38.dp)
                                             .clip(CircleShape)
                                             .background(WhatsAppGreen.copy(alpha = 0.12f))
-                                            .clickable(onClickLabel = "Action") {
+                                            .clickable(onClickLabel = "Share statement on WhatsApp") {
                                                 val template =
                                                     if (viewModel.businessName.isNotBlank() &&
                                                         viewModel.businessName != "StoreBook Kirana"
@@ -876,11 +934,8 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                                             viewModel.businessName,
                                                         )
                                                     } else {
-                                                        context.getString(
-                                                            R.string.udh_reminder_template,
-                                                            customer.customerName,
-                                                            customer.netBalance,
-                                                        )
+                                                        context
+                                                            .getString(R.string.udh_reminder_template, customer.customerName, customer.netBalance)
                                                     }
                                                 val pdfFile =
                                                     com.storebook.inventoryapp.utils.UdhaarPdfGenerator
@@ -910,18 +965,10 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                                         context.startActivity(intent)
                                                     } catch (e: Exception) {
                                                         if (e is kotlinx.coroutines.CancellationException) throw e
-                                                        // Fallback if WhatsApp is not installed
                                                         val fallbackIntent =
                                                             Intent(Intent.ACTION_VIEW).apply {
                                                                 data =
-                                                                    Uri.parse(
-                                                                        "https://api.whatsapp.com/send?text=${
-                                                                            URLEncoder.encode(
-                                                                                template,
-                                                                                "UTF-8",
-                                                                            )
-                                                                        }",
-                                                                    )
+                                                                    Uri.parse("https://api.whatsapp.com/send?text=${URLEncoder.encode(template, "UTF-8")}")
                                                             }
                                                         context.startActivity(fallbackIntent)
                                                     }
@@ -929,14 +976,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                                     val fallbackIntent =
                                                         Intent(Intent.ACTION_VIEW).apply {
                                                             data =
-                                                                Uri.parse(
-                                                                    "https://api.whatsapp.com/send?text=${
-                                                                        URLEncoder.encode(
-                                                                            template,
-                                                                            "UTF-8",
-                                                                        )
-                                                                    }",
-                                                                )
+                                                                Uri.parse("https://api.whatsapp.com/send?text=${URLEncoder.encode(template, "UTF-8")}")
                                                         }
                                                     context.startActivity(fallbackIntent)
                                                 }
@@ -945,95 +985,124 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                 ) {
                                     Icon(
                                         Icons.Default.Share,
-                                        contentDescription = stringResource(R.string.ui_element_desc),
+                                        contentDescription = null,
                                         tint = WhatsAppGreen,
-                                        modifier = Modifier.size(20.dp),
+                                        modifier = Modifier.size(18.dp),
                                     )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider()
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Ledger timeline
-                        LazyColumn(
-                            modifier = Modifier.weight(1f).fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            items(ledgerEntries) { entry ->
-                                val dateStr = dateFmt.format(Date(entry.timestamp))
-                                val isCredit = entry.type == "CREDIT"
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors =
-                                        CardDefaults.cardColors(
-                                            containerColor =
-                                                if (isCredit) {
-                                                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-                                                } else {
-                                                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-                                                },
-                                        ),
-                                    shape = RoundedCornerShape(12.dp),
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(12.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Box(
-                                                modifier =
-                                                    Modifier
-                                                        .width(3.dp)
-                                                        .height(40.dp)
-                                                        .clip(RoundedCornerShape(2.dp))
-                                                        .background(if (isCredit) Coral500 else Emerald500),
-                                            )
-                                            Spacer(modifier = Modifier.width(10.dp))
-                                            Column {
-                                                Text(
-                                                    text =
-                                                        if (isCredit) {
-                                                            "Credit Given (उधार दिया)"
-                                                        } else {
-                                                            "Payment Received (जमा किया)"
-                                                        },
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 13.sp,
-                                                    color = if (isCredit) Coral500 else Emerald500,
-                                                )
-                                                val notes = entry.notes
-                                                if (!notes.isNullOrBlank()) {
-                                                    Text(
-                                                        notes,
-                                                        fontSize = 12.sp,
-                                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                                    )
-                                                }
-                                                Text(
-                                                    dateStr,
-                                                    fontSize = 10.sp,
-                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                                )
-                                            }
-                                        }
-                                        Text(
-                                            text = "${entry.amount.toRupee()}",
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 15.sp,
-                                            color = if (isCredit) Coral500 else Emerald500,
-                                        )
-                                    }
                                 }
                             }
                         }
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        // Give credit / Receive payment buttons
+                        // Balance summary — promoted to its own full-width card, no longer squeezed next to the avatar
+                        val detail = detailLookup[customer.customerName]
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            if (detail != null) {
+                                LedgerStat(label = "Outstanding", value = detail.totalOutstanding.toRupee())
+                                LedgerStat(label = "Paid", value = detail.totalPaid.toRupee(), valueColor = MaterialTheme.colorScheme.secondary)
+                                val isZero = kotlin.math.abs(detail.currentBalance) < 0.01
+                                LedgerStat(
+                                    label = "Balance",
+                                    value = if (isZero) "₹0 Settled" else detail.currentBalance.toRupee(),
+                                    valueColor =
+                                        when {
+                                            isZero -> MaterialTheme.colorScheme.onSurfaceVariant
+                                            detail.currentBalance > 0 -> MaterialTheme.colorScheme.error
+                                            else -> MaterialTheme.colorScheme.secondary
+                                        },
+                                    alignEnd = true,
+                                )
+                            } else {
+                                val isZero = kotlin.math.abs(customer.netBalance) < 0.01
+                                LedgerStat(
+                                    label = "Current Balance",
+                                    value = if (isZero) "₹0 Settled" else customer.netBalance.toRupee(),
+                                    valueColor =
+                                        when {
+                                            isZero -> MaterialTheme.colorScheme.onSurfaceVariant
+                                            customer.netBalance > 0 -> MaterialTheme.colorScheme.error
+                                            else -> MaterialTheme.colorScheme.secondary
+                                        },
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "Transaction History",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            if (ledgerEntries.isNotEmpty()) {
+                                Text(
+                                    "${ledgerEntries.size} entries",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Ledger timeline
+                        if (ledgerEntries.isEmpty()) {
+                            Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .size(56.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            Icons.Outlined.ReceiptLong,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                            modifier = Modifier.size(28.dp),
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Text(
+                                        "No transactions yet",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    )
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                items(ledgerEntries, key = { it.id }) { entry ->
+                                    LedgerEntryCard(entry = entry, dateFmt = dateFmt)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Give credit / Receive payment — icons added for faster recognition
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1047,13 +1116,22 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                     showDialog = true
                                 },
                                 shape = RoundedCornerShape(14.dp),
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.weight(1f).height(48.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                             ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null,
+                                    modifier =
+                                        Modifier
+                                            .size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onError,
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     stringResource(id = R.string.udh_btn_give_credit),
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onError,
+                                    fontSize = 13.sp,
                                 )
                             }
                             androidx.compose.material3.Button(
@@ -1065,16 +1143,22 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                     showDialog = true
                                 },
                                 shape = RoundedCornerShape(14.dp),
-                                modifier = Modifier.weight(1f),
-                                colors =
-                                    ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                    ),
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null,
+                                    modifier =
+                                        Modifier
+                                            .size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     stringResource(id = R.string.udh_btn_receive_payment),
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimary,
+                                    fontSize = 13.sp,
                                 )
                             }
                         }
@@ -1100,7 +1184,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                     }
                 }
 
-                androidx.compose.ui.window.Dialog(onDismissRequest = { showDialog = false }) {
+                androidx.compose.ui.window.Dialog(onDismissRequest = { if (!isSubmitting) showDialog = false }) {
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(8.dp),
                         shape = RoundedCornerShape(24.dp),
@@ -1110,48 +1194,51 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .heightIn(max = 420.dp)
+                                    .heightIn(max = 480.dp)
                                     .imePadding()
                                     .verticalScroll(rememberScrollState())
                                     .padding(24.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
+                            val accentColor = if (dialogType == "CREDIT") Coral500 else Emerald500
+
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     modifier =
                                         Modifier
                                             .size(40.dp)
                                             .clip(CircleShape)
-                                            .background(
-                                                if (dialogType == "CREDIT") {
-                                                    Coral500.copy(alpha = 0.12f)
-                                                } else {
-                                                    Emerald500.copy(alpha = 0.12f)
-                                                },
-                                            ),
+                                            .background(accentColor.copy(alpha = 0.12f)),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Text(
                                         if (dialogType == "CREDIT") "−" else "+",
                                         fontWeight = FontWeight.Black,
                                         fontSize = 20.sp,
-                                        color = if (dialogType == "CREDIT") Coral500 else Emerald500,
+                                        color = accentColor,
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text =
-                                        if (dialogType ==
-                                            "CREDIT"
-                                        ) {
-                                            "Give Credit"
-                                        } else {
-                                            "Receive Payment"
-                                        },
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (dialogType == "CREDIT") Coral500 else Emerald500,
-                                )
+                                Column {
+                                    Text(
+                                        text = if (dialogType == "CREDIT") "Give Credit" else "Receive Payment",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = accentColor,
+                                    )
+                                    Text(
+                                        text =
+                                            if (dialogType ==
+                                                "CREDIT"
+                                            ) {
+                                                "Money going out to customer"
+                                            } else {
+                                                "Money coming in from customer"
+                                            },
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
 
                             if (selectedCustomer == null) {
@@ -1163,75 +1250,131 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                     },
                                     label = {
                                         Text(
-                                            if (nameError) "Valid Name Required" else "Customer Name",
+                                            "Customer Name",
                                             modifier =
                                                 androidx.compose.ui.Modifier
                                                     .autoMarquee(),
                                         )
                                     },
                                     isError = nameError,
+                                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterName),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp),
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Person, contentDescription = null,
+                                            modifier =
+                                                Modifier
+                                                    .size(18.dp),
+                                        )
+                                    },
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                                    keyboardActions = KeyboardActions(onNext = { focusRequesterAmount.requestFocus() }),
+                                    supportingText =
+                                        if (nameError) {
+                                            { Text("Enter a valid name", fontSize = 11.sp) }
+                                        } else {
+                                            null
+                                        },
+                                )
+                            } else {
+                                Row(
                                     modifier =
                                         Modifier
                                             .fillMaxWidth()
-                                            .focusRequester(focusRequesterName),
-                                    singleLine = true,
-                                    shape = RoundedCornerShape(12.dp),
-                                    keyboardOptions =
-                                        KeyboardOptions(
-                                            imeAction = ImeAction.Next,
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        stringResource(
+                                            id = R.string.udh_customer_prefix,
+                                            selectedCustomer?.customerName ?: "Customer",
                                         ),
-                                    keyboardActions =
-                                        KeyboardActions(
-                                            onNext = { focusRequesterAmount.requestFocus() },
-                                        ),
-                                )
-                            } else {
-                                Text(
-                                    stringResource(
-                                        id = R.string.udh_customer_prefix,
-                                        selectedCustomer?.customerName ?: "Customer",
-                                    ),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                )
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        maxLines = 1,
+                                        modifier = Modifier.autoMarquee(),
+                                    )
+                                }
                             }
 
-                            OutlinedTextField(
-                                value = inputAmount,
-                                onValueChange = {
-                                    inputAmount = it
-                                    amountError = false
-                                },
-                                label = {
-                                    Text(
-                                        text =
-                                            if (amountError) {
-                                                "Valid Amount Required"
-                                            } else {
-                                                stringResource(id = R.string.udh_amount_label)
-                                            },
-                                        modifier =
-                                            androidx.compose.ui.Modifier
-                                                .autoMarquee(),
-                                    )
-                                },
-                                isError = amountError,
-                                keyboardOptions =
-                                    KeyboardOptions(
-                                        keyboardType = KeyboardType.Number,
-                                        imeAction = ImeAction.Next,
-                                    ),
-                                keyboardActions =
-                                    KeyboardActions(
-                                        onNext = { focusRequesterNotes.requestFocus() },
-                                    ),
+                            // Amount — hero input, tinted to the transaction direction
+                            Column(
                                 modifier =
                                     Modifier
                                         .fillMaxWidth()
-                                        .focusRequester(focusRequesterAmount),
-                                singleLine = true,
-                                shape = RoundedCornerShape(12.dp),
-                            )
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(accentColor.copy(alpha = 0.08f))
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                Text(
+                                    text = stringResource(id = R.string.udh_amount_label),
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                OutlinedTextField(
+                                    value = inputAmount,
+                                    onValueChange = {
+                                        inputAmount = it
+                                        amountError = false
+                                    },
+                                    placeholder = {
+                                        Text(
+                                            "0",
+                                            fontSize = 28.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    },
+                                    prefix = {
+                                        Text("₹", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = accentColor)
+                                    },
+                                    textStyle =
+                                        LocalTextStyle.current.copy(
+                                            fontSize = 28.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = TextAlign.Center,
+                                            color = accentColor,
+                                        ),
+                                    isError = amountError,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                                    keyboardActions = KeyboardActions(onNext = { focusRequesterNotes.requestFocus() }),
+                                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterAmount),
+                                    singleLine = true,
+                                    colors =
+                                        OutlinedTextFieldDefaults.colors(
+                                            unfocusedBorderColor = Color.Transparent,
+                                            focusedBorderColor = Color.Transparent,
+                                            unfocusedContainerColor = Color.Transparent,
+                                            focusedContainerColor = Color.Transparent,
+                                        ),
+                                    supportingText =
+                                        if (amountError) {
+                                            {
+                                                Text(
+                                                    "Enter a valid amount",
+                                                    fontSize = 11.sp,
+                                                    textAlign = TextAlign.Center,
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                )
+                                            }
+                                        } else {
+                                            null
+                                        },
+                                )
+                            }
 
                             OutlinedTextField(
                                 value = inputNotes,
@@ -1244,21 +1387,45 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                                 .autoMarquee(),
                                     )
                                 },
-                                keyboardOptions =
-                                    KeyboardOptions(
-                                        imeAction = ImeAction.Done,
-                                    ),
-                                keyboardActions =
-                                    KeyboardActions(
-                                        onDone = { focusManager.clearFocus() },
-                                    ),
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .focusRequester(focusRequesterNotes),
+                                placeholder = {
+                                    Text(
+                                        "e.g. Grocery purchase",
+                                        modifier =
+                                            androidx.compose.ui.Modifier
+                                                .autoMarquee(),
+                                    )
+                                },
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterNotes),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
+                                leadingIcon = {
+                                    Icon(Icons.Default.Notes, contentDescription = null, modifier = Modifier.size(18.dp))
+                                },
                             )
+
+                            // Plain-language confirmation — same safeguard as the other party-balance dialog,
+                            // since a mixed-up direction here has the same real-world consequence
+                            val previewAmt = inputAmount.toDoubleOrNull()
+                            val previewName =
+                                selectedCustomer?.customerName?.ifBlank { null }
+                                    ?: inputCustomerName.trim().ifBlank { null }
+                            if (previewAmt != null && previewAmt > 0 && previewName != null) {
+                                Text(
+                                    text =
+                                        if (dialogType == "CREDIT") {
+                                            "$previewName now owes you ₹${"%.2f".format(previewAmt)} more"
+                                        } else {
+                                            "$previewName's balance reduces by ₹${"%.2f".format(previewAmt)}"
+                                        },
+                                    fontSize = 12.sp,
+                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1266,6 +1433,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                             ) {
                                 androidx.compose.material3.Button(
                                     onClick = { showDialog = false },
+                                    enabled = !isSubmitting,
                                     modifier = Modifier.weight(1f),
                                     colors =
                                         ButtonDefaults.buttonColors(
@@ -1283,7 +1451,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                         val amt = inputAmount.toDoubleOrNull()
 
                                         var isValid = true
-                                        if (name.isBlank()) {
+                                        if (selectedCustomer == null && name.isBlank()) {
                                             nameError = true
                                             isValid = false
                                         }
@@ -1293,11 +1461,12 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                         }
                                         if (!isValid) return@Button
 
-                                        // BUG-08 FIX: Use already-parsed and validated amt
-                                        // Safe — only reachable if !isValid is false
                                         val parsedAmount = amt!!
-                                        viewModel.recordUdhaarEntry(name, parsedAmount, dialogType, inputNotes)
+                                        val finalName = selectedCustomer?.customerName ?: name
+                                        isSubmitting = true
+                                        viewModel.recordUdhaarEntry(finalName, parsedAmount, dialogType, inputNotes)
                                         showDialog = false
+                                        isSubmitting = false
 
                                         if (showCustomerLedgerSheet && selectedCustomer != null) {
                                             val currentCustomerName = selectedCustomer?.customerName ?: "Unknown"
@@ -1305,9 +1474,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                             coroutineScope.launch {
                                                 val updatedList = viewModel.repository.getUdhaarBalances()
                                                 selectedCustomer =
-                                                    updatedList.find {
-                                                        it.customerName == currentCustomerName
-                                                    }
+                                                    updatedList.find { it.customerName == currentCustomerName }
                                             }
                                         }
 
@@ -1315,6 +1482,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                             snackbarHostState.showSnackbar("Entry saved successfully")
                                         }
                                     },
+                                    enabled = !isSubmitting,
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp),
                                     colors =
@@ -1329,18 +1497,33 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                                                 },
                                         ),
                                 ) {
-                                    Text(
-                                        stringResource(id = R.string.btn_save),
-                                        color =
-                                            if (dialogType ==
-                                                "CREDIT"
-                                            ) {
-                                                MaterialTheme.colorScheme.onError
-                                            } else {
-                                                MaterialTheme.colorScheme.onPrimary
-                                            },
-                                        fontWeight = FontWeight.Bold,
-                                    )
+                                    if (isSubmitting) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(14.dp),
+                                            strokeWidth = 2.dp,
+                                            color =
+                                                if (dialogType ==
+                                                    "CREDIT"
+                                                ) {
+                                                    MaterialTheme.colorScheme.onError
+                                                } else {
+                                                    MaterialTheme.colorScheme.onPrimary
+                                                },
+                                        )
+                                    } else {
+                                        Text(
+                                            stringResource(id = R.string.btn_save),
+                                            color =
+                                                if (dialogType ==
+                                                    "CREDIT"
+                                                ) {
+                                                    MaterialTheme.colorScheme.onError
+                                                } else {
+                                                    MaterialTheme.colorScheme.onPrimary
+                                                },
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                    }
                                 }
                             }
                         }

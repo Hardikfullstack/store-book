@@ -12,7 +12,6 @@ import kotlinx.coroutines.launch
 class StockAuditViewModel(
     private val stockAdjustmentRepository: StockAdjustmentRepository,
 ) : ViewModel() {
-
     private val _adjustments = MutableStateFlow<List<StockAdjustment>>(emptyList())
     val adjustments: StateFlow<List<StockAdjustment>> = _adjustments.asStateFlow()
 
@@ -54,34 +53,37 @@ class StockAuditViewModel(
                 val page = _currentPage.value
                 val offset = ((page - 1) * pageSize).toLong()
 
-                val items = stockAdjustmentRepository.getStockAdjustmentsFiltered(
-                    searchQuery = search,
-                    reason = reason,
-                    startDate = start,
-                    endDate = end,
-                    limit = pageSize.toLong(),
-                    offset = offset,
-                )
-                val count = stockAdjustmentRepository.getStockAdjustmentsFilteredCount(
-                    searchQuery = search,
-                    reason = reason,
-                    startDate = start,
-                    endDate = end,
-                )
-                _adjustments.value = items.map {
-                    StockAdjustment(
-                        id = it.id,
-                        itemId = it.item_id,
-                        itemName = it.item_name,
-                        reason = it.reason,
-                        delta = it.delta,
-                        timestamp = it.timestamp,
-                        isDeleted = it.is_deleted.toInt(),
-                        cloudId = it.cloud_id,
-                        isSynced = it.is_synced.toInt(),
-                        updatedAt = it.updated_at,
+                val items =
+                    stockAdjustmentRepository.getStockAdjustmentsFiltered(
+                        searchQuery = search,
+                        reason = reason,
+                        startDate = start,
+                        endDate = end,
+                        limit = pageSize.toLong(),
+                        offset = offset,
                     )
-                }
+                val count =
+                    stockAdjustmentRepository.getStockAdjustmentsFilteredCount(
+                        searchQuery = search,
+                        reason = reason,
+                        startDate = start,
+                        endDate = end,
+                    )
+                _adjustments.value =
+                    items.map {
+                        StockAdjustment(
+                            id = it.id,
+                            itemId = it.item_id,
+                            itemName = it.item_name,
+                            reason = it.reason,
+                            delta = it.delta,
+                            timestamp = it.timestamp,
+                            isDeleted = it.is_deleted.toInt(),
+                            cloudId = it.cloud_id,
+                            isSynced = it.is_synced.toInt(),
+                            updatedAt = it.updated_at,
+                        )
+                    }
                 _totalCount.value = count
             } finally {
                 _isLoading.value = false
@@ -101,7 +103,10 @@ class StockAuditViewModel(
         loadAdjustments()
     }
 
-    fun setDateRange(start: Long?, end: Long?) {
+    fun setDateRange(
+        start: Long?,
+        end: Long?,
+    ) {
         _startDate.value = start
         _endDate.value = end
         _currentPage.value = 1
