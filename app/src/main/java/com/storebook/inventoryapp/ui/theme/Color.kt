@@ -6,9 +6,9 @@ import androidx.compose.ui.graphics.Color
 
 // Ink Blue (Sapphire Blue) — matching app icon/brand color (0xFF191958)
 val InkBlue900 = Color(0xFF0D0D36)
-val InkBlue700 = Color(0xFF191958)
+val InkBlue700 = Color(0xFF2C2CA2)
 val InkBlue500 = Color(0xFF32328C)
-val InkBlue300 = Color(0xFF5A5AD4)
+val InkBlue300 = Color(0xFF6363EC)
 val InkBlue100 = Color(0xFFC6C6F2)
 val InkBlue50 = Color(0xFFECECFB)
 

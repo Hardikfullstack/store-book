@@ -16,6 +16,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -292,65 +293,94 @@ fun MoreScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f),
                                 ) {
-                                    // Shop Avatar Circle
+                                    // Shop Avatar Circle with status indicator
                                     Box(
-                                        modifier =
-                                            Modifier
-                                                .size(54.dp)
-                                                .clip(CircleShape)
-                                                .background(
-                                                    MaterialTheme.colorScheme.onPrimary
-                                                        .copy(alpha = 0.2f),
-                                                ).border(
-                                                    1.5.dp,
-                                                    MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
-                                                    CircleShape,
-                                                ),
+                                        modifier = Modifier.size(54.dp),
                                         contentAlignment = Alignment.Center,
                                     ) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.ic_store),
-                                            contentDescription = "Shop Icon",
-                                            tint = MaterialTheme.colorScheme.onPrimary,
-                                            modifier = Modifier.size(30.dp),
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .fillMaxSize()
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f))
+                                                    .border(
+                                                        width = 1.dp,
+                                                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f),
+                                                        shape = CircleShape,
+                                                    ),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_store),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                                modifier = Modifier.size(26.dp),
+                                            )
+                                        }
+
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .align(Alignment.BottomEnd)
+                                                    .size(14.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primary)
+                                                    .border(2.dp, MaterialTheme.colorScheme.onPrimary, CircleShape),
                                         )
                                     }
 
-                                    Spacer(modifier = Modifier.width(14.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
 
-                                    Column {
+                                    Column(modifier = Modifier.weight(1f, fill = false)) {
+                                        // Store name — now the ONLY thing on this row, full width, no contest
+                                        Text(
+                                            text = activeStoreName,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 18.sp,
+                                            lineHeight = 22.sp,
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            modifier =
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .basicMarquee(
+                                                        iterations = Int.MAX_VALUE,
+                                                        initialDelayMillis = 1000,
+                                                        velocity = 28.dp,
+                                                    ),
+                                        )
+
+                                        Spacer(modifier = Modifier.height(3.dp))
+
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = activeStoreName,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                fontSize = 19.sp,
-                                                color = MaterialTheme.colorScheme.onPrimary,
-                                                maxLines = 1,
-                                                modifier = Modifier.weight(1f, fill = false),
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            // Role Badge
+                                            val isStaff = viewModel.userRole == "staff"
                                             Surface(
-                                                shape = RoundedCornerShape(8.dp),
-                                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f),
+                                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.35f)),
                                             ) {
                                                 Text(
-                                                    text = if (viewModel.userRole == "staff") "STAFF" else "OWNER",
+                                                    text = if (isStaff) "STAFF" else "OWNER",
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Bold,
+                                                    letterSpacing = 0.5.sp,
                                                     color = MaterialTheme.colorScheme.onPrimary,
-                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
                                                 )
                                             }
+
+                                            Spacer(modifier = Modifier.width(6.dp))
+
+                                            Text(
+                                                text = "${allItems.size} items  ·  ${salesList.size} sales",
+                                                fontSize = 12.5.sp,
+                                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f),
+                                                maxLines = 1,
+                                                softWrap = false,
+                                            )
                                         }
-
-                                        Spacer(modifier = Modifier.height(2.dp))
-
-                                        Text(
-                                            text = "${allItems.size} items · ${salesList.size} sales",
-                                            fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                                        )
                                     }
                                 }
 
@@ -493,8 +523,8 @@ fun MoreScreen(
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         IconOptionRow(
                             icon = Icons.Outlined.PieChart,
-                            iconBg = Emerald500.copy(alpha = 0.12f),
-                            iconTint = Emerald500,
+                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            iconTint = MaterialTheme.colorScheme.primary,
                             title = stringResource(id = R.string.more_pnl_report),
                             subtitle = "Net revenue, costs & profit breakdown",
                             onClick = {
@@ -505,8 +535,8 @@ fun MoreScreen(
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         IconOptionRow(
                             icon = Icons.Outlined.PieChart,
-                            iconBg = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
-                            iconTint = MaterialTheme.colorScheme.error,
+                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            iconTint = MaterialTheme.colorScheme.primary,
                             title = "Price Drift Audit",
                             subtitle = "Track cost fluctuations & profit erosion",
                             onClick = { navController.navigate(Routes.PriceDriftReport) },
@@ -516,8 +546,8 @@ fun MoreScreen(
                             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                             IconOptionRow(
                                 icon = Icons.Outlined.Receipt,
-                                iconBg = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
-                                iconTint = MaterialTheme.colorScheme.tertiary,
+                                iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                iconTint = MaterialTheme.colorScheme.primary,
                                 title = "GST Reports (GSTR-1)",
                                 subtitle = "Download monthly GST summary statements",
                                 onClick = { navController.navigate(Routes.GSTReport) },
@@ -533,7 +563,7 @@ fun MoreScreen(
                     SectionHeader(
                         title = "OPERATIONS & BILLING",
                         icon = Icons.Outlined.Receipt,
-                        accentColor = Emerald500,
+                        accentColor = MaterialTheme.colorScheme.primary,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     MenuCard {
@@ -556,8 +586,8 @@ fun MoreScreen(
 
                         IconOptionRow(
                             icon = Icons.Outlined.RequestQuote,
-                            iconBg = Emerald500.copy(alpha = 0.12f),
-                            iconTint = Emerald500,
+                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            iconTint = MaterialTheme.colorScheme.primary,
                             title = "Quotations & Estimates",
                             subtitle = "Create & send price quotes to customers",
                             onClick = { navController.navigate(Routes.Quotations) },
@@ -565,8 +595,8 @@ fun MoreScreen(
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         IconOptionRow(
                             icon = Icons.Outlined.AccountBalanceWallet,
-                            iconBg = Coral500.copy(alpha = 0.12f),
-                            iconTint = Coral500,
+                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            iconTint = MaterialTheme.colorScheme.primary,
                             title = stringResource(id = R.string.more_expense_track),
                             subtitle = "Log shop rent, electricity & overheads",
                             onClick = {
@@ -591,8 +621,8 @@ fun MoreScreen(
                             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                             IconOptionRow(
                                 icon = Icons.Outlined.AssignmentInd,
-                                iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
-                                iconTint = MaterialTheme.colorScheme.secondary,
+                                iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                iconTint = MaterialTheme.colorScheme.primary,
                                 title = "Supplier Ledger",
                                 subtitle = "Manage vendor balances & payables",
                                 onClick = { navController.navigate(Routes.SupplierLedger) },
@@ -764,15 +794,15 @@ fun MoreScreen(
                     SectionHeader(
                         title = "STORE & PREFERENCES",
                         icon = Icons.Outlined.SettingsSuggest,
-                        accentColor = MaterialTheme.colorScheme.tertiary,
+                        accentColor = MaterialTheme.colorScheme.primary,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     MenuCard {
                         if (viewModel.userRoleType.hasPermission(AppPermission.MANAGE_BUSINESS_SETTINGS)) {
                             IconOptionRow(
                                 icon = Icons.Outlined.SettingsSuggest,
-                                iconBg = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
-                                iconTint = MaterialTheme.colorScheme.tertiary,
+                                iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                iconTint = MaterialTheme.colorScheme.primary,
                                 title = "Business Settings",
                                 subtitle = "Store name, GSTIN, currency & print layout",
                                 onClick = {
@@ -815,8 +845,8 @@ fun MoreScreen(
                         // App Theme Selector
                         IconOptionRow(
                             icon = Icons.Outlined.Palette,
-                            iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
-                            iconTint = MaterialTheme.colorScheme.secondary,
+                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            iconTint = MaterialTheme.colorScheme.primary,
                             title = "App Theme & Accent Color",
                             subtitle = "Dark/Light mode & custom color palettes",
                             trailing = if (themeManager.isDarkMode.value) "Dark" else "Light",
