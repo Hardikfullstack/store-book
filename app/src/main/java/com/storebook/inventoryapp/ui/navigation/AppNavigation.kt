@@ -638,6 +638,16 @@ fun AppNavigation() {
                     // Customer — optional, visually secondary
                     androidx.compose.foundation.layout.BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                         val boxWidth = maxWidth
+                        val filteredCustomers =
+                            remember(quickSaleCustomer, customerSuggestions) {
+                                if (quickSaleCustomer.isBlank()) {
+                                    emptyList()
+                                } else {
+                                    customerSuggestions.filter {
+                                        it.contains(quickSaleCustomer.trim(), ignoreCase = true)
+                                    }
+                                }
+                            }
                         androidx.compose.material3.OutlinedTextField(
                             value = quickSaleCustomer,
                             onValueChange = {
@@ -667,7 +677,7 @@ fun AppNavigation() {
                             modifier = Modifier.width(boxWidth),
                             expanded = quickSaleCustomerExpanded,
                             onDismissRequest = { quickSaleCustomerExpanded = false },
-                            suggestions = customerSuggestions,
+                            suggestions = filteredCustomers,
                             itemText = { it },
                             onSuggestionSelected = { name ->
                                 quickSaleCustomer = name
@@ -675,6 +685,7 @@ fun AppNavigation() {
                             },
                             avatarColor = MaterialTheme.colorScheme.primary,
                             avatarTextColor = MaterialTheme.colorScheme.onPrimary,
+                            openAbove = true,
                         )
                     }
                 }
@@ -1053,6 +1064,16 @@ fun AppNavigation() {
                     // Party name with autocomplete
                     androidx.compose.foundation.layout.BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                         val boxWidth = maxWidth
+                        val filteredParties =
+                            remember(quickPartyName, customerSuggestions) {
+                                if (quickPartyName.isBlank()) {
+                                    emptyList()
+                                } else {
+                                    customerSuggestions.filter {
+                                        it.contains(quickPartyName.trim(), ignoreCase = true)
+                                    }
+                                }
+                            }
                         androidx.compose.material3.OutlinedTextField(
                             value = quickPartyName,
                             onValueChange = {
@@ -1090,7 +1111,7 @@ fun AppNavigation() {
                             modifier = Modifier.width(boxWidth),
                             expanded = quickPartyNameExpanded,
                             onDismissRequest = { quickPartyNameExpanded = false },
-                            suggestions = customerSuggestions,
+                            suggestions = filteredParties,
                             itemText = { it },
                             onSuggestionSelected = { name ->
                                 quickPartyName = name
@@ -1100,6 +1121,7 @@ fun AppNavigation() {
                                 com.storebook.inventoryapp.ui.theme.Coral500
                                     .copy(alpha = 0.12f),
                             avatarTextColor = com.storebook.inventoryapp.ui.theme.Coral500,
+                            openAbove = true,
                         )
                     }
 
