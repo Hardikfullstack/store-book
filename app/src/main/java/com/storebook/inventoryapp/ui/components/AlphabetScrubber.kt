@@ -5,7 +5,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
@@ -14,7 +15,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,8 +33,13 @@ fun AlphabetScrubber(
     var selectedLetter by remember { mutableStateOf<Char?>(null) }
     var columnHeight by remember { mutableStateOf(0f) }
 
+    fun letterForY(y: Float): Char {
+        val itemHeight = columnHeight / alphabet.size
+        val index = (y / itemHeight).toInt().coerceIn(0, alphabet.lastIndex)
+        return alphabet[index]
+    }
+
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        // Floating Bubble
         AnimatedVisibility(
             visible = selectedLetter != null,
             enter = fadeIn(tween(150)),
@@ -55,7 +63,6 @@ fun AlphabetScrubber(
             }
         }
 
-        // The Scrubber Column
         Column(
             modifier =
                 Modifier
@@ -67,36 +74,44 @@ fun AlphabetScrubber(
                     ).padding(vertical = 4.dp)
                     .onGloballyPositioned { coords ->
                         columnHeight = coords.size.height.toFloat()
-                    }.pointerInput(Unit) {
-                        detectVerticalDragGestures(
-                            onDragStart = { offset ->
-                                if (columnHeight > 0) {
-                                    val itemHeight = columnHeight / alphabet.size
-                                    val index =
-                                        (offset.y / itemHeight)
-                                            .toInt()
-                                            .coerceIn(0, alphabet.lastIndex)
-                                    selectedLetter = alphabet[index]
-                                    onLetterSelect(alphabet[index])
+                    }
+                    // Claim every pointer event on this column at the INITIAL pass,
+                    // before the parent LazyColumn's scroll gesture ever sees it.
+                    .pointerInput(Unit) {
+                        awaitEachGesture {
+                            val down = awaitFirstDown(pass = PointerEventPass.Initial)
+                            down.consume() // steal the touch from the parent list immediately
+
+                            if (columnHeight > 0f) {
+                                val letter = letterForY(down.position.y)
+                                selectedLetter = letter
+                                onLetterSelect(letter)
+                            }
+
+                            // Track drag until finger lifts
+                            while (true) {
+                                val event = awaitPointerEvent(pass = PointerEventPass.Initial)
+                                val change = event.changes.firstOrNull() ?: break
+
+                                if (!change.pressed) {
+                                    // finger lifted
+                                    change.consume()
+                                    break
                                 }
-                            },
-                            onDragEnd = { selectedLetter = null },
-                            onDragCancel = { selectedLetter = null },
-                            onVerticalDrag = { change, _ ->
-                                if (columnHeight > 0) {
-                                    val y = change.position.y
-                                    val itemHeight = columnHeight / alphabet.size
-                                    val index =
-                                        (y / itemHeight)
-                                            .toInt()
-                                            .coerceIn(0, alphabet.lastIndex)
-                                    if (selectedLetter != alphabet[index]) {
-                                        selectedLetter = alphabet[index]
-                                        onLetterSelect(alphabet[index])
+
+                                if (change.positionChange() != androidx.compose.ui.geometry.Offset.Zero) {
+                                    change.consume()
+                                    if (columnHeight > 0f) {
+                                        val letter = letterForY(change.position.y)
+                                        if (letter != selectedLetter) {
+                                            selectedLetter = letter
+                                            onLetterSelect(letter)
+                                        }
                                     }
                                 }
-                            },
-                        )
+                            }
+                            selectedLetter = null
+                        }
                     },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween,
@@ -109,12 +124,7 @@ fun AlphabetScrubber(
                     Text(
                         text = letter.toString(),
                         fontSize = 7.sp,
-                        fontWeight =
-                            if (selectedLetter == letter) {
-                                FontWeight.Bold
-                            } else {
-                                FontWeight.Medium
-                            },
+                        fontWeight = if (selectedLetter == letter) FontWeight.Bold else FontWeight.Medium,
                         color =
                             if (selectedLetter == letter) {
                                 MaterialTheme.colorScheme.primary
