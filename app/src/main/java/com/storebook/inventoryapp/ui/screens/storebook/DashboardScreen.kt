@@ -963,7 +963,11 @@ fun DashboardScreen(
                                     },
                                     modifier =
                                         Modifier.weight(1f).clickable(onClickLabel = "View all items") {
-                                            navController.navigate(Routes.Inventory)
+                                            navController.navigate(Routes.Inventory) {
+                                                popUpTo<Routes.Dashboard> { saveState = true }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
                                         },
                                 )
                                 AnimatedMetricCard(
@@ -987,7 +991,11 @@ fun DashboardScreen(
                                         Modifier.weight(1f).clickable(
                                             onClickLabel = if (lowStockItems.isNotEmpty()) "View low stock items" else "View inventory",
                                         ) {
-                                            navController.navigate(Routes.Inventory)
+                                            navController.navigate(Routes.Inventory) {
+                                                popUpTo<Routes.Dashboard> { saveState = true }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
                                         },
                                 )
                             }

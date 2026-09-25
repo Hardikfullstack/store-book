@@ -90,7 +90,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -1327,15 +1326,14 @@ fun AppNavigation() {
                     cartCount = salesViewModel.cartItems.size,
                     onTabSelected = { tab ->
                         val routeName = tab.route::class.qualifiedName
-                        val startDest = navController.graph.findStartDestination()
                         if (routeName != currentRoute) {
                             try {
                                 navController.navigate(tab.route) {
-                                    popUpTo(startDest.id) {
+                                    popUpTo<Routes.Dashboard> {
                                         saveState = true
                                     }
                                     launchSingleTop = true
-                                    restoreState = tab.route != Routes.Dashboard
+                                    restoreState = true
                                 }
                             } catch (e: Exception) {
                                 if (e is kotlinx.coroutines.CancellationException) throw e
