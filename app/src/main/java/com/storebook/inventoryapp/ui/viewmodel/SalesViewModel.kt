@@ -441,19 +441,21 @@ class SalesViewModel(
                 .NetworkMonitor(context)
 
         viewModelScope.launch {
+            // Immediately load existing local sales data so UI doesn't wait
+            onReload(getSalesWithItems(5000, 0))
+
             val isOnline =
                 monitor.isOnline
                     .first()
-            if (!isOnline) {
+            if (!isOnline) return@launch
+
+            try {
+                triggerSync()
+                // Reload again after sync completes to reflect fresh server data
                 onReload(getSalesWithItems(5000, 0))
-                return@launch
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
             }
-
-            triggerSync()
-
-            // Wait ~12s for sync to finish before reloading fresh local data
-            kotlinx.coroutines.delay(12_000)
-            onReload(getSalesWithItems(5000, 0))
         }
     }
 

@@ -107,6 +107,7 @@ import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.shared.domain.models.CustomerBalance
 import com.storebook.inventoryapp.shared.domain.models.UdhaarEntry
 import com.storebook.inventoryapp.ui.components.AlphabetScrubber
+import com.storebook.inventoryapp.ui.components.StoreBookAutocompleteDropdown
 import com.storebook.inventoryapp.ui.theme.*
 import com.storebook.inventoryapp.ui.theme.primaryGradient
 import com.storebook.inventoryapp.ui.viewmodel.UdhaarViewModel
@@ -215,6 +216,13 @@ private fun LedgerEntryCard(
 @Composable
 fun UdhaarScreen(viewModel: UdhaarViewModel) {
     val balances by viewModel.udhaarBalances.collectAsStateWithLifecycle()
+    val vmCustomerSuggestions by viewModel.customerSuggestions.collectAsStateWithLifecycle()
+    val customerSuggestions =
+        remember(balances, vmCustomerSuggestions) {
+            (vmCustomerSuggestions.ifEmpty { balances.map { it.customerName } })
+                .filter { it.isNotBlank() }
+                .distinct()
+        }
 
     // E03-S2: Detailed breakdown with outstanding + paid separation
     val detailedBals by viewModel.detailedBalances.collectAsStateWithLifecycle()
@@ -275,7 +283,12 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
     }
 
     Scaffold(
-        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            androidx.compose.material3.SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.padding(bottom = 80.dp),
+            )
+        },
         topBar = {
             Column(
                 modifier =
@@ -843,6 +856,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                 ModalBottomSheet(
                     onDismissRequest = { showCustomerLedgerSheet = false },
                     sheetState = sheetState,
+                    sheetGesturesEnabled = false,
                     containerColor = MaterialTheme.colorScheme.surface,
                     dragHandle = { BottomSheetDefaults.DragHandle() },
                 ) {
@@ -1170,6 +1184,7 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
             if (showDialog) {
                 var nameError by remember { mutableStateOf(false) }
                 var amountError by remember { mutableStateOf(false) }
+                var customerNameExpanded by remember { mutableStateOf(false) }
 
                 val focusRequesterName = remember { FocusRequester() }
                 val focusRequesterAmount = remember { FocusRequester() }
@@ -1242,41 +1257,75 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
                             }
 
                             if (selectedCustomer == null) {
-                                OutlinedTextField(
-                                    value = inputCustomerName,
-                                    onValueChange = {
-                                        inputCustomerName = it
-                                        nameError = false
-                                    },
-                                    label = {
-                                        Text(
-                                            "Customer Name",
-                                            modifier =
-                                                androidx.compose.ui.Modifier
-                                                    .autoMarquee(),
-                                        )
-                                    },
-                                    isError = nameError,
-                                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterName),
-                                    singleLine = true,
-                                    shape = RoundedCornerShape(12.dp),
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Person, contentDescription = null,
-                                            modifier =
-                                                Modifier
-                                                    .size(18.dp),
-                                        )
-                                    },
-                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                                    keyboardActions = KeyboardActions(onNext = { focusRequesterAmount.requestFocus() }),
-                                    supportingText =
-                                        if (nameError) {
-                                            { Text("Enter a valid name", fontSize = 11.sp) }
-                                        } else {
-                                            null
+                                androidx.compose.foundation.layout.BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                    val boxWidth = maxWidth
+                                    val filteredCustomers =
+                                        remember(inputCustomerName, customerSuggestions) {
+                                            if (inputCustomerName.isBlank()) {
+                                                emptyList()
+                                            } else {
+                                                customerSuggestions.filter {
+                                                    it.contains(inputCustomerName.trim(), ignoreCase = true)
+                                                }
+                                            }
+                                        }
+                                    OutlinedTextField(
+                                        value = inputCustomerName,
+                                        onValueChange = {
+                                            inputCustomerName = it
+                                            nameError = false
+                                            customerNameExpanded = it.isNotBlank()
                                         },
-                                )
+                                        label = {
+                                            Text(
+                                                "Customer Name",
+                                                modifier =
+                                                    androidx.compose.ui.Modifier
+                                                        .autoMarquee(),
+                                            )
+                                        },
+                                        isError = nameError,
+                                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterName),
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(12.dp),
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Person, contentDescription = null,
+                                                modifier =
+                                                    Modifier
+                                                        .size(18.dp),
+                                            )
+                                        },
+                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                                        keyboardActions = KeyboardActions(onNext = { focusRequesterAmount.requestFocus() }),
+                                        supportingText =
+                                            if (nameError) {
+                                                { Text("Enter a valid name", fontSize = 11.sp) }
+                                            } else {
+                                                null
+                                            },
+                                    )
+                                    StoreBookAutocompleteDropdown(
+                                        modifier = Modifier.width(boxWidth),
+                                        expanded = customerNameExpanded,
+                                        onDismissRequest = { customerNameExpanded = false },
+                                        suggestions = filteredCustomers,
+                                        itemText = { it },
+                                        onSuggestionSelected = { name ->
+                                            inputCustomerName = name
+                                            customerNameExpanded = false
+                                            focusRequesterAmount.requestFocus()
+                                        },
+                                        avatarColor = accentColor,
+                                        avatarTextColor =
+                                            if (dialogType == "CREDIT") {
+                                                MaterialTheme.colorScheme.onError
+                                            } else {
+                                                MaterialTheme.colorScheme.onPrimary
+                                            },
+                                        openAbove = false,
+                                    )
+                                }
                             } else {
                                 Row(
                                     modifier =

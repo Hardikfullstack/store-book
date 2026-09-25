@@ -488,10 +488,17 @@ class MoreViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val sales = salesRepository.getSalesByDateRange(0, Long.MAX_VALUE)
-                val mappedSales = mutableListOf<Sale>()
-                for (s in sales) {
-                    try {
-                        mappedSales.add(
+                if (sales.isEmpty()) {
+                    _salesList.value = emptyList()
+                } else {
+                    val saleIds = sales.map { it.id }
+                    val allSaleItemsBySaleId =
+                        salesRepository
+                            .getSaleItemsBySaleIds(saleIds)
+                            .groupBy { it.sale_id }
+
+                    val mappedSales =
+                        sales.map { s ->
                             Sale(
                                 id = s.id,
                                 timestamp = s.timestamp,
@@ -505,7 +512,7 @@ class MoreViewModel(
                                 type = s.type,
                                 notes = s.notes,
                                 items =
-                                    salesRepository.getSaleItems(s.id).map { saleItem ->
+                                    (allSaleItemsBySaleId[s.id] ?: emptyList()).map { saleItem ->
                                         com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
                                             itemId = saleItem.item_id,
                                             itemName = saleItem.item_name,
@@ -517,14 +524,10 @@ class MoreViewModel(
                                             hsnCode = saleItem.hsn_code,
                                         )
                                     },
-                            ),
-                        )
-                    } catch (e: Exception) {
-                        if (e is kotlinx.coroutines.CancellationException) throw e
-                        android.util.Log.e("MoreVM", "Failed to load sale ${s.id}", e)
-                    }
+                            )
+                        }
+                    _salesList.value = mappedSales
                 }
-                _salesList.value = mappedSales
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 android.util.Log.e("MoreVM", "loadData sales failed", e)

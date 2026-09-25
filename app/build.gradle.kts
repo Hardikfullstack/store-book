@@ -15,10 +15,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = (rootProject.findProperty("STORE_FILE") as? String)?.let { file(it) }
-            storePassword = (rootProject.findProperty("STORE_PASSWORD") as? String) ?: ""
-            keyAlias = (rootProject.findProperty("KEY_ALIAS") as? String) ?: ""
-            keyPassword = (rootProject.findProperty("KEY_PASSWORD") as? String) ?: ""
+            storeFile = rootProject.property("STORE_FILE")?.let { file(it) }
+            storePassword = rootProject.property("STORE_PASSWORD") as String
+            keyAlias = rootProject.property("KEY_ALIAS") as String
+            keyPassword = rootProject.property("KEY_PASSWORD") as String
         }
     }
 

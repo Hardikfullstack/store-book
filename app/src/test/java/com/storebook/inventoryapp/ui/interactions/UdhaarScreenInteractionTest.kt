@@ -61,9 +61,10 @@ class UdhaarScreenInteractionTest {
         mockUdhaarVM = mockk(relaxed = true)
         themeManager = ManualThemeManager(ApplicationProvider.getApplicationContext())
 
-        // UdhaarScreen collects: udhaarBalances AND detailedBals via collectAsStateWithLifecycle
-        // Mock BOTH to avoid ClassCastException on unmocked generic StateFlows
+        // UdhaarScreen collects: udhaarBalances, customerSuggestions AND detailedBals via collectAsStateWithLifecycle
+        // Mock ALL to avoid ClassCastException on unmocked generic StateFlows
         every { mockUdhaarVM.udhaarBalances } returns MutableStateFlow(testBalances)
+        every { mockUdhaarVM.customerSuggestions } returns MutableStateFlow<List<String>>(emptyList())
         every { mockUdhaarVM.detailedBalances } returns MutableStateFlow<List<CustomerDetailedBalance>>(emptyList())
     }
 

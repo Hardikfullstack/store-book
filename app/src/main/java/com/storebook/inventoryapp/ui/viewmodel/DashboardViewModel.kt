@@ -156,10 +156,13 @@ class DashboardViewModel(
                 }
             val items = _allItems.value
             _lowStockItems.value = items.filter { it.quantity <= it.lowStockThreshold }
+            val rawSales = salesRepository.getAllSales()
+            val saleIds = rawSales.map { it.id }
+            val saleItemsMap = salesRepository.getSaleItemsBySaleIds(saleIds).groupBy { it.sale_id }
             _salesList.value =
-                salesRepository.getAllSales().map { s ->
+                rawSales.map { s ->
                     val items =
-                        salesRepository.getSaleItems(s.id).map { saleItem ->
+                        (saleItemsMap[s.id] ?: emptyList()).map { saleItem ->
                             com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
                                 itemId = saleItem.item_id,
                                 itemName = saleItem.item_name,
@@ -309,8 +312,12 @@ class DashboardViewModel(
     suspend fun getSalesByDateRange(
         startTs: Long,
         endTs: Long,
-    ): List<Sale> =
-        salesRepository.getSalesByDateRange(startTs, endTs).map { s ->
+    ): List<Sale> {
+        val rawSales = salesRepository.getSalesByDateRange(startTs, endTs)
+        if (rawSales.isEmpty()) return emptyList()
+        val saleIds = rawSales.map { it.id }
+        val saleItemsMap = salesRepository.getSaleItemsBySaleIds(saleIds).groupBy { it.sale_id }
+        return rawSales.map { s ->
             Sale(
                 id = s.id,
                 timestamp = s.timestamp,
@@ -324,7 +331,7 @@ class DashboardViewModel(
                 type = s.type,
                 notes = s.notes,
                 items =
-                    salesRepository.getSaleItems(s.id).map { saleItem ->
+                    (saleItemsMap[s.id] ?: emptyList()).map { saleItem ->
                         com.storebook.inventoryapp.shared.domain.models.SaleItemDetail(
                             itemId = saleItem.item_id,
                             itemName = saleItem.item_name,
@@ -338,6 +345,7 @@ class DashboardViewModel(
                     },
             )
         }
+    }
 
     suspend fun getPurchasesByDateRange(
         startTs: Long,

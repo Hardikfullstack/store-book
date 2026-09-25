@@ -56,16 +56,19 @@ class ImeAwareDropdownPositionProvider(
         val spaceBelow = visibleBottom - anchorBounds.bottom
         val spaceAbove = anchorBounds.top
 
+        val hasSpaceAbove = spaceAbove >= popupContentSize.height + verticalGapPx
+        val hasSpaceBelow = spaceBelow >= popupContentSize.height + verticalGapPx
+
         val shouldOpenAbove =
             when (forceAbove) {
-                true -> true
+                true -> hasSpaceAbove
                 false -> false
-                null -> (spaceBelow < popupContentSize.height && spaceAbove > spaceBelow) || imeBottomPx > 0
+                null -> !hasSpaceBelow && spaceAbove > spaceBelow
             }
 
         val y =
-            if (shouldOpenAbove) {
-                maxOf(0, anchorBounds.top - popupContentSize.height - verticalGapPx)
+            if (shouldOpenAbove && hasSpaceAbove) {
+                anchorBounds.top - popupContentSize.height - verticalGapPx
             } else {
                 anchorBounds.bottom + verticalGapPx
             }

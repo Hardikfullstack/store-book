@@ -50,6 +50,7 @@ class UdhaarScreenSnapshotTest {
 
         every { mockUdhaarViewModel.udhaarEntries } returns MutableStateFlow(emptyList<UdhaarEntry>())
         every { mockUdhaarViewModel.udhaarBalances } returns MutableStateFlow(emptyList<CustomerBalance>())
+        every { mockUdhaarViewModel.customerSuggestions } returns MutableStateFlow(emptyList<String>())
         every { mockUdhaarViewModel.detailedBalances } returns MutableStateFlow(emptyList<CustomerDetailedBalance>())
         every { mockUdhaarViewModel.errorMessage } returns MutableStateFlow(null)
     }

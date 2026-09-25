@@ -19,6 +19,9 @@ class UdhaarViewModel(
     private val _udhaarBalances = MutableStateFlow<List<CustomerBalance>>(emptyList())
     val udhaarBalances: StateFlow<List<CustomerBalance>> = _udhaarBalances
 
+    private val _customerSuggestions = MutableStateFlow<List<String>>(emptyList())
+    val customerSuggestions: StateFlow<List<String>> = _customerSuggestions
+
     // E03-S2: Detailed breakdown with separate outstanding + paid totals per customer
     private val _detailedBalances = MutableStateFlow<List<CustomerDetailedBalance>>(emptyList())
     val detailedBalances: StateFlow<List<CustomerDetailedBalance>> = _detailedBalances
@@ -37,7 +40,9 @@ class UdhaarViewModel(
     fun loadUdhaar() {
         viewModelScope.launch {
             _udhaarEntries.value = repository.getAllUdhaar()
-            _udhaarBalances.value = repository.getUdhaarBalances()
+            val balances = repository.getUdhaarBalances()
+            _udhaarBalances.value = balances
+            _customerSuggestions.value = balances.map { it.customerName }.distinct()
             _detailedBalances.value = repository.getUdhaarBalancesWithBreakdown()
         }
     }
