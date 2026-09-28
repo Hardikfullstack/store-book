@@ -553,7 +553,7 @@ fun SupplierLedgerScreen(
                             scope.launch { listState.scrollToItem(filteredBalances.size) }
                         }
                     },
-                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp),
+                    modifier = Modifier.fillMaxHeight().align(Alignment.CenterEnd).padding(end = 4.dp),
                 )
             }
 

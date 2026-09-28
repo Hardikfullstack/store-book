@@ -1,7 +1,7 @@
 [versions]
-agp = "8.13.2"
-kotlin = "2.0.21"
-serialization = "2.0.21"
+agp = "9.4.1"
+kotlin = "2.2.10"
+serialization = "2.1.10"
 sqldelight = "2.1.0"
 composeMultiplatform = "1.8.0"
 coreKtx = "1.17.0"
@@ -45,8 +45,9 @@ playAppUpdateKtx = "2.1.0"
 billingKtx = "7.1.1"
 workRuntimeKtx = "2.9.0"
 lottieCompose = "6.7.1"
-roborazzi = "1.41.0"
+roborazzi = "1.75.0"
 robolectric = "4.14.1"
+uiUnit = "1.12.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -104,6 +105,7 @@ lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", versio
 roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
 roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+androidx-compose-ui-unit = { group = "androidx.compose.ui", name = "ui-unit", version.ref = "uiUnit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -11,7 +11,7 @@ plugins {
 
 android {
     namespace = "com.storebook.inventoryapp"
-    compileSdk = 36
+    compileSdk = 37
 
     signingConfigs {
         create("release") {
@@ -145,6 +145,7 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.camera.camera2.pipe)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.ui.unit)
 
     // 7. Debug / Test
     testImplementation(libs.junit)

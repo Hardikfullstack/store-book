@@ -120,6 +120,8 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
+private fun String.indexLetter(): Char? = trim().firstOrNull()?.uppercaseChar()?.takeIf { it in 'A'..'Z' }
+
 @Composable
 private fun LedgerStat(
     label: String,
@@ -823,30 +825,24 @@ fun UdhaarScreen(viewModel: UdhaarViewModel) {
 
             // Alphabet Scrubber Overlay
             if (filteredBalances.isNotEmpty() && searchQ.isBlank()) {
+                val availableLetters =
+                    remember(filteredBalances) {
+                        filteredBalances.mapNotNull { it.customerName.firstOrNull()?.uppercaseChar() }.toSet()
+                    }
                 AlphabetScrubber(
+                    availableLetters = availableLetters,
                     onLetterSelect = { char ->
-                        val hasHeader = balances.filter { it.netBalance > 0 }.take(4).isNotEmpty()
+                        val hasHeader = balances.any { it.netBalance > 0 } // see note below
                         val offset = if (hasHeader) 1 else 0
 
-                        val index =
-                            filteredBalances.indexOfFirst {
-                                it.customerName.uppercase().firstOrNull()?.let { firstChar ->
-                                    firstChar >=
-                                        char
-                                } ==
-                                    true
-                            }
+                        val index = filteredBalances.indexOfFirst { it.customerName.indexLetter() == char }
                         if (index != -1) {
-                            coroutineScope.launch {
-                                listState.animateScrollToItem(index + offset)
-                            }
-                        } else {
-                            coroutineScope.launch {
-                                listState.animateScrollToItem(filteredBalances.size + offset - 1)
-                            }
+                            coroutineScope.launch { listState.animateScrollToItem(index + offset) }
                         }
                     },
-                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp),
+                    bottomPadding = 88.dp,
+                    topPadding = 12.dp,
+                    modifier = Modifier.fillMaxHeight().align(Alignment.CenterEnd).padding(end = 4.dp),
                 )
             }
 

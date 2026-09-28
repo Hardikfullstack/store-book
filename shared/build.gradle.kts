@@ -85,7 +85,7 @@ kotlin {
 
 android {
     namespace = "com.storebook.inventoryapp.shared"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         minSdk = 24
     }

@@ -153,8 +153,8 @@ class SupplierLedgerScreenInteractionTest {
         val supplier1 = Supplier(id = 1, name = "Shree Ram Traders", phone = "9876543210", gstin = null, address = null)
         val updatedSuppliersMap =
             mapOf<Long, Supplier>(
-                1 to supplier1,
-                3 to Supplier(id = 3, name = "New Vendor", phone = null, gstin = null, address = null),
+                1L to supplier1,
+                3L to Supplier(id = 3, name = "New Vendor", phone = null, gstin = null, address = null),
             )
         every { mockSupplierVM.suppliersMap } returns MutableStateFlow(updatedSuppliersMap)
 
@@ -252,7 +252,7 @@ class SupplierLedgerScreenInteractionTest {
     @Test
     fun testSearchSupplier_filtersToMatchingName() {
         val supplier1 = Supplier(id = 1, name = "Shree Ram Traders", phone = "9876543210", gstin = null, address = null)
-        val filteredMap = mapOf<Long, Supplier>(1 to supplier1)
+        val filteredMap = mapOf<Long, Supplier>(1L to supplier1)
         every { mockSupplierVM.suppliersMap } returns MutableStateFlow(filteredMap)
 
         composeTestRule.setContent {
