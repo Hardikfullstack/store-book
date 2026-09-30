@@ -171,8 +171,19 @@
     <string name="permission_settings_desc">Please enable the required permissions in the app settings to use this feature.</string>
     <string name="btn_open_settings">Open Settings</string>
 
-    <!-- Auth Screen / Cloud Sync -->
-    <string name="auth_title">Sign In for Sync</string>
+    <!-- Auth Screen / Cloud Sync / Registration -->
+    <string name="auth_title">StoreBook</string>
+    <string name="auth_tab_register">Register</string>
+    <string name="auth_tab_sign_in">Owner Login</string>
+    <string name="auth_tab_staff">Staff Login</string>
+    <string name="auth_store_name_label">Store / Business Name</string>
+    <string name="auth_store_name_placeholder">e.g., Sharma Kirana Store</string>
+    <string name="auth_owner_name_label">Owner Name (Optional)</string>
+    <string name="auth_owner_name_placeholder">e.g., Ramesh Sharma</string>
+    <string name="auth_err_store_name_empty">Please enter your store or business name</string>
+    <string name="auth_btn_register_send_otp">Send OTP &amp; Register</string>
+    <string name="auth_btn_create_store">Verify &amp; Create Store</string>
+    <string name="auth_register_desc">Create your free store to manage inventory and sales offline.</string>
     <string name="auth_enter_phone">Enter Phone Number</string>
     <string name="auth_enter_otp">Enter OTP</string>
     <string name="auth_desc">Sign in to securely backup and sync your inventory data.</string>

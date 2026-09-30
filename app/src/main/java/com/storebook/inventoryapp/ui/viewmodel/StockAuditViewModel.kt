@@ -40,6 +40,11 @@ class StockAuditViewModel(
 
     init {
         loadAdjustments()
+        viewModelScope.launch {
+            StockAdjustmentRepository.adjustmentsUpdated.collect {
+                loadAdjustments()
+            }
+        }
     }
 
     fun loadAdjustments() {

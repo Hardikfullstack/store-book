@@ -34,6 +34,7 @@ public interface GetStoreQuery :
         public data class Store(
             val id: String,
             val name: String?,
+            val businessType: String? = null,
             val isActive: Boolean?,
             val isPremium: Boolean?,
         )

@@ -1394,7 +1394,7 @@ fun AppNavigation() {
             composable<Routes.Splash> {
                 SplashScreen(
                     onSplashFinished = {
-                        val destination = if (onboardingCompleted) Routes.Dashboard else Routes.Dashboard
+                        val destination = if (onboardingCompleted) Routes.Dashboard else Routes.Auth
                         navController.navigate(destination) {
                             popUpTo(Routes.Splash) { inclusive = true }
                         }

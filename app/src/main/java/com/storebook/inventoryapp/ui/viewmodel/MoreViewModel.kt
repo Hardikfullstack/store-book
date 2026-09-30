@@ -313,6 +313,7 @@ class MoreViewModel(
 
     fun createLocalStore(
         name: String,
+        businessType: String = "general",
         onProgress: ((Int, String) -> Unit)? = null,
         onComplete: (() -> Unit)? = null,
     ) {
@@ -320,7 +321,49 @@ class MoreViewModel(
             java.util.UUID
                 .randomUUID()
                 .toString()
-        prefs.edit().putString("business_name_$newStoreId", name).apply()
+        prefs
+            .edit()
+            .putString("business_name_$newStoreId", name)
+            .putString("business_type_$newStoreId", businessType)
+            .putString("business_type", businessType)
+            .apply()
+
+        val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+        val uid = auth.currentUser?.uid
+        if (!uid.isNullOrBlank()) {
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val connector = com.storebook.inventoryapp.dataconnect.StorebookConnectorConnector.instance
+                    connector.syncStore.execute(id = newStoreId) {
+                        this.name = name
+                        this.businessType = businessType
+                        this.isActive = true
+                        this.isPremium = false
+                    }
+                    val currentStores =
+                        prefs
+                            .getString("user_stores", "")
+                            ?.split(",")
+                            ?.filter { it.isNotBlank() }
+                            ?: emptyList()
+                    val updatedStores = (currentStores + newStoreId).distinct()
+                    val role = prefs.getString("user_role", "owner") ?: "owner"
+                    connector.syncUser.execute(
+                        id = uid,
+                        role = role,
+                        createdAt = System.currentTimeMillis().toDouble(),
+                    ) {
+                        this.phoneNumber = auth.currentUser?.phoneNumber ?: ""
+                        this.stores = updatedStores
+                        this.storeId = newStoreId
+                    }
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    android.util.Log.w("MoreViewModel", "Failed to sync created store to DataConnect: ${e.message}")
+                }
+            }
+        }
+
         switchStore(newStoreId, onProgress, onComplete)
     }
 

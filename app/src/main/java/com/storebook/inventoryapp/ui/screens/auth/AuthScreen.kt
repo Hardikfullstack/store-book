@@ -56,14 +56,21 @@ import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.dataconnect.*
+import com.storebook.inventoryapp.shared.domain.models.BUSINESS_TYPES
 import com.storebook.inventoryapp.ui.theme.Poppins
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
-data class TabItem(
-    val label: String,
+enum class AuthTab {
+    REGISTER,
+    OWNER_LOGIN,
+    STAFF_LOGIN,
+}
+
+data class AuthTabItem(
+    val tab: AuthTab,
+    val labelRes: Int,
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val isStaff: Boolean,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,6 +82,15 @@ fun AuthScreen(
     val context = LocalContext.current
     val activity = context as? Activity
     val auth = remember { FirebaseAuth.getInstance() }
+
+    var currentTab by remember { mutableStateOf(AuthTab.REGISTER) }
+    var registerStoreName by remember { mutableStateOf("") }
+    var registerOwnerName by remember { mutableStateOf("") }
+    var selectedBusinessType by remember {
+        mutableStateOf(BUSINESS_TYPES[0])
+    }
+    var expandedBusinessType by remember { mutableStateOf(false) }
+    var storeNameError by remember { mutableStateOf<String?>(null) }
 
     var phoneNumber by remember { mutableStateOf("") }
     var otpCode by remember { mutableStateOf("") }
@@ -96,7 +112,6 @@ fun AuthScreen(
     var tempStoresList by remember { mutableStateOf<List<String>>(emptyList()) }
 
     // Staff Auth State
-    var isStaffLogin by remember { mutableStateOf(false) }
     var staffUsername by remember { mutableStateOf("") }
     var staffPassword by remember { mutableStateOf("") }
 
@@ -113,6 +128,7 @@ fun AuthScreen(
             otpCode = ""
             otpError = null
             phoneError = null
+            storeNameError = null
         }
     }
 
@@ -127,20 +143,38 @@ fun AuthScreen(
         remember {
             object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
                 override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                    signInWithPhoneAuthCredential(auth, credential, onAuthSuccess, { p, m ->
-                        syncProgress = p
-                        syncMessage =
-                            m
-                    }, { err ->
-                        isLoading = false
-                        Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
-                    }) { stores, uid, role, isPremium, storeIds ->
-                        isLoading = false
-                        tempUid = uid
-                        tempRole = role
-                        tempIsPremium = isPremium
-                        tempStoresList = storeIds
-                        storeSelectionList = stores
+                    if (currentTab == AuthTab.REGISTER) {
+                        registerWithPhoneAuthCredential(
+                            auth = auth,
+                            credential = credential,
+                            storeName = registerStoreName,
+                            ownerName = registerOwnerName,
+                            businessType = selectedBusinessType.id,
+                            onSuccess = onAuthSuccess,
+                            onSyncProgress = { p, m ->
+                                syncProgress = p
+                                syncMessage = m
+                            },
+                            onError = { err ->
+                                isLoading = false
+                                Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
+                            },
+                        )
+                    } else {
+                        signInWithPhoneAuthCredential(auth, credential, onAuthSuccess, { p, m ->
+                            syncProgress = p
+                            syncMessage = m
+                        }, { err ->
+                            isLoading = false
+                            Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
+                        }) { stores, uid, role, isPremium, storeIds ->
+                            isLoading = false
+                            tempUid = uid
+                            tempRole = role
+                            tempIsPremium = isPremium
+                            tempStoresList = storeIds
+                            storeSelectionList = stores
+                        }
                     }
                 }
 
@@ -304,14 +338,15 @@ fun AuthScreen(
                             ).padding(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    val options =
+                    val tabs =
                         listOf(
-                            TabItem("Owner Login", Icons.Default.SupervisorAccount, false),
-                            TabItem("Staff Login", Icons.Default.Badge, true),
+                            AuthTabItem(AuthTab.REGISTER, R.string.auth_tab_register, Icons.Default.Storefront),
+                            AuthTabItem(AuthTab.OWNER_LOGIN, R.string.auth_tab_sign_in, Icons.Default.SupervisorAccount),
+                            AuthTabItem(AuthTab.STAFF_LOGIN, R.string.auth_tab_staff, Icons.Default.Badge),
                         )
 
-                    options.forEach { item ->
-                        val selected = isStaffLogin == item.isStaff
+                    tabs.forEach { item ->
+                        val selected = currentTab == item.tab
 
                         Box(
                             modifier =
@@ -322,12 +357,15 @@ fun AuthScreen(
                                         color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
                                         shape = RoundedCornerShape(23.dp),
                                     ).clickable(enabled = !isLoading) {
-                                        isStaffLogin = item.isStaff
+                                        currentTab = item.tab
                                         phoneError = null
                                         otpError = null
                                         staffError = null
+                                        storeNameError = null
+                                        isOtpSent = false
+                                        otpCode = ""
                                         focusManager.clearFocus()
-                                    }.padding(horizontal = 8.dp),
+                                    }.padding(horizontal = 4.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Row(
@@ -339,31 +377,25 @@ fun AuthScreen(
                                     contentDescription = stringResource(R.string.ui_element_desc),
                                     tint =
                                         if (selected) {
-                                            MaterialTheme
-                                                .colorScheme
-                                                .onPrimary
+                                            MaterialTheme.colorScheme.onPrimary
                                         } else {
-                                            MaterialTheme
-                                                .colorScheme
-                                                .onSurfaceVariant
+                                            MaterialTheme.colorScheme.onSurfaceVariant
                                         },
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(16.dp),
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = item.label,
+                                    text = stringResource(item.labelRes),
                                     fontFamily = Poppins,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                     color =
                                         if (selected) {
-                                            MaterialTheme
-                                                .colorScheme
-                                                .onPrimary
+                                            MaterialTheme.colorScheme.onPrimary
                                         } else {
-                                            MaterialTheme
-                                                .colorScheme
-                                                .onSurfaceVariant
+                                            MaterialTheme.colorScheme.onSurfaceVariant
                                         },
                                 )
                             }
@@ -399,11 +431,669 @@ fun AuthScreen(
                                 .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        if (!isStaffLogin) {
-                            // Owner Login
-                            if (!isOtpSent) {
+                        when (currentTab) {
+                            AuthTab.REGISTER -> {
+                                if (!isOtpSent) {
+                                    Text(
+                                        text = stringResource(R.string.auth_tab_register),
+                                        fontFamily = Poppins,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.align(Alignment.Start).padding(bottom = 6.dp),
+                                    )
+
+                                    Text(
+                                        text = stringResource(R.string.auth_register_desc),
+                                        fontFamily = Poppins,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.align(Alignment.Start).padding(bottom = 20.dp),
+                                    )
+
+                                    // Store / Business Name (Required)
+                                    OutlinedTextField(
+                                        value = registerStoreName,
+                                        onValueChange = {
+                                            registerStoreName = it
+                                            storeNameError = null
+                                        },
+                                        enabled = !isLoading,
+                                        isError = storeNameError != null,
+                                        supportingText =
+                                            if (storeNameError != null) {
+                                                { Text(storeNameError ?: "", color = MaterialTheme.colorScheme.error) }
+                                            } else {
+                                                null
+                                            },
+                                        label = { Text(stringResource(R.string.auth_store_name_label)) },
+                                        placeholder = { Text(stringResource(R.string.auth_store_name_placeholder)) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.Storefront,
+                                                contentDescription = stringResource(R.string.ui_element_desc),
+                                                tint =
+                                                    if (registerStoreName.isNotBlank()) {
+                                                        MaterialTheme.colorScheme.primary
+                                                    } else {
+                                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                    },
+                                            )
+                                        },
+                                        singleLine = true,
+                                        keyboardOptions =
+                                            KeyboardOptions(
+                                                imeAction = androidx.compose.ui.text.input.ImeAction.Next,
+                                            ),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors =
+                                            OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                            ),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    // Business Type Dropdown
+                                    ExposedDropdownMenuBox(
+                                        expanded = expandedBusinessType,
+                                        onExpandedChange = { if (!isLoading) expandedBusinessType = it },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        OutlinedTextField(
+                                            value = "${selectedBusinessType.emoji}  ${selectedBusinessType.label}",
+                                            onValueChange = {},
+                                            readOnly = true,
+                                            label = { Text("Business Type") },
+                                            trailingIcon = {
+                                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedBusinessType)
+                                            },
+                                            shape = RoundedCornerShape(16.dp),
+                                            colors =
+                                                OutlinedTextFieldDefaults.colors(
+                                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                                ),
+                                            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                                        )
+
+                                        ExposedDropdownMenu(
+                                            expanded = expandedBusinessType,
+                                            onDismissRequest = { expandedBusinessType = false },
+                                        ) {
+                                            BUSINESS_TYPES.forEach { option ->
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Column {
+                                                            Text(
+                                                                text = "${option.emoji}  ${option.label}",
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                fontSize = 14.sp,
+                                                            )
+                                                            Text(
+                                                                text = option.description,
+                                                                fontSize = 12.sp,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            )
+                                                        }
+                                                    },
+                                                    onClick = {
+                                                        selectedBusinessType = option
+                                                        expandedBusinessType = false
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    // Owner Name (Optional)
+                                    OutlinedTextField(
+                                        value = registerOwnerName,
+                                        onValueChange = { registerOwnerName = it },
+                                        enabled = !isLoading,
+                                        label = { Text(stringResource(R.string.auth_owner_name_label)) },
+                                        placeholder = { Text(stringResource(R.string.auth_owner_name_placeholder)) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.Person,
+                                                contentDescription = stringResource(R.string.ui_element_desc),
+                                                tint =
+                                                    if (registerOwnerName.isNotBlank()) {
+                                                        MaterialTheme.colorScheme.primary
+                                                    } else {
+                                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                    },
+                                            )
+                                        },
+                                        singleLine = true,
+                                        keyboardOptions =
+                                            KeyboardOptions(
+                                                imeAction = androidx.compose.ui.text.input.ImeAction.Next,
+                                            ),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors =
+                                            OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                            ),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    // Phone Number (10 digits)
+                                    OutlinedTextField(
+                                        value = phoneNumber,
+                                        onValueChange = {
+                                            phoneError = null
+                                            if (it.length <= 10 && it.all { char -> char.isDigit() }) {
+                                                phoneNumber = it
+                                            }
+                                        },
+                                        enabled = !isLoading,
+                                        isError = phoneError != null,
+                                        supportingText =
+                                            if (phoneError != null) {
+                                                { Text(phoneError ?: "", color = MaterialTheme.colorScheme.error) }
+                                            } else {
+                                                null
+                                            },
+                                        label = { Text(stringResource(R.string.auth_phone_label)) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.Phone,
+                                                contentDescription = stringResource(R.string.ui_element_desc),
+                                                tint =
+                                                    if (phoneNumber.length == 10) {
+                                                        MaterialTheme.colorScheme.primary
+                                                    } else {
+                                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                    },
+                                            )
+                                        },
+                                        prefix = { Text("+91 ", fontWeight = FontWeight.Medium) },
+                                        singleLine = true,
+                                        keyboardOptions =
+                                            KeyboardOptions(
+                                                keyboardType = KeyboardType.Phone,
+                                                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                                            ),
+                                        keyboardActions =
+                                            androidx.compose.foundation.text
+                                                .KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors =
+                                            OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                            ),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+
+                                    Spacer(modifier = Modifier.height(24.dp))
+
+                                    val isRegisterBtnEnabled = !isLoading && registerStoreName.isNotBlank() && phoneNumber.length == 10
+                                    androidx.compose.material3.Button(
+                                        onClick = {
+                                            focusManager.clearFocus()
+                                            if (registerStoreName.isBlank()) {
+                                                storeNameError = context.getString(R.string.auth_err_store_name_empty)
+                                                return@Button
+                                            }
+                                            if (phoneNumber.length >= 10 && activity != null) {
+                                                isLoading = true
+                                                val options =
+                                                    PhoneAuthOptions
+                                                        .newBuilder(auth)
+                                                        .setPhoneNumber("+91$phoneNumber")
+                                                        .setTimeout(60L, TimeUnit.SECONDS)
+                                                        .setActivity(activity)
+                                                        .setCallbacks(callbacks)
+                                                        .build()
+                                                PhoneAuthProvider.verifyPhoneNumber(options)
+                                            } else {
+                                                phoneError = context.getString(R.string.auth_err_invalid_phone)
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                                        enabled = isRegisterBtnEnabled,
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors =
+                                            ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                disabledContainerColor =
+                                                    MaterialTheme.colorScheme.primary
+                                                        .copy(alpha = 0.5f),
+                                            ),
+                                        elevation =
+                                            ButtonDefaults.buttonElevation(
+                                                defaultElevation = 2.dp,
+                                                pressedElevation = 4.dp,
+                                            ),
+                                    ) {
+                                        if (isLoading) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(24.dp),
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                strokeWidth = 2.5.dp,
+                                            )
+                                        } else {
+                                            Text(
+                                                text = stringResource(R.string.auth_btn_register_send_otp),
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    // Register OTP step
+                                    Text(
+                                        text = stringResource(R.string.auth_enter_otp),
+                                        fontFamily = Poppins,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.align(Alignment.Start).padding(bottom = 6.dp),
+                                    )
+
+                                    Text(
+                                        text = stringResource(R.string.auth_otp_sent_to, "+91 $phoneNumber"),
+                                        fontFamily = Poppins,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.align(Alignment.Start).padding(bottom = 20.dp),
+                                    )
+
+                                    OutlinedTextField(
+                                        value = otpCode,
+                                        onValueChange = {
+                                            otpError = null
+                                            if (it.length <= 6 && it.all { char -> char.isDigit() }) {
+                                                otpCode = it
+                                            }
+                                        },
+                                        enabled = !isLoading,
+                                        isError = otpError != null,
+                                        supportingText =
+                                            if (otpError != null) {
+                                                { Text(otpError!!, color = MaterialTheme.colorScheme.error) }
+                                            } else {
+                                                null
+                                            },
+                                        label = { Text(stringResource(R.string.auth_otp_label)) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.Lock,
+                                                contentDescription = stringResource(R.string.ui_element_desc),
+                                                tint =
+                                                    if (otpCode.length == 6) {
+                                                        MaterialTheme.colorScheme.primary
+                                                    } else {
+                                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                    },
+                                            )
+                                        },
+                                        singleLine = true,
+                                        keyboardOptions =
+                                            KeyboardOptions(
+                                                keyboardType = KeyboardType.Number,
+                                                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                                            ),
+                                        keyboardActions =
+                                            androidx.compose.foundation.text
+                                                .KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors =
+                                            OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                            ),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+
+                                    Spacer(modifier = Modifier.height(24.dp))
+
+                                    val isOtpBtnEnabled = !isLoading && otpCode.length == 6
+                                    androidx.compose.material3.Button(
+                                        onClick = {
+                                            focusManager.clearFocus()
+                                            if (otpCode.length == 6) {
+                                                isLoading = true
+                                                val credential = PhoneAuthProvider.getCredential(verificationId, otpCode)
+                                                registerWithPhoneAuthCredential(
+                                                    auth = auth,
+                                                    credential = credential,
+                                                    storeName = registerStoreName,
+                                                    ownerName = registerOwnerName,
+                                                    businessType = selectedBusinessType.id,
+                                                    onSuccess = onAuthSuccess,
+                                                    onSyncProgress = { p, m ->
+                                                        syncProgress = p
+                                                        syncMessage = m
+                                                    },
+                                                    onError = { err ->
+                                                        isLoading = false
+                                                        otpError = err
+                                                    },
+                                                )
+                                            } else {
+                                                Toast
+                                                    .makeText(
+                                                        context,
+                                                        context.getString(R.string.auth_err_invalid_otp),
+                                                        Toast.LENGTH_SHORT,
+                                                    ).show()
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                                        enabled = isOtpBtnEnabled,
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors =
+                                            ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                disabledContainerColor =
+                                                    MaterialTheme.colorScheme.primary
+                                                        .copy(alpha = 0.5f),
+                                            ),
+                                        elevation =
+                                            ButtonDefaults.buttonElevation(
+                                                defaultElevation = 2.dp,
+                                                pressedElevation = 4.dp,
+                                            ),
+                                    ) {
+                                        if (isLoading) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(24.dp),
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                strokeWidth = 2.5.dp,
+                                            )
+                                        } else {
+                                            Text(
+                                                text = stringResource(R.string.auth_btn_create_store),
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            AuthTab.OWNER_LOGIN -> {
+                                // Owner Login
+                                if (!isOtpSent) {
+                                    Text(
+                                        text = stringResource(R.string.auth_enter_phone),
+                                        fontFamily = Poppins,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.align(Alignment.Start).padding(bottom = 6.dp),
+                                    )
+
+                                    Text(
+                                        text = stringResource(R.string.auth_verify_desc),
+                                        fontFamily = Poppins,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.align(Alignment.Start).padding(bottom = 20.dp),
+                                    )
+
+                                    OutlinedTextField(
+                                        value = phoneNumber,
+                                        onValueChange = {
+                                            phoneError = null
+                                            if (it.length <= 10 && it.all { char -> char.isDigit() }) {
+                                                phoneNumber = it
+                                            }
+                                        },
+                                        enabled = !isLoading,
+                                        isError = phoneError != null,
+                                        supportingText =
+                                            if (phoneError !=
+                                                null
+                                            ) {
+                                                { Text(phoneError ?: "", color = MaterialTheme.colorScheme.error) }
+                                            } else {
+                                                null
+                                            },
+                                        label = { Text(stringResource(R.string.auth_phone_label)) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.Phone,
+                                                contentDescription = stringResource(R.string.ui_element_desc),
+                                                tint =
+                                                    if (phoneNumber.length ==
+                                                        10
+                                                    ) {
+                                                        MaterialTheme.colorScheme.primary
+                                                    } else {
+                                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                    },
+                                            )
+                                        },
+                                        prefix = { Text("+91 ", fontWeight = FontWeight.Medium) },
+                                        singleLine = true,
+                                        keyboardOptions =
+                                            KeyboardOptions(
+                                                keyboardType = KeyboardType.Phone,
+                                                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                                            ),
+                                        keyboardActions =
+                                            androidx.compose.foundation.text
+                                                .KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors =
+                                            OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                            ),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+
+                                    Spacer(modifier = Modifier.height(24.dp))
+
+                                    val isPhoneBtnEnabled = !isLoading && phoneNumber.length == 10
+                                    androidx.compose.material3.Button(
+                                        onClick = {
+                                            focusManager.clearFocus()
+                                            if (phoneNumber.length >= 10 && activity != null) {
+                                                isLoading = true
+                                                val options =
+                                                    PhoneAuthOptions
+                                                        .newBuilder(auth)
+                                                        .setPhoneNumber("+91$phoneNumber")
+                                                        .setTimeout(60L, TimeUnit.SECONDS)
+                                                        .setActivity(activity)
+                                                        .setCallbacks(callbacks)
+                                                        .build()
+                                                PhoneAuthProvider.verifyPhoneNumber(options)
+                                            } else {
+                                                Toast
+                                                    .makeText(
+                                                        context,
+                                                        context.getString(R.string.auth_err_invalid_phone),
+                                                        Toast.LENGTH_SHORT,
+                                                    ).show()
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                                        enabled = isPhoneBtnEnabled,
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors =
+                                            ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                disabledContainerColor =
+                                                    MaterialTheme.colorScheme.primary
+                                                        .copy(alpha = 0.5f),
+                                            ),
+                                        elevation =
+                                            ButtonDefaults.buttonElevation(
+                                                defaultElevation = 2.dp,
+                                                pressedElevation = 4.dp,
+                                            ),
+                                    ) {
+                                        if (isLoading) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(24.dp),
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                strokeWidth = 2.5.dp,
+                                            )
+                                        } else {
+                                            Text(
+                                                text = stringResource(R.string.auth_btn_send_otp),
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    Text(
+                                        text = stringResource(R.string.auth_enter_otp),
+                                        fontFamily = Poppins,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.align(Alignment.Start).padding(bottom = 6.dp),
+                                    )
+
+                                    Text(
+                                        text = stringResource(R.string.auth_otp_sent_to, "+91 $phoneNumber"),
+                                        fontFamily = Poppins,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.align(Alignment.Start).padding(bottom = 20.dp),
+                                    )
+
+                                    OutlinedTextField(
+                                        value = otpCode,
+                                        onValueChange = {
+                                            otpError = null
+                                            if (it.length <= 6 && it.all { char -> char.isDigit() }) {
+                                                otpCode = it
+                                            }
+                                        },
+                                        enabled = !isLoading,
+                                        isError = otpError != null,
+                                        supportingText =
+                                            if (otpError !=
+                                                null
+                                            ) {
+                                                { Text(otpError!!, color = MaterialTheme.colorScheme.error) }
+                                            } else {
+                                                null
+                                            },
+                                        label = { Text(stringResource(R.string.auth_otp_label)) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.Lock,
+                                                contentDescription = stringResource(R.string.ui_element_desc),
+                                                tint =
+                                                    if (otpCode.length ==
+                                                        6
+                                                    ) {
+                                                        MaterialTheme.colorScheme.primary
+                                                    } else {
+                                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                    },
+                                            )
+                                        },
+                                        singleLine = true,
+                                        keyboardOptions =
+                                            KeyboardOptions(
+                                                keyboardType = KeyboardType.Number,
+                                                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                                            ),
+                                        keyboardActions =
+                                            androidx.compose.foundation.text
+                                                .KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors =
+                                            OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                            ),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+
+                                    Spacer(modifier = Modifier.height(24.dp))
+
+                                    val isOtpBtnEnabled = !isLoading && otpCode.length == 6
+                                    androidx.compose.material3.Button(
+                                        onClick = {
+                                            focusManager.clearFocus()
+                                            if (otpCode.length == 6) {
+                                                isLoading = true
+                                                val credential = PhoneAuthProvider.getCredential(verificationId, otpCode)
+                                                signInWithPhoneAuthCredential(auth, credential, onAuthSuccess, { p, m ->
+                                                    syncProgress =
+                                                        p
+                                                    ; syncMessage = m
+                                                }, { err ->
+                                                    isLoading = false
+                                                    otpError = err
+                                                }) { stores, uid, role, isPremium, storeIds ->
+                                                    isLoading = false
+                                                    tempUid = uid
+                                                    tempRole = role
+                                                    tempIsPremium = isPremium
+                                                    tempStoresList = storeIds
+                                                    storeSelectionList = stores
+                                                }
+                                            } else {
+                                                Toast
+                                                    .makeText(
+                                                        context,
+                                                        context.getString(R.string.auth_err_invalid_otp),
+                                                        Toast.LENGTH_SHORT,
+                                                    ).show()
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                                        enabled = isOtpBtnEnabled,
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors =
+                                            ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                disabledContainerColor =
+                                                    MaterialTheme.colorScheme.primary
+                                                        .copy(alpha = 0.5f),
+                                            ),
+                                        elevation =
+                                            ButtonDefaults.buttonElevation(
+                                                defaultElevation = 2.dp,
+                                                pressedElevation = 4.dp,
+                                            ),
+                                    ) {
+                                        if (isLoading) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(24.dp),
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                strokeWidth = 2.5.dp,
+                                            )
+                                        } else {
+                                            Text(
+                                                text = stringResource(R.string.auth_btn_verify),
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            AuthTab.STAFF_LOGIN -> {
+                                // Staff Login
                                 Text(
-                                    text = stringResource(R.string.auth_enter_phone),
+                                    text = "Staff Login",
                                     fontFamily = Poppins,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
@@ -412,7 +1102,7 @@ fun AuthScreen(
                                 )
 
                                 Text(
-                                    text = stringResource(R.string.auth_verify_desc),
+                                    text = "Enter your username and password",
                                     fontFamily = Poppins,
                                     fontSize = 13.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -420,48 +1110,41 @@ fun AuthScreen(
                                 )
 
                                 OutlinedTextField(
-                                    value = phoneNumber,
+                                    value = staffUsername,
                                     onValueChange = {
-                                        phoneError = null
-                                        if (it.length <= 10 && it.all { char -> char.isDigit() }) {
-                                            phoneNumber = it
-                                        }
+                                        staffUsername = it
+                                        staffError = null
                                     },
                                     enabled = !isLoading,
-                                    isError = phoneError != null,
-                                    supportingText =
-                                        if (phoneError !=
-                                            null
-                                        ) {
-                                            { Text(phoneError ?: "", color = MaterialTheme.colorScheme.error) }
-                                        } else {
-                                            null
-                                        },
-                                    label = { Text(stringResource(R.string.auth_phone_label)) },
+                                    label = { Text("Username") },
                                     leadingIcon = {
                                         Icon(
-                                            imageVector = Icons.Default.Phone,
+                                            imageVector = Icons.Default.Person,
                                             contentDescription = stringResource(R.string.ui_element_desc),
                                             tint =
-                                                if (phoneNumber.length ==
-                                                    10
-                                                ) {
+                                                if (staffUsername.isNotBlank()) {
                                                     MaterialTheme.colorScheme.primary
                                                 } else {
-                                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                        .copy(alpha = 0.6f)
                                                 },
                                         )
                                     },
-                                    prefix = { Text("+91 ", fontWeight = FontWeight.Medium) },
                                     singleLine = true,
                                     keyboardOptions =
                                         KeyboardOptions(
-                                            keyboardType = KeyboardType.Phone,
-                                            imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                                            imeAction =
+                                                androidx
+                                                    .compose
+                                                    .ui
+                                                    .text
+                                                    .input
+                                                    .ImeAction
+                                                    .Next,
                                         ),
                                     keyboardActions =
                                         androidx.compose.foundation.text
-                                            .KeyboardActions(onDone = { focusManager.clearFocus() }),
+                                            .KeyboardActions(onNext = { focusRequesterPassword.requestFocus() }),
                                     shape = RoundedCornerShape(16.dp),
                                     colors =
                                         OutlinedTextFieldDefaults.colors(
@@ -472,117 +1155,70 @@ fun AuthScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                 )
 
-                                Spacer(modifier = Modifier.height(24.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
 
-                                val isPhoneBtnEnabled = !isLoading && phoneNumber.length == 10
-                                androidx.compose.material3.Button(
-                                    onClick = {
-                                        focusManager.clearFocus()
-                                        if (phoneNumber.length >= 10 && activity != null) {
-                                            isLoading = true
-                                            val options =
-                                                PhoneAuthOptions
-                                                    .newBuilder(auth)
-                                                    .setPhoneNumber("+91$phoneNumber")
-                                                    .setTimeout(60L, TimeUnit.SECONDS)
-                                                    .setActivity(activity)
-                                                    .setCallbacks(callbacks)
-                                                    .build()
-                                            PhoneAuthProvider.verifyPhoneNumber(options)
-                                        } else {
-                                            Toast
-                                                .makeText(
-                                                    context,
-                                                    context.getString(R.string.auth_err_invalid_phone),
-                                                    Toast.LENGTH_SHORT,
-                                                ).show()
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth().height(54.dp),
-                                    enabled = isPhoneBtnEnabled,
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors =
-                                        ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary,
-                                            disabledContainerColor =
-                                                MaterialTheme.colorScheme.primary
-                                                    .copy(alpha = 0.5f),
-                                        ),
-                                    elevation =
-                                        ButtonDefaults.buttonElevation(
-                                            defaultElevation = 2.dp,
-                                            pressedElevation = 4.dp,
-                                        ),
-                                ) {
-                                    if (isLoading) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                            strokeWidth = 2.5.dp,
-                                        )
-                                    } else {
-                                        Text(
-                                            text = stringResource(R.string.auth_btn_send_otp),
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                        )
-                                    }
-                                }
-                            } else {
-                                Text(
-                                    text = stringResource(R.string.auth_enter_otp),
-                                    fontFamily = Poppins,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.align(Alignment.Start).padding(bottom = 6.dp),
-                                )
-
-                                Text(
-                                    text = stringResource(R.string.auth_otp_sent_to, "+91 $phoneNumber"),
-                                    fontFamily = Poppins,
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.align(Alignment.Start).padding(bottom = 20.dp),
-                                )
+                                var isPasswordVisible by remember { mutableStateOf(false) }
 
                                 OutlinedTextField(
-                                    value = otpCode,
+                                    value = staffPassword,
                                     onValueChange = {
-                                        otpError = null
-                                        if (it.length <= 6 && it.all { char -> char.isDigit() }) {
-                                            otpCode = it
-                                        }
+                                        staffPassword = it
+                                        staffError = null
                                     },
                                     enabled = !isLoading,
-                                    isError = otpError != null,
+                                    isError = staffError != null,
                                     supportingText =
-                                        if (otpError !=
+                                        if (staffError !=
                                             null
                                         ) {
-                                            { Text(otpError!!, color = MaterialTheme.colorScheme.error) }
+                                            { Text(staffError!!, color = MaterialTheme.colorScheme.error) }
                                         } else {
                                             null
                                         },
-                                    label = { Text(stringResource(R.string.auth_otp_label)) },
+                                    label = { Text("Password (Pin)") },
                                     leadingIcon = {
                                         Icon(
                                             imageVector = Icons.Default.Lock,
                                             contentDescription = stringResource(R.string.ui_element_desc),
                                             tint =
-                                                if (otpCode.length ==
-                                                    6
-                                                ) {
+                                                if (staffPassword.isNotBlank()) {
                                                     MaterialTheme.colorScheme.primary
                                                 } else {
-                                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                        .copy(alpha = 0.6f)
                                                 },
                                         )
                                     },
+                                    trailingIcon = {
+                                        IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                                            Icon(
+                                                imageVector =
+                                                    if (isPasswordVisible) {
+                                                        Icons
+                                                            .Default
+                                                            .Visibility
+                                                    } else {
+                                                        Icons
+                                                            .Default
+                                                            .VisibilityOff
+                                                    },
+                                                contentDescription =
+                                                    if (isPasswordVisible) "Hide password" else "Show password",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                    },
                                     singleLine = true,
+                                    visualTransformation =
+                                        if (isPasswordVisible) {
+                                            VisualTransformation
+                                                .None
+                                        } else {
+                                            PasswordVisualTransformation()
+                                        },
                                     keyboardOptions =
                                         KeyboardOptions(
-                                            keyboardType = KeyboardType.Number,
+                                            keyboardType = KeyboardType.NumberPassword,
                                             imeAction = androidx.compose.ui.text.input.ImeAction.Done,
                                         ),
                                     keyboardActions =
@@ -595,277 +1231,97 @@ fun AuthScreen(
                                             unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                                             focusedLabelColor = MaterialTheme.colorScheme.primary,
                                         ),
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterPassword),
                                 )
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
-                                val isOtpBtnEnabled = !isLoading && otpCode.length == 6
+                                val isStaffBtnEnabled =
+                                    !isLoading && staffUsername.isNotBlank() && staffPassword.isNotBlank()
                                 androidx.compose.material3.Button(
                                     onClick = {
                                         focusManager.clearFocus()
-                                        if (otpCode.length == 6) {
+                                        if (staffUsername.isNotBlank() && staffPassword.isNotBlank()) {
                                             isLoading = true
-                                            val credential = PhoneAuthProvider.getCredential(verificationId, otpCode)
-                                            signInWithPhoneAuthCredential(auth, credential, onAuthSuccess, { p, m ->
-                                                syncProgress =
-                                                    p
-                                                ; syncMessage = m
-                                            }, { err ->
-                                                isLoading = false
-                                                otpError = err
-                                            }) { stores, uid, role, isPremium, storeIds ->
-                                                isLoading = false
-                                                tempUid = uid
-                                                tempRole = role
-                                                tempIsPremium = isPremium
-                                                tempStoresList = storeIds
-                                                storeSelectionList = stores
-                                            }
-                                        } else {
-                                            Toast
-                                                .makeText(
-                                                    context,
-                                                    context.getString(R.string.auth_err_invalid_otp),
-                                                    Toast.LENGTH_SHORT,
-                                                ).show()
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth().height(54.dp),
-                                    enabled = isOtpBtnEnabled,
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors =
-                                        ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary,
-                                            disabledContainerColor =
-                                                MaterialTheme.colorScheme.primary
-                                                    .copy(alpha = 0.5f),
-                                        ),
-                                    elevation =
-                                        ButtonDefaults.buttonElevation(
-                                            defaultElevation = 2.dp,
-                                            pressedElevation = 4.dp,
-                                        ),
-                                ) {
-                                    if (isLoading) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                            strokeWidth = 2.5.dp,
-                                        )
-                                    } else {
-                                        Text(
-                                            text = stringResource(R.string.auth_btn_verify),
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                        )
-                                    }
-                                }
-                            }
-                        } else {
-                            // Staff Login
-                            Text(
-                                text = "Staff Login",
-                                fontFamily = Poppins,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.align(Alignment.Start).padding(bottom = 6.dp),
-                            )
+                                            val safeStaffUsername =
+                                                staffUsername.lowercase().replace(Regex("[^a-z0-9]"), "")
+                                            val dummyEmail = "$safeStaffUsername@storebook.internal"
+                                            auth
+                                                .signInWithEmailAndPassword(dummyEmail, staffPassword)
+                                                .addOnCompleteListener { task ->
+                                                    if (task.isSuccessful) {
+                                                        val uid = auth.currentUser?.uid ?: ""
+                                                        if (uid.isNotEmpty()) {
+                                                            val appContext = auth.app.applicationContext
+                                                            val prefs =
+                                                                com.storebook.inventoryapp.utils.SecurityUtils
+                                                                    .getEncryptedPrefs(appContext)
 
-                            Text(
-                                text = "Enter your username and password",
-                                fontFamily = Poppins,
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.align(Alignment.Start).padding(bottom = 20.dp),
-                            )
-
-                            OutlinedTextField(
-                                value = staffUsername,
-                                onValueChange = {
-                                    staffUsername = it
-                                    staffError = null
-                                },
-                                enabled = !isLoading,
-                                label = { Text("Username") },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = stringResource(R.string.ui_element_desc),
-                                        tint =
-                                            if (staffUsername.isNotBlank()) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                                    .copy(alpha = 0.6f)
-                                            },
-                                    )
-                                },
-                                singleLine = true,
-                                keyboardOptions =
-                                    KeyboardOptions(
-                                        imeAction =
-                                            androidx
-                                                .compose
-                                                .ui
-                                                .text
-                                                .input
-                                                .ImeAction
-                                                .Next,
-                                    ),
-                                keyboardActions =
-                                    androidx.compose.foundation.text
-                                        .KeyboardActions(onNext = { focusRequesterPassword.requestFocus() }),
-                                shape = RoundedCornerShape(16.dp),
-                                colors =
-                                    OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                        focusedLabelColor = MaterialTheme.colorScheme.primary,
-                                    ),
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            var isPasswordVisible by remember { mutableStateOf(false) }
-
-                            OutlinedTextField(
-                                value = staffPassword,
-                                onValueChange = {
-                                    staffPassword = it
-                                    staffError = null
-                                },
-                                enabled = !isLoading,
-                                isError = staffError != null,
-                                supportingText =
-                                    if (staffError !=
-                                        null
-                                    ) {
-                                        { Text(staffError!!, color = MaterialTheme.colorScheme.error) }
-                                    } else {
-                                        null
-                                    },
-                                label = { Text("Password (Pin)") },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.Lock,
-                                        contentDescription = stringResource(R.string.ui_element_desc),
-                                        tint =
-                                            if (staffPassword.isNotBlank()) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                                    .copy(alpha = 0.6f)
-                                            },
-                                    )
-                                },
-                                trailingIcon = {
-                                    IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                                        Icon(
-                                            imageVector =
-                                                if (isPasswordVisible) {
-                                                    Icons
-                                                        .Default
-                                                        .Visibility
-                                                } else {
-                                                    Icons
-                                                        .Default
-                                                        .VisibilityOff
-                                                },
-                                            contentDescription =
-                                                if (isPasswordVisible) "Hide password" else "Show password",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                },
-                                singleLine = true,
-                                visualTransformation =
-                                    if (isPasswordVisible) {
-                                        VisualTransformation
-                                            .None
-                                    } else {
-                                        PasswordVisualTransformation()
-                                    },
-                                keyboardOptions =
-                                    KeyboardOptions(
-                                        keyboardType = KeyboardType.NumberPassword,
-                                        imeAction = androidx.compose.ui.text.input.ImeAction.Done,
-                                    ),
-                                keyboardActions =
-                                    androidx.compose.foundation.text
-                                        .KeyboardActions(onDone = { focusManager.clearFocus() }),
-                                shape = RoundedCornerShape(16.dp),
-                                colors =
-                                    OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                        focusedLabelColor = MaterialTheme.colorScheme.primary,
-                                    ),
-                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequesterPassword),
-                            )
-
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            val isStaffBtnEnabled =
-                                !isLoading && staffUsername.isNotBlank() && staffPassword.isNotBlank()
-                            androidx.compose.material3.Button(
-                                onClick = {
-                                    focusManager.clearFocus()
-                                    if (staffUsername.isNotBlank() && staffPassword.isNotBlank()) {
-                                        isLoading = true
-                                        val safeStaffUsername =
-                                            staffUsername.lowercase().replace(Regex("[^a-z0-9]"), "")
-                                        val dummyEmail = "$safeStaffUsername@storebook.internal"
-                                        auth
-                                            .signInWithEmailAndPassword(dummyEmail, staffPassword)
-                                            .addOnCompleteListener { task ->
-                                                if (task.isSuccessful) {
-                                                    val uid = auth.currentUser?.uid ?: ""
-                                                    if (uid.isNotEmpty()) {
-                                                        val appContext = auth.app.applicationContext
-                                                        val prefs =
-                                                            com.storebook.inventoryapp.utils.SecurityUtils
-                                                                .getEncryptedPrefs(appContext)
-
-                                                        kotlinx.coroutines
-                                                            .CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
-                                                            .launch {
-                                                                try {
-                                                                    val connector =
-                                                                        com
-                                                                            .storebook
-                                                                            .inventoryapp
-                                                                            .dataconnect
-                                                                            .StorebookConnectorConnector
-                                                                            .instance
-                                                                    val userRes = connector.getUser.execute(uid)
-                                                                    val user = userRes.data.user
-                                                                    val role = user?.role ?: "staff"
-                                                                    val storeId = user?.storeId ?: "default"
-
-                                                                    prefs
-                                                                        .edit()
-                                                                        .putString("user_role", role)
-                                                                        .putString("active_store_id", storeId)
-                                                                        .putLong("last_sync_timestamp_$storeId", 0L)
-                                                                        .apply()
-
+                                                            kotlinx.coroutines
+                                                                .CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
+                                                                .launch {
                                                                     try {
-                                                                        com.storebook.inventoryapp.data.sync.SyncWorker
-                                                                            .performSync(appContext, storeId) {
-                                                                                progress,
-                                                                                message,
-                                                                                ->
-                                                                                android.os
-                                                                                    .Handler(
-                                                                                        android.os.Looper
-                                                                                            .getMainLooper(),
-                                                                                    ).post {
-                                                                                        syncProgress = progress
-                                                                                        syncMessage = message
-                                                                                    }
+                                                                        val connector =
+                                                                            com
+                                                                                .storebook
+                                                                                .inventoryapp
+                                                                                .dataconnect
+                                                                                .StorebookConnectorConnector
+                                                                                .instance
+                                                                        val userRes = connector.getUser.execute(uid)
+                                                                        val user = userRes.data.user
+                                                                        val role = user?.role ?: "staff"
+                                                                        val storeId = user?.storeId ?: "default"
+
+                                                                        prefs
+                                                                            .edit()
+                                                                            .putString("user_role", role)
+                                                                            .putString("active_store_id", storeId)
+                                                                            .putLong("last_sync_timestamp_$storeId", 0L)
+                                                                            .apply()
+
+                                                                        try {
+                                                                            com.storebook.inventoryapp.data.sync.SyncWorker
+                                                                                .performSync(appContext, storeId) {
+                                                                                    progress,
+                                                                                    message,
+                                                                                    ->
+                                                                                    android.os
+                                                                                        .Handler(
+                                                                                            android.os.Looper
+                                                                                                .getMainLooper(),
+                                                                                        ).post {
+                                                                                            syncProgress = progress
+                                                                                            syncMessage = message
+                                                                                        }
+                                                                                }
+                                                                        } catch (e: Exception) {
+                                                                            if (e is kotlinx
+                                                                                    .coroutines
+                                                                                    .CancellationException
+                                                                            ) {
+                                                                                throw e
+                                                                            }
+                                                                            if (com.storebook
+                                                                                    .inventoryapp
+                                                                                    .BuildConfig
+                                                                                    .DEBUG
+                                                                            ) {
+                                                                                android.util.Log
+                                                                                    .e(
+                                                                                        "AuthScreen",
+                                                                                        "Initial staff sync failed",
+                                                                                        e,
+                                                                                    )
+                                                                            }
+                                                                        }
+
+                                                                        kotlinx.coroutines
+                                                                            .delay(800) // Wait for 100% animation to finish
+                                                                        android.os
+                                                                            .Handler(android.os.Looper.getMainLooper())
+                                                                            .post {
+                                                                                onAuthSuccess()
                                                                             }
                                                                     } catch (e: Exception) {
                                                                         if (e is kotlinx
@@ -874,228 +1330,202 @@ fun AuthScreen(
                                                                         ) {
                                                                             throw e
                                                                         }
-                                                                        if (com.storebook
-                                                                                .inventoryapp
-                                                                                .BuildConfig
-                                                                                .DEBUG
-                                                                        ) {
+                                                                        if (com.storebook.inventoryapp.BuildConfig.DEBUG) {
                                                                             android.util.Log
                                                                                 .e(
                                                                                     "AuthScreen",
-                                                                                    "Initial staff sync failed",
+                                                                                    "Staff auth fetch failed",
                                                                                     e,
                                                                                 )
                                                                         }
+                                                                        android.os
+                                                                            .Handler(android.os.Looper.getMainLooper())
+                                                                            .post {
+                                                                                onAuthSuccess()
+                                                                            }
                                                                     }
-
-                                                                    kotlinx.coroutines
-                                                                        .delay(800) // Wait for 100% animation to finish
-                                                                    android.os
-                                                                        .Handler(android.os.Looper.getMainLooper())
-                                                                        .post {
-                                                                            onAuthSuccess()
-                                                                        }
-                                                                } catch (e: Exception) {
-                                                                    if (e is kotlinx
-                                                                            .coroutines
-                                                                            .CancellationException
-                                                                    ) {
-                                                                        throw e
-                                                                    }
-                                                                    if (com.storebook.inventoryapp.BuildConfig.DEBUG) {
-                                                                        android.util.Log
-                                                                            .e(
-                                                                                "AuthScreen",
-                                                                                "Staff auth fetch failed",
-                                                                                e,
-                                                                            )
-                                                                    }
-                                                                    android.os
-                                                                        .Handler(android.os.Looper.getMainLooper())
-                                                                        .post {
-                                                                            onAuthSuccess()
-                                                                        }
                                                                 }
-                                                            }
+                                                        } else {
+                                                            onAuthSuccess()
+                                                        }
                                                     } else {
-                                                        onAuthSuccess()
+                                                        isLoading = false
+                                                        staffError = task.exception?.message ?: "Login failed"
                                                     }
-                                                } else {
-                                                    isLoading = false
-                                                    staffError = task.exception?.message ?: "Login failed"
                                                 }
-                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                                    enabled = isStaffBtnEnabled,
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors =
+                                        ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                        ),
+                                    elevation =
+                                        ButtonDefaults.buttonElevation(
+                                            defaultElevation = 2.dp,
+                                            pressedElevation = 4.dp,
+                                        ),
+                                ) {
+                                    if (isLoading) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            strokeWidth = 2.5.dp,
+                                        )
+                                    } else {
+                                        Text("Log in as Staff", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                                     }
-                                },
-                                modifier = Modifier.fillMaxWidth().height(54.dp),
-                                enabled = isStaffBtnEnabled,
-                                shape = RoundedCornerShape(16.dp),
-                                colors =
-                                    ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                                    ),
-                                elevation =
-                                    ButtonDefaults.buttonElevation(
-                                        defaultElevation = 2.dp,
-                                        pressedElevation = 4.dp,
-                                    ),
-                            ) {
-                                if (isLoading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        strokeWidth = 2.5.dp,
-                                    )
-                                } else {
-                                    Text("Log in as Staff", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                // Security & Trust Badges
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.padding(bottom = 6.dp),
+                    // Security & Trust Badges
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Shield,
-                            contentDescription = stringResource(R.string.ui_element_desc),
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(bottom = 6.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Shield,
+                                contentDescription = stringResource(R.string.ui_element_desc),
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = stringResource(R.string.auth_secure_backup),
+                                fontFamily = Poppins,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
                         Text(
-                            text = stringResource(R.string.auth_secure_backup),
+                            text = "Made with ❤️ for Indian Shop Owners",
                             fontFamily = Poppins,
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                            fontWeight = FontWeight.Medium,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         )
                     }
-                    Text(
-                        text = "Made with ❤️ for Indian Shop Owners",
-                        fontFamily = Poppins,
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    )
                 }
             }
-        }
 
-        // Floating Back Button
-        FilledTonalIconButton(
-            onClick = {
-                if (isLoading) return@FilledTonalIconButton
-                if (isOtpSent) {
-                    isOtpSent = false
-                    otpCode = ""
-                    otpError = null
-                    phoneError = null
-                } else {
-                    onNavigateBack()
-                }
-            },
-            enabled = !isLoading,
-            modifier =
-                Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 16.dp, top = 16.dp)
-                    .size(48.dp),
-            colors =
-                IconButtonDefaults.filledTonalIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-        ) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                modifier = Modifier.size(22.dp),
-            )
-        }
-
-        // Full Screen Sync Progress Overlay
-        if (isLoading && syncProgress > 0) {
-            androidx.compose.ui.window.Dialog(
-                onDismissRequest = { /* Prevent dismiss */ },
-                properties =
-                    androidx.compose.ui.window
-                        .DialogProperties(usePlatformDefaultWidth = false),
+            // Floating Back Button
+            FilledTonalIconButton(
+                onClick = {
+                    if (isLoading) return@FilledTonalIconButton
+                    if (isOtpSent) {
+                        isOtpSent = false
+                        otpCode = ""
+                        otpError = null
+                        phoneError = null
+                        storeNameError = null
+                    } else {
+                        onNavigateBack()
+                    }
+                },
+                enabled = !isLoading,
+                modifier =
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 16.dp, top = 16.dp)
+                        .size(48.dp),
+                colors =
+                    IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
             ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.fillMaxSize(),
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+
+            // Full Screen Sync Progress Overlay
+            if (isLoading && syncProgress > 0) {
+                androidx.compose.ui.window.Dialog(
+                    onDismissRequest = { /* Prevent dismiss */ },
+                    properties =
+                        androidx.compose.ui.window
+                            .DialogProperties(usePlatformDefaultWidth = false),
                 ) {
-                    Column(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.fillMaxSize(),
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Sync,
-                            contentDescription = "Syncing",
-                            modifier = Modifier.size(80.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(modifier = Modifier.height(32.dp))
-
-                        Text(
-                            text = "Setting up your store...",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 24.sp,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Text(
-                            text = syncMessage,
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        )
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        val animatedProgress by animateFloatAsState(
-                            targetValue = syncProgress / 100f,
-                            animationSpec = tween(durationMillis = 500, easing = LinearOutSlowInEasing),
-                        )
-
-                        LinearProgressIndicator(
-                            progress = { animatedProgress },
+                        Column(
                             modifier =
                                 Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp)
-                                    .clip(RoundedCornerShape(4.dp)),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.primaryContainer,
-                        )
+                                    .fillMaxSize()
+                                    .padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Sync,
+                                contentDescription = "Syncing",
+                                modifier = Modifier.size(80.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(modifier = Modifier.height(32.dp))
 
-                        Spacer(modifier = Modifier.height(48.dp))
+                            Text(
+                                text = "Setting up your store...",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 24.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
 
-                        val displayProgress = (animatedProgress * 100).toInt()
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                        Text(
-                            text = "$displayProgress%",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 48.sp,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+                            Text(
+                                text = syncMessage,
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            )
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            val animatedProgress by animateFloatAsState(
+                                targetValue = syncProgress / 100f,
+                                animationSpec = tween(durationMillis = 500, easing = LinearOutSlowInEasing),
+                            )
+
+                            LinearProgressIndicator(
+                                progress = { animatedProgress },
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(8.dp)
+                                        .clip(RoundedCornerShape(4.dp)),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.primaryContainer,
+                            )
+
+                            Spacer(modifier = Modifier.height(48.dp))
+
+                            val displayProgress = (animatedProgress * 100).toInt()
+
+                            Text(
+                                text = "$displayProgress%",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 48.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                     }
                 }
             }
@@ -1145,8 +1575,12 @@ private fun completeLoginForStore(
                 .putString("active_store_id", storeId)
                 .putString("user_stores", stores.joinToString(","))
                 .putBoolean("is_premium", isPremium)
+                .putBoolean("onboarding_completed", true)
                 .putLong("last_sync_timestamp_$storeId", 0L)
                 .apply()
+
+            val standardPrefs = context.getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE)
+            standardPrefs.edit().putBoolean("onboarding_completed", true).apply()
 
             try {
                 com.storebook.inventoryapp.data.sync.SyncWorker.performSync(context, storeId) { progress, message ->
@@ -1173,6 +1607,129 @@ private fun completeLoginForStore(
             }
         }
     }
+}
+
+private fun registerWithPhoneAuthCredential(
+    auth: FirebaseAuth,
+    credential: PhoneAuthCredential,
+    storeName: String,
+    ownerName: String,
+    businessType: String,
+    onSuccess: () -> Unit,
+    onSyncProgress: (Int, String) -> Unit,
+    onError: (String) -> Unit,
+) {
+    auth
+        .signInWithCredential(credential)
+        .addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val uid = auth.currentUser?.uid ?: ""
+                if (uid.isNotEmpty()) {
+                    val appContext = auth.app.applicationContext
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                        try {
+                            val connector = com.storebook.inventoryapp.dataconnect.StorebookConnectorConnector.instance
+                            val storeId =
+                                java.util.UUID
+                                    .randomUUID()
+                                    .toString()
+                            val role = "owner"
+                            val plan = "FREE"
+                            val status = "active"
+                            val cleanStoreName = storeName.trim().ifEmpty { "My Store" }
+                            val cleanOwnerName = ownerName.trim()
+
+                            // 1. Sync store record to DataConnect with businessType, storeName and isPremium = false
+                            try {
+                                connector.syncStore.execute(id = storeId) {
+                                    name = cleanStoreName
+                                    this.businessType = businessType
+                                    isActive = true
+                                    this.isPremium = false
+                                    this.subscriptionStatus = status
+                                }
+                            } catch (e: Exception) {
+                                if (e is kotlinx.coroutines.CancellationException) throw e
+                                android.util.Log.w("AuthScreen", "Failed to sync store to DataConnect on register: ${e.message}")
+                            }
+
+                            // 2. Sync user record to DataConnect with role = 'owner', plan = 'FREE', status = 'active', and optional username
+                            try {
+                                connector.syncUser.execute(
+                                    id = uid,
+                                    role = role,
+                                    createdAt = System.currentTimeMillis().toDouble(),
+                                ) {
+                                    phoneNumber = auth.currentUser?.phoneNumber ?: ""
+                                    if (cleanOwnerName.isNotBlank()) {
+                                        username = cleanOwnerName
+                                    }
+                                    this.stores = listOf(storeId)
+                                    this.storeId = storeId
+                                    this.subscriptionPlan = plan
+                                    this.subscriptionStatus = status
+                                }
+                            } catch (e: Exception) {
+                                if (e is kotlinx.coroutines.CancellationException) throw e
+                                android.util.Log.w("AuthScreen", "Failed to sync user to DataConnect on register: ${e.message}")
+                            }
+
+                            // 3. Save local EncryptedPrefs: active_store_id, business_name, owner_name (if provided), app_mode = 'OFFLINE', onboarding_completed = true
+                            val prefs =
+                                com.storebook.inventoryapp.utils.SecurityUtils
+                                    .getEncryptedPrefs(appContext)
+                            val editor = prefs.edit()
+                            editor.putString("active_store_id", storeId)
+                            editor.putString("business_name", cleanStoreName)
+                            editor.putString("business_name_$storeId", cleanStoreName)
+                            editor.putString("business_type", businessType)
+                            editor.putString("business_type_$storeId", businessType)
+                            if (cleanOwnerName.isNotBlank()) {
+                                editor.putString("owner_name", cleanOwnerName)
+                            }
+                            editor.putString("app_mode", "OFFLINE")
+                            editor.putBoolean("onboarding_completed", true)
+                            editor.putString("user_role", role)
+                            editor.putString("user_stores", storeId)
+                            editor.putBoolean("is_premium", false)
+                            editor.putLong("last_sync_timestamp_$storeId", 0L)
+                            editor.apply()
+
+                            // Also save onboarding_completed in storebook_prefs (used by AppNavigation splash screen)
+                            val standardPrefs = appContext.getSharedPreferences("storebook_prefs", android.content.Context.MODE_PRIVATE)
+                            standardPrefs.edit().putBoolean("onboarding_completed", true).apply()
+
+                            // 4. Complete login/setup for this store
+                            completeLoginForStore(
+                                appContext,
+                                storeId,
+                                uid,
+                                role,
+                                false,
+                                listOf(storeId),
+                                onSuccess,
+                                onSyncProgress,
+                                onError = {
+                                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                        onSuccess()
+                                    }
+                                },
+                            )
+                        } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
+                            android.util.Log.e("AuthScreen", "Registration setup failed", e)
+                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                onError(e.message ?: "Failed to set up store. Please try again.")
+                            }
+                        }
+                    }
+                } else {
+                    onSuccess()
+                }
+            } else {
+                onError(task.exception?.message ?: "Authentication failed")
+            }
+        }
 }
 
 private fun signInWithPhoneAuthCredential(
@@ -1211,9 +1768,6 @@ private fun signInWithPhoneAuthCredential(
                                     } else {
                                         emptyList()
                                     }
-                                // Single source of truth: User-level subscription
-                                // DataConnect query has limited fields; expiry is tracked via BillingClient
-                                // in PlayBillingManager.
                                 val isPremium = user.subscriptionPlan == "pro" && user.subscriptionStatus == "active"
 
                                 val fetchedStores =
@@ -1221,7 +1775,7 @@ private fun signInWithPhoneAuthCredential(
                                 val prefs =
                                     com.storebook.inventoryapp.utils.SecurityUtils
                                         .getEncryptedPrefs(appContext)
-                                for (sId in resolvedStores) {
+                                outerLoop@ for (sId in resolvedStores) {
                                     try {
                                         val storeRes = connector.getStore.execute(sId)
                                         val s = storeRes.data.store
@@ -1230,6 +1784,10 @@ private fun signInWithPhoneAuthCredential(
                                             val sName = s.name
                                             if (!sName.isNullOrBlank()) {
                                                 prefs.edit().putString("business_name_$sId", sName).apply()
+                                            }
+                                            val bType = s.businessType
+                                            if (!bType.isNullOrBlank()) {
+                                                prefs.edit().putString("business_type_$sId", bType).apply()
                                             }
                                         } else {
                                             fetchedStores
@@ -1264,6 +1822,7 @@ private fun signInWithPhoneAuthCredential(
                                             .toString()
                                     connector.syncStore.execute(id = newStoreId) {
                                         name = "My Mobile Store"
+                                        businessType = "general"
                                         isActive = true
                                         this.isPremium = false
                                     }
@@ -1294,11 +1853,13 @@ private fun signInWithPhoneAuthCredential(
                                     java.util.UUID
                                         .randomUUID()
                                         .toString()
+
                                 val resolvedStores = listOf(storeId)
                                 val role = "owner"
 
                                 connector.syncStore.execute(id = storeId) {
                                     name = "My Mobile Store"
+                                    businessType = "general"
                                     isActive = true
                                     this.isPremium = false
                                 }

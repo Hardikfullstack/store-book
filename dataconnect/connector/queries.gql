@@ -377,6 +377,7 @@ query GetStoresPaginated @auth(level: USER) {
   stores {
     id
     name
+    businessType
     isActive
     isPremium
     subscriptionPlatform
@@ -567,6 +568,7 @@ query GetStore($id: String!) @auth(level: USER) {
   store(id: $id) {
     id
     name
+    businessType
     isActive
     isPremium
   }

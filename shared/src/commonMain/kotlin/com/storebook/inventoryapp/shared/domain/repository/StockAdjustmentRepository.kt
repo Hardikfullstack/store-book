@@ -3,11 +3,22 @@ package com.storebook.inventoryapp.shared.domain.repository
 import com.storebook.inventoryapp.shared.data.local.Stock_adjustments
 import com.storebook.inventoryapp.shared.data.local.StoreBookDatabase
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 
 class StockAdjustmentRepository(
     private val database: StoreBookDatabase,
 ) {
+    companion object {
+        private val _adjustmentsUpdated = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        val adjustmentsUpdated = _adjustmentsUpdated.asSharedFlow()
+
+        fun notifyUpdated() {
+            _adjustmentsUpdated.tryEmit(Unit)
+        }
+    }
+
     private val queries = database.storeBookQueries
 
     suspend fun getAllStockAdjustments(): List<Stock_adjustments> = withContext(Dispatchers.IO) {
@@ -53,21 +64,24 @@ class StockAdjustmentRepository(
         delta: Double,
         timestamp: Long = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
     ): Long = withContext(Dispatchers.IO) {
-        database.transactionWithResult {
-            val now = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-            queries.insertStockAdjustment(
-                item_id = itemId,
-                item_name = itemName,
-                reason = reason,
-                delta = delta,
-                timestamp = timestamp,
-                is_deleted = 0L,
-                cloud_id = null,
-                is_synced = 0L,
-                updated_at = now,
-            )
-            queries.getLastInsertRowId().executeAsOne()
-        }
+        val rowId =
+            database.transactionWithResult {
+                val now = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                queries.insertStockAdjustment(
+                    item_id = itemId,
+                    item_name = itemName,
+                    reason = reason,
+                    delta = delta,
+                    timestamp = timestamp,
+                    is_deleted = 0L,
+                    cloud_id = null,
+                    is_synced = 0L,
+                    updated_at = now,
+                )
+                queries.getLastInsertRowId().executeAsOne()
+            }
+        notifyUpdated()
+        rowId
     }
 
     suspend fun getUnsyncedStockAdjustments(): List<Stock_adjustments> = withContext(Dispatchers.IO) {
@@ -100,5 +114,6 @@ class StockAdjustmentRepository(
                 updatedAt = updatedAt,
             )
         }
+        notifyUpdated()
     }
 }

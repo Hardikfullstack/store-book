@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Inventory
 import androidx.compose.material3.Card
@@ -57,6 +58,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.navigation.NavController
 import com.storebook.inventoryapp.shared.domain.models.StockAdjustment
 import com.storebook.inventoryapp.ui.viewmodel.StockAuditViewModel
@@ -71,6 +73,11 @@ fun StockAuditScreen(
     navController: NavController,
     viewModel: StockAuditViewModel,
 ) {
+    LifecycleResumeEffect(Unit) {
+        viewModel.loadAdjustments()
+        onPauseOrDispose { }
+    }
+
     val adjustments by viewModel.adjustments.collectAsState()
     val totalCount by viewModel.totalCount.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -155,6 +162,11 @@ fun StockAuditScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.loadAdjustments() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
                 },
             )

@@ -380,6 +380,7 @@ export interface GetStoreData {
   store?: {
     id: string;
     name?: string | null;
+    businessType?: string | null;
     isActive?: boolean | null;
     isPremium?: boolean | null;
   } & Store_Key;
@@ -393,6 +394,7 @@ export interface GetStoresPaginatedData {
   stores: ({
     id: string;
     name?: string | null;
+    businessType?: string | null;
     isActive?: boolean | null;
     isPremium?: boolean | null;
     subscriptionPlatform?: string | null;
@@ -912,6 +914,7 @@ export interface SyncStoreData {
 export interface SyncStoreVariables {
   id: string;
   name?: string | null;
+  businessType?: string | null;
   isActive?: boolean | null;
   isPremium?: boolean | null;
   subscriptionExpiresAt?: number | null;

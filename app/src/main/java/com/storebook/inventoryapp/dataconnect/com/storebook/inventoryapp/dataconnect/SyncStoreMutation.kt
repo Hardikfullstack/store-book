@@ -22,6 +22,8 @@ public interface SyncStoreMutation :
     public data class Variables(
         val id: String,
         val name: com.google.firebase.dataconnect.OptionalVariable<String?>,
+        val businessType: com.google.firebase.dataconnect.OptionalVariable<String?> =
+            com.google.firebase.dataconnect.OptionalVariable.Undefined,
         val isActive: com.google.firebase.dataconnect.OptionalVariable<Boolean?>,
         val isPremium: com.google.firebase.dataconnect.OptionalVariable<Boolean?>,
         val subscriptionExpiresAt: com.google.firebase.dataconnect.OptionalVariable<Double?>,
@@ -35,6 +37,7 @@ public interface SyncStoreMutation :
         public interface Builder {
             public var id: String
             public var name: String?
+            public var businessType: String?
             public var isActive: Boolean?
             public var isPremium: Boolean?
             public var subscriptionExpiresAt: Double?
@@ -51,6 +54,8 @@ public interface SyncStoreMutation :
             ): Variables {
                 var id = id
                 var name: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
+                var businessType: com.google.firebase.dataconnect.OptionalVariable<String?> =
                     com.google.firebase.dataconnect.OptionalVariable.Undefined
                 var isActive: com.google.firebase.dataconnect.OptionalVariable<Boolean?> =
                     com.google.firebase.dataconnect.OptionalVariable.Undefined
@@ -76,6 +81,14 @@ public interface SyncStoreMutation :
                         get() = throw UnsupportedOperationException("getting builder values is not supported")
                         set(value_) {
                             name =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
+                    override var businessType: String?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            businessType =
                                 com.google.firebase.dataconnect.OptionalVariable
                                     .Value(value_)
                         }
@@ -130,7 +143,15 @@ public interface SyncStoreMutation :
                 }.apply(block_)
                     .let {
                         Variables(
-                            id = id, name = name, isActive = isActive, isPremium = isPremium, subscriptionExpiresAt = subscriptionExpiresAt, subscriptionPlatform = subscriptionPlatform, subscriptionId = subscriptionId, subscriptionStatus = subscriptionStatus,
+                            id = id,
+                            name = name,
+                            businessType = businessType,
+                            isActive = isActive,
+                            isPremium = isPremium,
+                            subscriptionExpiresAt = subscriptionExpiresAt,
+                            subscriptionPlatform = subscriptionPlatform,
+                            subscriptionId = subscriptionId,
+                            subscriptionStatus = subscriptionStatus,
                         )
                     }
             }

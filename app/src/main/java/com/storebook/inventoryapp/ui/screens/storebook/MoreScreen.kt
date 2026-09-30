@@ -120,6 +120,7 @@ import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.storebook.inventoryapp.R
+import com.storebook.inventoryapp.shared.domain.models.BUSINESS_TYPES
 import com.storebook.inventoryapp.shared.domain.models.ExpenseEntry
 import com.storebook.inventoryapp.shared.domain.models.Item
 import com.storebook.inventoryapp.shared.domain.models.Sale
@@ -1534,6 +1535,8 @@ fun MoreScreen(
                     }
                     "SWITCH_STORE" -> {
                         var newStoreNameInput by remember { mutableStateOf("") }
+                        var selectedBusinessType by remember { mutableStateOf(BUSINESS_TYPES.first()) }
+                        var expandedBusinessType by remember { mutableStateOf(false) }
                         Column(
                             modifier =
                                 Modifier
@@ -1575,7 +1578,7 @@ fun MoreScreen(
                                                                 context
                                                                     .getString(R.string.toast_switched_store, storeName),
                                                                 android.widget.Toast.LENGTH_SHORT,
-                                                            ).show()
+                                                             ).show()
                                                         (context as? androidx.activity.ComponentActivity)
                                                             ?.viewModelStore
                                                             ?.clear()
@@ -1630,6 +1633,54 @@ fun MoreScreen(
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                             )
+
+                            // Business Type Dropdown
+                            ExposedDropdownMenuBox(
+                                expanded = expandedBusinessType,
+                                onExpandedChange = { expandedBusinessType = it },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                OutlinedTextField(
+                                    value = "${selectedBusinessType.emoji}  ${selectedBusinessType.label}",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Business Type") },
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedBusinessType)
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                                )
+
+                                ExposedDropdownMenu(
+                                    expanded = expandedBusinessType,
+                                    onDismissRequest = { expandedBusinessType = false },
+                                ) {
+                                    BUSINESS_TYPES.forEach { option ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Column {
+                                                    Text(
+                                                        text = "${option.emoji}  ${option.label}",
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        fontSize = 14.sp,
+                                                    )
+                                                    Text(
+                                                        text = option.description,
+                                                        fontSize = 12.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    )
+                                                }
+                                            },
+                                            onClick = {
+                                                selectedBusinessType = option
+                                                expandedBusinessType = false
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+
                             PrimaryButton(
                                 onClick = {
                                     if (newStoreNameInput.isNotBlank()) {
@@ -1639,38 +1690,40 @@ fun MoreScreen(
                                             showSheet = false
                                             isSyncing = true
                                             syncMessage = "Creating ${newStoreNameInput.trim()}..."
-                                            viewModel.createLocalStore(newStoreNameInput.trim(), onProgress = {
-                                                progress,
-                                                msg,
-                                                ->
-                                                syncProgress = progress
-                                                syncMessage = msg
-                                            }, onComplete = {
-                                                android.widget.Toast
-                                                    .makeText(
-                                                        context,
-                                                        context
-                                                            .getString(
-                                                                R.string.toast_switched_store,
-                                                                newStoreNameInput
-                                                                    .trim(),
-                                                            ),
-                                                        android.widget.Toast.LENGTH_SHORT,
-                                                    ).show()
-                                                (context as? androidx.activity.ComponentActivity)
-                                                    ?.viewModelStore
-                                                    ?.clear()
-                                                val intent =
-                                                    android.content.Intent(
-                                                        context,
-                                                        com.storebook.inventoryapp.MainActivity::class.java,
-                                                    )
-                                                intent.flags =
-                                                    android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
-                                                    android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                                context.startActivity(intent)
-                                                (context as? android.app.Activity)?.finish()
-                                            })
+                                            viewModel.createLocalStore(
+                                                name = newStoreNameInput.trim(),
+                                                businessType = selectedBusinessType.id,
+                                                onProgress = { progress, msg ->
+                                                    syncProgress = progress
+                                                    syncMessage = msg
+                                                },
+                                                onComplete = {
+                                                    android.widget.Toast
+                                                        .makeText(
+                                                            context,
+                                                            context
+                                                                .getString(
+                                                                    R.string.toast_switched_store,
+                                                                    newStoreNameInput
+                                                                        .trim(),
+                                                                ),
+                                                            android.widget.Toast.LENGTH_SHORT,
+                                                        ).show()
+                                                    (context as? androidx.activity.ComponentActivity)
+                                                        ?.viewModelStore
+                                                        ?.clear()
+                                                    val intent =
+                                                        android.content.Intent(
+                                                            context,
+                                                            com.storebook.inventoryapp.MainActivity::class.java,
+                                                        )
+                                                    intent.flags =
+                                                        android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                                                        android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                                    context.startActivity(intent)
+                                                    (context as? android.app.Activity)?.finish()
+                                                },
+                                            )
                                         }
                                     }
                                 },
