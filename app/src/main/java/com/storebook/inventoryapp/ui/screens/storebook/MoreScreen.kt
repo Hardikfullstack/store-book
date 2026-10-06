@@ -1578,7 +1578,7 @@ fun MoreScreen(
                                                                 context
                                                                     .getString(R.string.toast_switched_store, storeName),
                                                                 android.widget.Toast.LENGTH_SHORT,
-                                                             ).show()
+                                                            ).show()
                                                         (context as? androidx.activity.ComponentActivity)
                                                             ?.viewModelStore
                                                             ?.clear()

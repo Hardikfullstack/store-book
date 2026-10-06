@@ -12,7 +12,7 @@ export default async function AdminSettingsPage() {
 
   // Fetch initial data for the settings dashboard
   try {
-    const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
+    const dc = getDataConnect({ serviceId: 'new-storebook-service', location: 'us-east4' });
     const [settingsRes, promosRes, announcementsRes] = await Promise.all([
       dc.executeGraphql('query GetGlobalSettings { globalSettings { id key value description } }', {}),
       dc.executeGraphql('query GetPromoCodes { promoCodes { id code discountPercent discountAmount maxUses currentUses expiresAt isActive } }', {}),

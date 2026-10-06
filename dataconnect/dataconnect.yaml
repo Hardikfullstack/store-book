@@ -1,12 +1,12 @@
 specVersion: "v1alpha"
-serviceId: "store-book"
-location: "us-central1"
+serviceId: "new-storebook-service"
+location: "us-east4"
 schema:
   source: "./schema"
   datasource:
     postgresql:
-      database: "storebookdb"
+      database: "new-storebook-database"
       cloudSql:
-        instanceId: "storebook-sql"
+        instanceId: "new-storebook-instance"
         schema: "public"
 connectorDirs: ["./connector"]

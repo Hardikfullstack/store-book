@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     // Identify the user based on subscription notes, or we can look up the user by subscription_id if we stored it
     // Wait, Razorpay subscriptions don't inherently know our user's ID unless we pass it in notes during subscription creation.
     // For now, let's assume we update Firestore by querying for the user with this subscription ID.
-    
+
     // We will handle specific events
     if (event.event === 'subscription.charged') {
       const subscriptionId = event.payload.subscription.entity.id;
@@ -55,14 +55,14 @@ export async function POST(request: Request) {
 }
 
 async function handleSubscriptionRenewal(subscriptionId: string) {
-  const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
-  
+  const dc = getDataConnect({ serviceId: 'new-storebook-service', location: 'us-east4' });
+
   // Query stores collection for this subscription_id
   const res = (await dc.executeGraphql(
     `query GetStoreBySub($subId: String!) { stores(where: { subscriptionId: { eq: $subId } }, limit: 1) { id } }`,
     { variables: { subId: subscriptionId } }
   )) as { data?: { stores?: Array<{ id: string }> } };
-  
+
   if (!res.data?.stores || res.data.stores.length === 0) {
     console.error(`Webhook: No store found with subscription_id ${subscriptionId}`);
     return;
@@ -80,14 +80,14 @@ async function handleSubscriptionRenewal(subscriptionId: string) {
 }
 
 async function handleSubscriptionCancellation(subscriptionId: string) {
-  const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
+  const dc = getDataConnect({ serviceId: 'new-storebook-service', location: 'us-east4' });
 
   // Query stores collection for this subscription_id
   const res = (await dc.executeGraphql(
     `query GetStoreBySub($subId: String!) { stores(where: { subscriptionId: { eq: $subId } }, limit: 1) { id } }`,
     { variables: { subId: subscriptionId } }
   )) as { data?: { stores?: Array<{ id: string }> } };
-  
+
   if (!res.data?.stores || res.data.stores.length === 0) {
     console.error(`Webhook: No store found with subscription_id ${subscriptionId}`);
     return;

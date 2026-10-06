@@ -45,8 +45,8 @@ export async function POST(request: Request) {
             });
 
             const dc = getDataConnect({
-                serviceId: "store-book",
-                location: "us-central1",
+                serviceId: "new-storebook-service",
+                location: "us-east4",
             });
             await dc.executeGraphql(
                 `mutation CreateStaff($id: String!, $username: String!, $role: String!, $storeId: String!, $ownerId: String!, $createdAt: Float!, $canViewProfit: Boolean, $canDelete: Boolean) {

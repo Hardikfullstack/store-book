@@ -39,4 +39,17 @@ class BusinessTypeTest {
         assertEquals("💊", getBusinessTypeEmoji("medical"))
         assertEquals("🛒", getBusinessTypeEmoji("grocery"))
     }
+
+    @Test
+    fun testDefaultCategoriesForBusinessType() {
+        val groceryCategories = com.storebook.inventoryapp.shared.domain.models.getDefaultCategoriesForBusinessType("grocery")
+        assertTrue(groceryCategories.isNotEmpty())
+        assertTrue(groceryCategories.contains("Pulses & Dals"))
+
+        val medicalCategories = com.storebook.inventoryapp.shared.domain.models.getDefaultCategoriesForBusinessType("medical")
+        assertTrue(medicalCategories.contains("Prescription Medicines"))
+
+        val fallbackCategories = com.storebook.inventoryapp.shared.domain.models.getDefaultCategoriesForBusinessType("unknown")
+        assertTrue(fallbackCategories.contains("Daily Essentials"))
+    }
 }

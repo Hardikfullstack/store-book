@@ -1,0 +1,61 @@
+id: category-flow-spec
+title: BusinessType-Scoped Global Category Creation and Sync
+version: 1.0.0
+status: in_progress
+created_at: 2026-10-01
+target_platforms:
+  - android
+  - shared
+  - dataconnect
+  - web
+
+overview:
+  description: >
+    Provides business-type-scoped default and custom categories during item creation and editing in Android POS.
+    Categories work globally across stores that share the same businessType. When creating a new category,
+    the user enters a name; the system provisions it to live Data Connect DB with a UUID, saves to local SQLite,
+    and syncs global categories across stores of that business type.
+
+requirements:
+  - id: REQ-CAT-01
+    description: Provide default categories out-of-the-box according to the active store's businessType.
+  - id: REQ-CAT-02
+    description: >
+      In Add/Edit item form, replace hardcoded category with searchable category dropdown.
+      Users can select an existing category or create a new one by typing its name.
+  - id: REQ-CAT-03
+    description: >
+      When creating a category, create it in live DB (Data Connect) with a generated UUID,
+      persist to local SQLite, and sync with live DB.
+  - id: REQ-CAT-04
+    description: >
+      Categories are scoped to businessType globally. Any store sharing the same businessType
+      can see and use categories created by other stores of that businessType.
+  - id: REQ-CAT-05
+    description: Offline-first resilience - if offline, category is saved locally with is_synced=0 and synced when online.
+
+schema:
+  local:
+    table: categories
+    columns:
+      id: INTEGER PRIMARY KEY AUTOINCREMENT
+      name: TEXT NOT NULL
+      business_type: TEXT NOT NULL
+      store_id: TEXT
+      cloud_id: TEXT
+      is_synced: INTEGER NOT NULL DEFAULT 0
+      is_deleted: INTEGER NOT NULL DEFAULT 0
+      updated_at: INTEGER NOT NULL DEFAULT 0
+    indices:
+      - idx_categories_business_type (business_type)
+      - idx_categories_business_type_name (business_type, name)
+      - idx_categories_cloud_id (cloud_id)
+  dataconnect:
+    table: Category
+    fields:
+      id: String! (UUID)
+      businessType: String!
+      storeId: String
+      name: String!
+      isDeleted: Boolean!
+      updatedAt: Float!

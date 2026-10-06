@@ -9,7 +9,7 @@ export async function getSession() {
 
   try {
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-    const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
+    const dc = getDataConnect({ serviceId: 'new-storebook-service', location: 'us-east4' });
 
     // Attempt to fetch user by UID first
     let result = await dc.executeGraphql(
@@ -127,7 +127,7 @@ export async function getSession() {
 
     let activeStore: { id: string; name: string; businessType?: string } | undefined;
     if (!isConsolidatedMode) {
-        activeStore = storeDetails.find(s => s.id === activeStoreId);
+      activeStore = storeDetails.find(s => s.id === activeStoreId);
     }
     const activeBusinessType = activeStore?.businessType || 'general';
 

@@ -43,7 +43,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FilterList
@@ -67,6 +69,9 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -201,8 +206,8 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
     val nearExpiryItems by viewModel.nearExpiryItems.collectAsStateWithLifecycle()
     val isLoadingItems by viewModel.isLoadingItems.collectAsStateWithLifecycle()
     val suppliers by viewModel.suppliers.collectAsStateWithLifecycle()
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
 
-    // ── Delete confirmation dialog state ─────────────────────────────────────
     // ── Delete confirmation dialog state ─────────────────────────────────────
     var pendingDeleteItem by remember { mutableStateOf<Item?>(null) }
     var quickRefillItem by remember { mutableStateOf<Item?>(null) }
@@ -219,7 +224,10 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
     var inputBuyPrice by remember { mutableStateOf("") }
     var inputSellPrice by remember { mutableStateOf("") }
     var inputThreshold by remember { mutableStateOf("5") }
-    var inputCategory by remember { mutableStateOf("Groceries") }
+    var inputCategory by remember { mutableStateOf("") }
+    var categoryDropdownExpanded by remember { mutableStateOf(false) }
+    var categorySearchQuery by remember { mutableStateOf("") }
+    var isCreatingCategory by remember { mutableStateOf(false) }
     var inputHsnCode by remember { mutableStateOf("") }
     var inputTaxRate by remember { mutableStateOf("") }
     var inputBarcode by remember { mutableStateOf("") }
@@ -258,7 +266,11 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         }
 
     val categoriesList =
-        listOf("Groceries", "Dairy", "Beverages", "Stationery", "Household", "Others")
+        remember(categories) {
+            categories.map { it.name }.ifEmpty {
+                listOf("Groceries", "Dairy", "Beverages", "Stationery", "Household", "Others")
+            }
+        }
     val unitsList = listOf("pcs", "kg", "g", "litre", "ml", "dozen", "box", "packet")
 
     // ── Initial load ──────────────────────────────────────────────────────────
@@ -336,7 +348,9 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         inputBuyPrice = ""
         inputSellPrice = ""
         inputThreshold = "5"
-        inputCategory = "Groceries"
+        inputCategory = ""
+        categorySearchQuery = ""
+        categoryDropdownExpanded = false
         inputBarcode = ""
         inputHsnCode = ""
         inputTaxRate = ""
@@ -360,6 +374,8 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         inputSellPrice = formatQty(item.sellPrice)
         inputThreshold = formatQty(item.lowStockThreshold)
         inputCategory = item.category
+        categorySearchQuery = ""
+        categoryDropdownExpanded = false
         inputBarcode = item.barcode ?: ""
         inputHsnCode = item.hsnCode ?: ""
         inputTaxRate = if (item.taxRate > 0) item.taxRate.toString() else ""
@@ -1940,6 +1956,205 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                         null
                                     },
                             )
+
+                            // ── Category Dropdown with Search & Inline Creation ──
+                            val availableCategoryNames =
+                                remember(categories, inputCategory) {
+                                    val names = categories.map { it.name }.toMutableList()
+                                    if (inputCategory.isNotBlank() && !names.any { it.equals(inputCategory, ignoreCase = true) }) {
+                                        names.add(0, inputCategory)
+                                    }
+                                    names
+                                }
+
+                            val filteredCategoryNames =
+                                remember(availableCategoryNames, categorySearchQuery) {
+                                    if (categorySearchQuery.isBlank()) {
+                                        availableCategoryNames
+                                    } else {
+                                        availableCategoryNames.filter { it.contains(categorySearchQuery.trim(), ignoreCase = true) }
+                                    }
+                                }
+
+                            val isExactMatch =
+                                remember(availableCategoryNames, categorySearchQuery) {
+                                    val q = categorySearchQuery.trim()
+                                    q.isBlank() || availableCategoryNames.any { it.equals(q, ignoreCase = true) }
+                                }
+
+                            ExposedDropdownMenuBox(
+                                expanded = categoryDropdownExpanded,
+                                onExpandedChange = { categoryDropdownExpanded = it },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                OutlinedTextField(
+                                    value = inputCategory,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Category") },
+                                    placeholder = { Text("Select category") },
+                                    trailingIcon = {
+                                        if (isCreatingCategory) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(18.dp),
+                                                strokeWidth = 2.dp,
+                                            )
+                                        } else {
+                                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded)
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier =
+                                        Modifier
+                                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                                            .fillMaxWidth(),
+                                    singleLine = true,
+                                )
+
+                                DropdownMenu(
+                                    expanded = categoryDropdownExpanded,
+                                    onDismissRequest = {
+                                        categoryDropdownExpanded = false
+                                        categorySearchQuery = ""
+                                    },
+                                    properties =
+                                        PopupProperties(
+                                            focusable = true,
+                                            dismissOnBackPress = true,
+                                            dismissOnClickOutside = true,
+                                        ),
+                                    modifier =
+                                        Modifier
+                                            .exposedDropdownSize()
+                                            .heightIn(max = 280.dp),
+                                ) {
+                                    // Search bar inside dropdown
+                                    OutlinedTextField(
+                                        value = categorySearchQuery,
+                                        onValueChange = { categorySearchQuery = it },
+                                        placeholder = { Text("Search or create category...", fontSize = 13.sp) },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Search,
+                                                contentDescription = "Search",
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                        },
+                                        trailingIcon = {
+                                            if (categorySearchQuery.isNotEmpty()) {
+                                                IconButton(onClick = { categorySearchQuery = "" }) {
+                                                    Icon(
+                                                        Icons.Default.Clear,
+                                                        contentDescription = "Clear",
+                                                        modifier = Modifier.size(16.dp),
+                                                    )
+                                                }
+                                            }
+                                        },
+                                        singleLine = true,
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                    )
+
+                                    // "+ Create New Category" action if query not present in DB
+                                    if (!isExactMatch && categorySearchQuery.isNotBlank()) {
+                                        val newCatName = categorySearchQuery.trim()
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.Add,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(20.dp),
+                                                    )
+                                                    Column {
+                                                        Text(
+                                                            text = "Create \"$newCatName\"",
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.primary,
+                                                            fontSize = 14.sp,
+                                                        )
+                                                        Text(
+                                                            text = "Save to live database & select",
+                                                            fontSize = 11.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        )
+                                                    }
+                                                }
+                                            },
+                                            onClick = {
+                                                isCreatingCategory = true
+                                                viewModel.createCategory(newCatName) { created ->
+                                                    inputCategory = created.name
+                                                    isCreatingCategory = false
+                                                    categoryDropdownExpanded = false
+                                                    categorySearchQuery = ""
+                                                    Toast
+                                                        .makeText(
+                                                            context,
+                                                            "Category created: ${created.name}",
+                                                            Toast.LENGTH_SHORT,
+                                                        ).show()
+                                                }
+                                            },
+                                        )
+                                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                                    }
+
+                                    if (filteredCategoryNames.isEmpty() && categorySearchQuery.isBlank()) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    "No categories available",
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    fontSize = 13.sp,
+                                                )
+                                            },
+                                            onClick = {},
+                                            enabled = false,
+                                        )
+                                    } else {
+                                        filteredCategoryNames.forEach { catName ->
+                                            val isSelected = catName == inputCategory
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                    ) {
+                                                        Text(
+                                                            text = catName,
+                                                            fontSize = 14.sp,
+                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                                        )
+                                                        if (isSelected) {
+                                                            Icon(
+                                                                Icons.Default.Check,
+                                                                contentDescription = "Selected",
+                                                                tint = MaterialTheme.colorScheme.primary,
+                                                                modifier = Modifier.size(18.dp),
+                                                            )
+                                                        }
+                                                    }
+                                                },
+                                                onClick = {
+                                                    inputCategory = catName
+                                                    categoryDropdownExpanded = false
+                                                    categorySearchQuery = ""
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
 
                             OutlinedTextField(
                                 value = inputBarcode,

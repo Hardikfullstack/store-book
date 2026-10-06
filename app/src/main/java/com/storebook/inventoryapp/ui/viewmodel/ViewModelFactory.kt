@@ -23,19 +23,11 @@ class AppViewModelFactory(
     private val context: Context,
 ) : ViewModelProvider.Factory {
     private val prefs by lazy { SecurityUtils.getEncryptedPrefs(context) }
-    private val storeId by lazy { prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID }
+    private val storeId get() = prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID
 
-    // Lazy initialize the database so it's a singleton within the factory scope
-    private val database: StoreBookDatabase by lazy {
-        val driver =
-            AndroidSqliteDriver(
-                StoreBookDatabase.Schema,
-                context,
-                "storebook_$storeId.db",
-                callback = DbMigrationCallback,
-            )
-        StoreBookDatabase(driver)
-    }
+    // Shared singleton database instance via DatabaseProvider
+    private val database: StoreBookDatabase
+        get() = com.storebook.inventoryapp.data.DatabaseProvider.getDatabase(context, storeId)
 
     private val inventoryRepository by lazy { InventoryRepository(database) }
     private val salesRepository by lazy { SalesRepository(database) }
@@ -48,6 +40,10 @@ class AppViewModelFactory(
     private val syncRepository by lazy { SyncRepository(database) }
     private val invoiceSettingsRepository by lazy { InvoiceSettingsRepository(database) }
     private val stockAdjustmentRepository by lazy { StockAdjustmentRepository(database) }
+    private val categoryRepository by lazy {
+        com.storebook.inventoryapp.shared.domain.repository
+            .CategoryRepository(database)
+    }
 
     // BP-3: Centralized sync status hub — shared across all ViewModels via the factory
     private val syncStatusViewModel by lazy { SyncStatusViewModel(context, syncRepository) }
@@ -65,6 +61,7 @@ class AppViewModelFactory(
                     purchaseRepository,
                     batchRepository,
                     stockAdjustmentRepository,
+                    categoryRepository,
                     context,
                 ) as T
             }

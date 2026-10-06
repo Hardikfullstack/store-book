@@ -7,8 +7,8 @@ export const OrderDirection = {
 
 export const connectorConfig = {
   connector: 'storebook-connector',
-  service: 'store-book',
-  location: 'us-central1'
+  service: 'new-storebook-service',
+  location: 'us-east4'
 };
 export const syncItemRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);

@@ -10,11 +10,16 @@ import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.storebook.inventoryapp.data.sync.SyncWorker
+import com.storebook.inventoryapp.dataconnect.StorebookConnectorConnector
+import com.storebook.inventoryapp.dataconnect.execute
+import com.storebook.inventoryapp.dataconnect.instance
+import com.storebook.inventoryapp.shared.domain.models.Category
 import com.storebook.inventoryapp.shared.domain.models.Item
 import com.storebook.inventoryapp.shared.domain.models.ItemBatch
 import com.storebook.inventoryapp.shared.domain.models.Purchase
 import com.storebook.inventoryapp.shared.domain.models.Supplier
 import com.storebook.inventoryapp.shared.domain.repository.BatchRepository
+import com.storebook.inventoryapp.shared.domain.repository.CategoryRepository
 import com.storebook.inventoryapp.shared.domain.repository.InventoryRepository
 import com.storebook.inventoryapp.shared.domain.repository.PurchaseRepository
 import com.storebook.inventoryapp.shared.domain.repository.StockAdjustmentRepository
@@ -22,6 +27,7 @@ import com.storebook.inventoryapp.shared.domain.repository.SupplierRepository
 import com.storebook.inventoryapp.utils.SecurityUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class InventoryViewModel(
@@ -30,6 +36,7 @@ class InventoryViewModel(
     private val purchaseRepository: PurchaseRepository,
     private val batchRepository: BatchRepository,
     private val stockAdjustmentRepository: StockAdjustmentRepository,
+    private val categoryRepository: CategoryRepository,
     private val context: Context,
 ) : ViewModel() {
     private val prefs = SecurityUtils.getEncryptedPrefs(context)
@@ -59,9 +66,29 @@ class InventoryViewModel(
     private val _suppliers = MutableStateFlow<List<Supplier>>(emptyList())
     val suppliers: StateFlow<List<Supplier>> = _suppliers
 
+    val currentBusinessType: String
+        get() {
+            val storeId = prefs.getString("active_store_id", "default") ?: "default"
+            return prefs.getString("business_type_$storeId", null)
+                ?: prefs.getString("business_type", "general")
+                ?: "general"
+        }
+
+    private val _categories = MutableStateFlow<List<Category>>(emptyList())
+    val categories: StateFlow<List<Category>> = _categories.asStateFlow()
+
     private var currentSearch = ""
     private var currentCategory = "All"
     private var currentSortBy = "Name"
+
+    init {
+        viewModelScope.launch {
+            CategoryRepository.categoriesUpdated.collect {
+                _categories.value = categoryRepository.getCategoriesByBusinessType(currentBusinessType)
+            }
+        }
+        loadCategories()
+    }
 
     private fun triggerSync() {
         val storeId = prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID
@@ -371,6 +398,92 @@ class InventoryViewModel(
             )
             loadFilteredItems()
             triggerSync()
+        }
+    }
+
+    fun loadCategories() {
+        viewModelScope.launch {
+            val bType = currentBusinessType
+            val storeId = prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID
+            categoryRepository.seedDefaultCategoriesIfEmpty(bType, storeId)
+            _categories.value = categoryRepository.getCategoriesByBusinessType(bType)
+            syncCategoriesWithServer(bType, storeId)
+        }
+    }
+
+    fun syncCategoriesWithServer(
+        businessType: String = currentBusinessType,
+        storeId: String = prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID,
+    ) {
+        viewModelScope.launch {
+            try {
+                val connector = StorebookConnectorConnector.instance
+                val result = connector.getCategories.execute(businessType)
+                val remoteList = result.data.categories
+                for (remoteCat in remoteList) {
+                    categoryRepository.upsertCategoryRemote(
+                        name = remoteCat.name,
+                        businessType = remoteCat.businessType,
+                        storeId = remoteCat.storeId,
+                        cloudId = remoteCat.id,
+                        isDeleted = remoteCat.isDeleted,
+                        updatedAt = remoteCat.updatedAt.toLong(),
+                    )
+                }
+                _categories.value = categoryRepository.getCategoriesByBusinessType(businessType)
+            } catch (e: Exception) {
+                // If offline or network unavailable, local DB remains functional
+                android.util.Log.d("InventoryViewModel", "Sync categories failed (offline/transient): ${e.message}")
+            }
+        }
+    }
+
+    fun createCategory(
+        name: String,
+        onResult: (Category) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val trimmed = name.trim()
+            if (trimmed.isBlank()) return@launch
+            val bType = currentBusinessType
+            val storeId = prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID
+            val uuid =
+                java.util.UUID
+                    .randomUUID()
+                    .toString()
+            var isSynced = false
+            val now = System.currentTimeMillis()
+
+            try {
+                val connector = StorebookConnectorConnector.instance
+                connector.syncCategory.execute(
+                    id = uuid,
+                    businessType = bType,
+                    name = trimmed,
+                    isDeleted = false,
+                    updatedAt = now.toDouble(),
+                    storeId = storeId,
+                )
+                isSynced = true
+            } catch (e: Exception) {
+                android.util.Log.w("InventoryViewModel", "Live DB category creation failed (offline): ${e.message}")
+            }
+
+            val saved =
+                categoryRepository.insertCategory(
+                    name = trimmed,
+                    businessType = bType,
+                    storeId = storeId,
+                    cloudId = uuid,
+                    isSynced = isSynced,
+                    updatedAt = now,
+                )
+
+            _categories.value = categoryRepository.getCategoriesByBusinessType(bType)
+            onResult(saved)
+
+            // Trigger global sync of categories in background so other categories are up to date
+            syncCategoriesWithServer(bType, storeId)
         }
     }
 }

@@ -13,9 +13,9 @@ export async function POST(request: Request) {
 
     const secret = process.env.RAZORPAY_KEY_SECRET;
     if (!secret) {
-        return NextResponse.json({ error: 'Razorpay secret not configured' }, { status: 500 });
+      return NextResponse.json({ error: 'Razorpay secret not configured' }, { status: 500 });
     }
-    
+
     // Verify signature for Subscriptions
     // Format: razorpay_payment_id + "|" + razorpay_subscription_id
     const generated_signature = crypto.createHmac('sha256', secret)
@@ -28,9 +28,9 @@ export async function POST(request: Request) {
     }
 
     // 1 Month Subscription initial setup (will be extended by webhooks on subsequent charges)
-    const expiresAt = Date.now() + (31 * 24 * 60 * 60 * 1000); 
+    const expiresAt = Date.now() + (31 * 24 * 60 * 60 * 1000);
 
-    const dc = getDataConnect({ serviceId: 'store-book', location: 'us-central1' });
+    const dc = getDataConnect({ serviceId: 'new-storebook-service', location: 'us-east4' });
 
     await dc.executeGraphql(
       `mutation UpdateStorePayment($id: String!, $expiresAt: Float!, $subId: String!) { 

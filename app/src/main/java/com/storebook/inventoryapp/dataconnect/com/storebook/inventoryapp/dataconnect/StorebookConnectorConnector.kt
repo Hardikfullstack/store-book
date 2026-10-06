@@ -42,6 +42,8 @@ public interface StorebookConnectorConnector :
 
     public val getAnnouncements: GetAnnouncementsQuery
 
+    public val getCategories: GetCategoriesQuery
+
     public val getExpenseEntriesCount: GetExpenseEntriesCountQuery
 
     public val getGlobalSettings: GetGlobalSettingsQuery
@@ -71,6 +73,8 @@ public interface StorebookConnectorConnector :
     public val softDeleteSale: SoftDeleteSaleMutation
 
     public val softDeleteUdhaar: SoftDeleteUdhaarMutation
+
+    public val syncCategory: SyncCategoryMutation
 
     public val syncExpense: SyncExpenseMutation
 
@@ -133,8 +137,8 @@ public interface StorebookConnectorConnector :
         public val config: com.google.firebase.dataconnect.ConnectorConfig =
             com.google.firebase.dataconnect.ConnectorConfig(
                 connector = "storebook-connector",
-                location = "us-central1",
-                serviceId = "store-book",
+                location = "us-east4",
+                serviceId = "new-storebook-service",
             )
 
         public fun getInstance(
@@ -231,6 +235,10 @@ private class StorebookConnectorConnectorImpl(
         GetAnnouncementsQueryImpl(this)
     }
 
+    override val getCategories by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        GetCategoriesQueryImpl(this)
+    }
+
     override val getExpenseEntriesCount by lazy(LazyThreadSafetyMode.PUBLICATION) {
         GetExpenseEntriesCountQueryImpl(this)
     }
@@ -289,6 +297,10 @@ private class StorebookConnectorConnectorImpl(
 
     override val softDeleteUdhaar by lazy(LazyThreadSafetyMode.PUBLICATION) {
         SoftDeleteUdhaarMutationImpl(this)
+    }
+
+    override val syncCategory by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        SyncCategoryMutationImpl(this)
     }
 
     override val syncExpense by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -419,6 +431,7 @@ private class StorebookConnectorConnectorImpl(
             softDeleteItem,
             softDeleteSale,
             softDeleteUdhaar,
+            syncCategory,
             syncExpense,
             syncItem,
             syncItemBatch,
@@ -449,6 +462,7 @@ private class StorebookConnectorConnectorImpl(
             getActiveUdhaars,
             getAdminAuditLogs,
             getAnnouncements,
+            getCategories,
             getExpenseEntriesCount,
             getGlobalSettings,
             getItemsCount,
@@ -1303,6 +1317,32 @@ private class UpsertPromoCodeMutationImpl(
         UpsertPromoCodeMutation.Companion.variablesSerializer,
     ),
     UpsertPromoCodeMutation
+
+private class SyncCategoryMutationImpl(
+    connector: StorebookConnectorConnector,
+) : StorebookConnectorConnectorGeneratedMutationImpl<
+        SyncCategoryMutation.Data,
+        SyncCategoryMutation.Variables,
+    >(
+        connector,
+        SyncCategoryMutation.Companion.operationName,
+        SyncCategoryMutation.Companion.dataDeserializer,
+        SyncCategoryMutation.Companion.variablesSerializer,
+    ),
+    SyncCategoryMutation
+
+private class GetCategoriesQueryImpl(
+    connector: StorebookConnectorConnector,
+) : StorebookConnectorConnectorGeneratedQueryImpl<
+        GetCategoriesQuery.Data,
+        GetCategoriesQuery.Variables,
+    >(
+        connector,
+        GetCategoriesQuery.Companion.operationName,
+        GetCategoriesQuery.Companion.dataDeserializer,
+        GetCategoriesQuery.Companion.variablesSerializer,
+    ),
+    GetCategoriesQuery
 
 // The lines below are used by the code generator to ensure that this file is deleted if it is no
 // longer needed. Any files in this directory that contain the lines below will be deleted by the

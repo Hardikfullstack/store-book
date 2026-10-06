@@ -8,8 +8,8 @@ exports.OrderDirection = OrderDirection;
 
 const connectorConfig = {
   connector: 'storebook-connector',
-  service: 'store-book',
-  location: 'us-central1'
+  service: 'new-storebook-service',
+  location: 'us-east4'
 };
 exports.connectorConfig = connectorConfig;
 

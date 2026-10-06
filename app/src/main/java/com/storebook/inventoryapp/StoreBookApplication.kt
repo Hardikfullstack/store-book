@@ -7,6 +7,7 @@ import androidx.work.WorkManager
 import com.google.android.gms.ads.MobileAds
 import com.storebook.inventoryapp.data.model.AppResponse
 import com.storebook.inventoryapp.utils.AppOpenAdManager
+import com.storebook.inventoryapp.utils.EmulatorConfig
 import com.storebook.inventoryapp.workers.ExpiryCheckWorker
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import java.util.concurrent.TimeUnit
@@ -23,6 +24,7 @@ class StoreBookApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        EmulatorConfig.setupIfEnabled()
         PDFBoxResourceLoader.init(applicationContext)
         MobileAds.initialize(this)
         appOpenAdManager = AppOpenAdManager(this)

@@ -771,6 +771,7 @@ query GetCategories($businessType: String!) @auth(level: USER, insecureReason: "
     businessType
     storeId
     name
+    isDefault
     isDeleted
     updatedAt
   }

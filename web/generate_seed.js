@@ -12,16 +12,16 @@ initializeApp({
 });
 
 const storeTypes = [
-  { type: 'Kirana Store', categories: ['Groceries', 'Snacks', 'Beverages', 'Spices'] },
-  { type: 'Medical Shop', categories: ['Medicines', 'Supplements', 'First Aid', 'Personal Care'] },
-  { type: 'Electronics Shop', categories: ['Mobiles', 'Accessories', 'Appliances', 'Laptops'] },
-  { type: 'Hardware Store', categories: ['Tools', 'Paints', 'Plumbing', 'Electrical'] },
-  { type: 'Clothing Boutique', categories: ['Men', 'Women', 'Kids', 'Accessories'] },
-  { type: 'Stationery Shop', categories: ['Books', 'Pens', 'Crafts', 'Office Supplies'] },
-  { type: 'Dairy & Sweets', categories: ['Milk', 'Sweets', 'Bakery', 'Ice Cream'] },
-  { type: 'Footwear Store', categories: ['Sneakers', 'Formals', 'Sandals', 'Socks'] },
-  { type: 'Sports Shop', categories: ['Equipments', 'Apparel', 'Nutrition', 'Accessories'] },
-  { type: 'Auto Parts', categories: ['Tyres', 'Oils', 'Spares', 'Accessories'] }
+  { type: 'Kirana Store', businessType: 'grocery', categories: ['Groceries', 'Snacks', 'Beverages', 'Spices'] },
+  { type: 'Medical Shop', businessType: 'medical', categories: ['Medicines', 'Supplements', 'First Aid', 'Personal Care'] },
+  { type: 'Electronics Shop', businessType: 'electronics', categories: ['Mobiles', 'Accessories', 'Appliances', 'Laptops'] },
+  { type: 'Hardware Store', businessType: 'hardware', categories: ['Tools', 'Paints', 'Plumbing', 'Electrical'] },
+  { type: 'Clothing Boutique', businessType: 'general', categories: ['Men', 'Women', 'Kids', 'Accessories'] },
+  { type: 'Stationery Shop', businessType: 'stationery', categories: ['Books', 'Pens', 'Crafts', 'Office Supplies'] },
+  { type: 'Dairy & Sweets', businessType: 'dairy_sweets', categories: ['Milk', 'Sweets', 'Bakery', 'Ice Cream'] },
+  { type: 'Footwear Store', businessType: 'footwear', categories: ['Sneakers', 'Formals', 'Sandals', 'Socks'] },
+  { type: 'Sports Shop', businessType: 'general', categories: ['Equipments', 'Apparel', 'Nutrition', 'Accessories'] },
+  { type: 'Auto Parts', businessType: 'hardware', categories: ['Tyres', 'Oils', 'Spares', 'Accessories'] }
 ];
 
 const unitOptions = ['pcs', 'kg', 'box', 'packet', 'litre', 'bottle', 'grams'];
@@ -67,8 +67,20 @@ async function generateSeed() {
     const storeId = uuidv4();
     stores.push({ id: storeId, ownerId: user.uid, type: storeType.type });
 
-    sql += `INSERT INTO "public"."store" (id, name, is_active, is_premium, subscription_status) VALUES ('${storeId}', 'Dummy ${storeType.type} ${i+1}', true, false, 'inactive') ON CONFLICT (id) DO NOTHING;\n`;
-    sql += `INSERT INTO "public"."user" (id, phone_number, created_at, role, store_id) VALUES ('${user.uid}', '${user.phoneNumber || '+91000000000' + i}', ${Date.now()}, 'owner', '${storeId}') ON CONFLICT (id) DO NOTHING;\n`;
+    sql += `INSERT INTO "public"."store" (id, name, business_type, is_active, is_premium, subscription_status) VALUES ('${storeId}', 'Dummy ${storeType.type} ${i+1}', '${storeType.businessType}', true, false, 'inactive') ON CONFLICT (id) DO NOTHING;\n`;
+    sql += `INSERT INTO "public"."store_profile" (id, store_id, gstin, address, phone, is_deleted, updated_at) VALUES ('${uuidv4()}', '${storeId}', '24AAACC1234D1Z5', 'Shop No. 1, Main Road', '+919876543210', false, ${Date.now()}) ON CONFLICT (id) DO NOTHING;\n`;
+
+    const catMap = {};
+    for (const cat of storeType.categories) {
+      const catId = uuidv4();
+      catMap[cat] = catId;
+      sql += `INSERT INTO "public"."category" (id, business_type, store_id, name, is_deleted, updated_at) VALUES ('${catId}', '${storeType.businessType}', '${storeId}', '${cat}', false, ${Date.now()}) ON CONFLICT (id) DO NOTHING;\n`;
+    }
+
+    const onConflictUser = i < usersList.length
+      ? `ON CONFLICT (id) DO UPDATE SET store_id = EXCLUDED.store_id, stores = EXCLUDED.stores, subscription_plan = EXCLUDED.subscription_plan, subscription_status = EXCLUDED.subscription_status`
+      : `ON CONFLICT (id) DO NOTHING`;
+    sql += `INSERT INTO "public"."user" (id, phone_number, created_at, role, store_id, stores, subscription_plan, subscription_status) VALUES ('${user.uid}', '${user.phoneNumber || '+91000000000' + i}', ${Date.now()}, 'owner', '${storeId}', ARRAY['${storeId}']::text[], 'pro', 'active') ${onConflictUser};\n`;
 
     // Generate ~50 items for each store to reach 500+ items total
     const storeItems = [];
@@ -77,10 +89,11 @@ async function generateSeed() {
       const buyPrice = randomFloat(10, 500);
       const sellPrice = parseFloat((buyPrice * randomFloat(1.1, 1.5)).toFixed(2));
       const category = randomChoice(storeType.categories);
+      const catId = catMap[category];
       const name = `${category} Item ${j+1}`;
       const quantity = randomInt(5, 100);
       
-      sql += `INSERT INTO "public"."item" (id, store_id, name, quantity, unit, buy_price, sell_price, low_stock_threshold, category, is_deleted, updated_at) VALUES ('${itemId}', '${storeId}', '${name}', ${quantity}, '${randomChoice(unitOptions)}', ${buyPrice}, ${sellPrice}, 5, '${category}', false, ${Date.now()}) ON CONFLICT (id) DO NOTHING;\n`;
+      sql += `INSERT INTO "public"."item" (id, store_id, name, quantity, unit, buy_price, sell_price, low_stock_threshold, category, category_id, is_deleted, updated_at) VALUES ('${itemId}', '${storeId}', '${name}', ${quantity}, '${randomChoice(unitOptions)}', ${buyPrice}, ${sellPrice}, 5, '${category}', '${catId}', false, ${Date.now()}) ON CONFLICT (id) DO NOTHING;\n`;
       
       storeItems.push({ id: itemId, name, sellPrice, buyPrice });
       allItems.push(itemId);

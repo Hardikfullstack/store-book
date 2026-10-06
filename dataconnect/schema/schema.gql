@@ -26,6 +26,7 @@ type Category @table {
   businessType: String! @col(name: "business_type") @default(value: "general")
   storeId: String @col(name: "store_id")
   name: String!
+  isDefault: Boolean! @default(value: false) @col(name: "is_default")
   
   # Sync Columns
   isDeleted: Boolean! @default(value: false) @col(name: "is_deleted")

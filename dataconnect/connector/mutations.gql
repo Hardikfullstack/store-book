@@ -516,6 +516,7 @@ mutation SyncCategory(
   $businessType: String!
   $storeId: String
   $name: String!
+  $isDefault: Boolean = false
   $isDeleted: Boolean!
   $updatedAt: Float!
 ) @auth(level: USER, insecureReason: "Industry catalog isolation is enforced by businessType") {
@@ -524,6 +525,7 @@ mutation SyncCategory(
     businessType: $businessType
     storeId: $storeId
     name: $name
+    isDefault: $isDefault
     isDeleted: $isDeleted
     updatedAt: $updatedAt
   })

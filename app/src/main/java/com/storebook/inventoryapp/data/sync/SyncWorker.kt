@@ -57,14 +57,7 @@ class SyncWorker(
             storeId: String,
         ): SyncRepository =
             SyncRepository(
-                StoreBookDatabase(
-                    AndroidSqliteDriver(
-                        StoreBookDatabase.Schema,
-                        ctx,
-                        "storebook_$storeId.db",
-                        callback = DbMigrationCallback,
-                    ),
-                ),
+                com.storebook.inventoryapp.data.DatabaseProvider.getDatabase(ctx, storeId),
             )
 
         suspend fun performSync(

@@ -27,8 +27,8 @@ export async function POST(request: Request) {
         }
 
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
 
         const staffRes: { data: { user?: { storeId: string; ownerId: string } }, errors?: unknown[] } = await dc.executeGraphql(

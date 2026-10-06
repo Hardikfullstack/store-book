@@ -13,6 +13,11 @@ import com.storebook.inventoryapp.shared.data.local.StoreBookDatabase
  * so it is idempotent: safe-start on both old and new DBs.
  */
 object DbMigrationCallback : AndroidSqliteDriver.Callback(StoreBookDatabase.Schema) {
+    override fun onConfigure(db: SupportSQLiteDatabase) {
+        super.onConfigure(db)
+        db.enableWriteAheadLogging()
+    }
+
     override fun onOpen(holdable: SupportSQLiteDatabase) {
         val columns = pragmaTableInfo(holdable, "sale_items")
         if (!columns.contains("tax_rate")) {
@@ -40,6 +45,59 @@ object DbMigrationCallback : AndroidSqliteDriver.Callback(StoreBookDatabase.Sche
         )
         holdable.execSQL("CREATE INDEX IF NOT EXISTS idx_stock_adjustments_timestamp ON stock_adjustments(timestamp)")
         holdable.execSQL("CREATE INDEX IF NOT EXISTS idx_stock_adjustments_item_id ON stock_adjustments(item_id)")
+
+        val categoryColumns = pragmaTableInfo(holdable, "categories")
+        if (categoryColumns.isEmpty()) {
+            holdable.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS categories (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  name TEXT NOT NULL,
+                  business_type TEXT NOT NULL,
+                  store_id TEXT,
+                  cloud_id TEXT,
+                  is_default INTEGER NOT NULL DEFAULT 0,
+                  is_synced INTEGER NOT NULL DEFAULT 0,
+                  is_deleted INTEGER NOT NULL DEFAULT 0,
+                  updated_at INTEGER NOT NULL DEFAULT 0
+                )
+                """.trimIndent(),
+            )
+            holdable.execSQL("CREATE INDEX IF NOT EXISTS idx_categories_business_type ON categories(business_type)")
+            holdable.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_cloud_id ON categories(cloud_id)")
+        } else if (!categoryColumns.contains("cloud_id")) {
+            holdable.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS categories_new (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  name TEXT NOT NULL,
+                  business_type TEXT NOT NULL,
+                  store_id TEXT,
+                  cloud_id TEXT,
+                  is_default INTEGER NOT NULL DEFAULT 0,
+                  is_synced INTEGER NOT NULL DEFAULT 0,
+                  is_deleted INTEGER NOT NULL DEFAULT 0,
+                  updated_at INTEGER NOT NULL DEFAULT 0
+                )
+                """.trimIndent(),
+            )
+            holdable.execSQL(
+                """
+                INSERT INTO categories_new (name, business_type, store_id, cloud_id, is_default, is_synced, is_deleted, updated_at)
+                SELECT name, business_type, store_id, id, 0, is_synced, is_deleted, updated_at FROM categories
+                """.trimIndent(),
+            )
+            holdable.execSQL("DROP TABLE categories")
+            holdable.execSQL("ALTER TABLE categories_new RENAME TO categories")
+            holdable.execSQL("CREATE INDEX IF NOT EXISTS idx_categories_business_type ON categories(business_type)")
+            holdable.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_cloud_id ON categories(cloud_id)")
+        } else {
+            if (!categoryColumns.contains("is_default")) {
+                holdable.execSQL("ALTER TABLE categories ADD COLUMN is_default INTEGER NOT NULL DEFAULT 0")
+            }
+            holdable.execSQL("CREATE INDEX IF NOT EXISTS idx_categories_business_type ON categories(business_type)")
+            holdable.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_cloud_id ON categories(cloud_id)")
+        }
     }
 
     override fun onDowngrade(

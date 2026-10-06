@@ -179,68 +179,37 @@ fun AppNavigation() {
     val activity = context as? MainActivity
     val navController = rememberNavController()
 
+    val viewModelFactory =
+        androidx.compose.runtime.remember(context) {
+            com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+        }
+
     val udhaarViewModel: com.storebook.inventoryapp.ui.viewmodel.UdhaarViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(
-            factory =
-                com.storebook.inventoryapp.ui.viewmodel
-                    .AppViewModelFactory(context),
-        )
+        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
 
     val inventoryViewModel: com.storebook.inventoryapp.ui.viewmodel.InventoryViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(
-            factory =
-                com.storebook.inventoryapp.ui.viewmodel
-                    .AppViewModelFactory(context),
-        )
+        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
 
     val salesViewModel: com.storebook.inventoryapp.ui.viewmodel.SalesViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(
-            factory =
-                com.storebook.inventoryapp.ui.viewmodel
-                    .AppViewModelFactory(context),
-        )
+        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
 
     val dashboardViewModel: com.storebook.inventoryapp.ui.viewmodel.DashboardViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(
-            factory =
-                com.storebook.inventoryapp.ui.viewmodel
-                    .AppViewModelFactory(context),
-        )
+        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
 
     val purchaseViewModel: com.storebook.inventoryapp.ui.viewmodel.PurchaseViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(
-            factory =
-                com.storebook.inventoryapp.ui.viewmodel
-                    .AppViewModelFactory(context),
-        )
+        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
 
     val supplierViewModel: com.storebook.inventoryapp.ui.viewmodel.SupplierViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(
-            factory =
-                com.storebook.inventoryapp.ui.viewmodel
-                    .AppViewModelFactory(context),
-        )
+        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
 
     val expenseViewModel: com.storebook.inventoryapp.ui.viewmodel.ExpenseViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(
-            factory =
-                com.storebook.inventoryapp.ui.viewmodel
-                    .AppViewModelFactory(context),
-        )
+        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
 
     val moreViewModel: com.storebook.inventoryapp.ui.viewmodel.MoreViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(
-            factory =
-                com.storebook.inventoryapp.ui.viewmodel
-                    .AppViewModelFactory(context),
-        )
+        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
 
     val stockAuditViewModel: com.storebook.inventoryapp.ui.viewmodel.StockAuditViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(
-            factory =
-                com.storebook.inventoryapp.ui.viewmodel
-                    .AppViewModelFactory(context),
-        )
+        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route

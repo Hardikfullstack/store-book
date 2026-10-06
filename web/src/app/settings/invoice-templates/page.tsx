@@ -12,8 +12,8 @@ export default async function InvoiceTemplatesPage() {
 
   try {
     const dc = getDataConnect({
-      serviceId: 'store-book',
-      location: 'us-central1',
+      serviceId: 'new-storebook-service',
+      location: 'us-east4',
     });
 
     const result = await dc.executeGraphql(

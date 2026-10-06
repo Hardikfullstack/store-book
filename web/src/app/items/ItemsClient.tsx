@@ -201,7 +201,7 @@ export default function ItemsClient({
     const searchResultsKeyRef = useRef("");
 
     // Category Management State
-    const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+    const [categories, setCategories] = useState<{ id: string; name: string; isDefault?: boolean }[]>([]);
     const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
     const [categorySearchTerm, setCategorySearchTerm] = useState("");
     const [isCreatingCategory, setIsCreatingCategory] = useState(false);
@@ -236,9 +236,10 @@ export default function ItemsClient({
                 );
 
                 const fetched = (resp.data?.categories || []).map(
-                    (c: { id: string; name: string }) => ({
+                    (c: { id: string; name: string; isDefault?: boolean }) => ({
                         id: c.id,
                         name: c.name,
+                        isDefault: c.isDefault ?? false,
                     })
                 );
 

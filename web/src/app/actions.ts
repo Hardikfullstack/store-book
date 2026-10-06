@@ -19,8 +19,8 @@ export async function login(idToken: string) {
 
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
         const decodedIdToken = await adminAuth.verifyIdToken(idToken);
 
@@ -125,8 +125,8 @@ export async function createStore(name: string, businessType: string = "general"
 
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
         const storeId = crypto.randomUUID();
 
@@ -186,8 +186,8 @@ export async function archiveOldData(
 
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
         let totalDeleted = 0;
 
@@ -233,8 +233,8 @@ export async function purgeStoreData(
     const session = await requirePermission("canAccessAdmin");
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
         await dc.executeGraphql(
             `mutation PurgeStore($id: String!) { store_update(id: $id, data: { isActive: false }) }`,
@@ -290,8 +290,8 @@ export async function getStoresPaginated(lastId?: string, limitCount = 20) {
     }
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
         const response = await dc.executeGraphql(
             `query GetStoresPaginated {
@@ -322,8 +322,8 @@ export async function getUsersPaginated(lastId?: string, limitCount = 20) {
     }
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
         const response = await dc.executeGraphql(
             `query GetUsersPaginated {
@@ -350,8 +350,8 @@ export async function toggleStoreStatus(storeId: string, isActive: boolean) {
 
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
         await dc.executeGraphql(
             `mutation ToggleStoreStatus($id: String!, $isActive: Boolean) {
@@ -375,8 +375,8 @@ export async function updateUserRole(
 
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
         await dc.executeGraphql(
             `mutation UpdateUserRole($id: String!, $role: String!) {
@@ -439,8 +439,8 @@ export async function createStaffAccount(
         });
 
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
 
         await dc.executeGraphql(
@@ -475,8 +475,8 @@ export async function updateStaffRole(
 
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
 
         const checkRes = await dc.executeGraphql(
@@ -527,8 +527,8 @@ export async function deleteStaffAccount(
 
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
 
         const checkRes = await dc.executeGraphql(
@@ -572,8 +572,8 @@ export async function resetStaffPassword(
 
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
 
         const checkRes = await dc.executeGraphql(
@@ -618,8 +618,8 @@ export async function getStaffByStore(
 
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
         const response = await dc.executeGraphql(
             `query GetStaffByStore($storeId: String!) {
@@ -672,8 +672,8 @@ export async function getSalesTrendData(
 
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
         const cutoffTimestamp = Math.floor(
             (Date.now() - daysAgo * 24 * 60 * 60 * 1000) / 1000,
@@ -755,8 +755,8 @@ export async function convertQuotationToSale(
         }
 
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
         const nowMs = Date.now();
         const nowSec = Math.floor(nowMs / 1000);
@@ -895,8 +895,8 @@ export async function getUdhaarCustomerBalances(storeId: string): Promise<{
 
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
         const response = await dc.executeGraphql(
             `query GetUdhaarForBalance($storeId: String!) {
@@ -995,8 +995,8 @@ export async function getConsolidatedPLData(
 
     try {
         const dc = getDataConnect({
-            serviceId: "store-book",
-            location: "us-central1",
+            serviceId: "new-storebook-service",
+            location: "us-east4",
         });
         const cutoffTimestamp = Math.floor(
             (Date.now() - daysAgo * 24 * 60 * 60 * 1000) / 1000,

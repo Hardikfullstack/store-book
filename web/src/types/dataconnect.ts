@@ -164,6 +164,7 @@ export interface DcCategory {
   businessType: string;
   storeId?: string | null;
   name: string;
+  isDefault?: boolean;
   isDeleted: boolean;
   updatedAt: number;
 }

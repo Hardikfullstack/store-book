@@ -1,8 +1,8 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, connectAuthEmulator } from 'firebase/auth';
 import { getDataConnect, connectDataConnectEmulator } from 'firebase/data-connect';
 import { getDatabase } from 'firebase/database';
-import { getStorage } from 'firebase/storage';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { connectorConfig } from '../dataconnect';
 
 const firebaseConfig = {
@@ -20,3 +20,11 @@ export const googleProvider = new GoogleAuthProvider();
 export const dataConnect = getDataConnect(app, connectorConfig);
 export const rtdb = getDatabase(app);
 export const storage = getStorage(app);
+
+if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
+  const host = '127.0.0.1';
+  connectAuthEmulator(auth, `http://${host}:9099`, { disableWarnings: true });
+  connectStorageEmulator(storage, host, 9199);
+  connectDataConnectEmulator(dataConnect, host, 9399, false);
+}
+

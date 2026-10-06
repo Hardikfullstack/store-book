@@ -23,6 +23,11 @@ public data class AnnouncementKey(
 )
 
 @kotlinx.serialization.Serializable
+public data class CategoryKey(
+    val id: String,
+)
+
+@kotlinx.serialization.Serializable
 public data class ExpenseEntryKey(
     val id: String,
 )
