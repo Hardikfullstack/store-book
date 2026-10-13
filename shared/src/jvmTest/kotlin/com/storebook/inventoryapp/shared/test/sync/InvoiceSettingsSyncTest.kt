@@ -35,12 +35,9 @@ class InvoiceSettingsSyncTest {
             shopGstin = null,
             logoPath = null,
             accentColor = "#ff0000",
-            headerText = "INVOICE",
             footerText = null,
             bankDetails = null,
             terms = null,
-            showGstBreakdown = 1L,
-            templateStyle = "MINIMALIST",
             updatedAt = 1000
         )
 
@@ -60,12 +57,9 @@ class InvoiceSettingsSyncTest {
             shopGstin = null,
             logoPath = null,
             accentColor = null,
-            headerText = null,
             footerText = null,
             bankDetails = null,
             terms = null,
-            showGstBreakdown = null,
-            templateStyle = "STANDARD_GST",
             updatedAt = 2000
         )
 
@@ -83,12 +77,9 @@ class InvoiceSettingsSyncTest {
             shopGstin = null,
             logoPath = null,
             accentColor = null,
-            headerText = null,
             footerText = null,
             bankDetails = null,
             terms = null,
-            showGstBreakdown = null,
-            templateStyle = "STANDARD_GST",
             updatedAt = 3000
         )
 
@@ -121,12 +112,9 @@ class InvoiceSettingsSyncTest {
             shopGstin = null,
             logoPath = null,
             accentColor = null,
-            headerText = null,
             footerText = null,
             bankDetails = null,
             terms = null,
-            showGstBreakdown = null,
-            templateStyle = "STANDARD_GST",
             updatedAt = 100
         )
 
@@ -137,12 +125,9 @@ class InvoiceSettingsSyncTest {
             shopGstin = "27AABCU9603R1ZM",
             logoPath = "https://example.com/logo.png",
             accentColor = "#00ff00",
-            headerText = null,
             footerText = null,
             bankDetails = null,
             terms = null,
-            showGstBreakdown = 0L,
-            templateStyle = "THERMAL_80MM",
             cloudId = "remote-123",
             updatedAt = 5000
         )

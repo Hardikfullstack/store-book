@@ -14,6 +14,7 @@ class InvoiceSettingsRepository(
 
     suspend fun setInvoiceSettings(settings: InvoiceSettings) {
         val updatedAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+        val combinedBankDetails = combineBankAndUpi(settings.bankDetails, settings.upiId)
         queries.insertOrUpdateInvoiceSettings(
             storeId = settings.storeId,
             shopName = settings.shopName,
@@ -21,12 +22,9 @@ class InvoiceSettingsRepository(
             shopGstin = settings.shopGstin,
             logoPath = settings.logoPath,
             accentColor = settings.accentColor,
-            headerText = settings.headerText,
             footerText = settings.footerText,
-            bankDetails = settings.bankDetails,
+            bankDetails = combinedBankDetails,
             terms = settings.terms,
-            showGstBreakdown = if (settings.showGstBreakdown) 1L else 0L,
-            templateStyle = settings.templateStyle,
             updatedAt = updatedAt,
         )
     }
@@ -39,8 +37,9 @@ class InvoiceSettingsRepository(
         queries.markInvoiceSettingsSynced(cloudId = cloudId, id = localId)
     }
 
-    private fun mapToDomain(row: Invoice_settings): InvoiceSettings =
-        InvoiceSettings(
+    private fun mapToDomain(row: Invoice_settings): InvoiceSettings {
+        val (cleanBank, extractedUpi) = parseBankAndUpi(row.bank_details)
+        return InvoiceSettings(
             id = row.id,
             storeId = row.store_id,
             shopName = row.shop_name,
@@ -48,11 +47,37 @@ class InvoiceSettingsRepository(
             shopGstin = row.shop_gstin,
             logoPath = row.logo_path,
             accentColor = row.accent_color,
-            headerText = row.header_text,
             footerText = row.footer_text,
-            bankDetails = row.bank_details,
+            bankDetails = cleanBank,
             terms = row.terms,
-            showGstBreakdown = row.show_gst_breakdown == 1L,
-            templateStyle = row.template_style,
+            upiId = extractedUpi,
         )
+    }
+
+    private fun parseBankAndUpi(raw: String?): Pair<String?, String?> {
+        if (raw.isNullOrBlank()) return null to null
+        val lines = raw.lines()
+        val upiLine = lines.firstOrNull { line ->
+            val trimmed = line.trim()
+            trimmed.startsWith("UPI ID:", ignoreCase = true) || trimmed.startsWith("UPI:", ignoreCase = true)
+        }
+        val extractedUpi = upiLine?.substringAfter(":")?.trim()?.takeIf { it.isNotBlank() }
+        val remainingBank = lines.filter { line ->
+            val trimmed = line.trim()
+            !trimmed.startsWith("UPI ID:", ignoreCase = true) && !trimmed.startsWith("UPI:", ignoreCase = true)
+        }.joinToString("\n").trim().takeIf { it.isNotBlank() }
+        return remainingBank to extractedUpi
+    }
+
+    private fun combineBankAndUpi(bank: String?, upi: String?): String? {
+        val cleanBank = bank?.trim()?.takeIf { it.isNotBlank() }
+        val cleanUpi = upi?.trim()?.takeIf { it.isNotBlank() }
+        return buildString {
+            if (cleanBank != null) append(cleanBank)
+            if (cleanUpi != null) {
+                if (isNotEmpty()) append("\n")
+                append("UPI ID: $cleanUpi")
+            }
+        }.takeIf { it.isNotBlank() }
+    }
 }

@@ -117,12 +117,9 @@ class MoreViewModel(
             shopGstin = businessGstin.takeIf { it.isNotBlank() },
             logoPath = null,
             accentColor = "#0F766E",
-            headerText = null,
             footerText = null,
             bankDetails = null,
             terms = null,
-            showGstBreakdown = true,
-            templateStyle = "STANDARD_GST",
         )
 
     fun loadInvoiceSettings() {

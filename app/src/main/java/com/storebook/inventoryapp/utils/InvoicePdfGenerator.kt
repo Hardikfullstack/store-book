@@ -38,35 +38,46 @@ object InvoicePdfGenerator {
         }
     }
 
-    private fun resolveSettings(
+    fun resolveSettings(
         context: Context,
         settings: InvoiceSettings?,
     ): InvoiceSettings? {
         if (settings != null) return settings
         return try {
-            val driver =
-                com.storebook.inventoryapp.shared.data
-                    .DatabaseDriverFactory(context, "default")
-                    .createDriver()
+            val prefs = SecurityUtils.getEncryptedPrefs(context)
+            val activeStoreId = prefs.getString("active_store_id", "default") ?: "default"
             val database =
-                com.storebook.inventoryapp.shared.data.local
-                    .StoreBookDatabase(driver)
+                com.storebook.inventoryapp.data.DatabaseProvider
+                    .getDatabase(context, activeStoreId)
             val repository =
                 com.storebook.inventoryapp.shared.data.local
                     .InvoiceSettingsRepository(database)
-            repository.getInvoiceSettings("default")
+            repository.getInvoiceSettings(activeStoreId)
         } catch (e: Exception) {
             null
         }
     }
 
-    private fun loadLogoBitmap(
+    fun loadLogoBitmap(
         context: Context,
         logoPath: String?,
     ): android.graphics.Bitmap? {
         if (logoPath.isNullOrBlank()) return null
         return try {
             when {
+                logoPath.startsWith("data:image") || logoPath.contains(";base64,") -> {
+                    val base64Data = logoPath.substringAfter(";base64,")
+                    val decodedBytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+                    android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                }
+                logoPath.length > 100 && !logoPath.startsWith("/") && !logoPath.startsWith("content:") && !logoPath.startsWith("file:") -> {
+                    try {
+                        val decodedBytes = android.util.Base64.decode(logoPath, android.util.Base64.DEFAULT)
+                        android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
                 logoPath.startsWith("content://") || logoPath.startsWith("file://") -> {
                     val uri = android.net.Uri.parse(logoPath)
                     context.contentResolver.openInputStream(uri)?.use {
@@ -379,6 +390,8 @@ object InvoicePdfGenerator {
 
         // Draw header helper
         val drawHeader = {
+            val headerStartY = yPos
+            var logoHeight = 0f
             val logoBitmap = loadLogoBitmap(context, settings?.logoPath)
             if (logoBitmap != null) {
                 try {
@@ -386,8 +399,9 @@ object InvoicePdfGenerator {
                     val maxH = 60
                     val aspect = logoBitmap.width.toFloat() / logoBitmap.height.toFloat()
                     val (w, h) = if (aspect > 1f) maxW to (maxW / aspect).toInt() else (maxH * aspect).toInt() to maxH
+                    logoHeight = h.toFloat()
                     val scaled = android.graphics.Bitmap.createScaledBitmap(logoBitmap, w, h, true)
-                    canvas.drawBitmap(scaled, rightMargin - w, yPos, paint)
+                    canvas.drawBitmap(scaled, rightMargin - w, headerStartY, paint)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -412,14 +426,20 @@ object InvoicePdfGenerator {
                 yPos += 15f
             }
 
+            // Ensure yPos is past the logo
+            if (logoHeight > 0f) {
+                val minHeaderEndY = headerStartY + logoHeight + 10f
+                if (yPos < minHeaderEndY) {
+                    yPos = minHeaderEndY
+                }
+            }
+
             // Title
             yPos += 20f
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             paint.textSize = 20f
             paint.textAlign = Paint.Align.CENTER
-            val titleText =
-                settings?.headerText?.takeIf { it.isNotBlank() }
-                    ?: if (sale.type == "ESTIMATE") "QUOTATION / ESTIMATE" else "TAX INVOICE"
+            val titleText = if (sale.type == "ESTIMATE") "QUOTATION / ESTIMATE" else "TAX INVOICE"
             canvas.drawText(titleText, pageWidth / 2f, yPos, paint)
             paint.textAlign = Paint.Align.LEFT
 
@@ -634,15 +654,25 @@ object InvoicePdfGenerator {
         yPos += 30f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         paint.textSize = 10f
+        paint.textAlign = Paint.Align.LEFT
 
         val bankStr = settings?.bankDetails?.takeIf { it.isNotBlank() }
-        if (!bankStr.isNullOrBlank()) {
+        val upiStr = settings?.upiId?.takeIf { it.isNotBlank() }
+        if (!bankStr.isNullOrBlank() || !upiStr.isNullOrBlank()) {
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             canvas.drawText("Bank / Payment Details:", leftMargin, yPos, paint)
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
             yPos += 14f
-            for (line in bankStr.split("\n")) {
-                canvas.drawText(line, leftMargin, yPos, paint)
+            if (!bankStr.isNullOrBlank()) {
+                for (line in bankStr.split("\n")) {
+                    if (line.isNotBlank()) {
+                        canvas.drawText(line.trim(), leftMargin, yPos, paint)
+                        yPos += 12f
+                    }
+                }
+            }
+            if (!upiStr.isNullOrBlank() && (bankStr == null || !bankStr.contains(upiStr))) {
+                canvas.drawText("UPI ID: ${upiStr.trim()}", leftMargin, yPos, paint)
                 yPos += 12f
             }
             yPos += 10f
@@ -655,8 +685,33 @@ object InvoicePdfGenerator {
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
             yPos += 14f
             for (line in termsStr.split("\n")) {
-                canvas.drawText(line, leftMargin, yPos, paint)
-                yPos += 12f
+                if (line.isNotBlank()) {
+                    val rawText = line.trim()
+                    val maxTextWidth = rightMargin - leftMargin
+                    if (paint.measureText(rawText) <= maxTextWidth) {
+                        canvas.drawText(rawText, leftMargin, yPos, paint)
+                        yPos += 12f
+                    } else {
+                        val words = rawText.split(" ")
+                        var current = ""
+                        for (w in words) {
+                            val candidate = if (current.isEmpty()) w else "$current $w"
+                            if (paint.measureText(candidate) > maxTextWidth) {
+                                if (current.isNotEmpty()) {
+                                    canvas.drawText(current, leftMargin, yPos, paint)
+                                    yPos += 12f
+                                }
+                                current = w
+                            } else {
+                                current = candidate
+                            }
+                        }
+                        if (current.isNotEmpty()) {
+                            canvas.drawText(current, leftMargin, yPos, paint)
+                            yPos += 12f
+                        }
+                    }
+                }
             }
             yPos += 10f
         }

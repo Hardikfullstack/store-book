@@ -16,9 +16,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Card
@@ -45,13 +47,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.storebook.inventoryapp.shared.domain.models.InvoiceSettings
-
-private val TEMPLATE_STYLES = listOf("STANDARD_GST", "MINIMAL", "DETAILED")
+import com.storebook.inventoryapp.utils.InvoicePdfGenerator
 
 private val ACCENT_PRESETS =
     listOf(
@@ -70,21 +72,45 @@ fun PdfSettingsScreen(
     onBack: () -> Unit = {},
     onSave: (InvoiceSettings) -> Unit,
 ) {
-    var shopName by remember { mutableStateOf(initialSettings.shopName ?: "") }
-    var shopAddress by remember { mutableStateOf(initialSettings.shopAddress ?: "") }
-    var shopGstin by remember { mutableStateOf(initialSettings.shopGstin ?: "") }
-    var headerText by remember { mutableStateOf(initialSettings.headerText ?: "") }
-    var footerText by remember { mutableStateOf(initialSettings.footerText ?: "") }
-    var terms by remember { mutableStateOf(initialSettings.terms ?: "") }
-    var bankDetails by remember { mutableStateOf(initialSettings.bankDetails ?: "") }
-    var upiId by remember { mutableStateOf("") }
-    var showGstBreakdown by remember { mutableStateOf(initialSettings.showGstBreakdown) }
-    var showBankDetails by remember { mutableStateOf(initialSettings.bankDetails?.isNotBlank() == true) }
-    var templateStyle by remember { mutableStateOf(initialSettings.templateStyle) }
-    var accentColor by remember { mutableStateOf(initialSettings.accentColor ?: "") }
-    var logoPath by remember { mutableStateOf(initialSettings.logoPath ?: "") }
+    val (initialCleanBank, initialCleanUpi) =
+        remember(initialSettings) {
+            val rawBank = initialSettings.bankDetails ?: ""
+            if (!initialSettings.upiId.isNullOrBlank()) {
+                rawBank to initialSettings.upiId
+            } else {
+                val lines = rawBank.lines()
+                val upiLine =
+                    lines.firstOrNull {
+                        val t = it.trim()
+                        t.startsWith("UPI ID:", ignoreCase = true) || t.startsWith("UPI:", ignoreCase = true)
+                    }
+                val upi = upiLine?.substringAfter(":")?.trim()
+                val remaining =
+                    lines
+                        .filter {
+                            val t = it.trim()
+                            !t.startsWith("UPI ID:", ignoreCase = true) && !t.startsWith("UPI:", ignoreCase = true)
+                        }.joinToString("\n")
+                        .trim()
+                remaining to upi
+            }
+        }
 
-    var isDropdownExpanded by remember { mutableStateOf(false) }
+    var shopName by remember(initialSettings) { mutableStateOf(initialSettings.shopName ?: "") }
+    var shopAddress by remember(initialSettings) { mutableStateOf(initialSettings.shopAddress ?: "") }
+    var shopGstin by remember(initialSettings) { mutableStateOf(initialSettings.shopGstin ?: "") }
+    var footerText by remember(initialSettings) { mutableStateOf(initialSettings.footerText ?: "") }
+    var terms by remember(initialSettings) { mutableStateOf(initialSettings.terms ?: "") }
+    var bankDetails by remember(initialSettings) { mutableStateOf(initialCleanBank) }
+    var upiId by remember(initialSettings) { mutableStateOf(initialCleanUpi ?: "") }
+    var showBankDetails by remember(initialSettings) {
+        mutableStateOf(
+            initialCleanBank.isNotBlank() || !initialCleanUpi.isNullOrBlank(),
+        )
+    }
+    var accentColor by remember(initialSettings) { mutableStateOf(initialSettings.accentColor ?: "") }
+    var logoPath by remember(initialSettings) { mutableStateOf(initialSettings.logoPath ?: "") }
+
     var isColorDropdownExpanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -92,35 +118,94 @@ fun PdfSettingsScreen(
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.GetContent(),
             onResult = { uri ->
-                uri?.let { logoPath = it.toString() }
+                if (uri != null) {
+                    try {
+                        val rawBytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        if (rawBytes != null) {
+                            val maxLimitBytes = 500 * 1024
+                            val mimeType = context.contentResolver.getType(uri)?.lowercase() ?: "image/jpeg"
+                            if (rawBytes.size <= maxLimitBytes) {
+                                val prefix = if (mimeType.contains("png")) "data:image/png;base64," else "data:image/jpeg;base64,"
+                                val base64 = prefix + android.util.Base64.encodeToString(rawBytes, android.util.Base64.NO_WRAP)
+                                logoPath = base64
+                            } else {
+                                val originalBitmap = android.graphics.BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size)
+                                if (originalBitmap != null) {
+                                    val maxDim = 800
+                                    val scale =
+                                        if (originalBitmap.width > maxDim || originalBitmap.height > maxDim) {
+                                            maxDim.toFloat() / maxOf(originalBitmap.width, originalBitmap.height)
+                                        } else {
+                                            1f
+                                        }
+                                    val scaledBitmap =
+                                        if (scale < 1f) {
+                                            android.graphics.Bitmap.createScaledBitmap(
+                                                originalBitmap,
+                                                (originalBitmap.width * scale).toInt(),
+                                                (originalBitmap.height * scale).toInt(),
+                                                true,
+                                            )
+                                        } else {
+                                            originalBitmap
+                                        }
+
+                                    val bitmapToCompress =
+                                        if (scaledBitmap.hasAlpha()) {
+                                            val whiteBitmap =
+                                                android.graphics.Bitmap.createBitmap(
+                                                    scaledBitmap.width,
+                                                    scaledBitmap.height,
+                                                    android.graphics.Bitmap.Config.ARGB_8888,
+                                                )
+                                            val canvas = android.graphics.Canvas(whiteBitmap)
+                                            canvas.drawColor(android.graphics.Color.WHITE)
+                                            canvas.drawBitmap(scaledBitmap, 0f, 0f, null)
+                                            whiteBitmap
+                                        } else {
+                                            scaledBitmap
+                                        }
+
+                                    var quality = 85
+                                    var compressedBytes: ByteArray
+                                    do {
+                                        val outStream = java.io.ByteArrayOutputStream()
+                                        bitmapToCompress.compress(android.graphics.Bitmap.CompressFormat.JPEG, quality, outStream)
+                                        compressedBytes = outStream.toByteArray()
+                                        quality -= 15
+                                    } while (compressedBytes.size > maxLimitBytes && quality >= 40)
+
+                                    if (compressedBytes.size <= maxLimitBytes) {
+                                        val base64 =
+                                            "data:image/jpeg;base64," + android.util.Base64.encodeToString(compressedBytes, android.util.Base64.NO_WRAP)
+                                        logoPath = base64
+                                    } else {
+                                        android.widget.Toast
+                                            .makeText(
+                                                context,
+                                                "Logo exceeds 500 KB limit. Please choose a smaller image.",
+                                                android.widget.Toast.LENGTH_LONG,
+                                            ).show()
+                                    }
+                                } else {
+                                    android.widget.Toast
+                                        .makeText(context, "Invalid image format", android.widget.Toast.LENGTH_SHORT)
+                                        .show()
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        android.widget.Toast
+                            .makeText(context, "Failed to load image", android.widget.Toast.LENGTH_SHORT)
+                            .show()
+                    }
+                }
             },
         )
 
     fun handleSave() {
-        var finalLogoPath: String? = logoPath.takeIf { it.isNotBlank() }
-        if (finalLogoPath != null && finalLogoPath.startsWith("content://")) {
-            try {
-                val uri = android.net.Uri.parse(finalLogoPath)
-                val destFile = java.io.File(context.filesDir, "invoice_logo_${initialSettings.storeId}.png")
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    destFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-                finalLogoPath = destFile.absolutePath
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        val effectiveBankDetails =
-            buildString {
-                if (bankDetails.isNotBlank()) append(bankDetails.trim())
-                if (upiId.isNotBlank() && !bankDetails.contains(upiId)) {
-                    if (isNotEmpty()) append("\n")
-                    append("UPI ID: ${upiId.trim()}")
-                }
-            }.takeIf { it.isNotBlank() }
+        val finalLogoPath: String? = logoPath.takeIf { it.isNotBlank() }
 
         val settings =
             InvoiceSettings(
@@ -131,12 +216,10 @@ fun PdfSettingsScreen(
                 shopGstin = shopGstin.takeIf { it.isNotBlank() },
                 logoPath = finalLogoPath,
                 accentColor = accentColor.takeIf { it.isNotBlank() },
-                headerText = headerText.takeIf { it.isNotBlank() },
                 footerText = footerText.takeIf { it.isNotBlank() },
-                bankDetails = effectiveBankDetails,
+                bankDetails = bankDetails.takeIf { it.isNotBlank() },
                 terms = terms.takeIf { it.isNotBlank() },
-                showGstBreakdown = showGstBreakdown,
-                templateStyle = templateStyle,
+                upiId = upiId.takeIf { it.isNotBlank() },
             )
         onSave(settings)
         android.widget.Toast
@@ -169,9 +252,14 @@ fun PdfSettingsScreen(
             modifier = Modifier.fillMaxSize().padding(padding),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { sectionHeader("Branding") }
-
-            item { logoUploadField(logoPath, onPick = { imagePicker.launch("image/*") }) }
+            item {
+                logoUploadField(
+                    context = context,
+                    currentPath = logoPath,
+                    onPick = { imagePicker.launch("image/*") },
+                    onRemove = { logoPath = "" },
+                )
+            }
 
             item { shopNameField(shopName) { shopName = it } }
 
@@ -186,16 +274,7 @@ fun PdfSettingsScreen(
                 )
             }
 
-            item { sectionHeader("Template") }
-
-            item {
-                templateStylePicker(
-                    current = templateStyle,
-                    expanded = isDropdownExpanded,
-                    onSelect = { templateStyle = it },
-                    onExpandedChanged = { isDropdownExpanded = it },
-                )
-            }
+            item { sectionHeader("Accent Color") }
 
             item {
                 colorPicker(
@@ -211,69 +290,43 @@ fun PdfSettingsScreen(
 
             item { sectionHeader("Content") }
 
-            item { textField("Header Text", headerText, onValueChanged = { headerText = it }) }
-
             item { textField("Footer Text", footerText, onValueChanged = { footerText = it }) }
 
             item {
                 textField(
-                    "Terms & Conditions",
-                    terms,
+                    label = "Terms & Conditions",
+                    value = terms,
                     onValueChanged = { terms = it },
-                    maxLines = 3,
+                    minLines = 2,
+                    maxLines = 4,
                 )
             }
 
-            item { textField("Bank/UPI Details", bankDetails, onValueChanged = { bankDetails = it }) }
+            item {
+                textField(
+                    label = "Bank Details",
+                    value = bankDetails,
+                    onValueChanged = { bankDetails = it },
+                    minLines = 3,
+                    maxLines = 6,
+                    placeholder = "e.g.\nBank Name: HDFC Bank\nA/C No: 123456789012\nIFSC Code: HDFC0001234\nBranch: Main Branch",
+                )
+            }
 
-            item { textField("UPI ID", upiId, onValueChanged = { upiId = it }) }
+            item {
+                textField(
+                    label = "UPI ID",
+                    value = upiId,
+                    onValueChanged = { upiId = it },
+                    placeholder = "e.g. yourname@upi or 9876543210@paytm",
+                )
+            }
 
             item { sectionHeader("Options") }
-
-            item { toggleRow("Show GST Breakdown", showGstBreakdown) { showGstBreakdown = it } }
 
             item { toggleRow("Show Bank Details", showBankDetails) { showBankDetails = it } }
 
             item { Spacer(modifier = Modifier.height(80.dp)) }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun templateStylePicker(
-    current: String,
-    expanded: Boolean,
-    onSelect: (String) -> Unit,
-    onExpandedChanged: (Boolean) -> Unit,
-) {
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = onExpandedChanged,
-        modifier = Modifier.padding(horizontal = 16.dp),
-    ) {
-        OutlinedTextField(
-            value = current,
-            onValueChange = {},
-            readOnly = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth(),
-            label = { Text("Template Style") },
-        )
-
-        androidx.compose.material3.DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { onExpandedChanged(false) },
-        ) {
-            TEMPLATE_STYLES.forEach { style ->
-                DropdownMenuItem(
-                    text = { Text(style) },
-                    onClick = {
-                        onSelect(style)
-                        onExpandedChanged(false)
-                    },
-                )
-            }
         }
     }
 }
@@ -348,25 +401,65 @@ private fun toggleRow(
 
 @Composable
 private fun logoUploadField(
+    context: android.content.Context,
     currentPath: String,
     onPick: () -> Unit,
+    onRemove: () -> Unit,
 ) {
+    val bitmap =
+        remember(currentPath) {
+            InvoicePdfGenerator.loadLogoBitmap(context, currentPath)
+        }
+
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable(onClick = onPick),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.padding(end = 12.dp))
-            Column {
-                Text(text = "Logo", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    text = currentPath.takeIf { it.isNotBlank() } ?: "Tap to upload logo",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f).clickable(onClick = onPick),
+            ) {
+                if (bitmap != null) {
+                    androidx.compose.foundation.Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Shop Logo",
+                        modifier =
+                            Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Image,
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp).padding(end = 8.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.padding(start = 12.dp))
+                Column {
+                    Text(text = "Shop Logo", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        text = if (bitmap != null) "Tap to change (Max 500 KB)" else "Tap to upload (Max 500 KB)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    )
+                }
+            }
+
+            if (currentPath.isNotBlank() || bitmap != null) {
+                IconButton(onClick = onRemove) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Remove logo",
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         }
     }
@@ -385,6 +478,7 @@ private fun textField(
     label: String,
     value: String,
     onValueChanged: (String) -> Unit,
+    minLines: Int = 1,
     maxLines: Int = 1,
     placeholder: String? = null,
 ) {
@@ -393,7 +487,9 @@ private fun textField(
         onValueChange = onValueChanged,
         label = { Text(label) },
         placeholder = { placeholder?.let { Text(it) } },
+        minLines = minLines,
         maxLines = maxLines,
+        singleLine = maxLines == 1,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
     )
 }

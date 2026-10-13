@@ -19,6 +19,7 @@ object UdhaarPdfGenerator {
         netBalance: Double,
         ledgerEntries: List<UdhaarEntry>,
         shopName: String,
+        settings: com.storebook.inventoryapp.shared.domain.models.InvoiceSettings? = null,
     ): File? {
         val document = PdfDocument()
         val pageInfo =
@@ -34,11 +35,29 @@ object UdhaarPdfGenerator {
 
         var yPos = 50f
         val leftMargin = 50f
+        val rightMargin = 545f
+
+        val resolvedSettings = InvoicePdfGenerator.resolveSettings(context, settings)
+        val effectiveShopName = resolvedSettings?.shopName?.takeIf { it.isNotBlank() } ?: (if (shopName.isNotBlank()) shopName else "StoreBook")
+
+        val logoBitmap = InvoicePdfGenerator.loadLogoBitmap(context, resolvedSettings?.logoPath)
+        if (logoBitmap != null) {
+            try {
+                val maxW = 80
+                val maxH = 60
+                val aspect = logoBitmap.width.toFloat() / logoBitmap.height.toFloat()
+                val (w, h) = if (aspect > 1f) maxW to (maxW / aspect).toInt() else (maxH * aspect).toInt() to maxH
+                val scaled = android.graphics.Bitmap.createScaledBitmap(logoBitmap, w, h, true)
+                canvas.drawBitmap(scaled, rightMargin - w, yPos - 10f, paint)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
 
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         paint.textSize = 24f
         canvas.drawText(
-            if (shopName.isNotBlank()) shopName else "StoreBook",
+            effectiveShopName,
             leftMargin,
             yPos,
             paint,

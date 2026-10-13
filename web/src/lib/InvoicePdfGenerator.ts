@@ -45,13 +45,21 @@ export function formatInvoiceDate(timestamp: number): string {
 }
 
 export class InvoicePdfGenerator {
-  static generateInvoicePdf(
+  static async generateInvoicePdf(
     sale: PdfSaleData,
     cartItems: PdfCartItem[],
     shopName: string,
     shopAddress: string = '',
-    shopGstin: string = ''
-  ) {
+    shopGstin: string = '',
+    invoiceSettings?: {
+      logoUrl?: string;
+      accentColor?: string;
+      footerText?: string;
+      bankDetails?: string;
+      termsAndConditions?: string;
+    },
+    autoDownload?: boolean
+  ): Promise<string> {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageWidth = 595;
     const pageHeight = 842;
@@ -63,6 +71,40 @@ export class InvoicePdfGenerator {
     const actualShopName = sale.businessName || shopName || 'StoreBook';
     const actualShopAddress = sale.businessAddress || shopAddress || '';
     const actualShopGstin = sale.businessGstin || shopGstin || '';
+
+    let effectiveSettings = invoiceSettings;
+    if (typeof window !== 'undefined') {
+      try {
+        const persisted = localStorage.getItem('persist:storebook-root');
+        if (persisted) {
+          const parsed = JSON.parse(persisted);
+          if (parsed.pdfTemplate) {
+            const template = JSON.parse(parsed.pdfTemplate);
+            effectiveSettings = {
+              ...template,
+              ...effectiveSettings,
+              logoUrl: effectiveSettings?.logoUrl || template.logoUrl,
+            };
+          }
+        }
+      } catch {
+        // fallback
+      }
+    }
+
+    // Draw Logo (Base64 data URI or image URL)
+    if (effectiveSettings?.logoUrl && effectiveSettings.logoUrl.trim()) {
+      try {
+        const logoData = effectiveSettings.logoUrl.trim();
+        const maxW = 80;
+        const maxH = 50;
+        const isPng = logoData.toLowerCase().includes('image/png') || logoData.toLowerCase().includes('.png');
+        const format = isPng ? 'PNG' : 'JPEG';
+        doc.addImage(logoData, format, rightMargin - maxW, yPos - 15, maxW, maxH);
+      } catch (e) {
+        console.warn('Could not render logo in PDF:', e);
+      }
+    }
 
     // Shop Name (Bold 24pt, left-aligned)
     doc.setFont('helvetica', 'bold');
@@ -237,8 +279,52 @@ export class InvoicePdfGenerator {
     doc.setFontSize(14);
     doc.text(`Grand Total: Rs ${Number(sale.totalAmount).toFixed(2)}`, rightMargin, yPos, { align: 'right' });
 
-    const prefix = sale.type === 'ESTIMATE' ? 'Estimate' : 'Invoice';
-    const cleanFileNameId = String(sale.id).replace('#', '');
-    doc.save(`${prefix}_${cleanFileNameId}.pdf`);
+    // Bank details
+    if (effectiveSettings?.bankDetails && effectiveSettings.bankDetails.trim()) {
+      yPos += 30;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('Bank / Payment Details:', leftMargin, yPos);
+      doc.setFont('helvetica', 'normal');
+      yPos += 14;
+      for (const line of effectiveSettings.bankDetails.split('\n')) {
+        if (line.trim()) {
+          doc.text(line.trim(), leftMargin, yPos);
+          yPos += 12;
+        }
+      }
+    }
+
+    // Terms & Conditions
+    if (effectiveSettings?.termsAndConditions && effectiveSettings.termsAndConditions.trim()) {
+      yPos += 20;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('Terms & Conditions:', leftMargin, yPos);
+      doc.setFont('helvetica', 'normal');
+      yPos += 14;
+      for (const line of effectiveSettings.termsAndConditions.split('\n')) {
+        if (line.trim()) {
+          doc.text(line.trim(), leftMargin, yPos);
+          yPos += 12;
+        }
+      }
+    }
+
+    // Footer text
+    yPos += 25;
+    const footerStr = effectiveSettings?.footerText?.trim() || 'Thank you for your business!';
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(10);
+    doc.text(footerStr, pageWidth / 2, yPos, { align: 'center' });
+
+    const shouldAutoDownload = autoDownload !== undefined ? autoDownload : !invoiceSettings;
+    if (shouldAutoDownload && typeof window !== 'undefined') {
+      const prefix = sale.type === 'ESTIMATE' ? 'Estimate' : 'Invoice';
+      const cleanFileNameId = String(sale.id).replace('#', '');
+      doc.save(`${prefix}_${cleanFileNameId}.pdf`);
+    }
+
+    return doc.output('datauristring');
   }
 }

@@ -18,8 +18,6 @@ import {
   TemplateStyle,
 } from '@/store/pdfTemplateSlice';
 import { RootState } from '@/store';
-import { storage } from '@/lib/firebase';
-import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { FileText, Palette, ToggleLeft, ToggleRight, Loader2, RotateCcw } from 'lucide-react';
 import type { PdfSaleData, PdfCartItem } from '@/lib/InvoicePdfGenerator';
 import InvoicePreview from '@/components/InvoicePreview';
@@ -87,7 +85,6 @@ export default function TemplateEditorClient({
   }, [dispatch, initialSettings]);
 
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadSessionId] = useState(() => `ses_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`);
 
   const handleLogoUpload = useCallback(async () => {
     if (isUploading) return;
@@ -99,43 +96,81 @@ export default function TemplateEditorClient({
       const file = target.files?.[0];
       if (!file) return;
 
-      if (file.size > 2 * 1024 * 1024) {
-        alert('Logo must be under 2 MB.');
-        return;
+    setIsUploading(true);
+    try {
+      if (file.size <= 500 * 1024) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result as string;
+          dispatch(updateLogoUrl(base64));
+          setIsUploading(false);
+        };
+        reader.onerror = () => {
+          alert('Failed to read image file.');
+          setIsUploading(false);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // Exceeds 500 KB: compress via HTML5 Canvas
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const maxDim = 800;
+            let w = img.width;
+            let h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
+            }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillRect(0, 0, w, h);
+              ctx.drawImage(img, 0, 0, w, h);
+              const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+              const byteSize = (compressedBase64.length - (compressedBase64.indexOf(',') + 1)) * 0.75;
+              if (byteSize <= 500 * 1024) {
+                dispatch(updateLogoUrl(compressedBase64));
+                setIsUploading(false);
+                return;
+              }
+            }
+            alert('Logo exceeds 500 KB limit. Please choose a smaller image.');
+            setIsUploading(false);
+          };
+          img.onerror = () => {
+            alert('Invalid image file.');
+            setIsUploading(false);
+          };
+          img.src = event.target?.result as string;
+        };
+        reader.onerror = () => {
+          alert('Failed to read image file.');
+          setIsUploading(false);
+        };
+        reader.readAsDataURL(file);
       }
-
-      setIsUploading(true);
-      try {
-        const storageFile = `logos/${uploadSessionId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
-        const fileRef = storageRef(storage, storageFile);
-        await uploadBytes(fileRef, file);
-        const downloadUrl = await getDownloadURL(fileRef);
-        dispatch(updateLogoUrl(downloadUrl));
-      } catch (err) {
-        console.error('Storage upload failed:', err);
-        alert('Failed to upload logo. Please try again.');
-      } finally {
-        setIsUploading(false);
-      }
-    };
-    input.click();
-  }, [isUploading, dispatch, uploadSessionId]);
+    } catch (err) {
+      console.error('Logo upload failed:', err);
+      alert('Failed to upload logo.');
+      setIsUploading(false);
+    }
+  };
+  input.click();
+}, [isUploading, dispatch]);
 
   const handleRemoveLogo = useCallback(() => {
-    if (settings.logoUrl) {
-      // Best-effort delete from Storage by URL derivation
-      try {
-          const urlParts = settings.logoUrl.split('o/');
-          if (urlParts.length > 1) {
-              const encodedPath = urlParts[1].split('&')[0];
-              const path = decodeURIComponent(encodedPath);
-              const logoRef = storageRef(storage, path);
-              deleteObject(logoRef).catch(() => {/* best-effort */});
-          }
-      } catch { /* ignore cleanup errors */ }
-    }
     dispatch(updateLogoUrl(''));
-  }, [settings.logoUrl, dispatch]);
+  }, [dispatch]);
 
   return (
     <div className="space-y-8 max-w-4xl">

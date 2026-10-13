@@ -1520,6 +1520,9 @@ fun AppNavigation() {
 
             // E56-S1 — Invoice PDF Settings screen
             composable<Routes.PdfSettings> {
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    moreViewModel.loadInvoiceSettings()
+                }
                 com.storebook.inventoryapp.ui.settings.PdfSettingsScreen(
                     initialSettings = moreViewModel.invoiceSettings,
                     onBack = { navController.popBackStack() },

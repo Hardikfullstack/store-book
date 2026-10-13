@@ -128,9 +128,7 @@ class EscPosPrinterService {
                 sale.customerGstin?.takeIf { it.isNotBlank() } ?: "",
             )
 
-        val showGst =
-            invoiceSettings?.showGstBreakdown != false &&
-                taxSummary.itemDetails.any { it.netAmountBeforeTax > 0 }
+        val showGst = taxSummary.itemDetails.any { it.netAmountBeforeTax > 0 }
 
         for ((index, cartItem) in cartItems.withIndex()) {
             val lineTotal = cartItem.item.sellPrice * cartItem.quantity

@@ -356,6 +356,29 @@ export default function QuotationsClient({
     const generatePDF = (quote: QuotationRow) => {
         const doc = new jsPDF();
 
+        // Draw Base64 logo if available
+        let logoUrl: string | undefined;
+        try {
+            const persisted = typeof window !== 'undefined' ? localStorage.getItem('persist:storebook-root') : null;
+            if (persisted) {
+                const parsed = JSON.parse(persisted);
+                if (parsed.pdfTemplate) {
+                    const template = JSON.parse(parsed.pdfTemplate);
+                    if (template.logoUrl) logoUrl = template.logoUrl;
+                }
+            }
+        } catch { /* ignore */ }
+
+        if (logoUrl) {
+            try {
+                const isPng = logoUrl.toLowerCase().includes('image/png') || logoUrl.toLowerCase().includes('.png');
+                const format = isPng ? 'PNG' : 'JPEG';
+                doc.addImage(logoUrl, format, 150, 10, 45, 25);
+            } catch (e) {
+                console.warn('Could not render logo in quotation:', e);
+            }
+        }
+
         doc.setFontSize(20);
         doc.text("ESTIMATE / QUOTATION", 14, 22);
 

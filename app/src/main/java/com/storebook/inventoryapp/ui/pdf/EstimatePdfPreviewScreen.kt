@@ -97,20 +97,8 @@ fun EstimatePdfPreviewScreen(
     val context = LocalContext.current
     val effectiveSettings =
         remember(settings) {
-            settings ?: try {
-                val driver =
-                    com.storebook.inventoryapp.shared.data
-                        .DatabaseDriverFactory(context, "default")
-                        .createDriver()
-                val database =
-                    com.storebook.inventoryapp.shared.data.local
-                        .StoreBookDatabase(driver)
-                com.storebook.inventoryapp.shared.data.local
-                    .InvoiceSettingsRepository(database)
-                    .getInvoiceSettings("default")
-            } catch (e: Exception) {
-                null
-            }
+            com.storebook.inventoryapp.utils.InvoicePdfGenerator
+                .resolveSettings(context, settings)
         }
 
     fun getOrGeneratePdfFile(): File? {
