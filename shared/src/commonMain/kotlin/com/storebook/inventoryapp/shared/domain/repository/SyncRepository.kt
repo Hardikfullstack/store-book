@@ -11,6 +11,7 @@ import com.storebook.inventoryapp.shared.data.local.Purchases
 import com.storebook.inventoryapp.shared.data.local.Purchase_items
 import com.storebook.inventoryapp.shared.data.local.Item_batches
 import com.storebook.inventoryapp.shared.data.local.Stock_adjustments
+import com.storebook.inventoryapp.shared.data.local.Categories
 
 /**
  * RP-A0: SQLDelight sync repository.
@@ -124,6 +125,61 @@ class SyncRepository(
 
     suspend fun markStockAdjustmentSynced(localId: Long, cloudId: String) =
         queries.markStockAdjustmentSynced(cloudId, localId)
+
+    // --- Categories ---
+    suspend fun getUnsyncedCategories(): List<Categories> =
+        queries.getUnsyncedCategories().executeAsList()
+
+    suspend fun markCategorySynced(localId: Long, cloudId: String, updatedAt: Long) =
+        queries.markCategorySynced(cloudId, updatedAt, localId)
+
+    suspend fun setCategoryCloudId(localId: Long, cloudId: String) =
+        queries.setCategoryCloudId(cloudId, localId)
+
+    suspend fun getAllItems(): List<Items> =
+        queries.getAllItems().executeAsList()
+
+    suspend fun getAllPurchases(): List<Purchases> =
+        queries.getAllPurchases().executeAsList()
+
+    suspend fun getAllSales(): List<Sales> =
+        queries.getAllSales().executeAsList()
+
+    suspend fun getAllSuppliers(): List<Suppliers> =
+        queries.getAllSuppliers().executeAsList()
+
+    suspend fun getAllCategories(): List<Categories> =
+        queries.getAllCategories().executeAsList()
+
+    suspend fun setItemCloudId(id: Long, cloudId: String) =
+        queries.setItemCloudId(cloudId, id)
+
+    suspend fun setPurchaseCloudId(id: Long, cloudId: String) =
+        queries.setPurchaseCloudId(cloudId, id)
+
+    suspend fun setPurchaseItemCloudId(id: Long, cloudId: String) =
+        queries.setPurchaseItemCloudId(cloudId, id)
+
+    suspend fun setSaleCloudId(id: Long, cloudId: String) =
+        queries.setSaleCloudId(cloudId, id)
+
+    suspend fun setSaleItemCloudId(id: Long, cloudId: String) =
+        queries.setSaleItemCloudId(cloudId, id)
+
+    suspend fun setSupplierCloudId(id: Long, cloudId: String) =
+        queries.setSupplierCloudId(cloudId, id)
+
+    suspend fun setItemBatchCloudId(id: Long, cloudId: String) =
+        queries.setItemBatchCloudId(cloudId, id)
+
+    suspend fun setUdhaarCloudId(id: Long, cloudId: String) =
+        queries.setUdhaarCloudId(cloudId, id)
+
+    suspend fun setExpenseCloudId(id: Long, cloudId: String) =
+        queries.setExpenseCloudId(cloudId, id)
+
+    suspend fun setStockAdjustmentCloudId(id: Long, cloudId: String) =
+        queries.setStockAdjustmentCloudId(cloudId, id)
 
     suspend fun upsertStockAdjustmentRemote(
         itemId: Long, itemName: String, reason: String, delta: Double,
@@ -247,6 +303,29 @@ class SyncRepository(
         ) }
     }
 
+    suspend fun upsertCategoryWithCloudId(
+        name: String,
+        businessType: String,
+        storeId: String?,
+        cloudId: String,
+        isDefault: Boolean = false,
+        isDeleted: Boolean,
+        updatedAt: Long,
+    ) {
+        database.transaction {
+            queries.upsertCategoryRemote(
+                cloudId = cloudId,
+                businessType = businessType,
+                name = name,
+                storeId = storeId,
+                isDefault = if (isDefault) 1L else 0L,
+                isDeleted = if (isDeleted) 1L else 0L,
+                updatedAt = updatedAt,
+            )
+        }
+        CategoryRepository.notifyUpdated()
+    }
+
     // ========================================================================
     // CLOUD ID RESOLVERS — map cloud entity IDs to local auto-increment IDs
     // ========================================================================
@@ -367,7 +446,7 @@ class SyncRepository(
     suspend fun shouldAcceptRemoteItem(remoteUpdatedAt: Long, cloudId: String): Boolean {
         val local = queries.getLocalItemByCloudId(cloudId).executeAsOneOrNull()
             ?: return true /* no local record → always accept */
-        return remoteUpdatedAt >= (local.updated_at ?: 0L)
+        return remoteUpdatedAt > (local.updated_at ?: 0L)
     }
 
     /** @return true if we should accept the remote supplier (remote is newer or doesn't exist locally) */

@@ -2,16 +2,16 @@
 
 This directory tracks identified bugs with IDs matching filename stems. `registry.yaml` is the single source of truth; this README mirrors its contents for quick reference.
 
-Last synced with registry: 2026-09-02
+Last synced with registry: 2026-10-12
 
 ## Status Summary
 
 | Severity | Count |
 |----------|-------|
-| P0 (Critical) | 10 resolved, 1 open |
-| P1 (High) | 13 resolved, 1 open |
-| P2 (Medium) | 3 resolved, 1 open |
-| **Total** | **26 resolved, 3 open (29 total)** |
+| P0 (Critical) | 13 resolved, 0 open |
+| P1 (High) | 18 resolved, 1 open |
+| P2 (Medium) | 5 resolved, 0 open |
+| **Total** | **35 resolved, 1 open (36 total)** |
 
 ## P0 — Critical
 
@@ -27,7 +27,9 @@ Last synced with registry: 2026-09-02
 | BUG-17 | `storeRes.data.store!!` NPE crash when store field is null during login | Resolved | [bug-A1-store-null-ptr-login.yaml](./bug-A1-store-null-ptr-login.yaml) |
 | BUG-19 | `mutableStateOf` cartItems/lastSaleId written from IO dispatcher | Resolved | [bug-A3-vm-thread-safety.yaml](./bug-A3-vm-thread-safety.yaml) |
 | BUG-22 | Sequential awaits in web checkout — partial commits on failure | Resolved | [bug-W1-web-partial-checkout.yaml](./bug-W1-web-partial-checkout.yaml) |
-| BUG-27 | App crashes when clicking 'View All' on Dashboard due to integer overflow | **Open** | [bug-A7-sales-history-view-all-crash.yaml](./bug-A7-sales-history-view-all-crash.yaml) |
+| BUG-27 | App crashes when clicking 'View All' on Dashboard due to integer overflow | Resolved | [bug-A7-sales-history-view-all-crash.yaml](./bug-A7-sales-history-view-all-crash.yaml) |
+| BUG-29 | Android: More tab crashes on emulator due to main-thread DB queries and unauthenticated DataConnect call | Resolved | [bug-A9-more-screen-init-crash.yaml](./bug-A9-more-screen-init-crash.yaml) |
+| BUG-30 | Android: OTP login crashes on release build due to R8 stripping za.g2 reflection field | Resolved | [bug-A10-otp-login-release-crash.yaml](./bug-A10-otp-login-release-crash.yaml) |
 
 ## P1 — High
 
@@ -46,7 +48,11 @@ Last synced with registry: 2026-09-02
 | BUG-23 | Web POS writes absolute stale stock to server | Resolved | [bug-W2-web-stale-inventory.yaml](./bug-W2-web-stale-inventory.yaml) |
 | BUG-25 | Web checkout error path leaves committed sale header | Resolved | [bug-W4-web-checkout-duplicate.yaml](./bug-W4-web-checkout-duplicate.yaml) |
 | BUG-26 | Inventory CSV export/import includes ID column | Resolved | [bug-A6-csv-import-export-id-column.yaml](./bug-A6-csv-import-export-id-column.yaml) |
-| BUG-28 | Sales Analytics (Product, Customer, Timeline) loads from local SQL instead of cloud API | **Open** | [bug-A8-sales-analytics-api-data.yaml](./bug-A8-sales-analytics-api-data.yaml) |
+| BUG-28 | Sales Analytics (Product, Customer, Timeline) loads from local SQL instead of cloud API | Resolved | [bug-A8-sales-analytics-api-data.yaml](./bug-A8-sales-analytics-api-data.yaml) |
+| BUG-31 | Web: Clearing numeric form inputs sets NaN in state triggering React warning | Resolved | [bug-W5-nan-numeric-inputs.yaml](./bug-W5-nan-numeric-inputs.yaml) |
+| BUG-32 | Web POS: Cart quantity input is read-only and lacks stock limit validation | **Open** | [bug-W6-pos-cart-editable-quantity-stock-limit.yaml](./bug-W6-pos-cart-editable-quantity-stock-limit.yaml) |
+| BUG-34 | Android: Item batch number and expiry date wiped on edit and omitted from push | Resolved | [bug-A6-item-batch-expiry-tracking-sync.yaml](./bug-A6-item-batch-expiry-tracking-sync.yaml) |
+| BUG-35 | Android: Local SQLite numeric ID vs Cloud DataConnect UUID mismatch causing type conflicts | Resolved | [bug-A11-numeric-id-instead-of-uuid.yaml](./bug-A11-numeric-id-instead-of-uuid.yaml) |
 
 ## P2 — Medium
 
@@ -55,4 +61,5 @@ Last synced with registry: 2026-09-02
 | BUG-14 | Estimate created from sale not added to Quotation list | Resolved | [bug-estimate-not-saved.yaml](./bug-estimate-not-saved.yaml) |
 | BUG-15 | Udhaar created from sale not added to Udhaar list | Resolved | [bug-udhaar-not-saved.yaml](./bug-udhaar-not-saved.yaml) |
 | BUG-16 | HSN code misused as barcode — scanner matches tax classification instead of product ID | Resolved | [bug-16-hsn-barcode-separation.yaml](./bug-16-hsn-barcode-separation.yaml) |
-| BUG-24 | Explicit `any` types in web/src violate strict-mode | **Open** | [bug-W3-any-types-strict-mode.yaml](./bug-W3-any-types-strict-mode.yaml) |
+| BUG-24 | Explicit `any` types in web/src violate strict-mode | Resolved | [bug-W3-any-types-strict-mode.yaml](./bug-W3-any-types-strict-mode.yaml) |
+| BUG-33 | Web: Item batch/expiry missing from GetActiveItems query and barcode under advanced | Resolved | [bug-W7-item-batch-expiry-barcode-placement.yaml](./bug-W7-item-batch-expiry-barcode-placement.yaml) |

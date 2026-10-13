@@ -64,6 +64,13 @@ insertItem:
 INSERT INTO items(name, quantity, unit, buy_price, sell_price, low_stock_threshold, category, photo_path, barcode, hsn_code, tax_rate, updated_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
+insertItemWithCloudId:
+INSERT INTO items(name, quantity, unit, buy_price, sell_price, low_stock_threshold, category, photo_path, barcode, hsn_code, tax_rate, cloud_id, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+setItemCloudId:
+UPDATE items SET cloud_id = :cloudId WHERE id = :id;
+
 updateItem:
 UPDATE items SET name = ?, quantity = ?, unit = ?, buy_price = ?, sell_price = ?, low_stock_threshold = ?, category = ?, photo_path = ?, barcode = ?, hsn_code = ?, tax_rate = ?, is_synced = 0, updated_at = ? WHERE id = ?;
 
@@ -287,6 +294,13 @@ insertPurchase:
 INSERT INTO purchases(supplier_id, supplier_name, total_amount, tax_amount, type, timestamp, notes, updated_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
+insertPurchaseWithCloudId:
+INSERT INTO purchases(supplier_id, supplier_name, total_amount, tax_amount, type, timestamp, notes, cloud_id, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+setPurchaseCloudId:
+UPDATE purchases SET cloud_id = :cloudId WHERE id = :id;
+
 getAllPurchases:
 SELECT * FROM purchases WHERE is_deleted = 0 ORDER BY timestamp DESC;
 
@@ -313,6 +327,13 @@ insertPurchaseItem:
 INSERT INTO purchase_items(purchase_id, item_id, item_name, quantity, unit, buy_price, updated_at)
 VALUES (?, ?, ?, ?, ?, ?, ?);
 
+insertPurchaseItemWithCloudId:
+INSERT INTO purchase_items(purchase_id, item_id, item_name, quantity, unit, buy_price, cloud_id, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+setPurchaseItemCloudId:
+UPDATE purchase_items SET cloud_id = :cloudId WHERE id = :id;
+
 getPurchaseItemsByPurchaseId:
 SELECT * FROM purchase_items WHERE purchase_id = ? AND is_deleted = 0;
 
@@ -336,6 +357,13 @@ CREATE INDEX idx_item_batches_item_id ON item_batches(item_id);
 insertItemBatch:
 INSERT INTO item_batches(item_id, batch_number, expiry_date, quantity, cost_price, timestamp, notes, updated_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+insertItemBatchWithCloudId:
+INSERT INTO item_batches(item_id, batch_number, expiry_date, quantity, cost_price, timestamp, notes, cloud_id, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+setItemBatchCloudId:
+UPDATE item_batches SET cloud_id = :cloudId WHERE id = :id;
 
 getBatchesForItem:
 SELECT * FROM item_batches WHERE item_id = ? AND is_deleted = 0 ORDER BY timestamp DESC;
@@ -517,6 +545,21 @@ SELECT * FROM purchase_items WHERE is_synced = 0;
 
 markPurchaseItemSynced:
 UPDATE purchase_items SET is_synced = 1, cloud_id = :cloudId WHERE id = :id;
+
+setSaleCloudId:
+UPDATE sales SET cloud_id = :cloudId WHERE id = :id;
+
+setSaleItemCloudId:
+UPDATE sale_items SET cloud_id = :cloudId WHERE id = :id;
+
+setSupplierCloudId:
+UPDATE suppliers SET cloud_id = :cloudId WHERE id = :id;
+
+setUdhaarCloudId:
+UPDATE udhaar SET cloud_id = :cloudId WHERE id = :id;
+
+setExpenseCloudId:
+UPDATE expenses SET cloud_id = :cloudId WHERE id = :id;
 
 -- ============================================================================
 -- FAILED SYNC QUEUE — Retry persistence for push phase failures
@@ -891,6 +934,9 @@ SELECT * FROM stock_adjustments WHERE is_synced = 0;
 markStockAdjustmentSynced:
 UPDATE stock_adjustments SET is_synced = 1, cloud_id = :cloudId WHERE id = :id;
 
+setStockAdjustmentCloudId:
+UPDATE stock_adjustments SET cloud_id = :cloudId WHERE id = :id;
+
 upsertStockAdjustmentRemote:
 INSERT OR REPLACE INTO stock_adjustments(
   id, item_id, item_name, reason, delta, timestamp, is_deleted, cloud_id, is_synced, updated_at
@@ -950,6 +996,9 @@ INSERT OR REPLACE INTO categories (
 
 markCategorySynced:
 UPDATE categories SET is_synced = 1, cloud_id = :cloudId, updated_at = :updatedAt WHERE id = :id;
+
+setCategoryCloudId:
+UPDATE categories SET cloud_id = :cloudId WHERE id = :id;
 
 getUnsyncedCategories:
 SELECT * FROM categories WHERE is_synced = 0 AND is_deleted = 0;

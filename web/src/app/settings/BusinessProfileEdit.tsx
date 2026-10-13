@@ -98,7 +98,7 @@ export default function BusinessProfileEdit({ storeId, storeName }: StoreProfile
         address: formData.address.trim() || null,
         phone: formData.phone.trim() || null,
         isDeleted: false,
-        updatedAt: Date.now() / 1000,
+        updatedAt: Date.now(),
       });
 
       await syncStore(dataConnect, {

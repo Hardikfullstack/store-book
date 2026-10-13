@@ -59,7 +59,7 @@ export async function POST(request: Request) {
                         role: resolvedRole,
                         storeId,
                         ownerId,
-                        createdAt: Math.floor(Date.now() / 1000),
+                        createdAt: Date.now(),
                         canViewProfit: !!canViewProfit,
                         canDelete: !!canDelete,
                     },

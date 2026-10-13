@@ -7,6 +7,10 @@ if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
   process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
   process.env.FIREBASE_STORAGE_EMULATOR_HOST = '127.0.0.1:9199';
   process.env.DATA_CONNECT_EMULATOR_HOST = 'http://127.0.0.1:9399';
+} else {
+  delete process.env.FIREBASE_AUTH_EMULATOR_HOST;
+  delete process.env.FIREBASE_STORAGE_EMULATOR_HOST;
+  delete process.env.DATA_CONNECT_EMULATOR_HOST;
 }
 
 if (getApps().length === 0) {

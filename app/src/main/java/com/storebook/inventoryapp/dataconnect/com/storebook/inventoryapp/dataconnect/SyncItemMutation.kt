@@ -29,6 +29,8 @@ public interface SyncItemMutation :
         val sellPrice: Double,
         val lowStockThreshold: Double,
         val category: String,
+        val categoryId: com.google.firebase.dataconnect.OptionalVariable<String?> =
+            com.google.firebase.dataconnect.OptionalVariable.Undefined,
         val photoPath: com.google.firebase.dataconnect.OptionalVariable<String?>,
         val barcode: com.google.firebase.dataconnect.OptionalVariable<String?>,
         val hsnCode: com.google.firebase.dataconnect.OptionalVariable<String?>,
@@ -51,6 +53,7 @@ public interface SyncItemMutation :
             public var sellPrice: Double
             public var lowStockThreshold: Double
             public var category: String
+            public var categoryId: String?
             public var photoPath: String?
             public var barcode: String?
             public var hsnCode: String?
@@ -86,6 +89,8 @@ public interface SyncItemMutation :
                 var sellPrice = sellPrice
                 var lowStockThreshold = lowStockThreshold
                 var category = category
+                var categoryId: com.google.firebase.dataconnect.OptionalVariable<String?> =
+                    com.google.firebase.dataconnect.OptionalVariable.Undefined
                 var photoPath: com.google.firebase.dataconnect.OptionalVariable<String?> =
                     com.google.firebase.dataconnect.OptionalVariable.Undefined
                 var barcode: com.google.firebase.dataconnect.OptionalVariable<String?> =
@@ -156,6 +161,14 @@ public interface SyncItemMutation :
                             category = value_
                         }
 
+                    override var categoryId: String?
+                        get() = throw UnsupportedOperationException("getting builder values is not supported")
+                        set(value_) {
+                            categoryId =
+                                com.google.firebase.dataconnect.OptionalVariable
+                                    .Value(value_)
+                        }
+
                     override var photoPath: String?
                         get() = throw UnsupportedOperationException("getting builder values is not supported")
                         set(value_) {
@@ -218,7 +231,7 @@ public interface SyncItemMutation :
                 }.apply(block_)
                     .let {
                         Variables(
-                            id = id, storeId = storeId, name = name, quantity = quantity, unit = unit, buyPrice = buyPrice, sellPrice = sellPrice, lowStockThreshold = lowStockThreshold, category = category, photoPath = photoPath, barcode = barcode, hsnCode = hsnCode, taxRate = taxRate, batchLotNumber = batchLotNumber, expiryDate = expiryDate, isDeleted = isDeleted, updatedAt = updatedAt,
+                            id = id, storeId = storeId, name = name, quantity = quantity, unit = unit, buyPrice = buyPrice, sellPrice = sellPrice, lowStockThreshold = lowStockThreshold, category = category, categoryId = categoryId, photoPath = photoPath, barcode = barcode, hsnCode = hsnCode, taxRate = taxRate, batchLotNumber = batchLotNumber, expiryDate = expiryDate, isDeleted = isDeleted, updatedAt = updatedAt,
                         )
                     }
             }

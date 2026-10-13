@@ -114,6 +114,7 @@ data class Purchase(
         val timestamp: Long,
         val notes: String? = null,
         val items: List<PurchaseItemDetail> = emptyList(),
+        val cloudId: String? = null,
 )
 
 @Serializable
@@ -125,6 +126,7 @@ data class PurchaseItemDetail(
         val quantity: Double,
         val unit: String,
         val buyPrice: Double,
+        val cloudId: String? = null,
 )
 
 @Serializable

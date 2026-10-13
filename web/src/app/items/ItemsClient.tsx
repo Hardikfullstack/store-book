@@ -549,7 +549,7 @@ export default function ItemsClient({
 
             setIsCreatingCategory(true);
             const newId = crypto.randomUUID();
-            const now = Math.floor(Date.now() / 1000);
+            const now = Date.now();
             const currentBusinessType = businessType || "general";
             try {
                 await syncCategory(dataConnect, {
@@ -608,7 +608,7 @@ export default function ItemsClient({
                 gstin: "",
                 address: "",
                 isDeleted: false,
-                updatedAt: Math.floor(Date.now() / 1000),
+                updatedAt: Date.now(),
             });
             const createdOption = { id: newId, name: nameToCreate };
             setSuppliers((prev) =>
@@ -664,7 +664,7 @@ export default function ItemsClient({
                 category: finalCategoryName,
                 categoryId: resolvedCategoryId,
                 isDeleted: false,
-                updatedAt: Math.floor(Date.now() / 1000),
+                updatedAt: Date.now(),
                 ...payload,
             });
 
@@ -688,7 +688,7 @@ export default function ItemsClient({
                     timestamp: Date.now(),
                     notes: `Initial stock for ${formData.name}`,
                     isDeleted: false,
-                    updatedAt: Math.floor(Date.now() / 1000),
+                    updatedAt: Date.now(),
                 });
 
                 await syncPurchaseItem(dataConnect, {
@@ -701,7 +701,7 @@ export default function ItemsClient({
                     unit: formData.unit || "pcs",
                     buyPrice,
                     isDeleted: false,
-                    updatedAt: Math.floor(Date.now() / 1000),
+                    updatedAt: Date.now(),
                 });
 
                 if (payload.batchLotNumber || payload.expiryDate) {
@@ -718,7 +718,7 @@ export default function ItemsClient({
                         timestamp: Date.now(),
                         notes: "Initial item batch",
                         isDeleted: false,
-                        updatedAt: Math.floor(Date.now() / 1000),
+                        updatedAt: Date.now(),
                     });
                 }
             }
@@ -755,7 +755,7 @@ export default function ItemsClient({
                     category: finalCategoryName,
                     categoryId: resolvedCategoryId,
                     ...payload,
-                    updated_at: Math.floor(Date.now() / 1000),
+                    updated_at: Date.now(),
                 };
                 setItems((prev) => {
                     const idx = prev.findIndex((i) => i.id === id);
@@ -1825,7 +1825,7 @@ export default function ItemsClient({
                         timestamp: Date.now(),
                         notes: `Refill stock for ${reStockQuantity.name}`,
                         isDeleted: false,
-                        updatedAt: Math.floor(Date.now() / 1000),
+                        updatedAt: Date.now(),
                     });
 
                     await syncPurchaseItem(dataConnect, {
@@ -1838,7 +1838,7 @@ export default function ItemsClient({
                         unit: reStockQuantity.unit || "pcs",
                         buyPrice: payload.buyPrice || 0,
                         isDeleted: false,
-                        updatedAt: Math.floor(Date.now() / 1000),
+                        updatedAt: Date.now(),
                     });
 
                     if (payload.batchNumber || payload.expiryDate) {
@@ -1855,7 +1855,7 @@ export default function ItemsClient({
                             timestamp: Date.now(),
                             notes: "Added via restock",
                             isDeleted: false,
-                            updatedAt: Math.floor(Date.now() / 1000),
+                            updatedAt: Date.now(),
                         });
                     }
 

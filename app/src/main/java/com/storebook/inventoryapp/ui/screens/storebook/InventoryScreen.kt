@@ -225,6 +225,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
     var inputSellPrice by remember { mutableStateOf("") }
     var inputThreshold by remember { mutableStateOf("5") }
     var inputCategory by remember { mutableStateOf("") }
+    var inputCategoryId by remember { mutableStateOf<String?>(null) }
     var categoryDropdownExpanded by remember { mutableStateOf(false) }
     var categorySearchQuery by remember { mutableStateOf("") }
     var isCreatingCategory by remember { mutableStateOf(false) }
@@ -349,6 +350,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         inputSellPrice = ""
         inputThreshold = "5"
         inputCategory = ""
+        inputCategoryId = null
         categorySearchQuery = ""
         categoryDropdownExpanded = false
         inputBarcode = ""
@@ -374,6 +376,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         inputSellPrice = formatQty(item.sellPrice)
         inputThreshold = formatQty(item.lowStockThreshold)
         inputCategory = item.category
+        inputCategoryId = categories.find { it.name.trim().equals(item.category.trim(), ignoreCase = true) }?.cloudId
         categorySearchQuery = ""
         categoryDropdownExpanded = false
         inputBarcode = item.barcode ?: ""
@@ -914,6 +917,14 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                             return@PrimaryButton
                         }
                         if (addedQty > 0) {
+                            val purchaseUuid =
+                                java.util.UUID
+                                    .randomUUID()
+                                    .toString()
+                            val purchaseItemUuid =
+                                java.util.UUID
+                                    .randomUUID()
+                                    .toString()
                             val purchase =
                                 Purchase(
                                     supplierId = selectedSupplier?.id ?: 0L,
@@ -923,6 +934,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                     type = "BILL",
                                     timestamp = System.currentTimeMillis(),
                                     notes = "Refill stock for ${refillItem.name}",
+                                    cloudId = purchaseUuid,
                                     items =
                                         listOf(
                                             PurchaseItemDetail(
@@ -932,6 +944,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                                 quantity = addedQty,
                                                 unit = refillItem.unit,
                                                 buyPrice = finalBuyPrice,
+                                                cloudId = purchaseItemUuid,
                                             ),
                                         ),
                                 )
@@ -1428,6 +1441,14 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                                                     ) {
                                                                         scope
                                                                             .launch {
+                                                                                val purchaseUuid =
+                                                                                    java.util.UUID
+                                                                                        .randomUUID()
+                                                                                        .toString()
+                                                                                val purchaseItemUuid =
+                                                                                    java.util.UUID
+                                                                                        .randomUUID()
+                                                                                        .toString()
                                                                                 val purchase =
                                                                                     Purchase(
                                                                                         supplierId =
@@ -1457,6 +1478,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                                                                                 .currentTimeMillis(),
                                                                                         notes =
                                                                                             "Quick +$preset restock",
+                                                                                        cloudId = purchaseUuid,
                                                                                         items =
                                                                                             listOf(
                                                                                                 PurchaseItemDetail(
@@ -1473,6 +1495,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                                                                                         item.unit,
                                                                                                     buyPrice =
                                                                                                         item.buyPrice,
+                                                                                                    cloudId = purchaseItemUuid,
                                                                                                 ),
                                                                                             ),
                                                                                     )
@@ -2092,6 +2115,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                                 isCreatingCategory = true
                                                 viewModel.createCategory(newCatName) { created ->
                                                     inputCategory = created.name
+                                                    inputCategoryId = created.cloudId
                                                     isCreatingCategory = false
                                                     categoryDropdownExpanded = false
                                                     categorySearchQuery = ""
@@ -2147,6 +2171,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                                 },
                                                 onClick = {
                                                     inputCategory = catName
+                                                    inputCategoryId = categories.find { it.name.trim().equals(catName.trim(), ignoreCase = true) }?.cloudId
                                                     categoryDropdownExpanded = false
                                                     categorySearchQuery = ""
                                                 },
@@ -2732,7 +2757,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                                 if (editingItem == null) {
                                     viewModel.addItem(
                                         name, safeQty, inputUnit, safeBuy, safeSell, threshold, inputCategory,
-                                        barcode = barcode, hsnCode = hsn, taxRate = tax,
+                                        barcode = barcode, hsnCode = hsn, taxRate = tax, categoryId = inputCategoryId,
                                     ) { newItemId ->
                                         if (batchNum != null || expiryMs != null) {
                                             viewModel.addItemBatch(

@@ -1,0 +1,216 @@
+# -------------------------------------------------------------
+# BATCH MUTATIONS CONNECTOR (Direct Batch Execution / No Codegen)
+# Used by Android DailyBatchWorker (11:00 PM Sync) & Bulk Ops
+# -------------------------------------------------------------
+
+# 1. Batch upsert categories
+mutation SyncCategoriesBatch(
+  $data: [Category_Data!]! @allow(fields: "id businessType storeId name isDefault isDeleted updatedAt")
+) @auth(level: USER, insecureReason: "Batch sync categories") {
+  category_upsertMany(data: $data)
+}
+
+# 2. Batch upsert items
+mutation SyncItemsBatch(
+  $data: [Item_Data!]! @allow(fields: "id storeId name quantity unit buyPrice sellPrice lowStockThreshold category categoryId photoPath barcode hsnCode taxRate batchLotNumber expiryDate isDeleted updatedAt")
+) @auth(level: USER, insecureReason: "Batch sync items") {
+  item_upsertMany(data: $data)
+}
+
+# 3. Batch upsert item batches / FIFO lots
+mutation SyncItemBatchesBatch(
+  $data: [ItemBatch_Data!]! @allow(fields: "id storeId itemId batchNumber expiryDate quantity costPrice timestamp notes isDeleted updatedAt")
+) @auth(level: USER, insecureReason: "Batch sync item batches") {
+  itemBatch_upsertMany(data: $data)
+}
+
+# 4. Batch upsert stock adjustments
+mutation SyncStockAdjustmentsBatch(
+  $data: [StockAdjustment_Data!]! @allow(fields: "id storeId itemId itemName reason delta timestamp isDeleted updatedAt")
+) @auth(level: USER, insecureReason: "Batch sync stock adjustments") {
+  stockAdjustment_upsertMany(data: $data)
+}
+
+# 5. Batch upsert sales invoices
+mutation SyncSalesBatch(
+  $data: [Sale_Data!]! @allow(fields: "id storeId timestamp totalAmount discountAmount customerName customerGstin businessGstin customerAddress businessAddress type notes isDeleted updatedAt")
+) @auth(level: USER, insecureReason: "Batch sync sales") {
+  sale_upsertMany(data: $data)
+}
+
+# 6. Batch upsert sale line items
+mutation SyncSaleItemDetailsBatch(
+  $data: [SaleItemDetail_Data!]! @allow(fields: "id storeId saleId itemId itemName quantity unit sellPrice buyPrice taxRate hsnCode isDeleted updatedAt")
+) @auth(level: USER, insecureReason: "Batch sync sale item details") {
+  saleItemDetail_upsertMany(data: $data)
+}
+
+# 7. Batch upsert suppliers
+mutation SyncSuppliersBatch(
+  $data: [Supplier_Data!]! @allow(fields: "id storeId name phone gstin address isDeleted updatedAt")
+) @auth(level: USER, insecureReason: "Batch sync suppliers") {
+  supplier_upsertMany(data: $data)
+}
+
+# 8. Batch upsert purchases
+mutation SyncPurchasesBatch(
+  $data: [Purchase_Data!]! @allow(fields: "id storeId supplierId supplierName totalAmount taxAmount type timestamp notes isDeleted updatedAt")
+) @auth(level: USER, insecureReason: "Batch sync purchases") {
+  purchase_upsertMany(data: $data)
+}
+
+# 9. Batch upsert purchase line items
+mutation SyncPurchaseItemDetailsBatch(
+  $data: [PurchaseItemDetail_Data!]! @allow(fields: "id storeId purchaseId itemId itemName quantity unit buyPrice isDeleted updatedAt")
+) @auth(level: USER, insecureReason: "Batch sync purchase item details") {
+  purchaseItemDetail_upsertMany(data: $data)
+}
+
+# 10. Batch upsert udhaar (customer khata) entries
+mutation SyncUdhaarsBatch(
+  $data: [UdhaarEntry_Data!]! @allow(fields: "id storeId customerName amount type timestamp notes saleId isDeleted updatedAt")
+) @auth(level: USER, insecureReason: "Batch sync udhaar ledger") {
+  udhaarEntry_upsertMany(data: $data)
+}
+
+# 11. Batch upsert expenses
+mutation SyncExpensesBatch(
+  $data: [ExpenseEntry_Data!]! @allow(fields: "id storeId type description amount timestamp supplierName supplierPhone isDeleted updatedAt")
+) @auth(level: USER, insecureReason: "Batch sync expenses") {
+  expenseEntry_upsertMany(data: $data)
+}
+
+# 12. Batch upsert stores
+mutation SyncStoresBatch(
+  $data: [Store_Data!]! @allow(fields: "id name businessType isActive isPremium subscriptionExpiresAt subscriptionPlatform subscriptionId subscriptionStatus")
+) @auth(level: USER, insecureReason: "Batch sync stores") {
+  store_upsertMany(data: $data)
+}
+
+# 13. Batch upsert users
+mutation SyncUsersBatch(
+  $data: [User_Data!]! @allow(fields: "id phoneNumber username createdAt role stores storeId ownerId canViewProfit canDelete subscriptionStatus subscriptionPlan subscriptionExpiresAt subscriptionPlatform subscriptionId")
+) @auth(level: USER, insecureReason: "Batch sync users") {
+  user_upsertMany(data: $data)
+}
+
+# 14. Batch upsert store / business profiles
+mutation SyncStoreProfilesBatch(
+  $data: [StoreProfile_Data!]! @allow(fields: "id storeId gstin address phone isDeleted updatedAt")
+) @auth(level: USER, insecureReason: "Batch sync store profiles") {
+  storeProfile_upsertMany(data: $data)
+}
+
+# 15. Batch upsert global settings
+mutation SyncGlobalSettingsBatch(
+  $data: [GlobalSetting_Data!]! @allow(fields: "id key value description updatedAt updatedBy")
+) @auth(level: USER, insecureReason: "Batch sync global settings") {
+  globalSetting_upsertMany(data: $data)
+}
+
+# 16. Batch insert admin audit logs
+mutation CreateAdminAuditLogsBatch(
+  $data: [AdminAuditLog_Data!]! @allow(fields: "id adminId adminUsername action targetId details timestamp")
+) @auth(level: USER, insecureReason: "Batch insert admin audit logs") {
+  adminAuditLog_insertMany(data: $data)
+}
+
+# 17. Batch upsert promo codes
+mutation SyncPromoCodesBatch(
+  $data: [PromoCode_Data!]! @allow(fields: "id code discountPercent discountAmount maxUses currentUses expiresAt isActive")
+) @auth(level: USER, insecureReason: "Batch sync promo codes") {
+  promoCode_upsertMany(data: $data)
+}
+
+# 18. Batch upsert announcements
+mutation SyncAnnouncementsBatch(
+  $data: [Announcement_Data!]! @allow(fields: "id title message type isActive createdAt")
+) @auth(level: USER, insecureReason: "Batch sync announcements") {
+  announcement_upsertMany(data: $data)
+}
+
+# 19. Bulk soft-delete items
+mutation SoftDeleteItemsBatch(
+  $ids: [String!]!
+  $storeId: String!
+  $updatedAt: Float!
+) @auth(level: USER, insecureReason: "Bulk soft delete items") {
+  item_updateMany(where: { id: { in: $ids }, storeId: { eq: $storeId } }, data: { isDeleted: true, updatedAt: $updatedAt })
+}
+
+# 20. Bulk soft-delete sales
+mutation SoftDeleteSalesBatch(
+  $ids: [String!]!
+  $storeId: String!
+  $updatedAt: Float!
+) @auth(level: USER, insecureReason: "Bulk soft delete sales") {
+  sale_updateMany(where: { id: { in: $ids }, storeId: { eq: $storeId } }, data: { isDeleted: true, updatedAt: $updatedAt })
+}
+
+# 21. Bulk soft-delete udhaars
+mutation SoftDeleteUdhaarsBatch(
+  $ids: [String!]!
+  $storeId: String!
+  $updatedAt: Float!
+) @auth(level: USER, insecureReason: "Bulk soft delete udhaars") {
+  udhaarEntry_updateMany(where: { id: { in: $ids }, storeId: { eq: $storeId } }, data: { isDeleted: true, updatedAt: $updatedAt })
+}
+
+# 22. Bulk soft-delete expenses
+mutation SoftDeleteExpensesBatch(
+  $ids: [String!]!
+  $storeId: String!
+  $updatedAt: Float!
+) @auth(level: USER, insecureReason: "Bulk soft delete expenses") {
+  expenseEntry_updateMany(where: { id: { in: $ids }, storeId: { eq: $storeId } }, data: { isDeleted: true, updatedAt: $updatedAt })
+}
+
+# 23. Bulk soft-delete suppliers
+mutation SoftDeleteSuppliersBatch(
+  $ids: [String!]!
+  $storeId: String!
+  $updatedAt: Float!
+) @auth(level: USER, insecureReason: "Bulk soft delete suppliers") {
+  supplier_updateMany(where: { id: { in: $ids }, storeId: { eq: $storeId } }, data: { isDeleted: true, updatedAt: $updatedAt })
+}
+
+# 24. Bulk soft-delete purchases
+mutation SoftDeletePurchasesBatch(
+  $ids: [String!]!
+  $storeId: String!
+  $updatedAt: Float!
+) @auth(level: USER, insecureReason: "Bulk soft delete purchases") {
+  purchase_updateMany(where: { id: { in: $ids }, storeId: { eq: $storeId } }, data: { isDeleted: true, updatedAt: $updatedAt })
+}
+
+# 25. Bulk soft-delete item batches
+mutation SoftDeleteItemBatchesBatch(
+  $ids: [String!]!
+  $storeId: String!
+  $updatedAt: Float!
+) @auth(level: USER, insecureReason: "Bulk soft delete item batches") {
+  itemBatch_updateMany(where: { id: { in: $ids }, storeId: { eq: $storeId } }, data: { isDeleted: true, updatedAt: $updatedAt })
+}
+
+# 26. Bulk soft-delete categories
+mutation SoftDeleteCategoriesBatch(
+  $ids: [String!]!
+  $updatedAt: Float!
+) @auth(level: USER, insecureReason: "Bulk soft delete categories") {
+  category_updateMany(where: { id: { in: $ids } }, data: { isDeleted: true, updatedAt: $updatedAt })
+}
+
+# 27. Bulk delete promo codes
+mutation DeletePromoCodesBatch(
+  $ids: [String!]!
+) @auth(level: USER, insecureReason: "Bulk delete promo codes") {
+  promoCode_deleteMany(where: { id: { in: $ids } })
+}
+
+# 28. Bulk delete announcements
+mutation DeleteAnnouncementsBatch(
+  $ids: [String!]!
+) @auth(level: USER, insecureReason: "Bulk delete announcements") {
+  announcement_deleteMany(where: { id: { in: $ids } })
+}
+

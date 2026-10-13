@@ -101,6 +101,7 @@ class MoreViewModel(
 
     // other settings
     var isHapticFeedbackEnabled by mutableStateOf(prefs.getBoolean("haptic_feedback", true))
+
     var lowStockThreshold by
         mutableStateOf(prefs.getString("default_low_stock_threshold", "5") ?: "5")
 
@@ -248,12 +249,6 @@ class MoreViewModel(
         onComplete: (() -> Unit)? = null,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            val newDbFile = context.getDatabasePath("storebook_$newStoreId.db")
-            if (newDbFile.exists()) {
-                context.deleteDatabase("storebook_$newStoreId.db")
-            }
-            prefs.edit().putLong("last_sync_timestamp_$newStoreId", 0L).apply()
-
             withContext(Dispatchers.Main) {
                 activeStoreId = newStoreId
                 prefs.edit().putString("active_store_id", newStoreId).apply()
@@ -328,7 +323,9 @@ class MoreViewModel(
             .putString("business_type", businessType)
             .apply()
 
-        val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+        val auth =
+            com.google.firebase.auth.FirebaseAuth
+                .getInstance()
         val uid = auth.currentUser?.uid
         if (!uid.isNullOrBlank()) {
             viewModelScope.launch(Dispatchers.IO) {

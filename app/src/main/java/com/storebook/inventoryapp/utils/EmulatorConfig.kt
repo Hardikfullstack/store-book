@@ -15,7 +15,7 @@ object EmulatorConfig {
      * Set to true to connect Android app to local Firebase Emulators.
      * Set to false to connect to production Firebase cloud.
      */
-    const val USE_EMULATOR = true
+    const val USE_EMULATOR = false
 
     const val AUTH_PORT = 9099
     const val STORAGE_PORT = 9199

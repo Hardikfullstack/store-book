@@ -31,19 +31,8 @@ class SalesViewModel(
 
     private fun triggerSync() {
         val storeId = prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID
-        val data =
-            androidx.work.Data
-                .Builder()
-                .putString("STORE_ID", storeId)
-                .build()
-        val request =
-            androidx.work
-                .OneTimeWorkRequestBuilder<com.storebook.inventoryapp.data.sync.SyncWorker>()
-                .setInputData(data)
-                .build()
-        androidx.work.WorkManager
-            .getInstance(context)
-            .enqueue(request)
+        com.storebook.inventoryapp.data.sync.SyncManager
+            .onRecordCreatedOrUpdated(context, storeId)
     }
 
     private val _allItems = MutableStateFlow<List<Item>>(emptyList())

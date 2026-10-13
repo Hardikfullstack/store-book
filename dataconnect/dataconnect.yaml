@@ -9,4 +9,4 @@ schema:
       cloudSql:
         instanceId: "new-storebook-instance"
         schema: "public"
-connectorDirs: ["./connector"]
+connectorDirs: ["./connector", "./batch-connector"]

@@ -97,6 +97,10 @@ class PurchaseViewModel(
         onResult: (Long) -> Unit = {},
     ) {
         viewModelScope.launch {
+            val purchaseUuid =
+                java.util.UUID
+                    .randomUUID()
+                    .toString()
             val pId =
                 purchaseRepository.insertPurchase(
                     supplierId = supplierId,
@@ -105,10 +109,23 @@ class PurchaseViewModel(
                     taxAmount = 0.0,
                     type = paymentMode,
                     notes = notes,
+                    cloudId = purchaseUuid,
                 )
             itemsInCart.forEach { item ->
+                val itemUuid =
+                    item.cloudId?.takeIf { it.isNotBlank() } ?: java.util.UUID
+                        .randomUUID()
+                        .toString()
                 purchaseRepository
-                    .insertPurchaseItem(pId, item.itemId, item.itemName, item.quantity, item.unit, item.buyPrice)
+                    .insertPurchaseItem(
+                        pId,
+                        item.itemId,
+                        item.itemName,
+                        item.quantity,
+                        item.unit,
+                        item.buyPrice,
+                        cloudId = itemUuid,
+                    )
                 inventoryRepository.updateItemStock(item.itemId, item.quantity)
             }
             loadData()

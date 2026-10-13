@@ -152,7 +152,7 @@ function RestockQuantity({
                 gstin: "",
                 address: "",
                 isDeleted: false,
-                updatedAt: Math.floor(Date.now() / 1000),
+                updatedAt: Date.now(),
             });
 
             setSelectedSupplier({ id: newId, name: trimmedName });

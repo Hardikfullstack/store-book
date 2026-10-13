@@ -255,6 +255,10 @@ fun AuthScreen(
                                             syncProgress = p
                                             syncMessage = m
                                         },
+                                        onError = { err ->
+                                            isLoading = false
+                                            Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
+                                        },
                                     )
                                 },
                         shape = RoundedCornerShape(16.dp),
@@ -1549,26 +1553,6 @@ private fun completeLoginForStore(
             .getEncryptedPrefs(context)
     kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
         try {
-            val oldStoreId = prefs.getString("active_store_id", "default")
-            val newDbFile = context.getDatabasePath("storebook_$storeId.db")
-
-            // If the user logs in and the target store DB already exists, delete it so we pull fresh cloud data
-            // (override local)
-            if (oldStoreId != "default" && newDbFile.exists()) {
-                context.deleteDatabase("storebook_$storeId.db")
-            } else if (oldStoreId == "default" && storeId != "default") {
-                val oldDbFile = context.getDatabasePath("storebook_default.db")
-                if (oldDbFile.exists() && !newDbFile.exists()) {
-                    oldDbFile.renameTo(newDbFile)
-                    val oldWal = java.io.File(oldDbFile.path + "-wal")
-                    if (oldWal.exists()) oldWal.renameTo(java.io.File(newDbFile.path + "-wal"))
-                    val oldShm = java.io.File(oldDbFile.path + "-shm")
-                    if (oldShm.exists()) oldShm.renameTo(java.io.File(newDbFile.path + "-shm"))
-                } else if (oldDbFile.exists() && newDbFile.exists()) {
-                    context.deleteDatabase("storebook_$storeId.db")
-                }
-            }
-
             prefs
                 .edit()
                 .putString("user_role", role)

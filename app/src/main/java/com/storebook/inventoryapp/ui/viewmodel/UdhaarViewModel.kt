@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 
 class UdhaarViewModel(
     val repository: UdhaarRepository,
+    private val context: android.content.Context? = null,
 ) : ViewModel() {
     private val _udhaarEntries = MutableStateFlow<List<UdhaarEntry>>(emptyList())
     val udhaarEntries: StateFlow<List<UdhaarEntry>> = _udhaarEntries
@@ -56,6 +57,14 @@ class UdhaarViewModel(
         viewModelScope.launch {
             repository.insertUdhaar(customerName, amount, type, notes)
             loadUdhaar()
+            context?.let { ctx ->
+                val storeId =
+                    com.storebook.inventoryapp.utils.SecurityUtils
+                        .getEncryptedPrefs(ctx)
+                        .getString("active_store_id", "default") ?: "default"
+                com.storebook.inventoryapp.data.sync.SyncManager
+                    .onRecordCreatedOrUpdated(ctx, storeId)
+            }
         }
     }
 }

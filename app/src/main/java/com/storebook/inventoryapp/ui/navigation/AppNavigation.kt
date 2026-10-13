@@ -179,37 +179,69 @@ fun AppNavigation() {
     val activity = context as? MainActivity
     val navController = rememberNavController()
 
+    val prefs =
+        androidx.compose.runtime.remember {
+            com.storebook.inventoryapp.utils.SecurityUtils
+                .getEncryptedPrefs(context)
+        }
+    var activeStoreId by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(prefs.getString("active_store_id", "default") ?: "default")
+    }
+
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        val listener =
+            android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                if (key == "active_store_id") {
+                    activeStoreId = prefs.getString("active_store_id", "default") ?: "default"
+                }
+            }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            prefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+
     val viewModelFactory =
-        androidx.compose.runtime.remember(context) {
-            com.storebook.inventoryapp.ui.viewmodel.AppViewModelFactory(context)
+        androidx.compose.runtime.remember(activeStoreId) {
+            com.storebook.inventoryapp.ui.viewmodel
+                .AppViewModelFactory(context)
         }
 
     val udhaarViewModel: com.storebook.inventoryapp.ui.viewmodel.UdhaarViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
+        androidx.lifecycle.viewmodel.compose
+            .viewModel(key = "udhaar_$activeStoreId", factory = viewModelFactory)
 
     val inventoryViewModel: com.storebook.inventoryapp.ui.viewmodel.InventoryViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
+        androidx.lifecycle.viewmodel.compose
+            .viewModel(key = "inv_$activeStoreId", factory = viewModelFactory)
 
     val salesViewModel: com.storebook.inventoryapp.ui.viewmodel.SalesViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
+        androidx.lifecycle.viewmodel.compose
+            .viewModel(key = "sales_$activeStoreId", factory = viewModelFactory)
 
     val dashboardViewModel: com.storebook.inventoryapp.ui.viewmodel.DashboardViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
+        androidx.lifecycle.viewmodel.compose
+            .viewModel(key = "dash_$activeStoreId", factory = viewModelFactory)
 
     val purchaseViewModel: com.storebook.inventoryapp.ui.viewmodel.PurchaseViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
+        androidx.lifecycle.viewmodel.compose
+            .viewModel(key = "purchase_$activeStoreId", factory = viewModelFactory)
 
     val supplierViewModel: com.storebook.inventoryapp.ui.viewmodel.SupplierViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
+        androidx.lifecycle.viewmodel.compose
+            .viewModel(key = "supplier_$activeStoreId", factory = viewModelFactory)
 
     val expenseViewModel: com.storebook.inventoryapp.ui.viewmodel.ExpenseViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
+        androidx.lifecycle.viewmodel.compose
+            .viewModel(key = "expense_$activeStoreId", factory = viewModelFactory)
 
     val moreViewModel: com.storebook.inventoryapp.ui.viewmodel.MoreViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
+        androidx.lifecycle.viewmodel.compose
+            .viewModel(key = "more_$activeStoreId", factory = viewModelFactory)
 
     val stockAuditViewModel: com.storebook.inventoryapp.ui.viewmodel.StockAuditViewModel =
-        androidx.lifecycle.viewmodel.compose.viewModel(factory = viewModelFactory)
+        androidx.lifecycle.viewmodel.compose
+            .viewModel(key = "audit_$activeStoreId", factory = viewModelFactory)
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
@@ -1428,18 +1460,15 @@ fun AppNavigation() {
             composable<Routes.Auth> {
                 AuthScreen(
                     onAuthSuccess = {
+                        activeStoreId = prefs.getString("active_store_id", "default") ?: "default"
+                        onboardingCompleted = true
                         moreViewModel.refreshUserState()
-                        // Bug fix: Force a complete app restart to ensure all ViewModels
-                        // and AppViewModelFactory reconnect to the correct, freshly-synced
-                        // storeId database. This prevents the stale UI bug.
-                        activity?.let { act ->
-                            act.viewModelStore.clear()
-                            val intent = android.content.Intent(act, MainActivity::class.java)
-                            intent.flags =
-                                android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
-                                android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-                            act.startActivity(intent)
-                            act.finish()
+                        dashboardViewModel.loadAllData()
+                        inventoryViewModel.loadFilteredItems()
+                        salesViewModel.loadAllData(true)
+                        udhaarViewModel.loadUdhaar()
+                        navController.navigate(Routes.Dashboard) {
+                            popUpTo(Routes.Auth) { inclusive = true }
                         }
                     },
                     onNavigateBack = {

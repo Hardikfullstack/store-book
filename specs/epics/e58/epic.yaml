@@ -1,0 +1,78 @@
+epic_id: e58
+title: "DataConnect & Android: Batch Creation, High-Throughput Chunked Synchronization & Daily Batch Worker"
+priority: P1
+status: complete
+target_version: v1.9.0
+depends_on: [e01, e02, e48]
+type: development
+verification_date: "2026-10-09"
+
+description: |
+  Establishes high-throughput batch creation and synchronization capabilities across Firebase Data Connect and
+  the Android POS application. Replaces sequential single-record GraphQL mutations with chunked (100 records per batch)
+  bulk mutations across all 11 business entities (customers, items, sales, sale items, purchases, purchase items, suppliers,
+  expenses, expense categories, payments, and udhaar). Introduces BatchSyncClient for network orchestration,
+  DailyBatchWorker for scheduled automated off-peak reconciliation (11:00 PM daily), and chunked delta pushes in SyncWorker.
+
+scope:
+  in:
+    - Firebase Data Connect (`dataconnect/batch-connector/`):
+        - `connector.yaml` configured for `batch-connector`.
+        - `mutations.gql` declaring 11 bulk upsert mutations (`batchCreateCustomers`, `batchCreateItems`, `batchCreateSales`,
+          `batchCreateSaleItems`, `batchCreatePurchases`, `batchCreatePurchaseItems`, `batchCreateSuppliers`,
+          `batchCreateExpenses`, `batchCreateExpenseCategories`, `batchCreatePayments`, `batchCreateUdhaar`).
+    - Android Data Layer & Sync Engine (`app/src/main/java/com/storebook/inventoryapp/data/sync/`):
+        - `BatchSyncClient` executing bulk POST requests to DataConnect REST endpoint with bearer auth, chunking payloads
+          into batches of 100 to stay well under request limits.
+        - `SyncWorker` refactored to collect unsynced local records by entity type and dispatch via `BatchSyncClient`.
+        - High-water mark timestamp updates and optimistic state persistence upon successful batch responses.
+    - Android WorkManager (`app/src/main/java/com/storebook/inventoryapp/workers/` & `SyncManager.kt`):
+        - `DailyBatchWorker` scheduled with `PeriodicWorkRequestBuilder` with 24-hour interval, initial delay to 11:00 PM (23:00),
+          and network constraint.
+        - Exponential backoff retry policies for resilience against transient network failures.
+  out:
+    - Web Dashboard manual batch import/export CSV tool (covered in separate specs).
+    - Real-time GraphQL subscription streaming (FireStore/DataConnect real-time listeners).
+
+architecture:
+  components:
+    - name: "Batch Mutations Schema"
+      file: "dataconnect/batch-connector/mutations.gql"
+      role: "Defines 11 bulk upsert/insert GraphQL mutations accepting arrays of entity inputs."
+    - name: "BatchSyncClient"
+      file: "app/src/main/java/com/storebook/inventoryapp/data/sync/BatchSyncClient.kt"
+      role: "Executes HTTP POST GraphQL batch requests, chunks lists into 100-item slices, handles error parsing."
+    - name: "DailyBatchWorker"
+      file: "app/src/main/java/com/storebook/inventoryapp/workers/DailyBatchWorker.kt"
+      role: "Background WorkManager worker performing scheduled midnight reconciliation of all dirty records."
+    - name: "SyncWorker"
+      file: "app/src/main/java/com/storebook/inventoryapp/data/sync/SyncWorker.kt"
+      role: "Pushes local changes via batch client and pulls remote records using high-water mark timestamps."
+    - name: "SyncManager"
+      file: "app/src/main/java/com/storebook/inventoryapp/data/sync/SyncManager.kt"
+      role: "Schedules PeriodicWorkRequest for DailyBatchWorker and one-time sync requests."
+
+stories:
+  - id: e58-s1
+    title: "Firebase Data Connect: Batch Connector Configuration & 11 Entity Bulk Mutations"
+    status: complete
+    acceptance:
+      - "batch-connector registered in dataconnect.yaml and dataconnect/batch-connector/connector.yaml."
+      - "mutations.gql declares bulk mutations for customers, items, sales, sale_items, purchases, purchase_items, suppliers, expenses, expense_categories, payments, and udhaar."
+      - "All mutations strictly require storeId multi-tenancy parameter."
+
+  - id: e58-s2
+    title: "Android: BatchSyncClient Implementation with 100-Record Chunking & Error Handling"
+    status: complete
+    acceptance:
+      - "BatchSyncClient splits large payloads into chunks of 100 items."
+      - "Sends authenticated POST requests to DataConnect GraphQL endpoint with storeId header."
+      - "Parses GraphQL errors and surfaces partial failures without crashing the sync cycle."
+
+  - id: e58-s3
+    title: "Android: WorkManager DailyBatchWorker & Scheduled Midnight Sync Trigger"
+    status: complete
+    acceptance:
+      - "DailyBatchWorker runs daily at 11:00 PM (23:00) off-peak hours using WorkManager constraints."
+      - "SyncManager schedules periodic work with ExistingPeriodicWorkPolicy.KEEP."
+      - "SyncWorker pushes unsynced records using BatchSyncClient."

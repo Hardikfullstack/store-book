@@ -30,6 +30,8 @@ class StoreBookApplication : Application() {
         appOpenAdManager = AppOpenAdManager(this)
 
         scheduleExpiryChecks()
+        com.storebook.inventoryapp.data.sync.SyncManager
+            .init(this)
     }
 
     private fun scheduleExpiryChecks() {

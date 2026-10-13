@@ -448,7 +448,7 @@ export default function SalesPOS({
             saleId = crypto.randomUUID();
             // eslint-disable-next-line react-hooks/purity
             const now = Date.now();
-            const updatedAt = Math.floor(now / 1000);
+            const updatedAt = now;
 
             // 1. Create the Sale
             const saleType = paymentMode === "Estimate" ? "ESTIMATE" : "SALE";
@@ -616,7 +616,7 @@ export default function SalesPOS({
             console.error("Checkout failed:", error);
 
             /* eslint-disable-next-line react-hooks/purity */
-            rollbackUpdatedAt = Math.floor(Date.now() / 1000);
+            rollbackUpdatedAt = Date.now();
 
             // BUG-22 FIX: Compensating rollback for partially committed state
             try {

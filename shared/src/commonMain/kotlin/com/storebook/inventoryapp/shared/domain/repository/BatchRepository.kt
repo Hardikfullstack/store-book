@@ -22,11 +22,15 @@ class BatchRepository(
     // E02-S1: Transaction-wrapped insert — auto-rollback on failure
     suspend fun insertItemBatch(
         itemId: Long, batchNumber: String?, expiryDate: Long?,
-        quantity: Double, costPrice: Double, notes: String?
+        quantity: Double, costPrice: Double, notes: String?, cloudId: String? = null,
     ): Long = withContext(Dispatchers.IO) {
         database.transactionWithResult {
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-            queries.insertItemBatch(itemId, batchNumber, expiryDate, quantity, costPrice, timestamp, notes, timestamp)
+            if (cloudId != null) {
+                queries.insertItemBatchWithCloudId(itemId, batchNumber, expiryDate, quantity, costPrice, timestamp, notes, cloudId, timestamp)
+            } else {
+                queries.insertItemBatch(itemId, batchNumber, expiryDate, quantity, costPrice, timestamp, notes, timestamp)
+            }
             queries.getLastInsertRowId().executeAsOne()
         }
     }

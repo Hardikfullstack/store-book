@@ -63,6 +63,7 @@ class StockAdjustmentRepository(
         reason: String,
         delta: Double,
         timestamp: Long = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+        cloudId: String? = null,
     ): Long = withContext(Dispatchers.IO) {
         val rowId =
             database.transactionWithResult {
@@ -74,7 +75,7 @@ class StockAdjustmentRepository(
                     delta = delta,
                     timestamp = timestamp,
                     is_deleted = 0L,
-                    cloud_id = null,
+                    cloud_id = cloudId,
                     is_synced = 0L,
                     updated_at = now,
                 )

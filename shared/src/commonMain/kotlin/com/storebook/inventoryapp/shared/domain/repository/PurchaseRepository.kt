@@ -21,21 +21,29 @@ class PurchaseRepository(
 
     suspend fun insertPurchase(
         supplierId: Long, supplierName: String, totalAmount: Double,
-        taxAmount: Double, type: String, notes: String?
+        taxAmount: Double, type: String, notes: String?, cloudId: String? = null,
     ): Long = withContext(Dispatchers.IO) {
         database.transactionWithResult {
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-            queries.insertPurchase(supplierId, supplierName, totalAmount, taxAmount, type, timestamp, notes, timestamp)
+            if (cloudId != null) {
+                queries.insertPurchaseWithCloudId(supplierId, supplierName, totalAmount, taxAmount, type, timestamp, notes, cloudId, timestamp)
+            } else {
+                queries.insertPurchase(supplierId, supplierName, totalAmount, taxAmount, type, timestamp, notes, timestamp)
+            }
             queries.getLastInsertRowId().executeAsOne()
         }
     }
 
     suspend fun insertPurchaseItem(
-        purchaseId: Long, itemId: Long, itemName: String, quantity: Double, unit: String, buyPrice: Double
+        purchaseId: Long, itemId: Long, itemName: String, quantity: Double, unit: String, buyPrice: Double, cloudId: String? = null,
     ) = withContext(Dispatchers.IO) {
         database.transaction {
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-            queries.insertPurchaseItem(purchaseId, itemId, itemName, quantity, unit, buyPrice, timestamp)
+            if (cloudId != null) {
+                queries.insertPurchaseItemWithCloudId(purchaseId, itemId, itemName, quantity, unit, buyPrice, cloudId, timestamp)
+            } else {
+                queries.insertPurchaseItem(purchaseId, itemId, itemName, quantity, unit, buyPrice, timestamp)
+            }
         }
     }
 

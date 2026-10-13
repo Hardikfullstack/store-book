@@ -36,15 +36,24 @@ class SupplierRepository(
     suspend fun getSupplierBalances(purchaseRepository: PurchaseRepository): List<SupplierBalance> = withContext(Dispatchers.IO) {
         val allPurchases = purchaseRepository.getAllPurchases()
         val balances = mutableMapOf<Long, Double>()
+        val lastTimes = mutableMapOf<Long, Long>()
         allPurchases.forEach { purchase ->
-            val amt = if (purchase.type == "PAYMENT") purchase.total_amount else -purchase.total_amount
+            val amt = if (purchase.type == "PAYMENT") -purchase.total_amount else purchase.total_amount
             balances[purchase.supplier_id] = (balances[purchase.supplier_id] ?: 0.0) + amt
-        }
-        val suppliersMap = queries.getAllSuppliers().executeAsList().associateBy { it.id }
-        balances.mapNotNull { (id, balance) ->
-            suppliersMap[id]?.let { supplier ->
-                SupplierBalance(id, supplier.name, supplier.phone, balance, 0L)
+            val currentLast = lastTimes[purchase.supplier_id] ?: 0L
+            if (purchase.timestamp > currentLast) {
+                lastTimes[purchase.supplier_id] = purchase.timestamp
             }
+        }
+        val suppliers = queries.getAllSuppliers().executeAsList().sortedBy { it.name.lowercase() }
+        suppliers.map { supplier ->
+            SupplierBalance(
+                supplierId = supplier.id,
+                supplierName = supplier.name,
+                phone = supplier.phone,
+                netBalance = balances[supplier.id] ?: 0.0,
+                lastTransactionTime = lastTimes[supplier.id] ?: 0L,
+            )
         }
     }
 

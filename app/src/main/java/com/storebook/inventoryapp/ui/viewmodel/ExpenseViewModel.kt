@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 
 class ExpenseViewModel(
     private val repository: ExpenseRepository,
+    private val context: android.content.Context? = null,
 ) : ViewModel() {
     private val _expensesList = MutableStateFlow<List<ExpenseEntry>>(emptyList())
     val expensesList: StateFlow<List<ExpenseEntry>> = _expensesList
@@ -46,6 +47,14 @@ class ExpenseViewModel(
                 supplierPhone = supplierPhone,
             )
             loadData()
+            context?.let { ctx ->
+                val storeId =
+                    com.storebook.inventoryapp.utils.SecurityUtils
+                        .getEncryptedPrefs(ctx)
+                        .getString("active_store_id", "default") ?: "default"
+                com.storebook.inventoryapp.data.sync.SyncManager
+                    .onRecordCreatedOrUpdated(ctx, storeId)
+            }
             onResult()
         }
     }
@@ -54,6 +63,14 @@ class ExpenseViewModel(
         viewModelScope.launch {
             repository.softDeleteExpense(id)
             loadData()
+            context?.let { ctx ->
+                val storeId =
+                    com.storebook.inventoryapp.utils.SecurityUtils
+                        .getEncryptedPrefs(ctx)
+                        .getString("active_store_id", "default") ?: "default"
+                com.storebook.inventoryapp.data.sync.SyncManager
+                    .onRecordCreatedOrUpdated(ctx, storeId)
+            }
         }
     }
 }

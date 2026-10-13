@@ -2,8 +2,8 @@
 # Maintained list of identified bugs with IDs matching filename stem.
 # Updated 2026-08-18: Added 9 new open bugs from code review (BUG-17 through BUG-25).
 # Updated 2026-08-20: Resolved BUG-20, BUG-21, BUG-23, BUG-25 + final recount.
-# Updated 2026-08-21: Resolved BUG-26 — CSV ID column removed from Android export/import.
 # Updated 2026-09-08: Resolved BUG-27 (integer overflow crash), BUG-28 (analytics stale local data).
+# Updated 2026-10-12: Resolved BUG-35 (Android numeric ID vs UUID resolution).
 
 bugs:
   - id: BUG-01
@@ -289,14 +289,23 @@ bugs:
     summary: "Android: Item batch number and expiry date wiped on edit, discarded when advanced options closed, omitted from SyncWorker push, and omitted from near-expiry display"
     fix: "Added getLatestBatchForItem to InventoryViewModel and SyncRepository. Pre-populated inputBatchNumber and inputExpiryDateMs in openEditSheet with auto-expand of advanced options. Preserved batchLotNumber and expiryDate on save without forcing null when advanced options closed. Pushed and pulled batch details in SyncWorker. Populated _nearExpiryItems in InventoryViewModel."
 
-total: 35
+  - id: BUG-35
+    file: bug-A11-numeric-id-instead-of-uuid.yaml
+    severity: P1
+    status: resolved
+    reported: "2026-10-09"
+    resolved_at: "2026-10-12"
+    summary: "Android: Local SQLite numeric ID vs Cloud DataConnect UUID mismatch causing type conflicts and broken foreign key lookups"
+    fix: "Preserved local autoincrement Long IDs in SQLite and stored remote string UUIDs in cloud_id TEXT. Added bidirectional cloud_id to local id lookup and fallback (0L) resolution in SyncWorker so restock purchases and items are not dropped."
+
+total: 36
 open: 1
-resolved: 34
+resolved: 35
 partial: 0
 deferred: 0
 by_severity:
   P0: "13 resolved, 0 open"
-  P1: "17 resolved, 1 open"
+  P1: "18 resolved, 1 open"
   P2: "5 resolved, 0 open"
 
 

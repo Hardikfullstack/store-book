@@ -3,8 +3,6 @@ package com.storebook.inventoryapp.ui.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import app.cash.sqldelight.driver.android.AndroidSqliteDriver
-import com.storebook.inventoryapp.data.DbMigrationCallback
 import com.storebook.inventoryapp.shared.data.local.InvoiceSettingsRepository
 import com.storebook.inventoryapp.shared.data.local.StoreBookDatabase
 import com.storebook.inventoryapp.shared.domain.repository.BatchRepository
@@ -27,7 +25,9 @@ class AppViewModelFactory(
 
     // Shared singleton database instance via DatabaseProvider
     private val database: StoreBookDatabase
-        get() = com.storebook.inventoryapp.data.DatabaseProvider.getDatabase(context, storeId)
+        get() =
+            com.storebook.inventoryapp.data.DatabaseProvider
+                .getDatabase(context, storeId)
 
     private val inventoryRepository by lazy { InventoryRepository(database) }
     private val salesRepository by lazy { SalesRepository(database) }
@@ -52,7 +52,7 @@ class AppViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         when {
             modelClass.isAssignableFrom(UdhaarViewModel::class.java) -> {
-                UdhaarViewModel(udhaarRepository) as T
+                UdhaarViewModel(udhaarRepository, context) as T
             }
             modelClass.isAssignableFrom(InventoryViewModel::class.java) -> {
                 InventoryViewModel(
@@ -94,10 +94,10 @@ class AppViewModelFactory(
                 PurchaseViewModel(purchaseRepository, supplierRepository, inventoryRepository) as T
             }
             modelClass.isAssignableFrom(SupplierViewModel::class.java) -> {
-                SupplierViewModel(supplierRepository, purchaseRepository) as T
+                SupplierViewModel(supplierRepository, purchaseRepository, context) as T
             }
             modelClass.isAssignableFrom(ExpenseViewModel::class.java) -> {
-                ExpenseViewModel(expenseRepository) as T
+                ExpenseViewModel(expenseRepository, context) as T
             }
             modelClass.isAssignableFrom(MoreViewModel::class.java) -> {
                 val vm =

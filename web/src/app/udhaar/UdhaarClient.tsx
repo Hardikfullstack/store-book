@@ -230,7 +230,7 @@ export default function UdhaarClient({
         timestamp: now,
         notes: formData.notes,
         isDeleted: false,
-        updatedAt: Math.floor(now / 1000)
+        updatedAt: now
       });
       setShowModal(false);
       invalidateAllPages();
@@ -246,7 +246,7 @@ export default function UdhaarClient({
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this record?')) {
       try {
-        await softDeleteUdhaar(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
+        await softDeleteUdhaar(dataConnect, { id, updatedAt: Date.now() });
         invalidateAllPages();
         setCurrentPage(1);
         setRefreshTrigger(prev => prev + 1);

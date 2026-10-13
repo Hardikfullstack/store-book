@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Store
 import androidx.compose.material.icons.rounded.Cancel
@@ -50,8 +51,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -95,6 +98,12 @@ fun SupplierLedgerScreen(
 
     val supplierBalances by viewModel.supplierBalances.collectAsStateWithLifecycle()
     val purchases by viewModel.purchases.collectAsStateWithLifecycle()
+
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadData()
+    }
 
     var searchQ by remember { mutableStateOf("") }
     var selectedSupplierBalance by remember { mutableStateOf<SupplierBalance?>(null) }
@@ -206,26 +215,48 @@ fun SupplierLedgerScreen(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "Supplier Ledger",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                            Text(
+                                text = "Manage wholesale purchases & payments",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = "Supplier Ledger",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                        Text(
-                            text = "Manage wholesale purchases & payments",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                isRefreshing = true
+                                viewModel.refresh {
+                                    isRefreshing = false
+                                }
+                            }
+                        },
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Refresh",
+                            tint = MaterialTheme.colorScheme.onPrimary,
                         )
                     }
                 }
@@ -323,238 +354,251 @@ fun SupplierLedgerScreen(
             }
         },
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            LazyColumn(
-                state = listState,
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(
-                            start = 16.dp,
-                            end =
-                                if (filteredBalances.isNotEmpty() &&
-                                    searchQ.isBlank()
-                                ) {
-                                    32.dp
-                                } else {
-                                    16.dp
-                                },
-                        ),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(top = 16.dp, bottom = 90.dp),
-            ) {
-                // Total Payable Card
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor =
-                                    MaterialTheme.colorScheme.primaryContainer.copy(
-                                        alpha = 0.4f,
-                                    ),
-                            ),
-                        border =
-                            BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                            ),
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(20.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(
-                                text = "Total Net Payable to Suppliers",
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Medium,
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = totalPayable.toRupee(),
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Coral500,
-                            )
-                        }
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                scope.launch {
+                    isRefreshing = true
+                    viewModel.refresh {
+                        isRefreshing = false
                     }
                 }
-
-                if (filteredBalances.isEmpty()) {
+            },
+            modifier = Modifier.fillMaxSize().padding(paddingValues),
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    state = listState,
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(
+                                start = 16.dp,
+                                end =
+                                    if (filteredBalances.isNotEmpty() &&
+                                        searchQ.isBlank()
+                                    ) {
+                                        32.dp
+                                    } else {
+                                        16.dp
+                                    },
+                            ),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 90.dp),
+                ) {
+                    // Total Payable Card
                     item {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 60.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .size(72.dp)
-                                            .clip(
-                                                androidx.compose.foundation.shape
-                                                    .CircleShape,
-                                            ).background(
-                                                MaterialTheme.colorScheme
-                                                    .primaryContainer
-                                                    .copy(
-                                                        alpha = 0.3f,
-                                                    ),
-                                            ),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Store,
-                                        contentDescription =
-                                            stringResource(R.string.ui_element_desc),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(36.dp),
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    text =
-                                        if (searchQ.isBlank()) {
-                                            "No suppliers added yet."
-                                        } else {
-                                            "No matching suppliers found."
-                                        },
-                                    color =
-                                        MaterialTheme.colorScheme.onSurface.copy(
-                                            alpha = 0.5f,
-                                        ),
-                                    fontSize = 14.sp,
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    items(filteredBalances, key = { it.supplierId }) { supplier ->
-                        val initial = supplier.supplierName.take(2).uppercase()
-
                         Card(
-                            modifier =
-                                Modifier.fillMaxWidth().clickable(onClickLabel = "Action") {
-                                    selectedSupplierBalance = supplier
-                                    showSupplierDetailSheet = true
-                                },
-                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(24.dp),
                             colors =
                                 CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    containerColor =
+                                        MaterialTheme.colorScheme.primaryContainer.copy(
+                                            alpha = 0.4f,
+                                        ),
                                 ),
                             border =
                                 BorderStroke(
                                     1.dp,
-                                    MaterialTheme.colorScheme.outlineVariant.copy(
-                                        alpha = 0.4f,
-                                    ),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                                 ),
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f),
-                                ) {
+                                Text(
+                                    text = "Total Net Payable to Suppliers",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = totalPayable.toRupee(),
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Coral500,
+                                )
+                            }
+                        }
+                    }
+
+                    if (filteredBalances.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 60.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Box(
                                         modifier =
                                             Modifier
-                                                .size(40.dp)
-                                                .clip(CircleShape)
-                                                .background(
+                                                .size(72.dp)
+                                                .clip(
+                                                    androidx.compose.foundation.shape
+                                                        .CircleShape,
+                                                ).background(
                                                     MaterialTheme.colorScheme
-                                                        .primaryContainer,
+                                                        .primaryContainer
+                                                        .copy(
+                                                            alpha = 0.3f,
+                                                        ),
                                                 ),
                                         contentAlignment = Alignment.Center,
                                     ) {
-                                        Text(
-                                            text = initial,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            fontSize = 14.sp,
+                                        Icon(
+                                            imageVector = Icons.Outlined.Store,
+                                            contentDescription =
+                                                stringResource(R.string.ui_element_desc),
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(36.dp),
                                         )
                                     }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
-                                        Text(
-                                            text = supplier.supplierName,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp,
-                                        )
-                                        val phone = supplier.phone
-                                        if (!phone.isNullOrBlank()) {
-                                            Text(
-                                                text = phone,
-                                                fontSize = 12.sp,
-                                                color =
-                                                    MaterialTheme.colorScheme
-                                                        .onSurfaceVariant,
-                                            )
-                                        }
-                                    }
-                                }
-
-                                Column(horizontalAlignment = Alignment.End) {
+                                    Spacer(modifier = Modifier.height(16.dp))
                                     Text(
                                         text =
-                                            if (supplier.netBalance > 0) {
-                                                "Payable"
-                                            } else if (supplier.netBalance < 0) {
-                                                "Advance"
+                                            if (searchQ.isBlank()) {
+                                                "No suppliers added yet."
                                             } else {
-                                                "Settled"
+                                                "No matching suppliers found."
                                             },
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    Text(
-                                        text = Math.abs(supplier.netBalance).toRupee(),
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 16.sp,
                                         color =
-                                            if (supplier.netBalance > 0) {
-                                                Coral500
-                                            } else if (supplier.netBalance < 0) {
-                                                Emerald500
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurface
-                                            },
+                                            MaterialTheme.colorScheme.onSurface.copy(
+                                                alpha = 0.5f,
+                                            ),
+                                        fontSize = 14.sp,
                                     )
+                                }
+                            }
+                        }
+                    } else {
+                        items(filteredBalances, key = { it.supplierId }) { supplier ->
+                            val initial = supplier.supplierName.take(2).uppercase()
+
+                            Card(
+                                modifier =
+                                    Modifier.fillMaxWidth().clickable(onClickLabel = "Action") {
+                                        selectedSupplierBalance = supplier
+                                        showSupplierDetailSheet = true
+                                    },
+                                shape = RoundedCornerShape(16.dp),
+                                colors =
+                                    CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                    ),
+                                border =
+                                    BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant.copy(
+                                            alpha = 0.4f,
+                                        ),
+                                    ),
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f),
+                                    ) {
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .size(40.dp)
+                                                    .clip(CircleShape)
+                                                    .background(
+                                                        MaterialTheme.colorScheme
+                                                            .primaryContainer,
+                                                    ),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text(
+                                                text = initial,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontSize = 14.sp,
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column {
+                                            Text(
+                                                text = supplier.supplierName,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 15.sp,
+                                            )
+                                            val phone = supplier.phone
+                                            if (!phone.isNullOrBlank()) {
+                                                Text(
+                                                    text = phone,
+                                                    fontSize = 12.sp,
+                                                    color =
+                                                        MaterialTheme.colorScheme
+                                                            .onSurfaceVariant,
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text =
+                                                if (supplier.netBalance > 0) {
+                                                    "Payable"
+                                                } else if (supplier.netBalance < 0) {
+                                                    "Advance"
+                                                } else {
+                                                    "Settled"
+                                                },
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        Text(
+                                            text = Math.abs(supplier.netBalance).toRupee(),
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 16.sp,
+                                            color =
+                                                if (supplier.netBalance > 0) {
+                                                    Coral500
+                                                } else if (supplier.netBalance < 0) {
+                                                    Emerald500
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurface
+                                                },
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            // Alphabet Scrubber Overlay
-            if (filteredBalances.isNotEmpty() && searchQ.isBlank()) {
-                AlphabetScrubber(
-                    onLetterSelect = { char ->
-                        val index =
-                            filteredBalances.indexOfFirst {
-                                it.supplierName.uppercase().firstOrNull()?.let { firstChar ->
-                                    firstChar >= char
-                                } == true
+                // Alphabet Scrubber Overlay
+                if (filteredBalances.isNotEmpty() && searchQ.isBlank()) {
+                    AlphabetScrubber(
+                        onLetterSelect = { char ->
+                            val index =
+                                filteredBalances.indexOfFirst {
+                                    it.supplierName.uppercase().firstOrNull()?.let { firstChar ->
+                                        firstChar >= char
+                                    } == true
+                                }
+                            if (index != -1) {
+                                scope.launch {
+                                    listState.scrollToItem(
+                                        index + 1,
+                                    ) // +1 for the Total Payable Card
+                                }
+                            } else {
+                                scope.launch { listState.scrollToItem(filteredBalances.size) }
                             }
-                        if (index != -1) {
-                            scope.launch {
-                                listState.scrollToItem(
-                                    index + 1,
-                                ) // +1 for the Total Payable Card
-                            }
-                        } else {
-                            scope.launch { listState.scrollToItem(filteredBalances.size) }
-                        }
-                    },
-                    modifier = Modifier.fillMaxHeight().align(Alignment.CenterEnd).padding(end = 4.dp),
-                )
+                        },
+                        modifier = Modifier.fillMaxHeight().align(Alignment.CenterEnd).padding(end = 4.dp),
+                    )
+                }
             }
 
             // ── Supplier Detail Bottom Sheet ────────────────────────────────────

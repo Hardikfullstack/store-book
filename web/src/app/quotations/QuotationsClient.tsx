@@ -300,7 +300,7 @@ export default function QuotationsClient({
             try {
                 await softDeleteSale(dataConnect, {
                     id,
-                    updatedAt: Math.floor(Date.now() / 1000),
+                    updatedAt: Date.now(),
                 });
                 invalidateAllPages();
                 setCurrentPage(1);

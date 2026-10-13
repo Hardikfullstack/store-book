@@ -217,7 +217,7 @@ export default function ExpensesClient({
         timestamp: now,
         supplierName: formData.supplier_name,
         isDeleted: false,
-        updatedAt: Math.floor(now / 1000)
+        updatedAt: now
       });
       setShowModal(false);
       invalidateAllPages();
@@ -232,7 +232,7 @@ export default function ExpensesClient({
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this expense?')) {
       try {
-        await softDeleteExpense(dataConnect, { id, updatedAt: Math.floor(Date.now() / 1000) });
+        await softDeleteExpense(dataConnect, { id, updatedAt: Date.now() });
         invalidateAllPages();
         setCurrentPage(1);
         setRefreshTrigger(prev => prev + 1);

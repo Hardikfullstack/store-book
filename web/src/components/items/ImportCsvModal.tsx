@@ -100,7 +100,7 @@ export default function ImportCsvModal({
     setImportProgress(0);
 
     let successCount = 0;
-    const now = Math.floor(Date.now() / 1000);
+    const now = Date.now();
 
     for (let i = 0; i < validItems.length; i++) {
       const item = validItems[i];

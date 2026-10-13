@@ -1,0 +1,50 @@
+# Bug — Numeric ID instead of UUID in Android Local Database
+# ID: BUG-35
+
+id: bug-A11-numeric-id-instead-of-uuid
+title: "Android: Local SQLite numeric ID vs Cloud DataConnect UUID mismatch causing type conflicts and broken foreign key lookups"
+severity: P1
+status: resolved
+reported: "2026-10-09"
+resolved_at: "2026-10-12"
+fix_ref: "app/src/main/java/com/storebook/inventoryapp/data/sync/SyncWorker.kt"
+component: [SyncWorker, SQLDelight StoreBook.sq, DatabaseProvider, Repositories]
+
+root_cause: |
+  Local Android SQLite tables (defined via SQLDelight in `StoreBook.sq`) use 64-bit autoincrement integer
+  primary keys (`INTEGER PRIMARY KEY AUTOINCREMENT` -> Kotlin `Long`), whereas Firebase Data Connect / Cloud SQL
+  PostgreSQL generates and expects string UUIDs (`c0a80101-...` or `UUID` scalar).
+  When pulling records from DataConnect into the Android local database or passing identifiers across sync layers:
+  1. Direct assignment or parsing of cloud string UUIDs as local numeric primary keys failed with `NumberFormatException`
+     or SQLDelight type mismatch errors.
+  2. Foreign-key relationships (such as `supplier_id` in purchases, `item_id` in purchase items or sale items,
+     `customer_id` in udhaar) in the local database require local numeric `Long` IDs. When cloud records referenced
+     remote UUIDs, attempting to use remote UUIDs or unresolved numeric IDs resulted in orphaned records, foreign-key
+     constraint violations, or missed records during joins.
+  3. Attempting to force SQLite to store UUIDs as the primary `id` would break existing local database schemas,
+     Roborazzi snapshot tests, and KMP shared module contract where `id: Long` is strictly enforced across models.
+
+fix: |
+  1. Maintained strict architectural separation between local numeric primary keys (`id: Long`) and remote cloud
+     identifiers (`cloud_id: String?`):
+     - All local SQLite tables preserve `id INTEGER PRIMARY KEY AUTOINCREMENT`.
+     - Cloud UUIDs are stored in a dedicated indexed `cloud_id TEXT` column on every tenant entity.
+  2. Implemented bidirectional ID resolution in `SyncWorker.kt` and repositories:
+     - Remote-to-Local: When pulling records from DataConnect, queries lookup the existing local record by `cloud_id`.
+       If found, the existing local `id: Long` is reused for updates. If not found, a new local record is inserted with
+       autoincrement assigning a local `Long` ID, and `cloud_id` is set to the remote UUID.
+     - Foreign Key Resolution: Foreign key references from cloud (e.g., `supplierId`, `itemId`) are resolved via helper
+       methods (`resolveSupplierByCloudId`, `resolveItemByCloudId`) to retrieve the matching local numeric `Long` primary key.
+     - Fallback Resilience: If a referenced parent entity (e.g. cash purchase without supplier, or newly added item) does
+       not yet have a matching local record, fallback to `0L` (or auto-create the local shell entity) instead of crashing
+       or skipping the child record.
+     - Local-to-Remote: When pushing local records to DataConnect via `BatchSyncClient`, if `cloud_id` is null or empty,
+       a client-generated UUID (or existing `cloud_id`) is attached to the mutation payload, and the resulting remote UUID
+       is persisted back to `cloud_id` in SQLite.
+
+affected_screens:
+  - SyncWorker background synchronization
+  - PurchaseHistoryScreen (supplier and item lookups)
+  - InventoryScreen (restock and item updates)
+  - SalesPOS (sale items and customer linking)
+  - SupplierLedgerScreen (supplier transactions)

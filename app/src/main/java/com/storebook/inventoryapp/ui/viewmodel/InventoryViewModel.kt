@@ -6,10 +6,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.work.Data
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import com.storebook.inventoryapp.data.sync.SyncWorker
 import com.storebook.inventoryapp.dataconnect.StorebookConnectorConnector
 import com.storebook.inventoryapp.dataconnect.execute
 import com.storebook.inventoryapp.dataconnect.instance
@@ -84,7 +80,11 @@ class InventoryViewModel(
     init {
         viewModelScope.launch {
             CategoryRepository.categoriesUpdated.collect {
-                _categories.value = categoryRepository.getCategoriesByBusinessType(currentBusinessType)
+                try {
+                    _categories.value = categoryRepository.getCategoriesByBusinessType(currentBusinessType)
+                } catch (e: Exception) {
+                    android.util.Log.w("InventoryViewModel", "Failed to reload categories: ${e.message}")
+                }
             }
         }
         loadCategories()
@@ -92,9 +92,8 @@ class InventoryViewModel(
 
     private fun triggerSync() {
         val storeId = prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID
-        val data = Data.Builder().putString("STORE_ID", storeId).build()
-        val request = OneTimeWorkRequestBuilder<SyncWorker>().setInputData(data).build()
-        WorkManager.getInstance(context).enqueue(request)
+        com.storebook.inventoryapp.data.sync.SyncManager
+            .onRecordCreatedOrUpdated(context, storeId)
     }
 
     fun loadFilteredItems(
@@ -223,6 +222,10 @@ class InventoryViewModel(
         onResult: (Long) -> Unit = {},
     ) {
         viewModelScope.launch {
+            val purchaseUuid =
+                purchase.cloudId?.takeIf { it.isNotBlank() } ?: java.util.UUID
+                    .randomUUID()
+                    .toString()
             val id =
                 purchaseRepository
                     .insertPurchase(
@@ -232,16 +235,33 @@ class InventoryViewModel(
                         purchase.taxAmount,
                         purchase.type,
                         purchase.notes,
+                        cloudId = purchaseUuid,
                     )
             purchase.items.forEach { item ->
+                val purchaseItemUuid =
+                    item.cloudId?.takeIf { it.isNotBlank() } ?: java.util.UUID
+                        .randomUUID()
+                        .toString()
                 purchaseRepository
-                    .insertPurchaseItem(id, item.itemId, item.itemName, item.quantity, item.unit, item.buyPrice)
+                    .insertPurchaseItem(
+                        id,
+                        item.itemId,
+                        item.itemName,
+                        item.quantity,
+                        item.unit,
+                        item.buyPrice,
+                        cloudId = purchaseItemUuid,
+                    )
                 inventoryRepository.updateItemStock(item.itemId, item.quantity)
                 stockAdjustmentRepository.insertStockAdjustment(
                     itemId = item.itemId,
                     itemName = item.itemName,
                     reason = "Restock",
                     delta = item.quantity,
+                    cloudId =
+                        java.util.UUID
+                            .randomUUID()
+                            .toString(),
                 )
             }
             loadFilteredItems()
@@ -264,6 +284,10 @@ class InventoryViewModel(
                         batch.quantity,
                         batch.costPrice,
                         batch.notes,
+                        cloudId =
+                            java.util.UUID
+                                .randomUUID()
+                                .toString(),
                     )
             onResult(id)
         }
@@ -291,13 +315,47 @@ class InventoryViewModel(
         sellPrice: Double,
         threshold: Double,
         category: String,
+        categoryId: String? = null,
         photoPath: String? = null,
         barcode: String? = null,
         hsnCode: String? = null,
         taxRate: Double = 0.0,
+        supplierId: Long? = null,
+        supplierName: String? = null,
         onResult: (Long) -> Unit = {},
     ) {
         viewModelScope.launch {
+            val trimmedCategory = category.trim()
+            val allCategories = categoryRepository.getAllCategories()
+            val matchedCat = allCategories.find { it.name.trim().equals(trimmedCategory, ignoreCase = true) }
+            val effectiveCategoryId =
+                categoryId?.takeIf { it.isNotBlank() }
+                    ?: matchedCat?.cloudId
+                    ?: run {
+                        val newCatUuid =
+                            java.util.UUID
+                                .randomUUID()
+                                .toString()
+                        try {
+                            val storeId = prefs.getString("active_store_id", null) ?: SecurityUtils.DEFAULT_STORE_ID
+                            categoryRepository.insertCategory(
+                                name = trimmedCategory,
+                                businessType = currentBusinessType,
+                                storeId = storeId,
+                                cloudId = newCatUuid,
+                            )
+                        } catch (_: Exception) {
+                        }
+                        newCatUuid
+                    }
+            if (matchedCat != null && matchedCat.cloudId.isNullOrBlank()) {
+                categoryRepository.markCategorySynced(matchedCat.id, effectiveCategoryId, matchedCat.updatedAt)
+            }
+
+            val itemUuid =
+                java.util.UUID
+                    .randomUUID()
+                    .toString()
             val item =
                 Item(
                     id = 0L,
@@ -319,7 +377,80 @@ class InventoryViewModel(
                     buyPrice = item.buyPrice, sellPrice = item.sellPrice,
                     threshold = item.lowStockThreshold, category = item.category,
                     photoPath = item.photoPath, barcode = item.barcode, hsnCode = item.hsnCode, taxRate = item.taxRate,
+                    cloudId = itemUuid,
                 ) ?: return@launch
+
+            // Case 3: Initial Stock Purchase & Purchase Item (Mirrors web logic: ItemsClient.tsx:671-705)
+            if (quantity > 0) {
+                try {
+                    val purchaseUuid =
+                        java.util.UUID
+                            .randomUUID()
+                            .toString()
+                    val purchaseItemUuid =
+                        java.util.UUID
+                            .randomUUID()
+                            .toString()
+                    val totalAmount = quantity * buyPrice
+                    val taxAmount = totalAmount * (taxRate / 100.0)
+
+                    val allSuppliers = supplierRepository.getAllSuppliers()
+                    val targetSupplier =
+                        if (supplierId != null && supplierId > 0) {
+                            allSuppliers.find { it.id == supplierId }
+                        } else {
+                            allSuppliers.find {
+                                it.name.trim().equals("Cash / Anonymous", ignoreCase = true) ||
+                                    it.cloud_id == "068cdba2-f58e-4ab8-a596-13806e4cb18e"
+                            }
+                        }
+
+                    val effectiveSupplierId =
+                        targetSupplier?.id ?: try {
+                            val newSuppId = supplierRepository.insertSupplier("Cash / Anonymous", null, null, null)
+                            supplierRepository.markSupplierSynced(newSuppId, "068cdba2-f58e-4ab8-a596-13806e4cb18e")
+                            newSuppId
+                        } catch (_: Exception) {
+                            0L
+                        }
+                    val effectiveSupplierName = targetSupplier?.name ?: (supplierName?.takeIf { it.isNotBlank() } ?: "Cash / Anonymous")
+
+                    val newPurchaseId =
+                        purchaseRepository.insertPurchase(
+                            supplierId = effectiveSupplierId,
+                            supplierName = effectiveSupplierName,
+                            totalAmount = totalAmount,
+                            taxAmount = taxAmount,
+                            type = "BILL",
+                            notes = "Initial stock for $name",
+                            cloudId = purchaseUuid,
+                        )
+
+                    purchaseRepository.insertPurchaseItem(
+                        purchaseId = newPurchaseId,
+                        itemId = id,
+                        itemName = name,
+                        quantity = quantity,
+                        unit = unit,
+                        buyPrice = buyPrice,
+                        cloudId = purchaseItemUuid,
+                    )
+
+                    stockAdjustmentRepository.insertStockAdjustment(
+                        itemId = id,
+                        itemName = name,
+                        reason = "Initial Stock",
+                        delta = quantity,
+                        cloudId =
+                            java.util.UUID
+                                .randomUUID()
+                                .toString(),
+                    )
+                } catch (e: Exception) {
+                    android.util.Log.e("InventoryViewModel", "Failed to create initial stock purchase: ${e.message}", e)
+                }
+            }
+
             triggerSync()
             // e11-s2: Reactively refresh filtered items so new item appears immediately
             loadFilteredItems()
@@ -331,8 +462,8 @@ class InventoryViewModel(
         itemId: Long,
         quantityToAdd: Double,
         costPrice: Double,
-        supplierName: String?,
-        supplierPhone: String?,
+        supplierName: String? = null,
+        supplierPhone: String? = null,
     ) {
         viewModelScope.launch {
             val item = inventoryRepository.getItemById(itemId)
@@ -343,7 +474,63 @@ class InventoryViewModel(
                 itemName = itemName,
                 reason = "Restock",
                 delta = quantityToAdd,
+                cloudId =
+                    java.util.UUID
+                        .randomUUID()
+                        .toString(),
             )
+            // Log Purchase & PurchaseItemDetail to match Web & Quick Refill
+            try {
+                val purchaseUuid =
+                    java.util.UUID
+                        .randomUUID()
+                        .toString()
+                val purchaseItemUuid =
+                    java.util.UUID
+                        .randomUUID()
+                        .toString()
+                val totalAmount = quantityToAdd * costPrice
+                val taxAmount = totalAmount * ((item?.tax_rate ?: 0.0) / 100.0)
+
+                val allSuppliers = supplierRepository.getAllSuppliers()
+                val targetSupplier =
+                    allSuppliers.find {
+                        it.name.trim().equals(supplierName?.trim(), ignoreCase = true) ||
+                            it.name.trim().equals("Cash / Anonymous", ignoreCase = true) ||
+                            it.cloud_id == "068cdba2-f58e-4ab8-a596-13806e4cb18e"
+                    }
+                val effectiveSupplierId =
+                    targetSupplier?.id ?: try {
+                        val newSuppId = supplierRepository.insertSupplier("Cash / Anonymous", null, null, null)
+                        supplierRepository.markSupplierSynced(newSuppId, "068cdba2-f58e-4ab8-a596-13806e4cb18e")
+                        newSuppId
+                    } catch (_: Exception) {
+                        0L
+                    }
+                val effectiveSupplierName = targetSupplier?.name ?: (supplierName?.takeIf { it.isNotBlank() } ?: "Cash / Anonymous")
+
+                val newPurchaseId =
+                    purchaseRepository.insertPurchase(
+                        supplierId = effectiveSupplierId,
+                        supplierName = effectiveSupplierName,
+                        totalAmount = totalAmount,
+                        taxAmount = taxAmount,
+                        type = "BILL",
+                        notes = "Refill stock for $itemName",
+                        cloudId = purchaseUuid,
+                    )
+                purchaseRepository.insertPurchaseItem(
+                    purchaseId = newPurchaseId,
+                    itemId = itemId,
+                    itemName = itemName,
+                    quantity = quantityToAdd,
+                    unit = item?.unit ?: "pcs",
+                    buyPrice = costPrice,
+                    cloudId = purchaseItemUuid,
+                )
+            } catch (e: Exception) {
+                android.util.Log.e("InventoryViewModel", "Failed to log restock purchase: ${e.message}", e)
+            }
             loadFilteredItems()
             triggerSync()
         }
@@ -454,19 +641,27 @@ class InventoryViewModel(
             var isSynced = false
             val now = System.currentTimeMillis()
 
-            try {
-                val connector = StorebookConnectorConnector.instance
-                connector.syncCategory.execute(
-                    id = uuid,
-                    businessType = bType,
-                    name = trimmed,
-                    isDeleted = false,
-                    updatedAt = now.toDouble(),
-                    storeId = storeId,
-                )
-                isSynced = true
-            } catch (e: Exception) {
-                android.util.Log.w("InventoryViewModel", "Live DB category creation failed (offline): ${e.message}")
+            val isBatchMode =
+                com.storebook.inventoryapp.data.sync.SyncManager
+                    .isBatchUploadEnabled(context)
+            if (!isBatchMode &&
+                com.storebook.inventoryapp.data.sync.SyncManager
+                    .isOnline(context)
+            ) {
+                try {
+                    val connector = StorebookConnectorConnector.instance
+                    connector.syncCategory.execute(
+                        id = uuid,
+                        businessType = bType,
+                        name = trimmed,
+                        isDeleted = false,
+                        updatedAt = now.toDouble(),
+                        storeId = storeId,
+                    )
+                    isSynced = true
+                } catch (e: Exception) {
+                    android.util.Log.w("InventoryViewModel", "Live DB category creation failed (offline/error): ${e.message}")
+                }
             }
 
             val saved =

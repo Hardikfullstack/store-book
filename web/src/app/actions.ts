@@ -182,7 +182,7 @@ export async function archiveOldData(
     daysOld: number,
 ): Promise<{ success: boolean; error?: string; count?: number }> {
     await assertPermission("canAccessAdmin");
-    const cutoff = Math.floor(Date.now() / 1000) - daysOld * 24 * 60 * 60;
+    const cutoff = Date.now() - daysOld * 24 * 60 * 60 * 1000;
 
     try {
         const dc = getDataConnect({
@@ -251,7 +251,7 @@ export async function purgeStoreData(
                     adminUsername: (session as { username?: string }).username || "Admin",
                     action: "GDPR_PURGE",
                     targetId: storeId,
-                    ts: Math.floor(Date.now() / 1000),
+                    ts: Date.now(),
                 },
             },
         );
@@ -451,7 +451,7 @@ export async function createStaffAccount(
                 variables: {
                     id: userRecord.uid,
                     role,
-                    createdAt: Math.floor(Date.now() / 1000),
+                    createdAt: Date.now(),
                     storeId: session.storeId,
                     canViewProfit: options?.canViewProfit ?? false,
                     canDelete: options?.canDelete ?? false,
@@ -675,9 +675,7 @@ export async function getSalesTrendData(
             serviceId: "new-storebook-service",
             location: "us-east4",
         });
-        const cutoffTimestamp = Math.floor(
-            (Date.now() - daysAgo * 24 * 60 * 60 * 1000) / 1000,
-        );
+        const cutoffTimestamp = Date.now() - daysAgo * 24 * 60 * 60 * 1000;
 
         const response = await dc.executeGraphql(
             `query GetSalesForTrend($storeId: String!, $cutoffTimestamp: Float!) {
@@ -706,7 +704,8 @@ export async function getSalesTrendData(
         for (const sale of salesList) {
             const timestamp = sale.timestamp ?? 0;
             if (timestamp >= cutoffTimestamp) {
-                const dateKey = new Date(timestamp * 1000)
+                const ms = timestamp < 1e11 ? timestamp * 1000 : timestamp;
+                const dateKey = new Date(ms)
                     .toISOString()
                     .slice(0, 10);
                 const existing = dailyMap.get(dateKey);
@@ -825,7 +824,7 @@ export async function convertQuotationToSale(
                             lowStockThreshold: liveItem.lowStockThreshold ?? 0,
                             category: liveItem.category ?? "",
                             isDeleted: false,
-                            updatedAt: nowSec,
+                            updatedAt: nowMs,
                         },
                     },
                 },
@@ -847,7 +846,7 @@ export async function convertQuotationToSale(
                         type: "SALE",
                         notes: est.notes ?? null,
                         isDeleted: false,
-                        updatedAt: nowSec,
+                        updatedAt: nowMs,
                     },
                 },
             },
@@ -998,9 +997,7 @@ export async function getConsolidatedPLData(
             serviceId: "new-storebook-service",
             location: "us-east4",
         });
-        const cutoffTimestamp = Math.floor(
-            (Date.now() - daysAgo * 24 * 60 * 60 * 1000) / 1000,
-        );
+        const cutoffTimestamp = Date.now() - daysAgo * 24 * 60 * 60 * 1000;
 
         // Fetch store metadata for names
         let storeNames: Map<string, string> = new Map();

@@ -78,7 +78,7 @@ export async function recalculateItemFIFO(
   dataConnect: DataConnect,
   editedPurchaseId?: string,
 ) {
-  const now = Math.floor(Date.now() / 1000);
+  const now = Date.now();
 
   // 1. Fetch active purchases and sort them chronologically by purchase timestamp ASC (older records first)
   const purchasesResp = await getPurchaseItemsForFIFO(

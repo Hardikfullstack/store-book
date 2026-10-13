@@ -33,14 +33,22 @@ class InventoryRepository(
     suspend fun insertItem(
         name: String, quantity: Double, unit: String, buyPrice: Double,
         sellPrice: Double, threshold: Double, category: String,
-        photoPath: String?, barcode: String?, hsnCode: String?, taxRate: Double
+        photoPath: String?, barcode: String?, hsnCode: String?, taxRate: Double,
+        cloudId: String? = null,
     ): Long? = withContext(Dispatchers.IO) {
         database.transactionWithResult {
             val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-            queries.insertItem(
-                name, quantity, unit, buyPrice, sellPrice, threshold,
-                category, photoPath, barcode, hsnCode, taxRate, timestamp
-            )
+            if (cloudId != null) {
+                queries.insertItemWithCloudId(
+                    name, quantity, unit, buyPrice, sellPrice, threshold,
+                    category, photoPath, barcode, hsnCode, taxRate, cloudId, timestamp
+                )
+            } else {
+                queries.insertItem(
+                    name, quantity, unit, buyPrice, sellPrice, threshold,
+                    category, photoPath, barcode, hsnCode, taxRate, timestamp
+                )
+            }
             queries.getLastInsertRowId().executeAsOneOrNull()
         }
     }
@@ -73,7 +81,7 @@ class InventoryRepository(
                         requestedChange = addedQuantity
                     )
                 }
-                queries.updateItemStock(newQty - currentItem.quantity, currentTime, id)
+                queries.updateItemStock(addedQuantity, currentTime, id)
             }
         }
     }
