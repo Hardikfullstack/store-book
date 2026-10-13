@@ -28,6 +28,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Delete
@@ -92,6 +93,7 @@ import java.util.Locale
 fun SupplierLedgerScreen(
     viewModel: com.storebook.inventoryapp.ui.viewmodel.SupplierViewModel,
     onBack: () -> Unit,
+    onOpenPurchaseHistory: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -243,21 +245,32 @@ fun SupplierLedgerScreen(
                             )
                         }
                     }
-                    IconButton(
-                        onClick = {
-                            scope.launch {
-                                isRefreshing = true
-                                viewModel.refresh {
-                                    isRefreshing = false
-                                }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (onOpenPurchaseHistory != null) {
+                            IconButton(onClick = onOpenPurchaseHistory) {
+                                Icon(
+                                    Icons.AutoMirrored.Outlined.ReceiptLong,
+                                    contentDescription = "Purchase History",
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                )
                             }
-                        },
-                    ) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = "Refresh",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                        )
+                        }
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    isRefreshing = true
+                                    viewModel.refresh {
+                                        isRefreshing = false
+                                    }
+                                }
+                            },
+                        ) {
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = "Refresh",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
                     }
                 }
 

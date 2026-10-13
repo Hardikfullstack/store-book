@@ -1,0 +1,82 @@
+epic_id: e59
+title: "Android: Purchase History Listing Module, Amount & Search Filtering & Robust Vendor Restock Sync"
+priority: P1
+status: complete
+target_version: v1.9.0
+depends_on: [e01, e02, e48, e58]
+type: development
+verification_date: "2026-10-12"
+
+description: |
+  Implements the native Android Purchase History module providing a clean, responsive listing of all inventory
+  restock purchases (strictly filtered by type = 'BILL'). Merchandisers can quickly audit past purchases, inspect line
+  items (quantity, unit, buy price), filter by amount range (Min ₹ - Max ₹), and search by supplier name or invoice notes
+  in real time. Unlike the web dashboard, this mobile module intentionally omits complex in-place price editing and
+  retroactive FIFO recalculations for operational simplicity on POS devices. Furthermore, enhances SyncWorker with robust
+  vendor and item resolution (handling cash/unlinked suppliers without skipping records) ensuring 100% data parity
+  with web dashboard records.
+
+scope:
+  in:
+    - Android Jetpack Compose UI (`app/src/main/java/com/storebook/inventoryapp/ui/screens/storebook/`):
+        - `PurchaseHistoryScreen.kt` featuring a top bar with back navigation and pull-to-refresh.
+        - Real-time search field filtering by supplier name or purchase notes.
+        - Amount range filter bar with Min ₹ and Max ₹ inputs and clear filter action.
+        - Expandable purchase cards displaying supplier name, date/time, total amount, payment mode, notes,
+          and individual restock line items (quantity, unit, buy price).
+        - Empty, loading, and error states with smooth UI transitions.
+        - Integration into navigation routes in `Routes.kt`, `AppNavigation.kt`, `MoreScreen.kt`, and `SupplierLedgerScreen.kt`.
+    - Android State Management (`app/src/main/java/com/storebook/inventoryapp/ui/viewmodel/`):
+        - `PurchaseViewModel.kt` exposing reactive `StateFlow<PurchaseUiState>`.
+        - Full-sync pull action (`syncPurchasesFromCloud(forceFull = true)`) for on-demand cloud sync.
+    - Offline Data Layer & Sync Parity (`app/src/main/java/com/storebook/inventoryapp/data/`):
+        - `PurchaseRepository` and SQLDelight queries in `StoreBook.sq` for purchases and purchase items filtered by `type = 'BILL'`.
+        - `SyncWorker.kt` enhanced to resolve suppliers by `cloud_id`, local name lookup, or auto-creation (defaulting to
+          supplier ID `0L` for cash/unlinked suppliers without dropping records).
+        - Resolves purchase line items by `cloud_id`, item name, or fallback item ID `0L` so no purchase records are omitted.
+  out:
+    - In-place buy price editing and retroactive FIFO cost recalculation (strictly excluded from Android POS per operational requirements).
+    - Date range chips (All, Today, This Week, This Month) and date pickers (explicitly omitted per user requirements).
+    - Supplier ledger debt payment editing (handled in Supplier Ledger module).
+
+architecture:
+  components:
+    - name: "PurchaseHistoryScreen"
+      file: "app/src/main/java/com/storebook/inventoryapp/ui/screens/storebook/PurchaseHistoryScreen.kt"
+      role: "Jetpack Compose screen displaying purchases list, search input, amount range filters, and expandable line-item cards."
+    - name: "PurchaseViewModel"
+      file: "app/src/main/java/com/storebook/inventoryapp/ui/viewmodel/PurchaseViewModel.kt"
+      role: "Manages purchase UI state, amount range/search filters, and triggers cloud sync on pull-to-refresh."
+    - name: "PurchaseRepository"
+      file: "app/src/main/java/com/storebook/inventoryapp/data/repository/PurchaseRepository.kt"
+      role: "Executes SQLDelight queries for purchases and purchase items filtered by store_id and type = 'BILL'."
+    - name: "SyncWorker"
+      file: "app/src/main/java/com/storebook/inventoryapp/data/sync/SyncWorker.kt"
+      role: "Pulls cloud purchases and items, resolves suppliers/items with fallbacks (0L), preventing record drops."
+
+stories:
+  - id: e59-s1
+    title: "Android: PurchaseHistoryScreen Jetpack Compose UI with Search & Amount Filters"
+    status: complete
+    acceptance:
+      - "PurchaseHistoryScreen renders a scrollable list of purchase restock transactions filtered where type = 'BILL'."
+      - "Expandable purchase cards reveal supplier name, date/time, total amount, payment mode, notes, and individual restock line items."
+      - "Real-time search filters purchases by supplier name and notes."
+      - "Amount range filter allows filtering by Min ₹ and Max ₹."
+      - "Date range filters (chips/date picker) and price edit/FIFO recalculation are strictly omitted."
+
+  - id: e59-s2
+    title: "Android: PurchaseViewModel StateFlow & Pull-to-Refresh Cloud Synchronization"
+    status: complete
+    acceptance:
+      - "PurchaseViewModel exposes StateFlow with loading, data, and empty states."
+      - "Pull-to-refresh triggers syncPurchasesFromCloud(forceFull = true) for instant parity."
+      - "Wired into AppNavigation, Routes, MoreScreen, and SupplierLedgerScreen."
+
+  - id: e59-s3
+    title: "Android & DataConnect: Robust SyncWorker Supplier/Item Resolution for 100% Web Parity"
+    status: complete
+    acceptance:
+      - "SyncWorker resolves suppliers by cloud_id, local name lookup, or fallback supplier_id = 0L without dropping purchases."
+      - "Purchase line items resolve by cloud_id, name, or fallback item_id = 0L without dropping item rows."
+      - "All 14/14 web purchase records for current store sync successfully to Android local SQLite."

@@ -48,6 +48,9 @@ sealed class Routes(
     object SupplierLedger : Routes("supplier_ledger_screen")
 
     @Serializable
+    object PurchaseHistory : Routes("purchase_history_screen")
+
+    @Serializable
     object GSTReport : Routes("gst_report_screen")
 
     @Serializable

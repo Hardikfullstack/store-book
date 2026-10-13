@@ -80,6 +80,7 @@ class SyncWorker(
         suspend fun performSync(
             appCtx: Context,
             storeId: String,
+            forceFull: Boolean = false,
             onProgress: (Int, String) -> Unit = { _, _ -> },
         ) = withContext(Dispatchers.IO) {
             syncMutex.withLock {
@@ -98,7 +99,7 @@ class SyncWorker(
                 // E01-S1: Only set PULLING if push completed (not partial failure)
                 repo.setSyncStatus("PULLING")
                 onProgress(40, "Pulling")
-                val (pulled, pullHadEntityFailures) = pull(repo, conn, storeId, appCtx)
+                val (pulled, pullHadEntityFailures) = pull(repo, conn, storeId, appCtx, forceFull)
 
                 // E01-S1: Update SyncState ONLY after both phases succeed fully
                 // Push count + Pull count are batch metrics for tracking
@@ -1518,11 +1519,12 @@ class SyncWorker(
             c: StorebookConnectorConnector,
             sid: String,
             ctx: Context,
+            forceFull: Boolean = false,
         ): Pair<Int, Boolean> {
             val prefs =
                 com.storebook.inventoryapp.utils.SecurityUtils
                     .getEncryptedPrefs(ctx)
-            val ls = prefs.getLong("last_sync_timestamp_$sid", 0L)
+            val ls = if (forceFull) 0L else prefs.getLong("last_sync_timestamp_$sid", 0L)
             var pulled = 0
             val entityFailures = mutableMapOf<String, String>()
 
@@ -1775,31 +1777,64 @@ class SyncWorker(
 
             // Purchases — LWW via updatedAt
             try {
+                val purchasesLastSync = if (forceFull || r.getAllPurchases().isEmpty()) 0.0 else ls.toDouble()
                 val ps =
                     c.syncPurchases
-                        .execute(sid, ls.toDouble())
+                        .execute(sid, purchasesLastSync)
                         .data.purchases
+                val localSuppliers = r.getAllSuppliers()
+                val supplierCloudMap = localSuppliers.associate { it.cloud_id to it.id }
+                val supplierNameMap = localSuppliers.associate { it.name.trim().lowercase() to it.id }
+
                 var purchasesProcessed = 0
                 purchasesLoop@ for (pu in ps) {
                     val safeUpdatedAt = normalizeTimestamp(pu.updatedAt)
                     if (!r.shouldAcceptRemotePurchase(safeUpdatedAt, pu.id)) continue@purchasesLoop
-                    // BUG-03 FIX: Skip orphan records instead of inserting with FK=0
-                    val resolvedSupplierId = r.resolveSupplierIdByCloudId(pu.supplierId)?.toLong()
-                    if (resolvedSupplierId == null) {
-                        android.util.Log
-                            .w(
-                                "SW-Pull",
-                                "BUG-03: Skipping purchase ${pu.id}: supplier ${pu.supplierId} not found locally",
+
+                    var resolvedSupplierId =
+                        supplierCloudMap[pu.supplierId]
+                            ?: supplierNameMap[pu.supplierName.trim().lowercase()]
+
+                    if (resolvedSupplierId == null &&
+                        pu.supplierName.isNotBlank() &&
+                        !pu.supplierName.equals("Cash / Anonymous", ignoreCase = true)
+                    ) {
+                        try {
+                            val newCid =
+                                if (pu.supplierId.isNotBlank()) {
+                                    pu.supplierId
+                                } else {
+                                    java.util.UUID
+                                        .randomUUID()
+                                        .toString()
+                                }
+                            r.upsertSupplierWithCloudId(
+                                sanitize(pu.supplierName),
+                                null,
+                                null,
+                                null,
+                                0L,
+                                newCid,
+                                safeUpdatedAt,
                             )
-                        continue@purchasesLoop
+                            resolvedSupplierId = r.resolveSupplierIdByCloudId(newCid)
+                        } catch (e: Exception) {
+                            android.util.Log.w("SW-Pull", "Failed to auto-upsert supplier ${pu.supplierName}: ${e.message}")
+                        }
                     }
-                    r
-                        .upsertPurchaseWithCloudId(
-                            resolvedSupplierId, sanitize(pu.supplierName), pu.totalAmount, pu.taxAmount, pu.type,
-                            normalizeTimestamp(pu.timestamp),
-                            pu.notes?.let(::sanitize), if (pu.isDeleted) 1L else 0L, pu.id,
-                            safeUpdatedAt,
-                        )
+
+                    r.upsertPurchaseWithCloudId(
+                        resolvedSupplierId ?: 0L,
+                        sanitize(pu.supplierName),
+                        pu.totalAmount,
+                        pu.taxAmount,
+                        pu.type,
+                        normalizeTimestamp(pu.timestamp),
+                        pu.notes?.let(::sanitize),
+                        if (pu.isDeleted) 1L else 0L,
+                        pu.id,
+                        safeUpdatedAt,
+                    )
                     purchasesProcessed++
                 }
                 pulled += purchasesProcessed
@@ -1817,13 +1852,17 @@ class SyncWorker(
 
             // PurchaseItems — cascade from resolved parentId keys
             try {
+                val purchaseItemsLastSync = if (forceFull || r.getAllPurchases().isEmpty()) 0.0 else ls.toDouble()
                 val pis =
                     c.syncPurchaseItems
-                        .execute(sid, ls.toDouble())
+                        .execute(sid, purchaseItemsLastSync)
                         .data.purchaseItemDetails
+                val localItems = r.getAllItems()
+                val itemCloudMap = localItems.associate { it.cloud_id to it.id }
+                val itemNameMap = localItems.associate { it.name.trim().lowercase() to it.id }
+
                 var purchaseItemsPulled = 0
                 purchaseItemsLoop@ for (pi in pis) {
-                    // BUG-03 FIX: Skip orphan records instead of inserting with FK=0
                     val resolvedPurchaseId = r.resolvePurchaseIdByCloudId(pi.purchaseId)?.toLong()
                     if (resolvedPurchaseId == null) {
                         android.util.Log
@@ -1833,24 +1872,22 @@ class SyncWorker(
                             )
                         continue@purchaseItemsLoop
                     }
-                    val resolvedItemId = r.resolveItemIdByCloudId(pi.itemId)
-                    if (resolvedItemId == null) {
-                        android.util.Log
-                            .w("SW-Pull", "BUG-03: Skipping purchaseItem ${pi.id}: item ${pi.itemId} not found")
-                        continue@purchaseItemsLoop
-                    }
-                    r
-                        .upsertPurchaseItemWithCloudId(
-                            resolvedPurchaseId,
-                            resolvedItemId,
-                            sanitize(pi.itemName),
-                            pi.quantity,
-                            pi.unit,
-                            pi.buyPrice,
-                            if (pi.isDeleted) 1L else 0L,
-                            pi.id,
-                            normalizeTimestamp(pi.updatedAt),
-                        )
+                    val resolvedItemId =
+                        itemCloudMap[pi.itemId]
+                            ?: itemNameMap[pi.itemName.trim().lowercase()]
+                            ?: 0L
+
+                    r.upsertPurchaseItemWithCloudId(
+                        resolvedPurchaseId,
+                        resolvedItemId,
+                        sanitize(pi.itemName),
+                        pi.quantity,
+                        pi.unit,
+                        pi.buyPrice,
+                        if (pi.isDeleted) 1L else 0L,
+                        pi.id,
+                        normalizeTimestamp(pi.updatedAt),
+                    )
                     purchaseItemsPulled++
                 }
                 pulled += purchaseItemsPulled

@@ -1,7 +1,10 @@
 package com.storebook.inventoryapp.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.storebook.inventoryapp.data.sync.SyncManager
+import com.storebook.inventoryapp.data.sync.SyncWorker
 import com.storebook.inventoryapp.shared.domain.models.Item
 import com.storebook.inventoryapp.shared.domain.models.Purchase
 import com.storebook.inventoryapp.shared.domain.models.PurchaseItemDetail
@@ -9,6 +12,7 @@ import com.storebook.inventoryapp.shared.domain.models.Supplier
 import com.storebook.inventoryapp.shared.domain.repository.InventoryRepository
 import com.storebook.inventoryapp.shared.domain.repository.PurchaseRepository
 import com.storebook.inventoryapp.shared.domain.repository.SupplierRepository
+import com.storebook.inventoryapp.utils.SecurityUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -17,6 +21,7 @@ class PurchaseViewModel(
     private val purchaseRepository: PurchaseRepository,
     private val supplierRepository: SupplierRepository,
     private val inventoryRepository: InventoryRepository,
+    private val context: Context? = null,
 ) : ViewModel() {
     private val _purchases = MutableStateFlow<List<Purchase>>(emptyList())
     val purchases: StateFlow<List<Purchase>> = _purchases
@@ -33,6 +38,31 @@ class PurchaseViewModel(
 
     init {
         loadData()
+        syncPurchasesFromCloud()
+    }
+
+    fun syncPurchasesFromCloud(onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            context?.let { ctx ->
+                val storeId =
+                    SecurityUtils
+                        .getEncryptedPrefs(ctx)
+                        .getString("active_store_id", "default") ?: "default"
+                if (SyncManager.isOnline(ctx)) {
+                    try {
+                        SyncWorker.performSync(ctx, storeId, forceFull = true) { _, _ -> }
+                    } catch (e: Exception) {
+                        android.util.Log.w("PurchaseViewModel", "Sync failed: ${e.message}")
+                    }
+                }
+            }
+            loadData()
+            onComplete()
+        }
+    }
+
+    fun refresh(onComplete: () -> Unit = {}) {
+        syncPurchasesFromCloud(onComplete)
     }
 
     fun loadData() {
@@ -50,15 +80,18 @@ class PurchaseViewModel(
                         notes = p.notes,
                         items =
                             purchaseRepository.getPurchaseItems(p.id).map { pi ->
-                                com.storebook.inventoryapp.shared.domain.models.PurchaseItemDetail(
+                                PurchaseItemDetail(
+                                    id = pi.id,
                                     purchaseId = p.id,
                                     itemId = pi.item_id,
                                     itemName = pi.item_name,
                                     quantity = pi.quantity,
                                     unit = pi.unit,
                                     buyPrice = pi.buy_price,
+                                    cloudId = pi.cloud_id,
                                 )
                             },
+                        cloudId = p.cloud_id,
                     )
                 }
             _suppliers.value =
@@ -129,6 +162,13 @@ class PurchaseViewModel(
                 inventoryRepository.updateItemStock(item.itemId, item.quantity)
             }
             loadData()
+            context?.let { ctx ->
+                val storeId =
+                    SecurityUtils
+                        .getEncryptedPrefs(ctx)
+                        .getString("active_store_id", "default") ?: "default"
+                SyncManager.onRecordCreatedOrUpdated(ctx, storeId)
+            }
             onResult(pId)
         }
     }

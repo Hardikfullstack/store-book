@@ -618,6 +618,16 @@ fun MoreScreen(
                             },
                         )
 
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        IconOptionRow(
+                            icon = Icons.Outlined.Receipt,
+                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            iconTint = MaterialTheme.colorScheme.primary,
+                            title = "Purchase History",
+                            subtitle = "View vendor invoices & wholesale bills",
+                            onClick = { navController.navigate(Routes.PurchaseHistory) },
+                        )
+
                         if (viewModel.userRoleType.hasPermission(AppPermission.MANAGE_BUSINESS_SETTINGS)) {
                             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                             IconOptionRow(

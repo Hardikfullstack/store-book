@@ -91,7 +91,7 @@ class AppViewModelFactory(
                 vm as T
             }
             modelClass.isAssignableFrom(PurchaseViewModel::class.java) -> {
-                PurchaseViewModel(purchaseRepository, supplierRepository, inventoryRepository) as T
+                PurchaseViewModel(purchaseRepository, supplierRepository, inventoryRepository, context) as T
             }
             modelClass.isAssignableFrom(SupplierViewModel::class.java) -> {
                 SupplierViewModel(supplierRepository, purchaseRepository, context) as T

@@ -103,6 +103,7 @@ import com.storebook.inventoryapp.ui.screens.storebook.GSTReportScreen
 import com.storebook.inventoryapp.ui.screens.storebook.InventoryScreen
 import com.storebook.inventoryapp.ui.screens.storebook.MoreScreen
 import com.storebook.inventoryapp.ui.screens.storebook.PriceDriftReportScreen
+import com.storebook.inventoryapp.ui.screens.storebook.PurchaseHistoryScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SalesScreen
 import com.storebook.inventoryapp.ui.screens.storebook.SplashScreen
 import com.storebook.inventoryapp.ui.screens.storebook.StockAuditScreen
@@ -1420,6 +1421,13 @@ fun AppNavigation() {
                 com.storebook.inventoryapp.ui.screens.storebook.SupplierLedgerScreen(
                     viewModel = supplierViewModel,
                     onBack = { navController.popBackStack() },
+                    onOpenPurchaseHistory = { navController.navigate(Routes.PurchaseHistory) },
+                )
+            }
+            composable<Routes.PurchaseHistory> {
+                PurchaseHistoryScreen(
+                    navController = navController,
+                    viewModel = purchaseViewModel,
                 )
             }
             composable<Routes.SalesHistory> {
