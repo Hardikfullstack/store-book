@@ -119,6 +119,7 @@ class RoutesTest {
                 Routes.More,
                 Routes.Splash,
                 Routes.Auth,
+                Routes.Expenses,
             )
         for (r in allRoutes) {
             assert(r.string.endsWith("_screen")) {

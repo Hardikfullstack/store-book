@@ -601,8 +601,7 @@ fun MoreScreen(
                             title = stringResource(id = R.string.more_expense_track),
                             subtitle = "Log shop rent, electricity & overheads",
                             onClick = {
-                                activeModal = "EXPENSES"
-                                showSheet = true
+                                navController.navigate(Routes.Expenses)
                             },
                         )
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))

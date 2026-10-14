@@ -98,6 +98,7 @@ import com.storebook.inventoryapp.MainActivity
 import com.storebook.inventoryapp.R
 import com.storebook.inventoryapp.ui.screens.auth.AuthScreen
 import com.storebook.inventoryapp.ui.screens.storebook.DashboardScreen
+import com.storebook.inventoryapp.ui.screens.storebook.ExpensesScreen
 import com.storebook.inventoryapp.ui.screens.storebook.FilterChip
 import com.storebook.inventoryapp.ui.screens.storebook.GSTReportScreen
 import com.storebook.inventoryapp.ui.screens.storebook.InventoryScreen
@@ -1428,6 +1429,12 @@ fun AppNavigation() {
                 PurchaseHistoryScreen(
                     navController = navController,
                     viewModel = purchaseViewModel,
+                )
+            }
+            composable<Routes.Expenses> {
+                ExpensesScreen(
+                    navController = navController,
+                    viewModel = expenseViewModel,
                 )
             }
             composable<Routes.SalesHistory> {

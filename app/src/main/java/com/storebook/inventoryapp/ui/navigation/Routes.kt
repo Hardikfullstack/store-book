@@ -63,6 +63,9 @@ sealed class Routes(
     object PdfSettings : Routes("pdf_settings_screen")
 
     @Serializable
+    object Expenses : Routes("expenses_screen")
+
+    @Serializable
     data class InvoicePdfPreview(
         val saleId: Long,
     ) : Routes("invoice_pdf_preview_screen")
